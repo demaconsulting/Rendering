@@ -1,8 +1,16 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/DemaConsulting.Rendering/DemaConsulting.Rendering.csproj" />
+    <Project Path="src/DemaConsulting.Rendering.Abstractions/DemaConsulting.Rendering.Abstractions.csproj" />
+    <Project Path="src/DemaConsulting.Rendering.Layout/DemaConsulting.Rendering.Layout.csproj" />
+    <Project Path="src/DemaConsulting.Rendering.Svg/DemaConsulting.Rendering.Svg.csproj" />
+    <Project Path="src/DemaConsulting.Rendering.Png/DemaConsulting.Rendering.Png.csproj" />
   </Folder>
   <Folder Name="/test/">
     <Project Path="test/DemaConsulting.Rendering.Tests/DemaConsulting.Rendering.Tests.csproj" />
+    <Project Path="test/DemaConsulting.Rendering.Abstractions.Tests/DemaConsulting.Rendering.Abstractions.Tests.csproj" />
+    <Project Path="test/DemaConsulting.Rendering.Layout.Tests/DemaConsulting.Rendering.Layout.Tests.csproj" />
+    <Project Path="test/DemaConsulting.Rendering.Svg.Tests/DemaConsulting.Rendering.Svg.Tests.csproj" />
+    <Project Path="test/DemaConsulting.Rendering.Png.Tests/DemaConsulting.Rendering.Png.Tests.csproj" />
   </Folder>
 </Solution>

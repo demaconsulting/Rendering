@@ -7,19 +7,19 @@
     <Nullable>enable</Nullable>
 
     <!-- NuGet Package Configuration -->
-    <PackageId>DemaConsulting.Rendering</PackageId>
+    <PackageId>DemaConsulting.Rendering.Layout</PackageId>
     <Version>0.0.0</Version>
     <Authors>DEMA Consulting</Authors>
     <Company>DEMA Consulting</Company>
-    <Description>General-purpose diagram layout model and intermediate representation for .NET</Description>
+    <Description>Pluggable diagram layout algorithms (ELK-inspired layered pipeline, packers, and routers) for the DEMA Consulting rendering library</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/demaconsulting/Rendering</PackageProjectUrl>
     <RepositoryUrl>https://github.com/demaconsulting/Rendering</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>Icon.png</PackageIcon>
-    <PackageTags>rendering;dotnet-library</PackageTags>
+    <PackageTags>rendering;layout;elk;dotnet-library</PackageTags>
     <Copyright>Copyright DEMA Consulting</Copyright>
-    <Title>Rendering</Title>
+    <Title>Rendering Layout</Title>
     <Product>Rendering</Product>
 
     <!-- Symbol Package Configuration -->
@@ -53,13 +53,14 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.300" PrivateAssets="All" />
   </ItemGroup>
 
+  <!-- Project References -->
+  <ItemGroup>
+    <ProjectReference Include="..\DemaConsulting.Rendering\DemaConsulting.Rendering.csproj" />
+    <ProjectReference Include="..\DemaConsulting.Rendering.Abstractions\DemaConsulting.Rendering.Abstractions.csproj" />
+  </ItemGroup>
+
   <!-- Code Analysis Dependencies -->
   <ItemGroup>
-    <!-- Analyzer packages use child-element form to configure both PrivateAssets and IncludeAssets:
-         - PrivateAssets="all" prevents these build-time analyzers from becoming transitive dependencies
-           in packages that consume this library.
-         - IncludeAssets lists all asset types (including 'analyzers' and 'buildtransitive') to ensure
-           Roslyn analyzers and MSBuild targets are fully activated during the build. -->
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.301">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -71,7 +72,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="DemaConsulting.Rendering.Tests" />
+    <InternalsVisibleTo Include="DemaConsulting.Rendering.Layout.Tests" />
   </ItemGroup>
 
   <ItemGroup>

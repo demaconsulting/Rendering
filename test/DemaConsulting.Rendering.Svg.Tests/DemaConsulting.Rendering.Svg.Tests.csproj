@@ -59,8 +59,9 @@
 
   <!-- Project References -->
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DemaConsulting.Rendering\DemaConsulting.Rendering.csproj" />
+    <ProjectReference Include="..\..\src\DemaConsulting.Rendering.Svg\DemaConsulting.Rendering.Svg.csproj" />
   </ItemGroup>
 
 </Project>
+
 
