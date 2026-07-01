@@ -1,0 +1,138 @@
+---
+# ReviewMark Configuration File
+# This file defines which files require review, where the evidence store is located,
+# and how files are grouped into named review-sets following hierarchical scope principles.
+
+# Patterns identifying all files that require review.
+# Processed in order; prefix a pattern with '!' to exclude.
+needs-review:
+  - "README.md"                   # Root README file
+  - "requirements.yaml"           # Root requirements file
+  - "**/*.cs"                     # All C# source and test files
+  - "docs/reqstream/**/*.yaml"    # Requirements files
+  - "docs/design/**/*.md"         # Design documentation files
+  - "docs/verification/**/*.md"   # Verification documentation files
+  - "docs/user_guide/**/*.md"     # User guide documentation
+  - "!**/obj/**"                  # Exclude build output
+  - "!**/bin/**"                  # Exclude build output
+  - "!node_modules/**"            # Exclude npm dependencies
+  - "!**/.venv/**"                # Exclude Python virtual environment
+
+# Evidence source: review data and index.json are located in the 'reviews' branch
+# of this repository, accessed through the GitHub public HTTPS raw content access.
+# Note: The 'reviews' branch must be created and populated with review evidence PDFs
+# and an index.json before enforcement (--enforce flag) can be enabled in the pipeline.
+evidence-source:
+  type: url
+  location: https://raw.githubusercontent.com/demaconsulting/TemplateDotNetLibrary/reviews/index.json
+
+# Review sets following hierarchical scope principles.
+# Each review-set focuses on a single compliance question with manageable file counts.
+reviews:
+  # Purpose
+  - id: Purpose
+    title: Review of user-facing capabilities and system promises
+    paths:
+      - "README.md"
+      - "docs/user_guide/**/*.md"
+      - "docs/reqstream/template-dot-net-library/template-dot-net-library.yaml"
+      - "docs/design/introduction.md"
+      - "docs/design/template-dot-net-library/template-dot-net-library.md"
+
+  # TemplateDotNetLibrary - Specials
+  - id: TemplateDotNetLibrary-Architecture
+    title: Review of Template DotNet Library system architecture and operational validation
+    paths:
+      - "docs/reqstream/template-dot-net-library/template-dot-net-library.yaml"
+      - "docs/design/introduction.md"
+      - "docs/design/template-dot-net-library/template-dot-net-library.md"
+      - "docs/verification/introduction.md"
+      - "docs/verification/template-dot-net-library/template-dot-net-library.md"
+      - "test/DemaConsulting.TemplateDotNetLibrary.Tests/TemplateDotNetLibraryTests.cs"
+
+  - id: TemplateDotNetLibrary-Design
+    title: Review of Template DotNet Library architectural and design consistency
+    paths:
+      - "docs/reqstream/template-dot-net-library/template-dot-net-library.yaml"
+      - "docs/reqstream/template-dot-net-library/platform-requirements.yaml"
+      - "docs/design/introduction.md"
+      - "docs/design/template-dot-net-library/**/*.md"
+      - "docs/verification/introduction.md"
+
+  - id: TemplateDotNetLibrary-AllRequirements
+    title: Review of Template DotNet Library requirements quality and traceability
+    paths:
+      - "requirements.yaml"
+      - "docs/reqstream/template-dot-net-library/**/*.yaml"
+      - "docs/reqstream/ots/*.yaml"
+
+  # TemplateDotNetLibrary - Demo
+  - id: TemplateDotNetLibrary-Demo
+    title: Review of Demo Unit Implementation
+    paths:
+      - "docs/reqstream/template-dot-net-library/demo.yaml"
+      - "docs/design/template-dot-net-library/demo.md"
+      - "docs/verification/template-dot-net-library/demo.md"
+      - "src/DemaConsulting.TemplateDotNetLibrary/Demo.cs"
+      - "test/DemaConsulting.TemplateDotNetLibrary.Tests/DemoTests.cs"
+
+  # OTS Items
+  - id: OTS-BuildMark
+    title: Review of BuildMark OTS verification evidence
+    paths:
+      - "docs/reqstream/ots/buildmark.yaml"
+      - "docs/verification/ots/buildmark.md"
+
+  - id: OTS-FileAssert
+    title: Review of FileAssert OTS verification evidence
+    paths:
+      - "docs/reqstream/ots/fileassert.yaml"
+      - "docs/verification/ots/fileassert.md"
+
+  - id: OTS-Pandoc
+    title: Review of Pandoc OTS verification evidence
+    paths:
+      - "docs/reqstream/ots/pandoc.yaml"
+      - "docs/verification/ots/pandoc.md"
+
+  - id: OTS-ReqStream
+    title: Review of ReqStream OTS verification evidence
+    paths:
+      - "docs/reqstream/ots/reqstream.yaml"
+      - "docs/verification/ots/reqstream.md"
+
+  - id: OTS-ReviewMark
+    title: Review of ReviewMark OTS verification evidence
+    paths:
+      - "docs/reqstream/ots/reviewmark.yaml"
+      - "docs/verification/ots/reviewmark.md"
+
+  - id: OTS-SarifMark
+    title: Review of SarifMark OTS verification evidence
+    paths:
+      - "docs/reqstream/ots/sarifmark.yaml"
+      - "docs/verification/ots/sarifmark.md"
+
+  - id: OTS-SonarMark
+    title: Review of SonarMark OTS verification evidence
+    paths:
+      - "docs/reqstream/ots/sonarmark.yaml"
+      - "docs/verification/ots/sonarmark.md"
+
+  - id: OTS-VersionMark
+    title: Review of VersionMark OTS verification evidence
+    paths:
+      - "docs/reqstream/ots/versionmark.yaml"
+      - "docs/verification/ots/versionmark.md"
+
+  - id: OTS-WeasyPrint
+    title: Review of WeasyPrint OTS verification evidence
+    paths:
+      - "docs/reqstream/ots/weasyprint.yaml"
+      - "docs/verification/ots/weasyprint.md"
+
+  - id: OTS-xUnit
+    title: Review of xUnit OTS verification evidence
+    paths:
+      - "docs/reqstream/ots/xunit.yaml"
+      - "docs/verification/ots/xunit.md"
