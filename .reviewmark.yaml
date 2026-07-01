@@ -24,7 +24,7 @@ needs-review:
 # and an index.json before enforcement (--enforce flag) can be enabled in the pipeline.
 evidence-source:
   type: url
-  location: https://raw.githubusercontent.com/demaconsulting/TemplateDotNetLibrary/reviews/index.json
+  location: https://raw.githubusercontent.com/demaconsulting/Rendering/reviews/index.json
 
 # Review sets following hierarchical scope principles.
 # Each review-set focuses on a single compliance question with manageable file counts.
@@ -35,46 +35,46 @@ reviews:
     paths:
       - "README.md"
       - "docs/user_guide/**/*.md"
-      - "docs/reqstream/template-dot-net-library/template-dot-net-library.yaml"
+      - "docs/reqstream/rendering/rendering.yaml"
       - "docs/design/introduction.md"
-      - "docs/design/template-dot-net-library/template-dot-net-library.md"
+      - "docs/design/rendering/rendering.md"
 
-  # TemplateDotNetLibrary - Specials
-  - id: TemplateDotNetLibrary-Architecture
-    title: Review of Template DotNet Library system architecture and operational validation
+  # Rendering - Specials
+  - id: Rendering-Architecture
+    title: Review of Rendering system architecture and operational validation
     paths:
-      - "docs/reqstream/template-dot-net-library/template-dot-net-library.yaml"
+      - "docs/reqstream/rendering/rendering.yaml"
       - "docs/design/introduction.md"
-      - "docs/design/template-dot-net-library/template-dot-net-library.md"
+      - "docs/design/rendering/rendering.md"
       - "docs/verification/introduction.md"
-      - "docs/verification/template-dot-net-library/template-dot-net-library.md"
-      - "test/DemaConsulting.TemplateDotNetLibrary.Tests/TemplateDotNetLibraryTests.cs"
+      - "docs/verification/rendering/rendering.md"
+      - "test/DemaConsulting.Rendering.Tests/RenderingTests.cs"
 
-  - id: TemplateDotNetLibrary-Design
-    title: Review of Template DotNet Library architectural and design consistency
+  - id: Rendering-Design
+    title: Review of Rendering architectural and design consistency
     paths:
-      - "docs/reqstream/template-dot-net-library/template-dot-net-library.yaml"
-      - "docs/reqstream/template-dot-net-library/platform-requirements.yaml"
+      - "docs/reqstream/rendering/rendering.yaml"
+      - "docs/reqstream/rendering/platform-requirements.yaml"
       - "docs/design/introduction.md"
-      - "docs/design/template-dot-net-library/**/*.md"
+      - "docs/design/rendering/**/*.md"
       - "docs/verification/introduction.md"
 
-  - id: TemplateDotNetLibrary-AllRequirements
-    title: Review of Template DotNet Library requirements quality and traceability
+  - id: Rendering-AllRequirements
+    title: Review of Rendering requirements quality and traceability
     paths:
       - "requirements.yaml"
-      - "docs/reqstream/template-dot-net-library/**/*.yaml"
+      - "docs/reqstream/rendering/**/*.yaml"
       - "docs/reqstream/ots/*.yaml"
 
-  # TemplateDotNetLibrary - Demo
-  - id: TemplateDotNetLibrary-Demo
+  # Rendering - Demo
+  - id: Rendering-Demo
     title: Review of Demo Unit Implementation
     paths:
-      - "docs/reqstream/template-dot-net-library/demo.yaml"
-      - "docs/design/template-dot-net-library/demo.md"
-      - "docs/verification/template-dot-net-library/demo.md"
-      - "src/DemaConsulting.TemplateDotNetLibrary/Demo.cs"
-      - "test/DemaConsulting.TemplateDotNetLibrary.Tests/DemoTests.cs"
+      - "docs/reqstream/rendering/demo.yaml"
+      - "docs/design/rendering/demo.md"
+      - "docs/verification/rendering/demo.md"
+      - "src/DemaConsulting.Rendering/Demo.cs"
+      - "test/DemaConsulting.Rendering.Tests/DemoTests.cs"
 
   # OTS Items
   - id: OTS-BuildMark

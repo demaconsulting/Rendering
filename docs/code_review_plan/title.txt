@@ -1,11 +1,11 @@
 ---
-title: Template DotNet Library Review Plan
-subtitle: File Review Plan for the Template DotNet Library
+title: Rendering Review Plan
+subtitle: File Review Plan for the Rendering
 author: DEMA Consulting
-description: File Review Plan for the Template DotNet Library
+description: File Review Plan for the Rendering
 lang: en-US
 keywords:
-  - Template DotNet Library
+  - Rendering
   - Review Plan
   - File Reviews
   - .NET

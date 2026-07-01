@@ -1,4 +1,4 @@
 ---
-# CodeQL configuration for Template DotNet Library
+# CodeQL configuration for Rendering
 
-name: "Template DotNet Library CodeQL Config"
+name: "Rendering CodeQL Config"
