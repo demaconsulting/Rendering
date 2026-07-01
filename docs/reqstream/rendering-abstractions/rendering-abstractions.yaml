@@ -1,0 +1,287 @@
+---
+# DemaConsulting.Rendering.Abstractions Requirements
+#
+# PURPOSE:
+# - Define the requirements for the DemaConsulting.Rendering.Abstractions system: the service
+#   provider interface (SPI) that sits between the rendering model and the concrete layout and
+#   renderer implementations.
+# - The first section holds system-level requirements. Each system requirement decomposes downward
+#   (children) into the unit requirements that provide the detailed behavior.
+# - The remaining sections hold the unit requirements for the six units of this system:
+#   rendering-contracts, registries, theme, notation-metrics, box-metrics, and connector-label-placer.
+
+sections:
+  - title: Rendering Abstractions System Requirements
+    requirements:
+      - id: Rendering-Abstractions-Extensibility
+        title: >-
+          The abstractions system shall define the pluggable layout-algorithm and renderer contracts
+          and shall provide registries that select an implementation by identifier or media type.
+        justification: |
+          An ELK-inspired provider model lets additional layout families and output formats be
+          introduced purely additively - a new implementation is written and registered, and no
+          existing contract changes - so consumers resolve the implementation they need at run time.
+        children:
+          - Rendering-Abstractions-Contracts-Algorithm
+          - Rendering-Abstractions-Contracts-Renderer
+          - Rendering-Abstractions-Registries-ResolveAlgorithm
+          - Rendering-Abstractions-Registries-ResolveRenderer
+          - Rendering-Abstractions-Registries-ResolveRendererByExtension
+          - Rendering-Abstractions-Registries-MissingThrows
+        tests:
+          - LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
+          - RendererRegistry_RegisterThenResolve_ReturnsRenderer
+
+      - id: Rendering-Abstractions-Theming
+        title: >-
+          The abstractions system shall define a visual theme model with built-in themes and derived
+          connector approach geometry.
+        justification: |
+          Centralizing colors, fonts, and line metrics in a theme lets a single layout be rendered
+          in different visual styles, and deriving the connector approach zone from theme values
+          keeps the space reserved by layout consistent with the space drawn by renderers.
+        children:
+          - Rendering-Abstractions-Theme-ApproachZone
+          - Rendering-Abstractions-Theme-BuiltInGeometry
+        tests:
+          - ConnectorApproachZone_SumsStubBendAndClearance
+          - Themes_HaveExpectedConnectorGeometry
+
+      - id: Rendering-Abstractions-SharedGeometry
+        title: >-
+          The abstractions system shall provide single-source notation, box, and connector-label
+          geometry so that every renderer draws identical decorations and reserves consistent space.
+        justification: |
+          When the SVG and PNG renderers and the layout strategies all read one source of geometry,
+          their markers, box title areas, and label placements match exactly and a geometry literal
+          never has to be duplicated across the rendering path.
+        children:
+          - Rendering-Abstractions-NotationMetrics-TriangleGeometry
+          - Rendering-Abstractions-NotationMetrics-DiamondGeometry
+          - Rendering-Abstractions-NotationMetrics-CircleBarGeometry
+          - Rendering-Abstractions-NotationMetrics-Crossbar
+          - Rendering-Abstractions-NotationMetrics-AlongLineLength
+          - Rendering-Abstractions-NotationMetrics-BoxDecorations
+          - Rendering-Abstractions-BoxMetrics-FolderTabHeight
+          - Rendering-Abstractions-BoxMetrics-TitleAreaHeight
+          - Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled
+          - Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment
+          - Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap
+        tests:
+          - TriangleFamily_HasCanonicalValues
+          - BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding
+          - Place_SingleLine_UsesLongestSegmentMidpoint
+
+  - title: Rendering Contracts Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-Contracts-Algorithm
+        title: >-
+          A layout algorithm shall expose a stable identifier used to select it and shall produce a
+          placed layout tree from an unplaced input graph and its options.
+        justification: |
+          A stable identifier lets a caller request a specific algorithm by name, and a uniform
+          apply operation lets any diagram family be laid out through the same contract.
+        tests:
+          - LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
+
+      - id: Rendering-Abstractions-Contracts-Renderer
+        title: >-
+          A renderer shall expose its media type, its default file extension, and the full set of
+          file extensions it produces, and shall write the rendered output for a layout tree to a
+          supplied stream.
+        justification: |
+          Exposing the media type and the file extensions lets callers name and serve the output
+          correctly and resolve a renderer from an output filename, and writing to a caller-supplied
+          stream keeps the renderer free of filesystem concerns.
+        tests:
+          - RendererRegistry_RegisterThenResolve_ReturnsRenderer
+          - PngRenderer_FileExtensions_ContainsDefault
+
+  - title: Registries Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-Registries-ResolveAlgorithm
+        title: >-
+          The algorithm registry shall register a layout algorithm under its identifier and resolve
+          that algorithm back by the same identifier.
+        justification: |
+          A registry lets an application assemble the set of algorithms it wishes to offer and then
+          resolve the requested one at layout time by the identifier carried in the options.
+        tests:
+          - LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
+
+      - id: Rendering-Abstractions-Registries-ResolveRenderer
+        title: >-
+          The renderer registry shall register a renderer under its media type and resolve that
+          renderer back by the same media type.
+        justification: |
+          A registry lets an application assemble the set of output formats it wishes to offer and
+          then resolve the requested renderer at render time by media type.
+        tests:
+          - RendererRegistry_RegisterThenResolve_ReturnsRenderer
+
+      - id: Rendering-Abstractions-Registries-ResolveRendererByExtension
+        title: >-
+          The renderer registry shall also index each renderer by every file extension it produces
+          and resolve a renderer from an output file extension, ignoring case and an optional leading
+          dot.
+        justification: |
+          Selecting a renderer from an output filename (for example diagram.webp) is a common need
+          for command-line and file-driven callers; matching case-insensitively and with an optional
+          leading dot makes the lookup forgiving of caller input.
+        tests:
+          - RendererRegistry_ResolveByExtension_MatchesAdvertisedExtensions
+
+      - id: Rendering-Abstractions-Registries-MissingThrows
+        title: >-
+          Resolving an identifier that has not been registered shall raise a not-found error.
+        justification: |
+          Failing fast when a requested algorithm or renderer is absent surfaces a configuration
+          mistake immediately rather than returning a null that fails obscurely later.
+        tests:
+          - LayoutAlgorithmRegistry_ResolveMissing_Throws
+
+  - title: Theme Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-Theme-ApproachZone
+        title: >-
+          The theme shall compute a connector approach zone as the sum of the perpendicular stub, the
+          corner bend radius, and the caller-supplied connector clearance.
+        justification: |
+          The approach zone is the clear distance a connector needs off a box face before it can
+          bend; deriving it from theme values keeps reserved and drawn geometry in agreement.
+        tests:
+          - ConnectorApproachZone_SumsStubBendAndClearance
+
+      - id: Rendering-Abstractions-Theme-BuiltInGeometry
+        title: >-
+          The built-in themes shall provide the documented connector geometry, with the light and
+          dark themes sharing values and the print theme using tighter values.
+        justification: |
+          Ready-made themes give callers correct defaults for screen and print output without having
+          to specify every metric, while a tighter print theme suits monochrome output.
+        tests:
+          - Themes_HaveExpectedConnectorGeometry
+
+  - title: Notation Metrics Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-NotationMetrics-TriangleGeometry
+        title: >-
+          The notation metrics shall define the triangular end-marker geometry with the canonical
+          marker dimensions and an apex vertex that overshoots the line endpoint.
+        justification: |
+          The open chevron, hollow triangle, and filled arrow all share one triangle geometry;
+          defining it once ensures every renderer draws these markers identically.
+        tests:
+          - TriangleFamily_HasCanonicalValues
+          - TriangleVertices_ReproduceSvgBoxPoints
+          - TriangleVertices_Apex_OvershootsEndpoint
+
+      - id: Rendering-Abstractions-NotationMetrics-DiamondGeometry
+        title: >-
+          The notation metrics shall define the diamond end-marker geometry with the canonical
+          dimensions and a far vertex that lands on the line endpoint.
+        justification: |
+          The hollow and filled diamonds share one geometry whose far point must sit on the endpoint;
+          defining it once keeps the two renderers' diamonds identical and correctly anchored.
+        tests:
+          - Diamond_HasCanonicalValues
+          - DiamondVertices_ReproduceSvgBoxPoints
+          - DiamondVertices_FarPoint_LandsOnEndpoint
+
+      - id: Rendering-Abstractions-NotationMetrics-CircleBarGeometry
+        title: >-
+          The notation metrics shall define the canonical circle and bar end-marker geometry.
+        justification: |
+          Circle and bar markers complete the end-decoration set; defining their canonical
+          dimensions once keeps them consistent across renderers.
+        tests:
+          - CircleAndBar_HaveCanonicalValues
+
+      - id: Rendering-Abstractions-NotationMetrics-Crossbar
+        title: >-
+          The notation metrics shall position the redefinition crossbar at the documented fraction of
+          the end-marker length.
+        justification: |
+          The crossbar variant marks redefinition; deriving its position from a single fraction keeps
+          it aligned with the triangle it crosses in every renderer.
+        tests:
+          - Crossbar_IsDerivedFraction
+
+      - id: Rendering-Abstractions-NotationMetrics-AlongLineLength
+        title: >-
+          The notation metrics shall report the along-line length consumed by each end-marker style.
+        justification: |
+          Layout strategies reserve a clean straight approach and renderers clamp the final corner
+          radius using this length, so both must read it from one place to stay in agreement.
+        tests:
+          - AlongLineLength_MatchesMarkerBox
+
+      - id: Rendering-Abstractions-NotationMetrics-BoxDecorations
+        title: >-
+          The notation metrics shall define the port square, folder-tab, note-fold, rounded-rectangle
+          corner, badge, and label-background proportions used to draw box decorations.
+        justification: |
+          These intrinsic, theme-independent proportions describe SysML box notation; defining each
+          once ensures the SVG and PNG renderers draw the same shapes at the same sizes.
+        tests:
+          - Port_SizeIsTwiceHalfSize
+          - FolderTab_HasDocumentedConstants
+          - NoteFold_HasDocumentedConstants
+          - RoundedRectRadius_IsThemeRadiusTimesFactor
+          - BadgeFractions_HaveDocumentedValues
+          - LabelBackground_ExtentMatchesInset
+
+  - title: Box Metrics Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-BoxMetrics-FolderTabHeight
+        title: >-
+          The box metrics shall compute the folder-tab height as the body font size plus two label
+          paddings.
+        justification: |
+          The folder tab on a package box must be tall enough for its label; deriving its height from
+          theme font and padding keeps the reserved tab and the drawn tab identical.
+        tests:
+          - BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding
+
+      - id: Rendering-Abstractions-BoxMetrics-TitleAreaHeight
+        title: >-
+          The box metrics shall compute the reserved box title-area height from the presence of a
+          keyword line and a name line, reserving no title area when neither is present.
+        justification: |
+          The title area holds the optional keyword line and the bold name; computing its height from
+          which lines are present keeps space reserved by layout equal to space drawn by renderers.
+        tests:
+          - BoxMetrics_TitleAreaHeight_NoLabelNoKeyword_IsZero
+          - BoxMetrics_TitleAreaHeight_LabelOnly_ReservesTitleLine
+          - BoxMetrics_TitleAreaHeight_LabelAndKeyword_ReservesBothLines
+
+  - title: Connector Label Placer Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled
+        title: >-
+          The connector-label placer shall omit lines that carry no midpoint label from its result.
+        justification: |
+          Only labelled connectors need a placed position; omitting unlabelled lines keeps the result
+          limited to the labels a renderer must actually draw.
+        tests:
+          - Place_LineWithoutLabel_IsOmitted
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment
+        title: >-
+          The connector-label placer shall place a label at the midpoint of its line's longest
+          segment.
+        justification: |
+          The longest segment is the most open run between boxes; placing the label there gives it
+          the most clear space and the least chance of overlapping other diagram content.
+        tests:
+          - Place_SingleLine_UsesLongestSegmentMidpoint
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap
+        title: >-
+          The connector-label placer shall separate labels whose preferred positions would otherwise
+          overlap.
+        justification: |
+          Two connectors that cross would place their labels on the same point; nudging one aside
+          keeps both labels readable, and both renderers share the placer so their layouts match.
+        tests:
+          - Place_CollidingLabels_AreSeparated

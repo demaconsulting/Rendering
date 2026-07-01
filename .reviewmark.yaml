@@ -35,46 +35,71 @@ reviews:
     paths:
       - "README.md"
       - "docs/user_guide/**/*.md"
-      - "docs/reqstream/rendering/rendering.yaml"
       - "docs/design/introduction.md"
-      - "docs/design/rendering/rendering.md"
-
-  # Rendering - Specials
-  - id: Rendering-Architecture
-    title: Review of Rendering system architecture and operational validation
-    paths:
-      - "docs/reqstream/rendering/rendering.yaml"
-      - "docs/design/introduction.md"
-      - "docs/design/rendering/rendering.md"
-      - "docs/verification/introduction.md"
-      - "docs/verification/rendering/rendering.md"
-      - "test/DemaConsulting.Rendering.Tests/RenderingTests.cs"
-
-  - id: Rendering-Design
-    title: Review of Rendering architectural and design consistency
-    paths:
-      - "docs/reqstream/rendering/rendering.yaml"
-      - "docs/reqstream/rendering/platform-requirements.yaml"
-      - "docs/design/introduction.md"
-      - "docs/design/rendering/**/*.md"
       - "docs/verification/introduction.md"
 
+  # All requirements quality and traceability
   - id: Rendering-AllRequirements
     title: Review of Rendering requirements quality and traceability
     paths:
       - "requirements.yaml"
       - "docs/reqstream/rendering/**/*.yaml"
+      - "docs/reqstream/rendering-abstractions/**/*.yaml"
+      - "docs/reqstream/rendering-layout/**/*.yaml"
+      - "docs/reqstream/rendering-svg/**/*.yaml"
+      - "docs/reqstream/rendering-skia/**/*.yaml"
       - "docs/reqstream/ots/*.yaml"
 
-  # Rendering - Demo
-  - id: Rendering-Demo
-    title: Review of Demo Unit Implementation
+  # Rendering (Model) system
+  - id: Rendering-Model
+    title: Review of the Rendering model - IR, property system, and input graph
     paths:
-      - "docs/reqstream/rendering/demo.yaml"
-      - "docs/design/rendering/demo.md"
-      - "docs/verification/rendering/demo.md"
-      - "src/DemaConsulting.Rendering/Demo.cs"
-      - "test/DemaConsulting.Rendering.Tests/DemoTests.cs"
+      - "docs/reqstream/rendering/rendering.yaml"
+      - "docs/reqstream/rendering/platform-requirements.yaml"
+      - "docs/design/rendering/**/*.md"
+      - "docs/verification/rendering/**/*.md"
+      - "src/DemaConsulting.Rendering/**/*.cs"
+      - "test/DemaConsulting.Rendering.Tests/**/*.cs"
+
+  # Rendering.Abstractions system
+  - id: Rendering-Abstractions
+    title: Review of the Rendering abstractions - SPI contracts, registries, theme, and metrics
+    paths:
+      - "docs/reqstream/rendering-abstractions/**/*.yaml"
+      - "docs/design/rendering-abstractions/**/*.md"
+      - "docs/verification/rendering-abstractions/**/*.md"
+      - "src/DemaConsulting.Rendering.Abstractions/**/*.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/**/*.cs"
+
+  # Rendering.Layout system
+  - id: Rendering-Layout
+    title: Review of the Rendering layout algorithms and layered pipeline
+    paths:
+      - "docs/reqstream/rendering-layout/**/*.yaml"
+      - "docs/design/rendering-layout/**/*.md"
+      - "docs/verification/rendering-layout/**/*.md"
+      - "src/DemaConsulting.Rendering.Layout/**/*.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/**/*.cs"
+
+  # Rendering.Svg system
+  - id: Rendering-Svg
+    title: Review of the SVG renderer
+    paths:
+      - "docs/reqstream/rendering-svg/**/*.yaml"
+      - "docs/design/rendering-svg/**/*.md"
+      - "docs/verification/rendering-svg/**/*.md"
+      - "src/DemaConsulting.Rendering.Svg/**/*.cs"
+      - "test/DemaConsulting.Rendering.Svg.Tests/**/*.cs"
+
+  # Rendering.Png system
+  - id: rendering-skia
+    title: Review of the PNG renderer
+    paths:
+      - "docs/reqstream/rendering-skia/**/*.yaml"
+      - "docs/design/rendering-skia/**/*.md"
+      - "docs/verification/rendering-skia/**/*.md"
+      - "src/DemaConsulting.Rendering.Png/**/*.cs"
+      - "test/DemaConsulting.Rendering.Png.Tests/**/*.cs"
 
   # OTS Items
   - id: OTS-BuildMark

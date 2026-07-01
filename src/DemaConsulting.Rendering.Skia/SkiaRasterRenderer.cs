@@ -6,10 +6,11 @@ using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Abstractions;
 using SkiaSharp;
 
-namespace DemaConsulting.Rendering.Png;
+namespace DemaConsulting.Rendering.Skia;
 
 /// <summary>
-/// Renders a <see cref="LayoutTree"/> to PNG format using SkiaSharp.
+/// Abstract base for SkiaSharp raster renderers: draws a <see cref="LayoutTree"/> onto a bitmap and
+/// encodes it in a concrete image format supplied by a derived renderer (PNG, JPEG, or WEBP).
 /// </summary>
 /// <remarks>
 /// The renderer is pure and stateless: each call to <see cref="Render"/> allocates a new
@@ -45,7 +46,7 @@ namespace DemaConsulting.Rendering.Png;
 /// A minimum bitmap size of 1×1 pixels is enforced to prevent SkiaSharp allocation errors
 /// when the layout tree is empty.
 /// </remarks>
-public sealed class PngRenderer : IRenderer
+public abstract class SkiaRasterRenderer : IRenderer
 {
     /// <summary>
     /// Lazily-loaded typeface for regular-weight, upright text. Loaded once from the embedded
@@ -82,7 +83,7 @@ public sealed class PngRenderer : IRenderer
     /// </returns>
     private static SKTypeface LoadTypeface(string fileName)
     {
-        var asm = typeof(PngRenderer).Assembly;
+        var asm = typeof(SkiaRasterRenderer).Assembly;
         var resourceName = asm.GetManifestResourceNames()
             .FirstOrDefault(n => n.EndsWith(fileName, StringComparison.OrdinalIgnoreCase));
         if (resourceName is null)
@@ -153,11 +154,23 @@ public sealed class PngRenderer : IRenderer
         return maxFontSize * (availableWidth / measuredWidth);
     }
 
-    /// <inheritdoc/>
-    public string MediaType => "image/png";
+    /// <summary>Gets the SkiaSharp encoded-image format this renderer emits.</summary>
+    protected abstract SKEncodedImageFormat EncodedFormat { get; }
+
+    /// <summary>
+    /// Gets the encoding quality (0-100) passed to the SkiaSharp encoder. Lossless formats such as
+    /// PNG ignore this value; lossy formats such as JPEG and WEBP use it.
+    /// </summary>
+    protected virtual int EncodingQuality => 100;
 
     /// <inheritdoc/>
-    public string DefaultExtension => ".png";
+    public abstract string MediaType { get; }
+
+    /// <inheritdoc/>
+    public abstract string DefaultExtension { get; }
+
+    /// <inheritdoc/>
+    public abstract IReadOnlyList<string> FileExtensions { get; }
 
     /// <inheritdoc/>
     /// <remarks>
@@ -202,9 +215,9 @@ public sealed class PngRenderer : IRenderer
             }
         }
 
-        // Encode as PNG and write to the output stream
+        // Encode in this renderer's concrete format and write to the output stream
         using var image = SKImage.FromBitmap(bitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var data = image.Encode(EncodedFormat, EncodingQuality);
         data.SaveTo(output);
     }
 

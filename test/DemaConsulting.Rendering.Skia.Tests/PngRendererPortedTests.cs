@@ -4,10 +4,10 @@
 
 using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Abstractions;
-using DemaConsulting.Rendering.Png;
+using DemaConsulting.Rendering.Skia;
 using SkiaSharp;
 
-namespace DemaConsulting.Rendering.Png.Tests;
+namespace DemaConsulting.Rendering.Skia.Tests;
 
 /// <summary>
 ///     Tests for the PNG renderer.

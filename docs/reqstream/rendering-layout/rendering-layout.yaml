@@ -1,0 +1,573 @@
+---
+# Rendering.Layout System Requirements
+#
+# PURPOSE:
+# - Define requirements for the Rendering.Layout software system
+#   (package DemaConsulting.Rendering.Layout).
+# - The system provides the bundled ELK-style layered layout algorithm plus the
+#   reusable geometric engines it is built from.
+# - Requirements describe observable geometric behavior, not the algorithms used.
+#
+# STRUCTURE:
+# - The first section holds system-level requirements that decompose (via
+#   children) into the unit requirements defined in the sections that follow.
+# - The engine subsystem contributes the channel-router, containment-packer, and
+#   interconnection-layout-engine units; the layered pipeline and the public
+#   layered layout algorithm are documented as their own units.
+
+sections:
+  - title: Rendering.Layout System Requirements
+    requirements:
+      - id: Rendering-Layout-Algorithm
+        title: >-
+          The rendering layout system shall provide a named layout algorithm that arranges a layout
+          graph into a placed layout tree of layered boxes and orthogonally routed connectors.
+        justification: |
+          The system's product boundary is the public layout algorithm consumed by renderers. It
+          converts a caller's abstract graph into concrete placed geometry so downstream SVG and PNG
+          renderers can draw the diagram without any layout knowledge of their own.
+        children:
+          - Rendering-Layout-LayeredAlgorithm-Identity
+          - Rendering-Layout-LayeredAlgorithm-PlacesAndRoutes
+          - Rendering-Layout-LayeredAlgorithm-EmptyGraph
+          - Rendering-Layout-LayeredAlgorithm-Validation
+        tests:
+          - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
+          - Id_IsLayered
+
+      - id: Rendering-Layout-Interconnection
+        title: >-
+          The rendering layout system shall place directed graphs using Sugiyama-style layered
+          layout and return one orthogonal connector route per input edge.
+        justification: |
+          Layered placement with per-edge routing is the geometric contract the public algorithm and
+          the interconnection view depend on; exposing it as a stable facade lets both consume the
+          same behavior-preserving engine.
+        children:
+          - Rendering-Layout-InterconnectionEngine-Layering
+          - Rendering-Layout-InterconnectionEngine-NonOverlapping
+          - Rendering-Layout-InterconnectionEngine-DummyNodes
+          - Rendering-Layout-InterconnectionEngine-Waypoints
+          - Rendering-Layout-InterconnectionEngine-Deterministic
+        tests:
+          - Place_LinearChain_MonotonicLayerAssignment
+          - Place_WorkstationTopology_CorrectLayersAndNoOverlap
+
+      - id: Rendering-Layout-StagedPipeline
+        title: >-
+          The rendering layout system shall compute layered placement through a composable, ordered
+          sequence of ELK-style stages over a single shared graph state object.
+        justification: |
+          Expressing the algorithm as ordered, independently testable stages lets the pipeline be
+          extended, reordered, and verified one stage at a time instead of as one monolithic method.
+        children:
+          - Rendering-Layout-LayeredPipeline-StagedPipeline
+          - Rendering-Layout-LayeredPipeline-BehaviorPreserving
+          - Rendering-Layout-LayeredPipeline-FlatHierarchyOnly
+          - Rendering-Layout-LayeredPipeline-Directions
+          - Rendering-Layout-LayeredPipeline-OrthogonalConnectors
+          - Rendering-Layout-LayeredPipeline-CycleBreaking
+          - Rendering-Layout-LayeredPipeline-LayerAssignment
+          - Rendering-Layout-LayeredPipeline-LongEdgeSplitting
+          - Rendering-Layout-LayeredPipeline-CrossingMinimization
+          - Rendering-Layout-LayeredPipeline-CoordinateAssignment
+          - Rendering-Layout-LayeredPipeline-PortDistribution
+          - Rendering-Layout-LayeredPipeline-OrthogonalRouting
+          - Rendering-Layout-LayeredPipeline-BackEdgeApproach
+          - Rendering-Layout-LayeredPipeline-LongEdgeJoining
+          - Rendering-Layout-LayeredPipeline-ComponentPacking
+          - Rendering-Layout-LayeredPipeline-SharedState
+          - Rendering-Layout-LayeredPipeline-InputValidation
+        tests:
+          - LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing
+          - Pipeline_MatchesLegacyOracle_OnRandomGraphs
+
+      - id: Rendering-Layout-OrthogonalRouting
+        title: >-
+          The rendering layout system shall route individual orthogonal connectors between two
+          anchors, steering around obstacles by a caller-specified clearance.
+        justification: |
+          Connector quality throughout every produced diagram flows through a single reusable
+          orthogonal router, so its obstacle-avoidance and clearance behavior is a system capability
+          in its own right.
+        children:
+          - Rendering-Layout-ChannelRouter-Orthogonal
+          - Rendering-Layout-ChannelRouter-AvoidObstacles
+          - Rendering-Layout-ChannelRouter-Clearance
+          - Rendering-Layout-ChannelRouter-PerpendicularEnds
+          - Rendering-Layout-ChannelRouter-CrossingStatus
+          - Rendering-Layout-ChannelRouter-CostBands
+        tests:
+          - Route_NoObstacles_ProducesOrthogonalPath
+          - Route_ObstacleBetween_RoutesAround
+
+      - id: Rendering-Layout-Containment
+        title: >-
+          The rendering layout system shall pack a sequence of variable-size items into rows within
+          a width budget without overlap.
+        justification: |
+          Containment packing lays out child elements inside a containing box; providing it as a
+          reusable engine keeps container sizing consistent across every view that nests elements.
+        children:
+          - Rendering-Layout-ContainmentPacker-SingleRow
+          - Rendering-Layout-ContainmentPacker-Wrapping
+          - Rendering-Layout-ContainmentPacker-NoOverlap
+          - Rendering-Layout-ContainmentPacker-WithinBounds
+          - Rendering-Layout-ContainmentPacker-OversizedItem
+          - Rendering-Layout-ContainmentPacker-EmptyInput
+          - Rendering-Layout-ContainmentPacker-SingleItem
+        tests:
+          - Pack_MixedSizes_ProducesNoOverlaps
+          - Pack_ItemsFitInRow_ShareSameRow
+
+  - title: ChannelRouter Unit Requirements
+    requirements:
+      - id: Rendering-Layout-ChannelRouter-Orthogonal
+        title: >-
+          ChannelRouter shall produce a path of axis-aligned segments connecting the source anchor
+          to the target anchor.
+        justification: |
+          Orthogonal (axis-aligned) connectors are the convention for the block, state, and activity
+          diagrams the library renders. Consecutive waypoints therefore always share an X or a Y
+          coordinate.
+        tests:
+          - Route_NoObstacles_ProducesOrthogonalPath
+          - Route_AlignedEndpoints_ProducesStraightLine
+
+      - id: Rendering-Layout-ChannelRouter-AvoidObstacles
+        title: >-
+          When an obstacle-free path exists, ChannelRouter shall route around obstacle rectangles
+          without passing through their interiors.
+        justification: |
+          Connectors that cut through unrelated boxes are unreadable. The router must steer segments
+          around obstacles whenever the geometry allows.
+        tests:
+          - Route_ObstacleBetween_RoutesAround
+          - Route_MultipleObstacles_RemainsValid
+          - RouteWithStatus_ObstacleBetween_RoutesAroundWithoutCrossing
+
+      - id: Rendering-Layout-ChannelRouter-Clearance
+        title: >-
+          When an obstacle-free path is achievable, ChannelRouter shall keep routed segments clear
+          of obstacles by the caller-specified clearance distance.
+        justification: |
+          A connector that grazes the edge of a box reads as touching it. Honoring a clearance keeps
+          visible breathing space between connectors and unrelated boxes.
+        tests:
+          - RouteWithStatus_CleanRoute_KeepsClearanceFromObstacles
+
+      - id: Rendering-Layout-ChannelRouter-PerpendicularEnds
+        title: >-
+          When an anchor is given with the box side it sits on, ChannelRouter shall leave or enter
+          that anchor with a segment perpendicular to the side.
+        justification: |
+          Connectors that meet a box edge at a right angle read as attached to the box rather than
+          sliding along its border, matching diagram notation conventions.
+        tests:
+          - Route_WithSourceSide_LeavesPerpendicular
+          - Route_WithTargetSide_EntersPerpendicular
+
+      - id: Rendering-Layout-ChannelRouter-CrossingStatus
+        title: >-
+          ChannelRouter shall report whether the produced path could not be routed without crossing
+          an obstacle.
+        justification: |
+          When geometry forces a connector through a box (for example an enclosed target), callers
+          need to know so the condition can be surfaced as a layout warning rather than silently
+          producing a misleading diagram.
+        tests:
+          - RouteWithStatus_NoBlockingObstacle_ReportsNotCrossed
+          - RouteWithStatus_TargetEnclosedByObstacle_ReportsCrossed
+
+      - id: Rendering-Layout-ChannelRouter-CostBands
+        title: >-
+          When cost bands are supplied, ChannelRouter shall prefer routing through a cheaper band
+          over an equal-length alternative outside it.
+        justification: |
+          Highway bundling depends on a cost discount so parallel wires share a corridor; the router
+          must bias toward discounted bands while keeping null bands neutral.
+        tests:
+          - RouteWithStatus_HighwayBand_PrefersBandedDetour
+
+  - title: ContainmentPacker Unit Requirements
+    requirements:
+      - id: Rendering-Layout-ContainmentPacker-SingleRow
+        title: >-
+          ContainmentPacker shall place items that together fit within the maximum content width on
+          a single row.
+        justification: |
+          When the available width can hold all the items, splitting them across rows would waste
+          vertical space. Items that fit must share one row, ordered left to right.
+        tests:
+          - Pack_ItemsFitInRow_ShareSameRow
+
+      - id: Rendering-Layout-ContainmentPacker-Wrapping
+        title: >-
+          ContainmentPacker shall wrap an item that would exceed the maximum content width onto a
+          new row positioned below the current row.
+        justification: |
+          A row may not grow past the width budget. When the next item would overflow it, the packer
+          must start a new row beneath the current one so the content stays within the allotted width.
+        tests:
+          - Pack_ItemsExceedWidth_WrapToNewRow
+
+      - id: Rendering-Layout-ContainmentPacker-NoOverlap
+        title: >-
+          ContainmentPacker shall position items so that no two packed rectangles overlap.
+        justification: |
+          Overlapping items hide one another. Whatever mix of sizes is supplied, every packed
+          rectangle must be disjoint from every other.
+        tests:
+          - Pack_MixedSizes_ProducesNoOverlaps
+
+      - id: Rendering-Layout-ContainmentPacker-WithinBounds
+        title: >-
+          ContainmentPacker shall place every packed rectangle within the bounds of the region size
+          it reports.
+        justification: |
+          Callers size the container from the reported region width and height. Every packed
+          rectangle must lie inside those bounds so that nothing is clipped or drawn outside the
+          container.
+        tests:
+          - Pack_MixedSizes_AllRectsWithinBounds
+
+      - id: Rendering-Layout-ContainmentPacker-OversizedItem
+        title: >-
+          ContainmentPacker shall place an item wider than the maximum content width alone on its
+          own row and shall widen the region to contain it.
+        justification: |
+          An item that cannot fit the width budget still has to be placed. It must occupy its own
+          row, and the reported region must grow so the oversized item remains fully contained.
+        tests:
+          - Pack_ItemWiderThanContentWidth_PlacedAloneAndRegionWidens
+
+      - id: Rendering-Layout-ContainmentPacker-EmptyInput
+        title: >-
+          When given no items, ContainmentPacker shall return an empty result whose region consists
+          solely of the requested padding.
+        justification: |
+          An empty input is a valid degenerate case. The packer must return a well-formed, empty
+          result sized only by the padding rather than failing.
+        tests:
+          - Pack_EmptyList_ReturnsPaddingOnlyRegion
+
+      - id: Rendering-Layout-ContainmentPacker-SingleItem
+        title: >-
+          When given a single item, ContainmentPacker shall place it at the padding origin and size
+          the region to that item plus padding.
+        justification: |
+          A lone item has a predictable home: the padding origin, with the region sized to wrap it
+          exactly plus the requested padding on each side.
+        tests:
+          - Pack_SingleItem_PositionsAtPaddingOrigin
+
+  - title: InterconnectionLayoutEngine Unit Requirements
+    requirements:
+      - id: Rendering-Layout-InterconnectionEngine-Layering
+        title: >-
+          InterconnectionLayoutEngine shall assign layer indices using longest-path layering so that
+          every connected pair of nodes occupies different layers.
+        justification: |
+          Longest-path layering guarantees no same-layer connections, eliminating the connector
+          clipping that occurred with the earlier breadth-first approach.
+        tests:
+          - Place_LinearChain_MonotonicLayerAssignment
+          - Place_WorkstationTopology_CorrectLayersAndNoOverlap
+
+      - id: Rendering-Layout-InterconnectionEngine-NonOverlapping
+        title: >-
+          InterconnectionLayoutEngine shall produce node rectangles that do not overlap.
+        justification: |
+          Overlapping boxes prevent readable diagrams; the layered column structure and per-column
+          vertical stacking guarantee non-overlap by construction.
+        tests:
+          - Place_WorkstationTopology_CorrectLayersAndNoOverlap
+
+      - id: Rendering-Layout-InterconnectionEngine-DummyNodes
+        title: >-
+          InterconnectionLayoutEngine shall insert dummy nodes for long edges (span greater than
+          one) and exclude them from the returned rectangles so the rect count equals the input node
+          count.
+        justification: |
+          Dummy nodes force routing through the correct inter-layer corridors, preventing connector
+          lines from clipping intermediate boxes. They must not appear as layout boxes in the output.
+        tests:
+          - Place_LongEdge_RectCountEqualsInputNodeCount
+          - Place_LongEdge_RoutesViaDummyNodesWithinBounds
+
+      - id: Rendering-Layout-InterconnectionEngine-Waypoints
+        title: >-
+          InterconnectionLayoutEngine shall return one waypoint list per input edge; a span-one edge
+          produces a straight two-waypoint path and a long edge routes via dummy nodes within the
+          layout bounds.
+        justification: |
+          Pre-computed waypoints allow the public algorithm and the interconnection view to emit
+          connector lines without any additional routing logic.
+        tests:
+          - Place_SingleEdge_ProducesStraightTwoWaypointPath
+          - Place_LongEdge_RoutesViaDummyNodesWithinBounds
+
+      - id: Rendering-Layout-InterconnectionEngine-Deterministic
+        title: >-
+          Given identical input, InterconnectionLayoutEngine shall produce identical geometry and
+          waypoints on every invocation.
+        justification: |
+          Reproducible layout is required so regenerating a view from unchanged input does not shift
+          boxes or change connector routes.
+        tests:
+          - Place_LinearChain_MonotonicLayerAssignment
+          - Place_WorkstationTopology_CorrectLayersAndNoOverlap
+
+  - title: Layered Pipeline Unit Requirements
+    requirements:
+      - id: Rendering-Layout-LayeredPipeline-StagedPipeline
+        title: >-
+          The layered pipeline shall compute a layout by running an ordered sequence of composable
+          stages, each implementing a common stage interface, over a single shared graph state.
+        justification: |
+          Expressing the algorithm as ordered, independently testable stages lets the pipeline be
+          extended, reordered, and verified one stage at a time instead of as one monolithic method.
+        tests:
+          - LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing
+          - Pipeline_MatchesLegacyOracle_OnRandomGraphs
+
+      - id: Rendering-Layout-LayeredPipeline-BehaviorPreserving
+        title: >-
+          The layered pipeline shall produce the same rectangles, totals, layer assignments, and
+          connector waypoints as the legacy monolithic interconnection engine for every input.
+        justification: |
+          The pipeline was extracted from the monolithic engine as a behavior-preserving refactor;
+          identical geometry is required so existing views render unchanged.
+        tests:
+          - Pipeline_MatchesLegacyOracle_OnRandomGraphs
+          - Pipeline_MatchesLegacyOracle_OnEmptyGraph
+          - Pipeline_MatchesLegacyOracle_OnDroneLikeGraph
+          - Pipeline_MatchesLegacyOracle_OnWorkstationLikeGraph
+          - Pipeline_MatchesLegacyOracle_OnNamedTopologies
+
+      - id: Rendering-Layout-LayeredPipeline-FlatHierarchyOnly
+        title: >-
+          The layered pipeline shall support flat (single-graph) hierarchy handling and shall reject
+          recursive hierarchy handling with a clear error until it is implemented.
+        justification: |
+          Flat handling reproduces the current behavior exactly; failing fast on the unimplemented
+          recursive mode prevents silently producing an unsupported layout.
+        tests:
+          - LayeredLayoutPipeline_Build_RecursiveHierarchy_ThrowsNotSupportedException
+
+      - id: Rendering-Layout-LayeredPipeline-Directions
+        title: >-
+          The layered pipeline shall support laying out graphs in the right, down, left, and up flow
+          directions, mapping the abstract left-to-right computation onto screen coordinates for the
+          requested direction via the axis-transform stage.
+        justification: |
+          The stages compute in the left-to-right abstract axes and the axis transform maps the
+          result onto the requested direction; directed views rely on the down direction, so all
+          four directions must be supported.
+        tests:
+          - AxisTransform_Apply_RightDirection_LeavesCoordinatesUnchanged
+          - AxisTransform_Apply_Right_PlacesTargetEastWithCorrectFaces
+          - AxisTransform_Apply_Down_PlacesTargetSouthWithCorrectFaces
+          - AxisTransform_Apply_Left_PlacesTargetWestWithCorrectFaces
+          - AxisTransform_Apply_Up_PlacesTargetNorthWithCorrectFaces
+
+      - id: Rendering-Layout-LayeredPipeline-OrthogonalConnectors
+        title: >-
+          The layered pipeline shall emit connector waypoints composed solely of axis-aligned
+          segments in every supported flow direction.
+        justification: |
+          Orthogonal connectors are the diagram convention; after mapping to any of the four screen
+          directions, consecutive waypoints must still share an X or a Y coordinate.
+        tests:
+          - AxisTransform_Apply_Right_ProducesOrthogonalWaypoints
+          - AxisTransform_Apply_Down_ProducesOrthogonalWaypoints
+          - AxisTransform_Apply_Left_ProducesOrthogonalWaypoints
+          - AxisTransform_Apply_Up_ProducesOrthogonalWaypoints
+
+      - id: Rendering-Layout-LayeredPipeline-CycleBreaking
+        title: >-
+          The cycle-breaking stage shall reverse cycle-causing edges to produce an acyclic edge set
+          and shall drop self-loops and duplicate directed edges.
+        justification: |
+          Longest-path layering requires an acyclic graph; reversing back edges and discarding
+          self-loops and duplicates yields the acyclic edge set the later stages assume.
+        tests:
+          - CycleBreaker_Apply_GraphWithCycle_ProducesAcyclicEdgeSet
+          - CycleBreaker_Apply_SelfLoopsAndDuplicates_AreRemoved
+
+      - id: Rendering-Layout-LayeredPipeline-LayerAssignment
+        title: >-
+          The layer-assignment stage shall assign each node the longest-path layer index so that
+          every edge runs from a strictly lower layer to a strictly higher layer.
+        justification: |
+          Longest-path layering places every node as far right as its dependencies allow, guaranteeing
+          monotonic layer progression and preventing same-layer connections.
+        tests:
+          - LayerAssigner_Apply_LinearChain_AssignsMonotonicLayers
+          - LayerAssigner_Apply_DiamondGraph_AssignsLongestPathLayers
+
+      - id: Rendering-Layout-LayeredPipeline-LongEdgeSplitting
+        title: >-
+          The long-edge-splitting stage shall insert one dummy node per intermediate layer for each
+          edge spanning more than one layer and shall add no dummy node for a span-one edge.
+        justification: |
+          Dummy nodes reserve inter-layer corridors so long connectors route around, rather than
+          through, the boxes of intervening layers.
+        tests:
+          - LongEdgeSplitter_Apply_SpanOneEdge_AddsNoDummyNodes
+          - LongEdgeSplitter_Apply_LongEdge_InsertsDummyNodesPerIntermediateLayer
+
+      - id: Rendering-Layout-LayeredPipeline-CrossingMinimization
+        title: >-
+          The crossing-minimization stage shall order the augmented nodes within each layer to reduce
+          edge crossings while retaining every augmented node in its layer group.
+        justification: |
+          Fewer edge crossings produce a more readable diagram; the ordering must reduce crossings
+          without ever losing a node from its layer.
+        tests:
+          - CrossingMinimizer_Apply_CrossingProneOrdering_ReducesCrossings
+          - CrossingMinimizer_Apply_TwoLayerGraph_GroupsNodesByLayer
+          - CrossingMinimizer_Apply_AllAugmentedNodesAppearInGroups
+
+      - id: Rendering-Layout-LayeredPipeline-CoordinateAssignment
+        title: >-
+          The coordinate-assignment stage shall assign every augmented node absolute coordinates with
+          layer columns ordered left to right and forks centered between their targets.
+        justification: |
+          Brandes-Kopf placement fixes each node's position with layers as ordered columns and
+          symmetric structures centered, giving the diagram its balanced final geometry.
+        tests:
+          - BrandesKopfPlacer_Apply_ChainGraph_AssignsCoordinateArrays
+          - BrandesKopfPlacer_Apply_ColumnsAreLeftToRightInLayerOrder
+          - BrandesKopfPlacer_Apply_SymmetricFork_CentersSourceBetweenTargets
+
+      - id: Rendering-Layout-LayeredPipeline-PortDistribution
+        title: >-
+          The port-distribution stage shall assign each sub-edge a source-side and target-side port
+          that lies within the corresponding node face.
+        justification: |
+          Distributing ports along box faces keeps parallel connectors from overlapping and ensures
+          every sub-edge leaves and enters within the bounds of its node's face.
+        tests:
+          - PortDistributor_Apply_SingleEdge_PortsLieWithinNodeFaces
+          - PortDistributor_Apply_AssignsPortYForEverySubEdge
+
+      - id: Rendering-Layout-LayeredPipeline-OrthogonalRouting
+        title: >-
+          The orthogonal-routing stage shall emit axis-aligned bend points per corridor, producing no
+          bend points for a straight sub-edge.
+        justification: |
+          Slot-based orthogonal routing gives every connector its right-angled shape; a sub-edge whose
+          endpoints already align needs no bends.
+        tests:
+          - OrthogonalRouter_Apply_StraightEdge_ProducesNoBendPoints
+          - OrthogonalRouter_Apply_EveryBendListIsEmptyOrVerticalSegment
+
+      - id: Rendering-Layout-LayeredPipeline-BackEdgeApproach
+        title: >-
+          The orthogonal-routing stage shall reserve at least the configured back-edge entry approach
+          for a reversed edge's final segment, defaulting to a value that leaves forward geometry
+          byte-identical to the legacy engine.
+        justification: |
+          A decoration-aware caller can lengthen the reversed-edge approach so an end marker clears the
+          box, while the default keeps forward and acyclic geometry unchanged.
+        tests:
+          - OrthogonalRouter_DefaultApproach_IsByteIdenticalToLegacy
+          - OrthogonalRouter_CustomApproach_PushesEntryStubOutward
+          - OrthogonalRouter_ReversedEdge_DefaultApproachClearsClearance
+          - OrthogonalRouter_ForwardEdges_GeometryUnchanged
+          - OrthogonalRouter_AcyclicGraph_NoApproachChange
+          - OrthogonalRouter_DecorationAwareApproach_ClearsMarkerAlongLength
+
+      - id: Rendering-Layout-LayeredPipeline-LongEdgeJoining
+        title: >-
+          The long-edge-joining stage shall concatenate the bend points of a split edge's sub-edges
+          into one polyline per original edge.
+        justification: |
+          A long edge split across dummy nodes must be reassembled into a single connector polyline so
+          consumers see one route per original edge.
+        tests:
+          - LongEdgeJoiner_Apply_SingleEdge_ProducesWaypointsPerOriginalEdge
+          - LongEdgeJoiner_Apply_LongEdge_ConcatenatesSubEdgeBendPoints
+
+      - id: Rendering-Layout-LayeredPipeline-ComponentPacking
+        title: >-
+          The component-packing stage shall lay out each connected component independently and pack
+          the components without overlap in a deterministic order.
+        justification: |
+          Disconnected graphs must place each component with its own layered layout and then arrange
+          the components compactly and reproducibly so nothing overlaps.
+        tests:
+          - ComponentPacker_Apply_DisconnectedSingletons_PackSeparately
+          - ComponentPacker_Apply_ConnectedCore_StaysOneComponent
+          - ComponentPacker_Apply_SingleComponent_EqualsDefaultPipeline
+          - ComponentPacker_Apply_ComponentOrder_IsDeterministic
+          - ComponentPacker_Apply_Waypoints_TranslatedWithComponent
+          - ComponentPacker_Apply_EmptyGraph_IsNoOp
+          - ComponentPacker_Apply_SingleComponent_ParallelAndSelfEdges_ProducesAlignedWaypoints
+          - ComponentPacker_Apply_MultiComponent_ParallelAndSelfEdges_MergesAlignedWaypoints
+
+      - id: Rendering-Layout-LayeredPipeline-SharedState
+        title: >-
+          The layered graph shall carry the mutable shared state threaded through every stage and
+          shall reject construction with null nodes or null edges.
+        justification: |
+          A single shared state object replaces the ad-hoc locals of the monolithic engine; rejecting
+          null inputs at construction keeps every downstream stage operating on valid state.
+        tests:
+          - LayeredGraph_Constructor_ValidInput_StoresNodesEdgesDirectionAndCount
+          - LayeredGraph_Constructor_NullNodes_ThrowsArgumentNullException
+          - LayeredGraph_Constructor_NullEdges_ThrowsArgumentNullException
+
+      - id: Rendering-Layout-LayeredPipeline-InputValidation
+        title: >-
+          The layered pipeline shall reject a null stage when assembled and a null graph when run,
+          throwing an argument-null error in each case.
+        justification: |
+          Failing fast on null construction and run arguments prevents malformed pipelines from
+          silently producing incorrect or partial layouts.
+        tests:
+          - LayeredLayoutPipeline_AddStage_NullStage_ThrowsArgumentNullException
+          - LayeredLayoutPipeline_Run_NullGraph_ThrowsArgumentNullException
+
+  - title: LayeredLayoutAlgorithm Unit Requirements
+    requirements:
+      - id: Rendering-Layout-LayeredAlgorithm-Identity
+        title: >-
+          LayeredLayoutAlgorithm shall expose the stable identifier under which it is selected and
+          registered.
+        justification: |
+          Renderers and registries select an algorithm by its identifier; a stable, well-known value
+          lets the layered algorithm be resolved by name.
+        tests:
+          - Id_IsLayered
+
+      - id: Rendering-Layout-LayeredAlgorithm-PlacesAndRoutes
+        title: >-
+          LayeredLayoutAlgorithm shall convert a layout graph into a placed layout tree with one box
+          per node and one orthogonally routed connector per edge.
+        justification: |
+          The algorithm is the public bridge from an abstract graph to concrete geometry; every node
+          must become a placed box and every edge a routed connector for renderers to draw.
+        tests:
+          - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
+
+      - id: Rendering-Layout-LayeredAlgorithm-EmptyGraph
+        title: >-
+          When given a graph with no nodes, LayeredLayoutAlgorithm shall return an empty placed
+          layout tree.
+        justification: |
+          An empty graph is a valid degenerate case that must yield a well-formed empty canvas rather
+          than an error.
+        tests:
+          - Apply_EmptyGraph_ReturnsEmptyCanvas
+
+      - id: Rendering-Layout-LayeredAlgorithm-Validation
+        title: >-
+          LayeredLayoutAlgorithm shall reject a null graph or null options argument with an
+          argument-null error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public boundary.
+        tests:
+          - Apply_NullGraph_Throws

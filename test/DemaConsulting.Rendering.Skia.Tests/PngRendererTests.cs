@@ -5,7 +5,7 @@
 using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Abstractions;
 
-namespace DemaConsulting.Rendering.Png.Tests;
+namespace DemaConsulting.Rendering.Skia.Tests;
 
 /// <summary>
 ///     Smoke tests for <see cref="PngRenderer"/>, proving a placed layout tree renders to a PNG image.

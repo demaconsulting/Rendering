@@ -1,78 +1,51 @@
 ---
 # System-Level Platform Requirements
 #
-# These requirements specify the platforms and frameworks the library must support.
-# They ensure the library works across the required execution environments.
-#
-# Test links can include a source filter prefix (e.g. "windows@", "ubuntu@", "net8.0@") to restrict
-# which test results count as evidence for a requirement. This is critical for platform and framework
-# requirements - removing these filters invalidates the evidence-based proof.
-#
-# Source filter prefixes:
-#   windows@TestName  - proves the test passed on a Windows platform
-#   ubuntu@TestName   - proves the test passed on a Linux (Ubuntu) platform
-#   macos@TestName    - proves the test passed on a macOS platform
-#   net8.0@TestName   - proves the test passed under the .NET 8 runtime
-#   net9.0@TestName   - proves the test passed under the .NET 9 runtime
-#   net10.0@TestName  - proves the test passed under the .NET 10 runtime
-#   net481@TestName   - proves the test passed under .NET Framework 4.8.1 (implements .NET Standard 2.0)
+# These requirements specify the platforms and frameworks the rendering library must support.
+# Test links use a source filter prefix (e.g. "windows@", "net8.0@") to restrict which test
+# results count as evidence, so a platform requirement is only satisfied by a run on that platform.
 
 sections:
   - title: Platform Support
     requirements:
-      - id: Template-Platform-Windows
-        title: The library shall build and run on Windows platforms.
+      - id: Rendering-Platform-Windows
+        title: The rendering library shall build and run on Windows platforms.
         justification: |
           DEMA Consulting libraries must support Windows as a major development platform.
         tests:
-          # Tests link to "windows" to ensure results come from Windows platform
-          - "windows@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "windows@Get_AfterSet_ReturnsStoredValue"
 
-      - id: Template-Platform-Linux
-        title: The library shall build and run on Linux platforms.
+      - id: Rendering-Platform-Linux
+        title: The rendering library shall build and run on Linux platforms.
         justification: |
           DEMA Consulting libraries must support Linux for CI/CD and containerized environments.
         tests:
-          # Tests link to "ubuntu" to ensure results come from Linux platform
-          - "ubuntu@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "ubuntu@Get_AfterSet_ReturnsStoredValue"
 
-      - id: Template-Platform-MacOS
-        title: The library shall build and run on macOS platforms.
+      - id: Rendering-Platform-MacOS
+        title: The rendering library shall build and run on macOS platforms.
         justification: |
           DEMA Consulting libraries must support macOS for developers using Apple platforms.
         tests:
-          # Tests link to "macos" to ensure results come from macOS platform
-          - "macos@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "macos@Get_AfterSet_ReturnsStoredValue"
 
-      - id: Template-Platform-Net8
-        title: The library shall support .NET 8 runtime.
+      - id: Rendering-Platform-Net8
+        title: The rendering library shall support the .NET 8 runtime.
         justification: |
           .NET 8 is an LTS release providing long-term stability for enterprise users.
         tests:
-          - "net8.0@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "net8.0@Get_AfterSet_ReturnsStoredValue"
 
-      - id: Template-Platform-Net9
-        title: The library shall support .NET 9 runtime.
+      - id: Rendering-Platform-Net9
+        title: The rendering library shall support the .NET 9 runtime.
         justification: |
           .NET 9 support enables users to leverage the latest .NET features.
         tests:
-          - "net9.0@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "net9.0@Get_AfterSet_ReturnsStoredValue"
 
-      - id: Template-Platform-Net10
-        title: The library shall support .NET 10 runtime.
+      - id: Rendering-Platform-Net10
+        title: The rendering library shall support the .NET 10 runtime.
         justification: |
           .NET 10 support ensures the library remains compatible with the latest .NET ecosystem.
         tests:
-          - "net10.0@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
-
-      - id: Template-Platform-NetStd20
-        title: The library shall support the .NET Standard 2.0 target framework.
-        justification: |
-          .NET Standard 2.0 is a widely-supported target framework that enables the library to
-          be used in MSBuild extensions and other tooling that requires .NET Standard compatibility.
-          Supporting this target framework ensures the library can be integrated into a broader
-          range of .NET projects, including those targeting .NET Framework and older .NET Core versions.
-          Because .NET Framework 4.8.1 implements .NET Standard 2.0, a passing test on net481
-          demonstrates .NET Standard 2.0 compatibility.
-        tests:
-          - "net481@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "net10.0@Get_AfterSet_ReturnsStoredValue"

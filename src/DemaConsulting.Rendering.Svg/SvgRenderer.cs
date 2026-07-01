@@ -56,6 +56,9 @@ public sealed class SvgRenderer : IRenderer
     public string DefaultExtension => ".svg";
 
     /// <inheritdoc/>
+    public IReadOnlyList<string> FileExtensions => [".svg"];
+
+    /// <inheritdoc/>
     /// <remarks>
     /// Writes a complete SVG 1.1 document to <paramref name="output"/>. The canvas size is
     /// taken from <see cref="LayoutTree.Width"/> and <see cref="LayoutTree.Height"/>.

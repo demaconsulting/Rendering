@@ -51,6 +51,23 @@ public class RegistryTests
         Assert.Equal("text/plain", registry.Resolve("text/plain").MediaType);
     }
 
+    /// <summary>
+    ///     Proves that a registered renderer can be found by any file extension it advertises,
+    ///     with or without a leading dot and regardless of case.
+    /// </summary>
+    [Fact]
+    public void RendererRegistry_ResolveByExtension_MatchesAdvertisedExtensions()
+    {
+        var registry = new RendererRegistry();
+
+        registry.Register(new FakeRenderer());
+
+        Assert.True(registry.ContainsExtension(".txt"));
+        Assert.Equal("text/plain", registry.ResolveByExtension(".txt").MediaType);
+        // Leading dot optional and matching is case-insensitive.
+        Assert.Equal("text/plain", registry.ResolveByExtension("TEXT").MediaType);
+    }
+
     private sealed class FakeAlgorithm : ILayoutAlgorithm
     {
         public string Id => "fake";
@@ -63,6 +80,8 @@ public class RegistryTests
         public string MediaType => "text/plain";
 
         public string DefaultExtension => ".txt";
+
+        public IReadOnlyList<string> FileExtensions => [".txt", ".text"];
 
         public void Render(LayoutTree layout, RenderOptions options, Stream output)
         {

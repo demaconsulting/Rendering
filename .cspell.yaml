@@ -34,6 +34,38 @@ words:
   - weasyprint
   - netstandard
   - yamlfix
+  # Rendering library technical terms and referenced code identifiers
+  - Skia
+  - SkiaSharp
+  - Noto
+  - webp
+  - rasterizer
+  - rasterizes
+  - Sugiyama
+  - Brandes
+  - Kopf
+  - Hanan
+  - Precomputes
+  - subfolders
+  - Rects
+  - Premul
+  - dasharray
+  - RRGGBB
+  - RRGGBBAA
+  - vdir
+  - hdir
+  - posis
+  - longedge
+  - selfloop
+  - facade
+  # Non-ASCII terms retained verbatim in extracted source comments
+  - façade
+  - Köpf
+  # DEMA documentation spelling conventions (shared with sibling repositories)
+  - behaviour
+  - colour
+  - colours
+  - initialised
 
 # Exclude common build artifacts, dependencies, and vendored third-party code
 ignorePaths:

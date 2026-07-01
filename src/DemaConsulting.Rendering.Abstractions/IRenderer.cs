@@ -19,6 +19,14 @@ public interface IRenderer
     string DefaultExtension { get; }
 
     /// <summary>
+    /// Gets every file extension (each including a leading dot, lower-case) this renderer produces.
+    /// The list always contains <see cref="DefaultExtension"/> and lets consumers register and
+    /// resolve a renderer by output filename (for example a renderer that emits both
+    /// <c>.jpg</c> and <c>.jpeg</c>).
+    /// </summary>
+    IReadOnlyList<string> FileExtensions { get; }
+
+    /// <summary>
     /// Renders the layout tree and writes the output to <paramref name="output"/>.
     /// </summary>
     /// <param name="layout">The layout tree describing all nodes to render.</param>

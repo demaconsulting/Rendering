@@ -7,19 +7,19 @@
     <Nullable>enable</Nullable>
 
     <!-- NuGet Package Configuration -->
-    <PackageId>DemaConsulting.Rendering.Png</PackageId>
+    <PackageId>DemaConsulting.Rendering.Skia</PackageId>
     <Version>0.0.0</Version>
     <Authors>DEMA Consulting</Authors>
     <Company>DEMA Consulting</Company>
-    <Description>PNG renderer for the DEMA Consulting rendering library, using SkiaSharp with an embedded Noto Sans font for pixel-identical output</Description>
+    <Description>SkiaSharp raster renderers (PNG, JPEG, and WEBP) for the DEMA Consulting rendering library, with an embedded Noto Sans font for pixel-identical output</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/demaconsulting/Rendering</PackageProjectUrl>
     <RepositoryUrl>https://github.com/demaconsulting/Rendering</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>Icon.png</PackageIcon>
-    <PackageTags>rendering;png;skiasharp;dotnet-library</PackageTags>
+    <PackageTags>rendering;png;jpeg;webp;skiasharp;dotnet-library</PackageTags>
     <Copyright>Copyright DEMA Consulting</Copyright>
-    <Title>Rendering PNG Renderer</Title>
+    <Title>Rendering SkiaSharp Renderers</Title>
     <Product>Rendering</Product>
     <PackageReleaseNotes>
 This package embeds the Noto Sans font (SIL Open Font License 1.1, copyright Google Inc.).
@@ -90,7 +90,7 @@ SkiaSharp is used for PNG rendering (MIT license, copyright Microsoft Corporatio
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="DemaConsulting.Rendering.Png.Tests" />
+    <InternalsVisibleTo Include="DemaConsulting.Rendering.Skia.Tests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,9 +1,16 @@
 ---
-# Root requirements file - includes all system, unit, platform, and OTS requirements
+# Root requirements file - includes all system, unit, platform, and OTS requirements.
+# One requirements file per software system; each file carries the system-level
+# requirements plus the unit-level requirements (as separate sections) that decompose them.
 includes:
+  # In-house software systems
   - docs/reqstream/rendering/rendering.yaml
-  - docs/reqstream/rendering/demo.yaml
   - docs/reqstream/rendering/platform-requirements.yaml
+  - docs/reqstream/rendering-abstractions/rendering-abstractions.yaml
+  - docs/reqstream/rendering-layout/rendering-layout.yaml
+  - docs/reqstream/rendering-svg/rendering-svg.yaml
+  - docs/reqstream/rendering-skia/rendering-skia.yaml
+  # OTS software items
   - docs/reqstream/ots/xunit.yaml
   - docs/reqstream/ots/reqstream.yaml
   - docs/reqstream/ots/buildmark.yaml

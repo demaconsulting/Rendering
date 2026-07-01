@@ -2,176 +2,148 @@
 
 ## Purpose
 
-This document is the user guide for the Rendering, a demonstration project that
-showcases best practices for DEMA Consulting DotNet Libraries.
+This document is the user guide for the Rendering libraries, a set of general-purpose .NET
+packages for laying out and rendering node-and-edge diagrams. The design is inspired by the
+[Eclipse Layout Kernel (ELK)](https://eclipse.dev/elk/): you describe a diagram as a graph,
+a pluggable algorithm places it, and a pluggable renderer draws it — all configured through an
+open, extensible property system.
 
 ## Scope
 
 This user guide covers:
 
-- Installation of the library
-- Basic usage and examples
-- API reference
+- Installation of the packages
+- The core concepts (graph, options, algorithm, layout tree, renderer)
+- Basic usage: laying out a graph and rendering it to SVG, PNG, JPEG, or WEBP
+- Configuring layout through the open property system
+- Extending the library with custom algorithms and renderers
 
 # Continuous Compliance
 
-This template follows the
-[Continuous Compliance](https://github.com/demaconsulting/ContinuousCompliance) methodology, which ensures
-compliance evidence is generated automatically on every CI run.
-
-## Key Practices
-
-- **Requirements Traceability**: Every requirement is linked to passing tests, and a trace matrix is
-  auto-generated on each release
-- **Linting Enforcement**: markdownlint, cspell, and yamllint are enforced before any build proceeds
-- **Automated Audit Documentation**: Each release ships with generated requirements, justifications,
-  trace matrix, and quality reports
-- **CodeQL and SonarCloud**: Security and quality analysis runs on every build
+This project follows the
+[Continuous Compliance](https://github.com/demaconsulting/ContinuousCompliance) methodology, so
+compliance evidence — requirements, justifications, a trace matrix, and quality reports — is
+generated automatically on every CI run, and every requirement is linked to passing tests.
 
 # Installation
 
-Install the library using the .NET CLI:
+The library is split into focused packages so consumers take only what they need:
+
+| Package | When to install |
+| --- | --- |
+| `DemaConsulting.Rendering` | Always — the layout model, property system, and input graph |
+| `DemaConsulting.Rendering.Abstractions` | Always — the algorithm/renderer contracts and registries |
+| `DemaConsulting.Rendering.Layout` | To run the bundled `layered` layout algorithm |
+| `DemaConsulting.Rendering.Svg` | To render diagrams to SVG (no native dependencies) |
+| `DemaConsulting.Rendering.Skia` | To render diagrams to PNG, JPEG, or WEBP (uses SkiaSharp) |
 
 ```bash
-dotnet add package DemaConsulting.Rendering
+dotnet add package DemaConsulting.Rendering.Layout
+dotnet add package DemaConsulting.Rendering.Svg
 ```
+
+Installing a renderer or the layout package transitively brings in the model and abstractions.
+
+# Core Concepts
+
+- **`LayoutGraph`** — the *unplaced* input: sized `LayoutGraphNode` boxes and directed
+  `LayoutGraphEdge` connections.
+- **`LayoutOptions`** — an open, property-keyed configuration bag. Options are declared as typed
+  `LayoutProperty<T>` keys (see `CoreOptions`) and can be attached to the whole graph, a single
+  element, or a free-standing options object.
+- **`ILayoutAlgorithm`** — consumes a `LayoutGraph` plus `LayoutOptions` and produces a placed
+  `LayoutTree`. The bundled implementation is `LayeredLayoutAlgorithm` (id `"layered"`).
+- **`LayoutTree`** — the *placed* result: boxes with absolute coordinates and orthogonally routed
+  connectors.
+- **`IRenderer`** — draws a `LayoutTree` to a stream. Bundled implementations are `SvgRenderer`
+  and the SkiaSharp `PngRenderer`, `JpegRenderer`, and `WebpRenderer`.
 
 # Usage
 
-## Basic Usage
+## Laying out and rendering a graph
 
 ```csharp
 using DemaConsulting.Rendering;
+using DemaConsulting.Rendering.Abstractions;
+using DemaConsulting.Rendering.Layout;
+using DemaConsulting.Rendering.Svg;
 
-var demo = new Demo();
-var result = demo.DemoMethod("World");
-Console.WriteLine(result); // Output: Hello, World!
+// 1. Describe the diagram as a graph of sized boxes and directed edges.
+var graph = new LayoutGraph();
+var a = graph.AddNode("a", width: 80, height: 40);
+var b = graph.AddNode("b", width: 80, height: 40);
+var c = graph.AddNode("c", width: 80, height: 40);
+graph.AddEdge("a-b", a, b);
+graph.AddEdge("b-c", b, c);
+
+// 2. Lay it out with the bundled layered algorithm.
+var options = new LayoutOptions();
+var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+// 3. Render the placed tree to SVG.
+var renderer = new SvgRenderer();
+using var output = File.Create("diagram.svg");
+renderer.Render(tree, new RenderOptions(Themes.Light), output);
 ```
 
-## API Reference
+Swap `SvgRenderer` for `PngRenderer`, `JpegRenderer`, or `WebpRenderer` (from
+`DemaConsulting.Rendering.Skia`) to produce a raster image instead; the rest of the flow is
+identical.
 
-### Demo
+## Configuring layout with options
 
-The `Demo` class provides demonstration functionality for the template library.
-
-#### Constants
-
-##### DefaultPrefix
+Options are set with typed keys from `CoreOptions`. Unknown or not-yet-honored options default
+harmlessly, so it is always safe to set an option even if the chosen algorithm does not yet act
+on it:
 
 ```csharp
-public const string DefaultPrefix = "Hello";
+var options = new LayoutOptions();
+options.Set(CoreOptions.Algorithm, "layered");
+options.Set(CoreOptions.Direction, LayoutFlowDirection.Right);
+
+// Per-element overrides: any graph element is also a property holder.
+a.Set(CoreOptions.NodeSpacing, 32.0);
 ```
 
-The greeting prefix used when no custom prefix is specified.
+## Selecting algorithms and renderers by registry
 
-#### Constructors
-
-##### Demo()
+For applications that choose an algorithm or output format at run time, register the
+implementations once and resolve them by id, media type, or output file extension:
 
 ```csharp
-public Demo()
+var algorithms = new LayoutAlgorithmRegistry();
+algorithms.Register(new LayeredLayoutAlgorithm());
+
+var renderers = new RendererRegistry();
+renderers.Register(new SvgRenderer());
+renderers.Register(new PngRenderer());
+renderers.Register(new JpegRenderer());
+renderers.Register(new WebpRenderer());
+
+var algorithm = algorithms.Resolve(options.Get(CoreOptions.Algorithm)); // "layered"
+var tree = algorithm.Apply(graph, options);
+
+// Resolve the renderer directly from the desired output filename's extension.
+var outputPath = "diagram.webp";
+var renderer = renderers.ResolveByExtension(Path.GetExtension(outputPath));
+using var output = File.Create(outputPath);
+renderer.Render(tree, new RenderOptions(Themes.Light), output);
 ```
 
-Initializes a new instance of the `Demo` class with the default prefix "Hello".
+# Extending the Library
 
-##### Demo(string prefix)
+The library is open for extension without modifying existing code:
 
-```csharp
-public Demo(string prefix)
-```
-
-Initializes a new instance of the `Demo` class with a custom prefix.
-
-**Parameters:**
-
-- `prefix` (string): The prefix to use in greetings. Must not be null or empty.
-
-**Exceptions:**
-
-- `ArgumentNullException`: Thrown when `prefix` is null.
-- `ArgumentException`: Thrown when `prefix` is an empty string.
-
-#### Properties
-
-##### Prefix
-
-```csharp
-public string Prefix { get; }
-```
-
-Gets the greeting prefix used by this instance.
-
-#### Methods
-
-##### DemoMethod
-
-```csharp
-public string DemoMethod(string name)
-```
-
-Returns a greeting message for the specified name.
-
-**Parameters:**
-
-- `name` (string): The name to greet. Must not be null or empty.
-
-**Returns:**
-
-A string containing the greeting message in the format "{prefix}, {name}!".
-
-**Exceptions:**
-
-- `ArgumentNullException`: Thrown when `name` is null.
-- `ArgumentException`: Thrown when `name` is an empty string.
-
-**Example:**
-
-```csharp
-var demo = new Demo();
-var greeting = demo.DemoMethod("World");
-// greeting = "Hello, World!"
-```
-
-# Examples
-
-## Example 1: Basic Greeting
-
-```csharp
-using DemaConsulting.Rendering;
-
-var demo = new Demo();
-var result = demo.DemoMethod("Alice");
-Console.WriteLine(result);
-// Output: Hello, Alice!
-```
-
-## Example 2: Custom Prefix
-
-```csharp
-using DemaConsulting.Rendering;
-
-var demo = new Demo("Hi");
-var result = demo.DemoMethod("Alice");
-Console.WriteLine(result);
-// Output: Hi, Alice!
-```
-
-## Example 3: Error Handling
-
-```csharp
-using DemaConsulting.Rendering;
-
-var demo = new Demo();
-try
-{
-    var result = demo.DemoMethod(null);
-}
-catch (ArgumentNullException ex)
-{
-    Console.WriteLine("Name cannot be null");
-}
-```
+- **New layout algorithms** (for example tree, force, or packing layouts) implement
+  `ILayoutAlgorithm` and are registered under a new id. Consumers select them via
+  `CoreOptions.Algorithm`.
+- **New output formats** implement `IRenderer` with a distinct `MediaType` and file extensions and
+  register alongside the bundled SVG, PNG, JPEG, and WEBP renderers.
+- **New configuration options** are introduced by declaring additional `LayoutProperty<T>` keys.
+  Because options travel in an open property bag, adding a key never changes an existing method
+  signature.
 
 # References
 
 - [REF-1] Continuous Compliance Methodology (<https://github.com/demaconsulting/ContinuousCompliance>)
+- [REF-2] Eclipse Layout Kernel (<https://eclipse.dev/elk/>)

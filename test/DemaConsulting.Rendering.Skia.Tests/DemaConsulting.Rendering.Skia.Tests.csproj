@@ -59,7 +59,7 @@
 
   <!-- Project References -->
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DemaConsulting.Rendering.Png\DemaConsulting.Rendering.Png.csproj" />
+    <ProjectReference Include="..\..\src\DemaConsulting.Rendering.Skia\DemaConsulting.Rendering.Skia.csproj" />
   </ItemGroup>
 
 </Project>
