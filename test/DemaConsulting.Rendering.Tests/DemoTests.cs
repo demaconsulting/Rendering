@@ -1,6 +1,6 @@
-using TemplateDotNetLibrary;
+using DemaConsulting.Rendering;
 
-namespace DemaConsulting.TemplateDotNetLibrary.Tests;
+namespace DemaConsulting.Rendering.Tests;
 
 /// <summary>
 ///     Unit tests for the Demo class.

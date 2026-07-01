@@ -1,10 +1,10 @@
 # System Design
 
-This document provides the system-level design for the Template DotNet Library.
+This document provides the system-level design for the Rendering.
 
 ## System Architecture
 
-The Template DotNet Library is a minimal .NET library template demonstrating DEMA Consulting
+The Rendering is a minimal .NET library template demonstrating DEMA Consulting
 best practices. The system consists of:
 
 - **Demo Unit**: Simple greeting functionality demonstrating library patterns

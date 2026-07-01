@@ -1,6 +1,6 @@
 # Demo
 
-The `Demo` class is the sole software unit in the Template DotNet Library. It serves as a
+The `Demo` class is the sole software unit in the Rendering library. It serves as a
 demonstration of how a DEMA Consulting .NET library class should be structured, documented,
 and tested.
 

@@ -60,7 +60,7 @@
 
   <!-- Project References -->
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DemaConsulting.TemplateDotNetLibrary\DemaConsulting.TemplateDotNetLibrary.csproj" />
+    <ProjectReference Include="..\..\src\DemaConsulting.Rendering\DemaConsulting.Rendering.csproj" />
   </ItemGroup>
 
 </Project>

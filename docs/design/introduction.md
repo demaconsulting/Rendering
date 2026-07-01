@@ -1,12 +1,12 @@
 # Introduction
 
-This document provides the detailed design for the Template DotNet Library, a .NET library
+This document provides the detailed design for the Rendering, a .NET library
 demonstrating best practices for DEMA Consulting DotNet Libraries.
 
 ## Purpose
 
 The purpose of this document is to serve as the design entry point and provide detailed design
-specifications for the Template DotNet Library system. This documentation enables formal code
+specifications for the Rendering system. This documentation enables formal code
 review by providing implementation specifications, supports compliance auditing by maintaining
 clear traceability from requirements through design to code, aids maintenance by documenting
 system structure and interactions, and ensures quality assurance through detailed technical
@@ -21,13 +21,13 @@ This document is intended for:
 
 ## Scope
 
-This document covers the detailed design of the Template DotNet Library system and its constituent
+This document covers the detailed design of the Rendering system and its constituent
 software items, specifically:
 
-- **TemplateDotNetLibrary (System)** — The complete .NET library template system
+- **Rendering (System)** — The complete .NET library template system
 - **Demo (Unit)** — Demonstration greeting class providing example functionality
 
-Version applicability: This design applies to all versions of the Template DotNet Library.
+Version applicability: This design applies to all versions of the Rendering.
 
 The following topics are explicitly excluded from this design documentation:
 
@@ -39,11 +39,11 @@ The following topics are explicitly excluded from this design documentation:
 
 ## Software Structure
 
-The following tree diagram shows how the Template DotNet Library software items are organized
+The following tree diagram shows how the Rendering software items are organized
 across System, Subsystem, and Unit levels according to software-items classification standards:
 
 ```text
-TemplateDotNetLibrary (System)
+Rendering (System)
 └── Demo (Unit)
 ```
 
@@ -57,7 +57,7 @@ responsibilities.
 Each software item has corresponding artifacts in parallel directory trees:
 
 ```text
-TemplateDotNetLibrary (System)
+Rendering (System)
 └── Demo (Unit)
 ```
 
@@ -76,7 +76,7 @@ The source code folder structure mirrors the software structure organization, wi
 and descriptions as follows:
 
 ```text
-src/DemaConsulting.TemplateDotNetLibrary/
+src/DemaConsulting.Rendering/
 └── Demo.cs                     — Demonstration greeting class implementing template functionality
 ```
 
@@ -96,5 +96,5 @@ Throughout this document:
 
 ## References
 
-- [REF-1] Template DotNet Library User Guide (<https://github.com/demaconsulting/TemplateDotNetLibrary/blob/main/docs/user_guide/introduction.md>)
-- [REF-2] Template DotNet Library Repository (<https://github.com/demaconsulting/TemplateDotNetLibrary>)
+- [REF-1] Rendering User Guide (<https://github.com/demaconsulting/Rendering/blob/main/docs/user_guide/introduction.md>)
+- [REF-2] Rendering Repository (<https://github.com/demaconsulting/Rendering>)

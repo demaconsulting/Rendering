@@ -168,7 +168,7 @@ jobs:
         run: >
           dotnet dotnet-sonarscanner
           begin
-          /k:"demaconsulting_TemplateDotNetLibrary"
+          /k:"demaconsulting_Rendering"
           /o:"demaconsulting"
           /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
           /d:sonar.host.url="https://sonarcloud.io"
@@ -223,8 +223,8 @@ jobs:
         with:
           name: packages-${{ matrix.os }}
           path: |
-            src/DemaConsulting.TemplateDotNetLibrary/bin/Release/*.nupkg
-            src/DemaConsulting.TemplateDotNetLibrary/bin/Release/*.snupkg
+            src/DemaConsulting.Rendering/bin/Release/*.nupkg
+            src/DemaConsulting.Rendering/bin/Release/*.snupkg
 
   # Runs CodeQL security and quality analysis, gathering results to include
   # in the code quality report.
@@ -436,7 +436,7 @@ jobs:
           dotnet weasyprint
           --pdf-variant pdf/a-3u
           docs/build_notes/generated/build_notes.html
-          "docs/generated/TemplateDotNetLibrary Build Notes.pdf"
+          "docs/generated/Rendering Build Notes.pdf"
 
       - name: Assert Build Notes Documents with FileAssert
         run: >
@@ -476,7 +476,7 @@ jobs:
           dotnet sarifmark
           --sarif artifacts/csharp.sarif
           --report docs/code_quality/generated/codeql-quality.md
-          --heading "Template DotNet Library CodeQL Analysis"
+          --heading "Rendering CodeQL Analysis"
           --report-depth 1
 
       - name: Display CodeQL Quality Report
@@ -492,7 +492,7 @@ jobs:
         run: >
           dotnet sonarmark
           --server https://sonarcloud.io
-          --project-key demaconsulting_TemplateDotNetLibrary
+          --project-key demaconsulting_Rendering
           --branch ${{ github.ref_name }}
           --token "$SONAR_TOKEN"
           --report docs/code_quality/generated/sonar-quality.md
@@ -519,7 +519,7 @@ jobs:
           dotnet weasyprint
           --pdf-variant pdf/a-3u
           docs/code_quality/generated/quality.html
-          "docs/generated/TemplateDotNetLibrary Code Quality.pdf"
+          "docs/generated/Rendering Code Quality.pdf"
 
       - name: Assert Code Quality Documents with FileAssert
         run: >
@@ -581,7 +581,7 @@ jobs:
           dotnet weasyprint
           --pdf-variant pdf/a-3u
           docs/code_review_plan/generated/plan.html
-          "docs/generated/TemplateDotNetLibrary Review Plan.pdf"
+          "docs/generated/Rendering Review Plan.pdf"
 
       - name: Generate Review Report HTML with Pandoc
         shell: bash
@@ -598,7 +598,7 @@ jobs:
           dotnet weasyprint
           --pdf-variant pdf/a-3u
           docs/code_review_report/generated/report.html
-          "docs/generated/TemplateDotNetLibrary Review Report.pdf"
+          "docs/generated/Rendering Review Report.pdf"
 
       - name: Assert Code Review Documents with FileAssert
         run: >
@@ -630,7 +630,7 @@ jobs:
           dotnet weasyprint
           --pdf-variant pdf/a-3u
           docs/design/generated/design.html
-          "docs/generated/TemplateDotNetLibrary Software Design.pdf"
+          "docs/generated/Rendering Software Design.pdf"
 
       - name: Assert Design Documents with FileAssert
         run: >
@@ -662,7 +662,7 @@ jobs:
           dotnet weasyprint
           --pdf-variant pdf/a-3u
           docs/verification/generated/verification.html
-          "docs/generated/TemplateDotNetLibrary Verification Design.pdf"
+          "docs/generated/Rendering Verification Design.pdf"
 
       - name: Assert Verification Documents with FileAssert
         run: >
@@ -694,7 +694,7 @@ jobs:
           dotnet weasyprint
           --pdf-variant pdf/a-3u
           docs/user_guide/generated/user_guide.html
-          "docs/generated/TemplateDotNetLibrary User Guide.pdf"
+          "docs/generated/Rendering User Guide.pdf"
 
       - name: Assert User Guide Documents with FileAssert
         run: >
@@ -759,7 +759,7 @@ jobs:
           dotnet weasyprint
           --pdf-variant pdf/a-3u
           docs/requirements_doc/generated/requirements.html
-          "docs/generated/TemplateDotNetLibrary Requirements.pdf"
+          "docs/generated/Rendering Requirements.pdf"
 
       - name: Generate Trace Matrix HTML with Pandoc
         shell: bash
@@ -776,7 +776,7 @@ jobs:
           dotnet weasyprint
           --pdf-variant pdf/a-3u
           docs/requirements_report/generated/trace_matrix.html
-          "docs/generated/TemplateDotNetLibrary Trace Matrix.pdf"
+          "docs/generated/Rendering Trace Matrix.pdf"
 
       - name: Assert Requirements Documents with FileAssert
         run: >

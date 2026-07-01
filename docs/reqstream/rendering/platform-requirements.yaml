@@ -26,7 +26,7 @@ sections:
           DEMA Consulting libraries must support Windows as a major development platform.
         tests:
           # Tests link to "windows" to ensure results come from Windows platform
-          - "windows@TemplateDotNetLibrary_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "windows@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
 
       - id: Template-Platform-Linux
         title: The library shall build and run on Linux platforms.
@@ -34,7 +34,7 @@ sections:
           DEMA Consulting libraries must support Linux for CI/CD and containerized environments.
         tests:
           # Tests link to "ubuntu" to ensure results come from Linux platform
-          - "ubuntu@TemplateDotNetLibrary_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "ubuntu@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
 
       - id: Template-Platform-MacOS
         title: The library shall build and run on macOS platforms.
@@ -42,28 +42,28 @@ sections:
           DEMA Consulting libraries must support macOS for developers using Apple platforms.
         tests:
           # Tests link to "macos" to ensure results come from macOS platform
-          - "macos@TemplateDotNetLibrary_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "macos@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
 
       - id: Template-Platform-Net8
         title: The library shall support .NET 8 runtime.
         justification: |
           .NET 8 is an LTS release providing long-term stability for enterprise users.
         tests:
-          - "net8.0@TemplateDotNetLibrary_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "net8.0@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
 
       - id: Template-Platform-Net9
         title: The library shall support .NET 9 runtime.
         justification: |
           .NET 9 support enables users to leverage the latest .NET features.
         tests:
-          - "net9.0@TemplateDotNetLibrary_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "net9.0@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
 
       - id: Template-Platform-Net10
         title: The library shall support .NET 10 runtime.
         justification: |
           .NET 10 support ensures the library remains compatible with the latest .NET ecosystem.
         tests:
-          - "net10.0@TemplateDotNetLibrary_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "net10.0@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
 
       - id: Template-Platform-NetStd20
         title: The library shall support the .NET Standard 2.0 target framework.
@@ -75,4 +75,4 @@ sections:
           Because .NET Framework 4.8.1 implements .NET Standard 2.0, a passing test on net481
           demonstrates .NET Standard 2.0 compatibility.
         tests:
-          - "net481@TemplateDotNetLibrary_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
+          - "net481@Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting"
