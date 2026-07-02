@@ -52,6 +52,18 @@ sections:
           - Place_SingleEdge_ProducesStraightTwoWaypointPath
           - Place_LongEdge_RoutesViaDummyNodesWithinBounds
 
+      - id: Rendering-Layout-InterconnectionEngine-Direction
+        title: >-
+          InterconnectionLayoutEngine shall place the nodes along the requested flow direction,
+          transposing the layout and its reported total dimensions for a top-to-bottom or bottom-to-top
+          flow, and shall default to the left-to-right flow.
+        justification: |
+          Directed views request a top-to-bottom placement; the engine must honor the requested
+          direction and report total dimensions that match the transposed layout, while the default
+          leaves the established left-to-right geometry unchanged.
+        tests:
+          - Place_DownDirection_TransposesTotalsRelativeToRight
+
       - id: Rendering-Layout-InterconnectionEngine-Deterministic
         title: >-
           Given identical input, InterconnectionLayoutEngine shall produce identical geometry and

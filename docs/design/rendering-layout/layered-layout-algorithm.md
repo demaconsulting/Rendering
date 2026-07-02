@@ -25,10 +25,17 @@ per node followed by `LayoutLine` per edge).
    `LayerNode` array from node sizes.
 2. **Edge mapping.** Maps each edge to an index pair, dropping any edge that references a node
    outside this graph.
-3. **Placement.** Calls `InterconnectionLayoutEngine.Place` to obtain the `LayerResult`.
-4. **Box emission.** Emits one `LayoutBox` per input node, in input order, at the placed rectangle,
+3. **Direction resolution.** Resolves the requested flow direction from `CoreOptions.Direction`,
+   taking an explicit value on the graph in preference to one on the options and falling back to the
+   property default (`Right`), then maps the public `LayoutFlowDirection` to the engine's internal
+   direction. This mirrors how the algorithm resolves its other well-known options.
+4. **Placement.** Calls `InterconnectionLayoutEngine.Place` with the resolved direction to obtain the
+   `LayerResult`. For a downward or upward flow the engine transposes the layout so the layers
+   progress top-to-bottom (or bottom-to-top); `Right` is the default and is byte-identical to the
+   original left-to-right placement.
+5. **Box emission.** Emits one `LayoutBox` per input node, in input order, at the placed rectangle,
    carrying the node label.
-5. **Route resolution.** Builds a `(source, target)` to polyline lookup from the engine's acyclic
+6. **Route resolution.** Builds a `(source, target)` to polyline lookup from the engine's acyclic
    edge set, then emits one `LayoutLine` per input edge. `ResolveRoute` returns the forward polyline
    when present, reverses the polyline of a reversed back edge, and otherwise falls back to a
    straight segment between the two node centers (for a self-loop or duplicate edge the engine
@@ -50,4 +57,5 @@ the Engine subsystem. It is the entry point resolved by renderers through the la
 | Rendering-Layout-LayeredAlgorithm-Identity | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-PlacesAndRoutes | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-EmptyGraph | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-Direction | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-Validation | LayeredLayoutAlgorithm behavior described above |

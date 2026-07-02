@@ -146,6 +146,29 @@ internal static class GalleryDiagrams
         return graph;
     }
 
+    /// <summary>
+    ///     A compact directed flow — a start, two sequential steps, a branch, and an end — used to show
+    ///     the same graph laid out in two flow directions. Read left-to-right it is a pipeline; read
+    ///     top-to-bottom it is an action flow, which is exactly what the direction option selects.
+    /// </summary>
+    /// <returns>A flat directed graph suited to a direction comparison.</returns>
+    public static LayoutGraph DirectionShowcase()
+    {
+        var graph = new LayoutGraph();
+        var start = AddLabelled(graph, "start", "Start");
+        var collect = AddLabelled(graph, "collect", "Collect");
+        var analyze = AddLabelled(graph, "analyze", "Analyze");
+        var report = AddLabelled(graph, "report", "Report");
+        var archive = AddLabelled(graph, "archive", "Archive");
+
+        Connect(graph, "start-collect", start, collect);
+        Connect(graph, "collect-analyze", collect, analyze);
+        Connect(graph, "analyze-report", analyze, report);
+        Connect(graph, "analyze-archive", analyze, archive);
+
+        return graph;
+    }
+
     /// <summary>Adds a labelled leaf node of the standard showcase size to the given graph.</summary>
     private static LayoutGraphNode AddLabelled(LayoutGraph graph, string id, string label)
     {

@@ -6,10 +6,11 @@ Part of the Rendering Layout system.
 
 `InterconnectionLayoutEngine` places directed graphs and routes all connector lines using a full
 Sugiyama-style pipeline. It is a thin facade that assembles and runs the reusable
-`LayeredLayoutPipeline` (see *Layered Pipeline*) with its default stage sequence, the Right layout
-direction, and flat hierarchy handling. Its `Place` API and `LayerResult` output are the stable
-internal contract; the facade produces byte-for-byte identical geometry to the previous monolithic
-implementation, proven by an equivalence test against a legacy oracle.
+`LayeredLayoutPipeline` (see *Layered Pipeline*) with its default stage sequence, the requested layout
+direction (defaulting to Right), and flat hierarchy handling. Its `Place` API and `LayerResult` output
+are the stable internal contract; for the default Right direction the facade produces byte-for-byte
+identical geometry to the previous monolithic implementation, proven by an equivalence test against a
+legacy oracle.
 
 ## InterconnectionLayoutEngine Data Model
 
@@ -22,13 +23,21 @@ with `ConnectorWaypoints`.
 
 ## InterconnectionLayoutEngine Methods
 
-`Place(nodes, edges)` builds a `LayeredGraph` from the inputs, assembles a `LayeredLayoutPipeline`
-with the default stages, and runs it. It then reads the placed coordinates, column extents, layer
-assignments, and waypoints from the graph state and assembles the `LayerResult`. Because the
-pipeline drops self-loops, de-duplicates identical directed pairs, and reverses back edges,
-`ConnectorWaypoints` holds one polyline per acyclic edge; consumers key a `(source, target)` lookup
-on `AcyclicEdges` (reversing the polyline for a reversed back edge) to recover each input edge's
-route.
+`Place(nodes, edges, direction)` builds a `LayeredGraph` from the inputs, assembles a
+`LayeredLayoutPipeline` with the default stages for the requested `direction` (defaulting to Right),
+and runs it. It then reads the placed coordinates, column extents, layer assignments, and waypoints
+from the graph state and assembles the `LayerResult`. Because the pipeline drops self-loops,
+de-duplicates identical directed pairs, and reverses back edges, `ConnectorWaypoints` holds one
+polyline per acyclic edge; consumers key a `(source, target)` lookup on `AcyclicEdges` (reversing the
+polyline for a reversed back edge) to recover each input edge's route.
+
+The reported total dimensions are direction-aware. The pipeline's axis-transform stage places the
+nodes along the requested direction, so a top-to-bottom (Down) or bottom-to-top (Up) flow transposes
+the layout relative to the left-to-right (Right) and right-to-left (Left) flows. The engine computes
+the along-axis extent from the column geometry and the cross-axis extent from the placed screen
+coordinates, then assigns them to `TotalWidth`/`TotalHeight` per direction: for Right/Left the
+along-axis is the width and for Down/Up it is the height. The Right path is unchanged and remains
+byte-identical.
 
 ## InterconnectionLayoutEngine Error Handling
 
@@ -51,4 +60,5 @@ strategy to obtain a placement result.
 | Rendering-Layout-InterconnectionEngine-NonOverlapping | InterconnectionLayoutEngine behavior described above |
 | Rendering-Layout-InterconnectionEngine-DummyNodes | InterconnectionLayoutEngine behavior described above |
 | Rendering-Layout-InterconnectionEngine-Waypoints | InterconnectionLayoutEngine behavior described above |
+| Rendering-Layout-InterconnectionEngine-Direction | InterconnectionLayoutEngine behavior described above |
 | Rendering-Layout-InterconnectionEngine-Deterministic | InterconnectionLayoutEngine behavior described above |

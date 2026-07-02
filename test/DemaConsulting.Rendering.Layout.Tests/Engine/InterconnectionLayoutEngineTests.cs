@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering.Layout.Engine;
+using DemaConsulting.Rendering.Layout.Engine.Layered;
 
 namespace DemaConsulting.Rendering.Layout.Tests.Engine;
 
@@ -162,6 +163,30 @@ public sealed class InterconnectionLayoutEngineTests
                     $"Rects {i} and {j} overlap: {result.Rects[i]} / {result.Rects[j]}");
             }
         }
+    }
+
+    /// <summary>
+    ///     A downward flow direction transposes the layout: the same chain that lays out wider than it
+    ///     is tall in the default rightward direction lays out taller than it is wide when placed
+    ///     downward, with its boxes stacked in strictly increasing Y. This exercises the direction-aware
+    ///     total-dimension computation.
+    /// </summary>
+    [Fact]
+    public void Place_DownDirection_TransposesTotalsRelativeToRight()
+    {
+        var nodes = new List<LayerNode> { new(80, 40), new(80, 40), new(80, 40) };
+        var edges = new List<LayerEdge> { new(0, 1), new(1, 2) };
+
+        var right = InterconnectionLayoutEngine.Place(nodes, edges, LayoutDirection.Right);
+        var down = InterconnectionLayoutEngine.Place(nodes, edges, LayoutDirection.Down);
+
+        // Rightward flow is wider than tall; the downward flow transposes those dimensions.
+        Assert.True(right.TotalWidth > right.TotalHeight);
+        Assert.True(down.TotalHeight > down.TotalWidth);
+
+        // The downward flow stacks the chain's boxes in strictly increasing Y.
+        Assert.True(down.Rects[0].Y < down.Rects[1].Y);
+        Assert.True(down.Rects[1].Y < down.Rects[2].Y);
     }
 
     private static bool Overlaps(Rect a, Rect b) =>

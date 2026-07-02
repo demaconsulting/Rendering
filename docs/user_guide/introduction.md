@@ -180,7 +180,7 @@ on it:
 ```csharp
 var options = new LayoutOptions();
 options.Set(CoreOptions.Algorithm, "layered");
-options.Set(CoreOptions.Direction, LayoutFlowDirection.Right);
+options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);   // flow the layers top-to-bottom
 
 // Per-element overrides: any graph element is also a property holder.
 a.Set(CoreOptions.NodeSpacing, 32.0);
@@ -188,6 +188,12 @@ a.Set(CoreOptions.NodeSpacing, 32.0);
 // Routing style rides the same property system, mirroring ELK's elk.edgeRouting.
 options.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
 ```
+
+`CoreOptions.Direction` selects the flow direction the layered algorithm arranges its layers along:
+`Right` (the default) and `Left` flow the layers left-to-right and right-to-left, while `Down` and
+`Up` flow them top-to-bottom and bottom-to-top — the convention for action flows and state machines. A
+downward flow swaps each node's width and height before layering so layer spacing follows node height.
+As with the algorithm, a declaration on the graph takes precedence over one on the options.
 
 ## Routing connectors among placed boxes
 

@@ -35,6 +35,8 @@ internal static class GalleryCatalog
     public const string ContainmentPackedSvg = "containment-packed.svg";
     public const string HierarchicalNestedSvg = "hierarchical-nested.svg";
     public const string OrthogonalObstacleSvg = "orthogonal-obstacle.svg";
+    public const string DirectionRightSvg = "direction-right.svg";
+    public const string DirectionDownSvg = "direction-down.svg";
     public const string ThemeLightPng = "theme-light.png";
     public const string ThemeDarkPng = "theme-dark.png";
     public const string ThemePrintPng = "theme-print.png";
@@ -62,6 +64,22 @@ internal static class GalleryCatalog
                     HierarchicalNestedSvg,
                     "Hierarchical nested diagram",
                     "A container node holding a nested child graph, with a cross-container edge."),
+            ]),
+        new GallerySection(
+            "Flow direction",
+            "The same directed graph laid out in two flow directions, selected with the direction "
+            + "option. A rightward flow arranges the layers left-to-right for block and pipeline "
+            + "diagrams; a downward flow arranges them top-to-bottom for action flows and state "
+            + "machines, swapping each node's width and height so layer spacing follows node height.",
+            [
+                new GalleryImage(
+                    DirectionRightSvg,
+                    "Directed flow laid out left to right",
+                    "The default rightward direction: layers progress left-to-right."),
+                new GalleryImage(
+                    DirectionDownSvg,
+                    "The same directed flow laid out top to bottom",
+                    "The downward direction: the same graph's layers progress top-to-bottom."),
             ]),
         new GallerySection(
             "Edge routing",

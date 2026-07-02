@@ -77,6 +77,115 @@ public class LayeredLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a null options argument is rejected.
+    /// </summary>
+    [Fact]
+    public void Apply_NullOptions_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(
+            () => new LayeredLayoutAlgorithm().Apply(new LayoutGraph(), null!));
+    }
+
+    /// <summary>
+    ///     Proves that selecting a downward flow direction lays the chain out top-to-bottom: boxes are
+    ///     stacked in strictly increasing Y (rather than the default left-to-right increasing X), and
+    ///     the canvas is taller than it is wide.
+    /// </summary>
+    [Fact]
+    public void Apply_DownDirection_FlowsTopToBottom()
+    {
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 80, 40);
+        var b = graph.AddNode("b", 80, 40);
+        var c = graph.AddNode("c", 80, 40);
+        graph.AddEdge("e1", a, b);
+        graph.AddEdge("e2", b, c);
+
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        Assert.Equal(3, boxes.Count);
+
+        // A downward chain stacks its boxes vertically: strictly increasing Y.
+        Assert.True(boxes[0].Y < boxes[1].Y);
+        Assert.True(boxes[1].Y < boxes[2].Y);
+
+        // A three-deep top-to-bottom flow of short boxes is taller than it is wide.
+        Assert.True(tree.Height > tree.Width);
+    }
+
+    /// <summary>
+    ///     Proves that the downward flow is a genuinely different layout from the default rightward
+    ///     flow — a regression guard against the option being silently ignored (which would return the
+    ///     identical left-to-right coordinates for both directions).
+    /// </summary>
+    [Fact]
+    public void Apply_DownDirection_DiffersFromRight()
+    {
+        var algorithm = new LayeredLayoutAlgorithm();
+
+        var right = algorithm.Apply(BuildChain(), new LayoutOptions());
+
+        var downOptions = new LayoutOptions();
+        downOptions.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+        var down = algorithm.Apply(BuildChain(), downOptions);
+
+        // Rightward is wide-and-short; downward is tall-and-narrow. They must not be identical.
+        Assert.True(right.Width > right.Height);
+        Assert.True(down.Height > down.Width);
+
+        var rightBoxes = right.Nodes.OfType<LayoutBox>().ToList();
+        var downBoxes = down.Nodes.OfType<LayoutBox>().ToList();
+        Assert.True(rightBoxes[0].X < rightBoxes[2].X);
+        Assert.True(downBoxes[0].Y < downBoxes[2].Y);
+    }
+
+    /// <summary>
+    ///     Proves that the flow direction is honored when carried on the graph scope, mirroring how the
+    ///     algorithm resolves its other well-known options (graph scope takes precedence over options).
+    /// </summary>
+    [Fact]
+    public void Apply_DownDirectionOnGraphScope_IsHonored()
+    {
+        var graph = BuildChain();
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        Assert.True(tree.Height > tree.Width);
+    }
+
+    /// <summary>
+    ///     Proves that the default (unset) direction lays the graph out left-to-right, so existing
+    ///     callers that never set the option are unaffected.
+    /// </summary>
+    [Fact]
+    public void Apply_DefaultDirection_FlowsLeftToRight()
+    {
+        var tree = new LayeredLayoutAlgorithm().Apply(BuildChain(), new LayoutOptions());
+
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        Assert.True(boxes[0].X < boxes[1].X);
+        Assert.True(boxes[1].X < boxes[2].X);
+        Assert.True(tree.Width > tree.Height);
+    }
+
+    /// <summary>Builds the standard three-node chain graph used by the direction tests.</summary>
+    private static LayoutGraph BuildChain()
+    {
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 80, 40);
+        var b = graph.AddNode("b", 80, 40);
+        var c = graph.AddNode("c", 80, 40);
+        graph.AddEdge("e1", a, b);
+        graph.AddEdge("e2", b, c);
+        return graph;
+    }
+
+    /// <summary>
     ///     Proves that the hierarchical input-model capability is behavior-preserving: a flat graph
     ///     whose nodes declare no children lays out exactly as before, because the layered algorithm
     ///     reads only the top-level nodes and edges and ignores nesting.

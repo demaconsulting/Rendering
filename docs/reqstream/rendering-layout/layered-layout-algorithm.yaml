@@ -38,6 +38,21 @@ sections:
         tests:
           - Apply_EmptyGraph_ReturnsEmptyCanvas
 
+      - id: Rendering-Layout-LayeredAlgorithm-Direction
+        title: >-
+          LayeredLayoutAlgorithm shall arrange the placed layers along the flow direction selected by
+          the direction option — top-to-bottom, bottom-to-top, right-to-left, or the default
+          left-to-right — reading the selection from the graph in preference to the options.
+        justification: |
+          Directed views such as action flows and state machines read the placed coordinates expecting
+          the layers to progress top-to-bottom; the layout is only correct for them when the algorithm
+          honors the requested flow direction rather than always flowing left-to-right.
+        tests:
+          - Apply_DownDirection_FlowsTopToBottom
+          - Apply_DownDirection_DiffersFromRight
+          - Apply_DownDirectionOnGraphScope_IsHonored
+          - Apply_DefaultDirection_FlowsLeftToRight
+
       - id: Rendering-Layout-LayeredAlgorithm-Validation
         title: >-
           LayeredLayoutAlgorithm shall reject a null graph or null options argument with an

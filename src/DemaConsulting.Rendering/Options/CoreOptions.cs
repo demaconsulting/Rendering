@@ -54,9 +54,12 @@ public static class CoreOptions
         new("rendering.hierarchyhandling", Rendering.HierarchyHandling.SeparateChildren);
 
     /// <summary>
-    /// Primary flow direction for layered algorithms. Advisory in the bundled <c>layered</c>
-    /// algorithm today, which lays out left-to-right; honoring other directions is a future,
-    /// additive enhancement.
+    /// Primary flow direction for layered algorithms: the direction successive layers progress in.
+    /// Honored by the bundled <c>layered</c> algorithm — <see cref="LayoutFlowDirection.Right"/> and
+    /// <see cref="LayoutFlowDirection.Left"/> flow left-to-right and right-to-left, while
+    /// <see cref="LayoutFlowDirection.Down"/> and <see cref="LayoutFlowDirection.Up"/> flow
+    /// top-to-bottom and bottom-to-top (swapping each node's width and height before layering so layer
+    /// spacing is driven by node height). Defaults to <see cref="LayoutFlowDirection.Right"/>.
     /// </summary>
     public static readonly LayoutProperty<LayoutFlowDirection> Direction =
         new("rendering.direction", LayoutFlowDirection.Right);
