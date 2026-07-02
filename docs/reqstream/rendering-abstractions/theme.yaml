@@ -1,0 +1,30 @@
+---
+# DemaConsulting.Rendering.Abstractions - Theme Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the theme unit: the Theme record and built-in Themes.
+# - These unit requirements decompose the Rendering-Abstractions-Theming system requirement declared in
+#   rendering-abstractions.yaml.
+
+sections:
+  - title: Theme Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-Theme-ApproachZone
+        title: >-
+          The theme shall compute a connector approach zone as the sum of the perpendicular stub, the
+          corner bend radius, and the caller-supplied connector clearance.
+        justification: |
+          The approach zone is the clear distance a connector needs off a box face before it can
+          bend; deriving it from theme values keeps reserved and drawn geometry in agreement.
+        tests:
+          - ConnectorApproachZone_SumsStubBendAndClearance
+
+      - id: Rendering-Abstractions-Theme-BuiltInGeometry
+        title: >-
+          The built-in themes shall provide the documented connector geometry, with the light and
+          dark themes sharing values and the print theme using tighter values.
+        justification: |
+          Ready-made themes give callers correct defaults for screen and print output without having
+          to specify every metric, while a tighter print theme suits monochrome output.
+        tests:
+          - Themes_HaveExpectedConnectorGeometry

@@ -1,12 +1,16 @@
 ---
-# Rendering.Skia System and Unit Requirements
+# Rendering.Skia System Requirements
 #
 # PURPOSE:
-# - Define the system-level requirement for the DemaConsulting.Rendering.Skia system and the
-#   unit-level requirements for its units: the shared SkiaRasterRenderer base and the concrete
-#   PngRenderer, JpegRenderer, and WebpRenderer format renderers.
+# - Define the system-level requirement for the DemaConsulting.Rendering.Skia system: the
+#   SkiaSharp raster renderer package that renders placed layout trees to PNG, JPEG, and WEBP.
 # - The system requirement is generic: it describes WHAT the Skia raster system delivers. It
 #   decomposes downward (children) into the unit requirements that provide the detailed behaviour.
+#   Those unit requirements live in the per-unit sibling files:
+#     - skia-raster-renderer.yaml  (the shared SkiaSharp rasterizer)
+#     - png-renderer.yaml          (PNG encoding)
+#     - jpeg-renderer.yaml         (JPEG encoding)
+#     - webp-renderer.yaml         (WEBP encoding)
 # - Each unit requirement is verified by SkiaSharp renderer unit tests.
 
 sections:
@@ -31,98 +35,4 @@ sections:
         tests:
           - Render_SingleBox_ProducesPngSignature
           - JpegRenderer_Render_ProducesJpegSignature
-          - WebpRenderer_Render_ProducesWebpContainerHeader
-
-  - title: SkiaRasterRenderer Unit Requirements
-    requirements:
-      - id: Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree
-        title: >-
-          SkiaRasterRenderer shall rasterize every layout-tree node kind - boxes, labels, lines,
-          ports, badges, bands, lifelines, activations, and grids - onto an opaque white bitmap.
-        justification: |
-          The base rasterizer draws all node kinds so that every concrete format renderer produces
-          a complete diagram; the opaque white background makes the output usable in formats without
-          transparency, such as JPEG.
-        tests:
-          - PngRenderer_Render_SingleBox_ProducesNonEmptyOutput
-          - PngRenderer_Render_BackgroundIsWhite
-          - PngRenderer_Render_SingleLine_PixelOnLineIsStrokeColor
-          - PngRenderer_Render_SinglePort_CenterPixelIsStrokeColor
-          - PngRenderer_Render_SingleBadge_FilledCircle_CenterPixelIsStrokeColor
-          - PngRenderer_Render_SingleLifeline_StemPixelIsStrokeColor
-          - PngRenderer_Render_SingleActivation_CenterPixelIsWhite
-          - PngRenderer_Render_DeeplyNestedBoxes_DoesNotStackOverflow
-          - PngRenderer_Render_LabelWithXmlSpecialCharacters_ProducesValidPng
-
-      - id: Rendering-Skia-SkiaRasterRenderer-ThemeColours
-        title: >-
-          SkiaRasterRenderer shall derive box and grid fill colours from the render theme, indexing
-          the depth-fill palette by nesting depth.
-        justification: |
-          Deriving colours from the theme keeps raster output visually consistent with the SVG
-          renderer and lets callers restyle diagrams by supplying a different theme.
-        tests:
-          - PngRenderer_Render_SingleBox_FillColorMatchesTheme
-          - PngRenderer_Render_SingleBox_DepthOneUsesSecondColor
-          - PngRenderer_Render_SingleGrid_HeaderFillMatchesTheme
-
-      - id: Rendering-Skia-SkiaRasterRenderer-EndMarkers
-        title: >-
-          SkiaRasterRenderer shall draw connector end markers whose geometry derives from the shared
-          notation metrics, so raster markers match the SVG markers.
-        justification: |
-          End markers express relationship direction and kind; sharing the notation metrics with the
-          SVG renderer keeps the two output formats visually identical.
-        tests:
-          - FilledArrow_AlongLength_MatchesNotationMetrics
-          - FilledArrow_BaseWidth_MatchesNotationMetrics
-          - OpenChevron_HasFewerInkPixelsThanClosedTriangle
-          - PngRenderer_Render_DrawArrowhead_OpenWithCrossbar_ProducesNonEmptyOutput
-
-      - id: Rendering-Skia-SkiaRasterRenderer-EmptyTree
-        title: >-
-          SkiaRasterRenderer shall render an empty layout tree to a valid image with a minimum
-          bitmap size of one by one pixels.
-        justification: |
-          Enforcing a minimum bitmap size prevents SkiaSharp allocation errors for empty diagrams,
-          so callers never have to special-case an empty layout.
-        tests:
-          - PngRenderer_Render_EmptyTree_WritesPngSignature
-
-  - title: PngRenderer Unit Requirements
-    requirements:
-      - id: Rendering-Skia-PngRenderer-EmitsPng
-        title: >-
-          PngRenderer shall encode the rasterized diagram as a lossless PNG image, reporting the
-          "image/png" media type and the ".png" file extension.
-        justification: |
-          PNG is the default lossless raster format for diagrams; reporting its media type and
-          extension lets callers select and name the output correctly.
-        tests:
-          - Render_SingleBox_ProducesPngSignature
-          - PngRenderer_Render_EmptyTree_WritesPngSignature
-          - PngRenderer_FileExtensions_ContainsDefault
-
-  - title: JpegRenderer Unit Requirements
-    requirements:
-      - id: Rendering-Skia-JpegRenderer-EmitsJpeg
-        title: >-
-          JpegRenderer shall encode the rasterized diagram as a JPEG image, reporting the
-          "image/jpeg" media type and the ".jpg" and ".jpeg" file extensions.
-        justification: |
-          JPEG produces small, widely-compatible images for diagrams where lossy compression is
-          acceptable; advertising both extensions lets callers resolve the renderer by either name.
-        tests:
-          - JpegRenderer_Render_ProducesJpegSignature
-
-  - title: WebpRenderer Unit Requirements
-    requirements:
-      - id: Rendering-Skia-WebpRenderer-EmitsWebp
-        title: >-
-          WebpRenderer shall encode the rasterized diagram as a WEBP image, reporting the
-          "image/webp" media type and the ".webp" file extension.
-        justification: |
-          WEBP gives high-quality diagrams at small file sizes for modern web use; reporting its
-          media type and extension lets callers select and name the output correctly.
-        tests:
           - WebpRenderer_Render_ProducesWebpContainerHeader

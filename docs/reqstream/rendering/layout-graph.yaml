@@ -1,0 +1,79 @@
+---
+# DemaConsulting.Rendering (Model) - Layout Graph Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the layout-graph unit: the unplaced, recursive input model
+#   (LayoutGraph, LayoutGraphNode, LayoutGraphEdge) that a layout algorithm consumes.
+# - These unit requirements decompose the Rendering-Model-InputGraph system requirement declared
+#   in rendering.yaml.
+
+sections:
+  - title: Layout Graph Unit Requirements
+    requirements:
+      - id: Rendering-Model-LayoutGraph-AddNode
+        title: >-
+          Adding a node to the input graph shall append a node carrying the requested identity and
+          size and shall return that node.
+        justification: |
+          Returning the created node lets callers configure it further (label, per-element options)
+          immediately, while appending preserves the caller's insertion order for deterministic
+          layout.
+        tests:
+          - AddNode_AppendsNodeAndReturnsIt
+
+      - id: Rendering-Model-LayoutGraph-AddEdge
+        title: >-
+          Adding an edge to the input graph shall append a directed edge referencing the supplied
+          source and target nodes and shall return that edge.
+        justification: |
+          Edges must reference their endpoint nodes so a layout algorithm can route connections;
+          returning the edge lets callers set its style and label.
+        tests:
+          - AddEdge_AppendsEdgeWithEndpoints
+
+      - id: Rendering-Model-LayoutGraph-PerElementProperties
+        title: >-
+          A graph node shall carry per-element property overrides that are readable through the
+          property-holder contract.
+        justification: |
+          Per-element overrides let a caller tune the layout of an individual node without affecting
+          the rest of the graph, supporting the open configuration model.
+        tests:
+          - Node_CarriesPerElementProperties
+
+      - id: Rendering-Model-LayoutGraph-ContainerNodes
+        title: >-
+          A graph node shall be able to contain a nested child subgraph of nodes and edges, and shall
+          report whether it currently acts as such a container.
+        justification: |
+          A hierarchical input model lets a caller describe compound elements — a package holding its
+          members, a block holding its parts — as a node that in turn contains its own graph, so a
+          layout engine can place nested content recursively. Reporting container status lets
+          consumers distinguish a container from a leaf and skip empty containers.
+        tests:
+          - LayoutGraphNode_Children_ContainerNode_HoldsChildNodesAndEdges
+          - LayoutGraphNode_HasChildren_LeafNode_ReturnsFalse
+
+      - id: Rendering-Model-LayoutGraph-ScopedIdentifiers
+        title: >-
+          Node and edge identifiers shall be unique within each container scope and may be reused
+          across different scopes.
+        justification: |
+          Scoping identifiers to a container lets each nested subgraph be described independently
+          without a caller having to invent globally-unique names, while still guaranteeing that a
+          layout engine can address every element unambiguously within its own scope.
+        tests:
+          - LayoutGraph_AddNode_ChildScope_AllowsIdReuseAcrossScopes
+          - LayoutGraph_AddNode_ChildScope_DuplicateId_ThrowsArgumentException
+
+      - id: Rendering-Model-LayoutGraph-CrossContainerEdge
+        title: >-
+          An edge held in a container shall be able to reference nodes that reside in different
+          descendant containers, so that connections spanning container boundaries are expressible.
+        justification: |
+          Real diagrams connect elements that live in different groups; allowing an edge in an ancestor
+          container to reference descendant endpoints lets a caller express those cross-boundary
+          connections without a distinct edge type, so a layout engine can route them at the lowest
+          common ancestor.
+        tests:
+          - LayoutGraphEdge_CrossContainer_ReferencingDescendant_ConstructibleAtRoot

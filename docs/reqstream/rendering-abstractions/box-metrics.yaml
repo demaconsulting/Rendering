@@ -1,0 +1,32 @@
+---
+# DemaConsulting.Rendering.Abstractions - Box Metrics Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the box-metrics unit: BoxMetrics title-area and folder-tab geometry formulas.
+# - These unit requirements decompose the Rendering-Abstractions-SharedGeometry system requirement declared in
+#   rendering-abstractions.yaml.
+
+sections:
+  - title: Box Metrics Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-BoxMetrics-FolderTabHeight
+        title: >-
+          The box metrics shall compute the folder-tab height as the body font size plus two label
+          paddings.
+        justification: |
+          The folder tab on a package box must be tall enough for its label; deriving its height from
+          theme font and padding keeps the reserved tab and the drawn tab identical.
+        tests:
+          - BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding
+
+      - id: Rendering-Abstractions-BoxMetrics-TitleAreaHeight
+        title: >-
+          The box metrics shall compute the reserved box title-area height from the presence of a
+          keyword line and a name line, reserving no title area when neither is present.
+        justification: |
+          The title area holds the optional keyword line and the bold name; computing its height from
+          which lines are present keeps space reserved by layout equal to space drawn by renderers.
+        tests:
+          - BoxMetrics_TitleAreaHeight_NoLabelNoKeyword_IsZero
+          - BoxMetrics_TitleAreaHeight_LabelOnly_ReservesTitleLine
+          - BoxMetrics_TitleAreaHeight_LabelAndKeyword_ReservesBothLines

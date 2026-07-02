@@ -1,0 +1,146 @@
+---
+# DemaConsulting.Rendering (Model) - Layout Tree Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the layout-tree unit: the placed, renderer-agnostic
+#   intermediate representation (LayoutTree and the LayoutNode discriminated-union of concrete
+#   node records, plus the shared Point2D / Rect geometry value types).
+# - These unit requirements decompose the Rendering-Model-LayoutTree system requirement declared
+#   in rendering.yaml.
+
+sections:
+  - title: Layout Tree Unit Requirements
+    requirements:
+      - id: Rendering-Model-LayoutTree-Canvas
+        title: >-
+          The layout tree shall carry the canvas width, the canvas height, and the ordered list of
+          top-level nodes that make up a rendered view.
+        justification: |
+          A renderer needs the overall canvas size to establish the drawing surface and needs the
+          ordered node list to draw every element of the view.
+        tests:
+          - LayoutTree_Construction_StoresWidthHeightNodes
+
+      - id: Rendering-Model-LayoutTree-AbsoluteCoordinates
+        title: >-
+          Every positioned node shall carry absolute coordinates that are preserved without any
+          further transformation being applied by the model.
+        justification: |
+          Absolute coordinates let a renderer draw each element directly from the tree without
+          resolving nested offsets, which keeps renderers simple and their output deterministic.
+        tests:
+          - LayoutBox_Coordinates_AreAbsolute
+          - LayoutPort_Coordinates_AreAbsolute
+          - LayoutLine_Waypoints_AreAbsolute
+
+      - id: Rendering-Model-LayoutTree-Box
+        title: >-
+          A box node shall carry its position, size, optional label, nesting depth, shape, ordered
+          compartments, and nested child nodes.
+        justification: |
+          Boxes are the primary container element; carrying compartments and children lets the
+          model represent nested definitions and usages that renderers draw recursively.
+        tests:
+          - LayoutBox_Construction_StoresAllFields
+          - LayoutBox_Children_ContainsNestedNodes
+
+      - id: Rendering-Model-LayoutTree-DepthNotColor
+        title: >-
+          A box node shall express its visual nesting as an integer depth rather than a resolved
+          color.
+        justification: |
+          Storing depth rather than a color keeps the model free of theme decisions, so the theme
+          in effect at render time selects the fill color for each nesting level.
+        tests:
+          - LayoutBox_Depth_IsInteger
+
+      - id: Rendering-Model-LayoutTree-Port
+        title: >-
+          A port node shall carry its absolute centre, the box edge it is attached to, and an
+          optional label.
+        justification: |
+          Ports pin connection points to box edges; carrying the attached side lets a renderer
+          offset the port symbol and its label away from the box face correctly.
+        tests:
+          - LayoutPort_Construction_StoresAllFields
+
+      - id: Rendering-Model-LayoutTree-Line
+        title: >-
+          A connector line node shall carry its ordered waypoints, its source and target end-marker
+          styles, its stroke style, and an optional midpoint label.
+        justification: |
+          Connectors express relationships; carrying pre-routed waypoints, end markers, and stroke
+          style lets a renderer draw the connector and its decorations without re-routing.
+        tests:
+          - LayoutLine_Construction_StoresAllFields
+
+      - id: Rendering-Model-LayoutTree-Label
+        title: >-
+          A label node shall carry its position, maximum width, text, alignment, font weight, font
+          style, and font size.
+        justification: |
+          Standalone labels carry names and annotations; carrying explicit font styling and a
+          maximum width lets a renderer emphasize and fit text consistently.
+        tests:
+          - LayoutLabel_Construction_StoresAllFields
+
+      - id: Rendering-Model-LayoutTree-Badge
+        title: >-
+          A badge node shall carry its centre, size, shape, and an optional label.
+        justification: |
+          Badges are small notation icons; carrying shape and size lets a renderer draw the correct
+          icon at the correct scale beside its optional label.
+        tests:
+          - LayoutBadge_Construction_StoresAllFields
+
+      - id: Rendering-Model-LayoutTree-Band
+        title: >-
+          A band node shall carry its bounds, orientation, an optional label, and nested child
+          nodes.
+        justification: |
+          Swim-lane bands group elements; carrying orientation and children lets a renderer draw the
+          lane and its contents in the correct axis.
+        tests:
+          - LayoutBand_Construction_StoresAllFields
+
+      - id: Rendering-Model-LayoutTree-Lifeline
+        title: >-
+          A lifeline node shall carry its centre, its top and bottom extent, its header label, and
+          its header dimensions.
+        justification: |
+          Sequence-diagram lifelines are a header box over a vertical stem; carrying both the extent
+          and the header size lets a renderer draw the header and dashed stem consistently.
+        tests:
+          - LayoutLifeline_Construction_StoresAllFields
+
+      - id: Rendering-Model-LayoutTree-Activation
+        title: >-
+          An activation node shall carry its centre and its top and bottom extent.
+        justification: |
+          An activation bar marks when a lifeline is active; carrying its centre and extent lets a
+          renderer draw the narrow bar over the lifeline stem.
+        tests:
+          - LayoutActivation_Construction_StoresAllFields
+
+      - id: Rendering-Model-LayoutTree-Grid
+        title: >-
+          A grid node shall carry its position and its ordered rows, each row flagged as header or
+          body and each cell carrying its size, text, alignment, and column span.
+        justification: |
+          Tabular notation (for example requirement tables) needs per-row header styling and
+          per-cell spans so a renderer can draw the table faithfully.
+        tests:
+          - LayoutGrid_Construction_StoresAllFields
+
+      - id: Rendering-Model-LayoutTree-Geometry
+        title: >-
+          The layout tree unit shall provide shared immutable point and axis-aligned rectangle value
+          types, in logical pixels, that positioned nodes and layout algorithms use to express
+          coordinates and bounds.
+        justification: |
+          A single Point2D and Rect value type gives every node record and every layout algorithm one
+          consistent, allocation-light geometry vocabulary, so coordinates and bounds are expressed
+          and compared the same way throughout the model.
+        tests:
+          - Point2D_Construction_StoresXY
+          - Rect_Construction_StoresAllFields

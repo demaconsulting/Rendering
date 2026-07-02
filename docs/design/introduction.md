@@ -70,8 +70,8 @@ understand, so unknown or not-yet-honored properties default harmlessly. New dia
 and output formats are introduced additively by implementing `ILayoutAlgorithm` or `IRenderer`
 and registering them — no existing contract changes.
 
-The delivered subset implements the `layered` algorithm and the SVG and SkiaSharp (PNG, JPEG,
-WEBP) renderers.
+The delivered subset implements the `layered`, `containment`, and `hierarchical` algorithms and the
+SVG and SkiaSharp (PNG, JPEG, WEBP) renderers.
 
 ## Software Structure
 
@@ -94,11 +94,17 @@ Rendering.Abstractions (System)
 
 Rendering.Layout (System)
 ├── Engine (Subsystem)
-│   ├── OrthogonalEdgeRouter (Unit)
-│   ├── ContainmentPacker (Unit)
-│   └── InterconnectionLayoutEngine (Unit)
-├── LayeredPipeline (Unit)          — the ELK-style layered Sugiyama stage pipeline
-└── LayeredLayoutAlgorithm (Unit)   — the public ILayoutAlgorithm implementation
+│   ├── OrthogonalEdgeRouter (Unit)       — orthogonal (channel) edge router
+│   ├── ContainmentPacker (Unit)          — shelf packer for grouped/containment layout
+│   ├── InterconnectionLayoutEngine (Unit)— cross-edge routing among placed boxes
+│   └── LayeredPipeline (Unit)            — the ELK-style layered Sugiyama stage pipeline
+├── LayeredLayoutAlgorithm (Unit)        — the public layered ILayoutAlgorithm
+├── ContainmentLayoutAlgorithm (Unit)    — the public containment ILayoutAlgorithm
+├── HierarchicalLayoutAlgorithm (Unit)   — the recursive hierarchical engine
+├── ContainmentLayout (Unit)             — public containment packing entry point
+├── ConnectorRouter (Unit)              — public edge-routing orchestration
+├── EdgeRoutingOption (Unit)            — the EdgeRouting option realization
+└── DefaultLayout (Unit)               — LayoutEngine facade + default algorithm registry
 
 Rendering.Svg (System)
 └── SvgRenderer (Unit)

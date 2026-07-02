@@ -1,13 +1,11 @@
 ---
-# Rendering.Svg System and Unit Requirements
+# DemaConsulting.Rendering.Svg System Requirements
 #
 # PURPOSE:
-# - Define the system-level requirement for the DemaConsulting.Rendering.Svg system
-#   and the unit-level requirements for its single unit, the SvgRenderer class.
-# - The system requirement is generic: it describes WHAT the SVG system delivers.
-#   It decomposes downward (children) into the SvgRenderer unit requirements that
-#   provide the detailed rendering behaviour.
-# - Each unit requirement is verified by SvgRenderer unit tests.
+# - Define the SYSTEM-level requirement for the DemaConsulting.Rendering.Svg system.
+# - The system requirement is generic: it describes WHAT the SVG system delivers. It decomposes
+#   downward (children) into the SvgRenderer unit requirements that provide the detailed rendering
+#   behaviour. Those unit requirements live in the sibling file svg-renderer.yaml.
 
 sections:
   - title: Rendering.Svg Requirements
@@ -21,105 +19,34 @@ sections:
           documentation, viewed in any web browser, and version-controlled as text.
         children:
           - Rendering-Svg-SvgRenderer-ImplementsIRenderer
+          - Rendering-Svg-SvgRenderer-MediaType
+          - Rendering-Svg-SvgRenderer-DefaultExtension
           - Rendering-Svg-SvgRenderer-RenderDocument
+          - Rendering-Svg-SvgRenderer-RenderEmptyTree
           - Rendering-Svg-SvgRenderer-RenderBox
+          - Rendering-Svg-SvgRenderer-RenderBoxRoundedCorners
+          - Rendering-Svg-SvgRenderer-RenderBoxCompartments
           - Rendering-Svg-SvgRenderer-RenderLabel
+          - Rendering-Svg-SvgRenderer-RenderLabelBold
+          - Rendering-Svg-SvgRenderer-RenderLabelItalic
+          - Rendering-Svg-SvgRenderer-RenderLabelEscaping
           - Rendering-Svg-SvgRenderer-RenderLine
+          - Rendering-Svg-SvgRenderer-RenderLineRoundedCorners
+          - Rendering-Svg-SvgRenderer-RenderLineDashed
+          - Rendering-Svg-SvgRenderer-RenderLineMidpointLabel
           - Rendering-Svg-SvgRenderer-RenderNodeKinds
+          - Rendering-Svg-SvgRenderer-RenderBadge
+          - Rendering-Svg-SvgRenderer-RenderBand
+          - Rendering-Svg-SvgRenderer-RenderLifeline
+          - Rendering-Svg-SvgRenderer-RenderActivation
+          - Rendering-Svg-SvgRenderer-RenderGrid
           - Rendering-Svg-SvgRenderer-EndMarkers
+          - Rendering-Svg-SvgRenderer-EndMarkersOpenChevronReference
+          - Rendering-Svg-SvgRenderer-HollowTriangleEndMarkers
+          - Rendering-Svg-SvgRenderer-HollowTriangleEndMarkerReference
+          - Rendering-Svg-SvgRenderer-TriangleEndMarkerMetrics
+          - Rendering-Svg-SvgRenderer-DiamondEndMarkers
+          - Rendering-Svg-SvgRenderer-DiamondEndMarkerReference
+          - Rendering-Svg-SvgRenderer-CrossbarEndMarkers
         tests:
-          - Render_SingleBox_ProducesSvgDocument
-
-  - title: SvgRenderer Unit Requirements
-    requirements:
-      - id: Rendering-Svg-SvgRenderer-ImplementsIRenderer
-        title: >-
-          SvgRenderer shall implement the IRenderer interface, reporting the
-          "image/svg+xml" media type and the ".svg" default file extension.
-        justification: |
-          Implementing the shared renderer interface lets a caller select SVG output
-          uniformly, and the media type and extension let callers name and serve the
-          output correctly.
-        tests:
-          - Render_SingleBox_ProducesSvgDocument
-
-      - id: Rendering-Svg-SvgRenderer-RenderDocument
-        title: >-
-          SvgRenderer shall write a well-formed SVG 1.1 document containing the root
-          svg element for any layout tree, including an empty one.
-        justification: |
-          A well-formed root document is required by every SVG viewer and is the
-          container for all rendered diagram content.
-        tests:
-          - SvgRenderer_Render_EmptyTree_ProducesSvgDocument
-
-      - id: Rendering-Svg-SvgRenderer-RenderBox
-        title: >-
-          SvgRenderer shall render each box node as a rect element, honouring rounded
-          corners and drawing its text compartments.
-        justification: |
-          Boxes are the primary diagram element; rounded corners and compartments convey
-          the notation for definitions and usages.
-        tests:
-          - SvgRenderer_Render_SingleBox_ProducesRectElement
-          - SvgRenderer_Render_BoxRoundedRectangle_ProducesRxAttribute
-          - SvgRenderer_Render_BoxWithCompartment_ProducesLineAndText
-
-      - id: Rendering-Svg-SvgRenderer-RenderLabel
-        title: >-
-          SvgRenderer shall render each label node as a text element, applying bold and
-          italic styling and escaping XML-special characters.
-        justification: |
-          Labels carry element names and typing; correct styling conveys emphasis, and
-          escaping keeps the document well-formed for any model text.
-        tests:
-          - SvgRenderer_Render_SingleLabel_ProducesTextElement
-          - SvgRenderer_Render_LabelWithBold_ProducesBoldAttribute
-          - SvgRenderer_Render_LabelWithItalic_ProducesItalicAttribute
-          - SvgRenderer_Render_LabelWithXmlSpecialCharacters_ProducesWellFormedEscapedSvg
-
-      - id: Rendering-Svg-SvgRenderer-RenderLine
-        title: >-
-          SvgRenderer shall render each connector line as a path element, honouring
-          rounded corners, dashed styling, and midpoint labels.
-        justification: |
-          Connectors express relationships; corner, dash, and label handling convey the
-          connector's routing and semantics.
-        tests:
-          - SvgRenderer_Render_SingleLine_ProducesPathElement
-          - SvgRenderer_Render_SingleLine_WithCornerRadius_ProducesArcInPath
-          - SvgRenderer_Render_SingleLine_Dashed_ProducesDashArray
-          - SvgRenderer_Render_LineWithMidpointLabel_ProducesTextElement
-
-      - id: Rendering-Svg-SvgRenderer-RenderNodeKinds
-        title: >-
-          SvgRenderer shall render port, badge, band, lifeline, activation, and grid
-          nodes with their notation-appropriate SVG elements.
-        justification: |
-          The layout tree carries the full range of node kinds; each must be drawn so
-          every view type renders completely.
-        tests:
-          - SvgRenderer_Render_SinglePort_ProducesRect
-          - SvgRenderer_Render_SingleBadge_FilledCircle_ProducesCircle
-          - SvgRenderer_Render_SingleBand_ProducesRect
-          - SvgRenderer_Render_SingleLifeline_ProducesRectAndLine
-          - SvgRenderer_Render_SingleActivation_ProducesRect
-          - SvgRenderer_Render_SingleGrid_ProducesRects
-
-      - id: Rendering-Svg-SvgRenderer-EndMarkers
-        title: >-
-          SvgRenderer shall emit connector end markers - open chevron, hollow triangle,
-          diamond, and crossbar variants - whose geometry derives from the shared
-          notation metrics.
-        justification: |
-          End markers express relationship direction and kind; deriving their geometry
-          from the shared notation metrics keeps the SVG and PNG markers identical.
-        tests:
-          - SvgRenderer_Render_SingleLine_WithOpenArrowhead_ProducesMarkerEnd
-          - SvgRenderer_Render_SingleLine_WithDiamondArrowhead_ProducesDiamondMarker
-          - SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker
-          - OpenChevron_IsDefinedAsPolyline
-          - HollowTriangle_IsDefinedAsClosedPolygon
-          - TriangleMarker_DimensionsDeriveFromNotationMetrics
-          - DiamondMarker_DimensionsDeriveFromNotationMetrics
-          - OpenChevronLine_ReferencesOpenChevronMarker
+          - SvgRenderer_Render_SingleBox_ProducesSvgDocument

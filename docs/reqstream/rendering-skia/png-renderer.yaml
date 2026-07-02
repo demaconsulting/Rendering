@@ -1,0 +1,23 @@
+---
+# DemaConsulting.Rendering.Skia - PngRenderer Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the PngRenderer unit: the concrete Skia renderer that encodes the
+#   shared rasterized bitmap as PNG.
+# - These unit requirements decompose the Rendering-Skia-RenderRasterImage system requirement
+#   declared in rendering-skia.yaml.
+
+sections:
+  - title: PngRenderer Unit Requirements
+    requirements:
+      - id: Rendering-Skia-PngRenderer-EmitsPng
+        title: >-
+          PngRenderer shall encode the rasterized diagram as a lossless PNG image, reporting the
+          "image/png" media type and the ".png" file extension.
+        justification: |
+          PNG is the default lossless raster format for diagrams; reporting its media type and
+          extension lets callers select and name the output correctly.
+        tests:
+          - Render_SingleBox_ProducesPngSignature
+          - PngRenderer_Render_EmptyTree_WritesPngSignature
+          - PngRenderer_FileExtensions_ContainsDefault

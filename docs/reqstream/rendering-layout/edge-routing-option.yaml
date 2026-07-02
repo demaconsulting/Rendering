@@ -1,0 +1,35 @@
+---
+# DemaConsulting.Rendering.Layout - EdgeRouting Option Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the edge-routing-option behavior.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: EdgeRouting Option Unit Requirements
+    requirements:
+      - id: Rendering-Layout-EdgeRouting-Selection
+        title: >-
+          The connector routing style shall be selectable per scope through the
+          rendering.edgerouting property key, which shall default to orthogonal routing when unset.
+        justification: |
+          Mirroring ELK's elk.edgeRouting, routing style rides the same open property system that
+          selects the algorithm, so any scope (graph, node, edge, or a free-standing options object)
+          can choose a style. An unset scope must fall back to the orthogonal default so existing
+          callers route orthogonally without opting in.
+        tests:
+          - CoreOptions_EdgeRouting_DefaultsToOrthogonal
+          - CoreOptions_EdgeRouting_HasStableId
+          - CoreOptions_EdgeRouting_SelectablePerScope
+          - CoreOptions_EdgeRouting_UnsetReturnsDefault
+
+      - id: Rendering-Layout-EdgeRouting-Defaults
+        title: >-
+          The connector route options shall default to orthogonal routing with a caller-overridable
+          clearance of twelve logical pixels.
+        justification: |
+          A caller that supplies no routing preference must still get a sensible route; defaulting to
+          orthogonal routing with a fixed clearance provides that, while allowing the clearance to be
+          overridden so a downstream adapter can reproduce a specific spacing.
+        tests:
+          - ConnectorRouteOptions_Defaults_AreOrthogonalWithTwelvePixelClearance

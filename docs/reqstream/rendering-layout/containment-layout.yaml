@@ -1,0 +1,102 @@
+---
+# DemaConsulting.Rendering.Layout - ContainmentLayout Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the containment-layout unit.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: ContainmentLayout Unit Requirements
+    requirements:
+      - id: Rendering-Layout-ContainmentLayout-Order
+        title: >-
+          ContainmentLayout shall return the packed child boxes in their input order, positioned left to
+          right along each row.
+        justification: |
+          Callers rely on stable, order-preserving packing so a box's position in the input predicts its
+          reading position in the container; the repositioned children must appear in the same order they
+          were supplied.
+        tests:
+          - Pack_ItemsFitInRow_PreservesOrderLeftToRight
+
+      - id: Rendering-Layout-ContainmentLayout-NoOverlap
+        title: >-
+          ContainmentLayout shall position packed child boxes so that no two of them overlap.
+        justification: |
+          Overlapping children hide one another. Whatever mix of sizes is supplied, every packed box must
+          be disjoint from every other.
+        tests:
+          - Pack_MixedSizes_ProducesNoOverlaps
+
+      - id: Rendering-Layout-ContainmentLayout-WithinRegion
+        title: >-
+          ContainmentLayout shall place every packed child box within the bounds of the region size it
+          reports.
+        justification: |
+          Callers size the container from the reported region width and height. Every packed box must lie
+          inside those bounds so nothing is clipped or drawn outside the container.
+        tests:
+          - Pack_MixedSizes_AllChildrenWithinRegion
+
+      - id: Rendering-Layout-ContainmentLayout-Wrapping
+        title: >-
+          ContainmentLayout shall wrap a child that would exceed the maximum content width onto a new row
+          positioned below the current row.
+        justification: |
+          A row may not grow past the width budget. When the next child would overflow it, the operation
+          must start a new row beneath the current one so the content stays within the allotted width.
+        tests:
+          - Pack_ChildExceedsWidth_WrapsToNewRow
+
+      - id: Rendering-Layout-ContainmentLayout-OversizedChild
+        title: >-
+          ContainmentLayout shall place a child wider than the maximum content width alone on its own row
+          and shall widen the region to contain it.
+        justification: |
+          A child that cannot fit the width budget still has to be placed. It must occupy its own row, and
+          the reported region must grow so the oversized child remains fully contained.
+        tests:
+          - Pack_OversizedChild_PlacedAloneAndRegionWidens
+
+      - id: Rendering-Layout-ContainmentLayout-EmptyInput
+        title: >-
+          When given no children, ContainmentLayout shall return no children and a region consisting
+          solely of the requested padding.
+        justification: |
+          An empty input is a valid degenerate case. The operation must return a well-formed, empty result
+          sized only by the padding rather than failing.
+        tests:
+          - Pack_EmptyInput_ReturnsPaddingOnlyRegion
+
+      - id: Rendering-Layout-ContainmentLayout-PreservesFields
+        title: >-
+          ContainmentLayout shall carry every non-position field of each child (label, depth, shape,
+          compartments, nested children, and keyword) unchanged onto the repositioned box, updating only
+          its X and Y coordinates.
+        justification: |
+          The operation adjusts placement only; a child's identity and content must survive so the packed
+          boxes render exactly as supplied, just relocated to their packed coordinates.
+        tests:
+          - Pack_PreservesNonPositionFields
+
+      - id: Rendering-Layout-ContainmentLayout-Defaults
+        title: >-
+          The containment options shall default the horizontal gap and vertical gap to eight logical
+          pixels and the padding to twelve logical pixels, so a caller need only supply the content width.
+        justification: |
+          Sensible spacing defaults let a caller pack boxes with a single required parameter while still
+          allowing each gap and the padding to be overridden to reproduce a specific container spacing.
+        tests:
+          - ContainmentOptions_Defaults_AreSensibleGapsAndPadding
+
+      - id: Rendering-Layout-ContainmentLayout-Validation
+        title: >-
+          ContainmentLayout shall reject a null children list, a null options argument, or a null child
+          element with an argument-null error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public packing boundary.
+        tests:
+          - Pack_NullChildren_Throws
+          - Pack_NullOptions_Throws
+          - Pack_NullChildElement_Throws

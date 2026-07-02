@@ -1,0 +1,76 @@
+---
+# DemaConsulting.Rendering.Layout - ConnectorRouter Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the connector-router unit.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: ConnectorRouter Unit Requirements
+    requirements:
+      - id: Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther
+        title: >-
+          ConnectorRouter shall anchor each connector on the box side whose outward normal best points
+          at the opposing box, so connectors leave and arrive on the faces the two boxes present to
+          each other.
+        justification: |
+          A connector reads as joining two boxes only when it leaves and enters the faces that point
+          at one another; anchoring toward the opposing box centre produces that presentation
+          regardless of the boxes' relative positions.
+        tests:
+          - Route_TargetToTheRight_AnchorsFaceEachOther
+          - Route_TargetBelow_AnchorsFaceEachOther
+
+      - id: Rendering-Layout-ConnectorRouter-AvoidsObstacles
+        title: >-
+          ConnectorRouter shall route a connector around an intervening box without passing through
+          that box's interior, using axis-aligned segments.
+        justification: |
+          Connectors that cut through unrelated boxes are unreadable; the orchestration must steer the
+          route around boxes that lie between the two endpoints while keeping the path orthogonal.
+        tests:
+          - Route_ObstacleBetweenEndpoints_RoutesAroundInterior
+
+      - id: Rendering-Layout-ConnectorRouter-ExcludesEndpoints
+        title: >-
+          ConnectorRouter shall exclude a connection's two endpoint boxes, matched by instance
+          identity, from the obstacle set used to route that connection.
+        justification: |
+          A connector must be free to leave and enter the boxes it joins; treating the endpoint boxes
+          as obstacles would block the connector's own anchors. Endpoints are matched by reference so
+          no domain concept enters the routing.
+        tests:
+          - Route_EndpointBoxes_AreExcludedFromObstacles
+
+      - id: Rendering-Layout-ConnectorRouter-CarriesStyling
+        title: >-
+          ConnectorRouter shall carry a connection's requested target end marker, line style, and
+          label onto the produced connector line and shall leave the source end unmarked.
+        justification: |
+          The routing orchestration owns only geometry; the caller's styling choices must survive onto
+          the placed line so renderers draw the intended arrowhead, stroke, and label.
+        tests:
+          - Route_Connection_CarriesRequestedStyling
+
+      - id: Rendering-Layout-ConnectorRouter-BatchOrder
+        title: >-
+          Given a list of connections, ConnectorRouter shall return one routed connector line per
+          connection in the input order.
+        justification: |
+          Callers correlate produced lines with their connections positionally; a stable one-to-one,
+          in-order result keeps that correlation unambiguous.
+        tests:
+          - Route_MultipleConnections_ReturnsOneLinePerConnectionInOrder
+
+      - id: Rendering-Layout-ConnectorRouter-Validation
+        title: >-
+          ConnectorRouter shall reject a null box list, connection list, connection, or options
+          argument with an argument-null error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public routing boundary.
+        tests:
+          - Route_NullBoxes_Throws
+          - Route_NullConnections_Throws
+          - Route_NullOptions_Throws
+          - Route_NullConnection_Throws

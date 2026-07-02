@@ -1,0 +1,65 @@
+---
+# DemaConsulting.Rendering.Layout - Engine Subsystem Requirements
+#
+# PURPOSE:
+# - Subsystem-level requirements for the reusable geometric engine subsystem.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: Engine Subsystem Requirements
+    requirements:
+      - id: Rendering-Layout-OrthogonalRouting
+        title: >-
+          The Rendering.Layout engine subsystem shall route individual orthogonal connectors between
+          two anchors, steering around obstacles by a caller-specified clearance.
+        justification: |
+          Connector quality throughout every produced diagram flows through a single reusable
+          orthogonal router, so its obstacle-avoidance and clearance behavior is an engine-subsystem
+          capability in its own right.
+        children:
+          - Rendering-Layout-OrthogonalEdgeRouter-Orthogonal
+          - Rendering-Layout-OrthogonalEdgeRouter-AvoidObstacles
+          - Rendering-Layout-OrthogonalEdgeRouter-Clearance
+          - Rendering-Layout-OrthogonalEdgeRouter-PerpendicularEnds
+          - Rendering-Layout-OrthogonalEdgeRouter-CrossingStatus
+          - Rendering-Layout-OrthogonalEdgeRouter-CostBands
+        tests:
+          - Route_NoObstacles_ProducesOrthogonalPath
+          - Route_ObstacleBetween_RoutesAround
+
+      - id: Rendering-Layout-Containment
+        title: >-
+          The Rendering.Layout engine subsystem shall pack a sequence of variable-size items into
+          rows within a width budget without overlap.
+        justification: |
+          Containment packing lays out child elements inside a containing box; providing it as a
+          reusable engine keeps container sizing consistent across every view that nests elements.
+        children:
+          - Rendering-Layout-ContainmentPacker-SingleRow
+          - Rendering-Layout-ContainmentPacker-Wrapping
+          - Rendering-Layout-ContainmentPacker-NoOverlap
+          - Rendering-Layout-ContainmentPacker-WithinBounds
+          - Rendering-Layout-ContainmentPacker-OversizedItem
+          - Rendering-Layout-ContainmentPacker-EmptyInput
+          - Rendering-Layout-ContainmentPacker-SingleItem
+        tests:
+          - Pack_MixedSizes_ProducesNoOverlaps
+          - Pack_ItemsFitInRow_ShareSameRow
+
+      - id: Rendering-Layout-Interconnection
+        title: >-
+          The Rendering.Layout engine subsystem shall place directed graphs using Sugiyama-style
+          layered layout and return one orthogonal connector route per input edge.
+        justification: |
+          Layered placement with per-edge routing is the geometric contract the public algorithm and
+          the interconnection view depend on; exposing it as a stable facade lets both consume the
+          same behavior-preserving engine.
+        children:
+          - Rendering-Layout-InterconnectionEngine-Layering
+          - Rendering-Layout-InterconnectionEngine-NonOverlapping
+          - Rendering-Layout-InterconnectionEngine-DummyNodes
+          - Rendering-Layout-InterconnectionEngine-Waypoints
+          - Rendering-Layout-InterconnectionEngine-Deterministic
+        tests:
+          - Place_LinearChain_MonotonicLayerAssignment
+          - Place_WorkstationTopology_CorrectLayersAndNoOverlap
