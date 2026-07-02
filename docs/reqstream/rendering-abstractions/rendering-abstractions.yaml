@@ -1,0 +1,77 @@
+---
+# DemaConsulting.Rendering.Abstractions System Requirements
+#
+# PURPOSE:
+# - Define the SYSTEM-level requirements for the DemaConsulting.Rendering.Abstractions system: the
+#   service provider interface (SPI) that sits between the rendering model and the concrete layout
+#   and renderer implementations.
+# - Each system requirement decomposes downward (children) into unit requirements in the per-unit
+#   sibling files:
+#     - rendering-contracts.yaml      (ILayoutAlgorithm, IRenderer, RenderOptions, RenderOutput)
+#     - registries.yaml               (LayoutAlgorithmRegistry, RendererRegistry)
+#     - theme.yaml                    (Theme and built-in Themes)
+#     - notation-metrics.yaml         (shared notation geometry)
+#     - box-metrics.yaml              (box title-area and folder-tab geometry)
+#     - connector-label-placer.yaml   (connector midpoint-label placement)
+
+sections:
+  - title: Rendering Abstractions System Requirements
+    requirements:
+      - id: Rendering-Abstractions-Extensibility
+        title: >-
+          The abstractions system shall define the pluggable layout-algorithm and renderer contracts
+          and shall provide registries that select an implementation by identifier or media type.
+        justification: |
+          An ELK-inspired provider model lets additional layout families and output formats be
+          introduced purely additively - a new implementation is written and registered, and no
+          existing contract changes - so consumers resolve the implementation they need at run time.
+        children:
+          - Rendering-Abstractions-Contracts-Algorithm
+          - Rendering-Abstractions-Contracts-Renderer
+          - Rendering-Abstractions-Registries-ResolveAlgorithm
+          - Rendering-Abstractions-Registries-ResolveRenderer
+          - Rendering-Abstractions-Registries-ResolveRendererByExtension
+          - Rendering-Abstractions-Registries-MissingThrows
+        tests:
+          - LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
+          - RendererRegistry_RegisterThenResolve_ReturnsRenderer
+
+      - id: Rendering-Abstractions-Theming
+        title: >-
+          The abstractions system shall define a visual theme model with built-in themes and derived
+          connector approach geometry.
+        justification: |
+          Centralizing colors, fonts, and line metrics in a theme lets a single layout be rendered
+          in different visual styles, and deriving the connector approach zone from theme values
+          keeps the space reserved by layout consistent with the space drawn by renderers.
+        children:
+          - Rendering-Abstractions-Theme-ApproachZone
+          - Rendering-Abstractions-Theme-BuiltInGeometry
+        tests:
+          - ConnectorApproachZone_SumsStubBendAndClearance
+          - Themes_HaveExpectedConnectorGeometry
+
+      - id: Rendering-Abstractions-SharedGeometry
+        title: >-
+          The abstractions system shall provide single-source notation, box, and connector-label
+          geometry so that every renderer draws identical decorations and reserves consistent space.
+        justification: |
+          When the SVG and PNG renderers and the layout strategies all read one source of geometry,
+          their markers, box title areas, and label placements match exactly and a geometry literal
+          never has to be duplicated across the rendering path.
+        children:
+          - Rendering-Abstractions-NotationMetrics-TriangleGeometry
+          - Rendering-Abstractions-NotationMetrics-DiamondGeometry
+          - Rendering-Abstractions-NotationMetrics-CircleBarGeometry
+          - Rendering-Abstractions-NotationMetrics-Crossbar
+          - Rendering-Abstractions-NotationMetrics-AlongLineLength
+          - Rendering-Abstractions-NotationMetrics-BoxDecorations
+          - Rendering-Abstractions-BoxMetrics-FolderTabHeight
+          - Rendering-Abstractions-BoxMetrics-TitleAreaHeight
+          - Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled
+          - Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment
+          - Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap
+        tests:
+          - TriangleFamily_HasCanonicalValues
+          - BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding
+          - Place_SingleLine_UsesLongestSegmentMidpoint

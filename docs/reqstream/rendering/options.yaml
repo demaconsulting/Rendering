@@ -1,0 +1,51 @@
+---
+# DemaConsulting.Rendering (Model) - Options Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the options unit: the open, ELK-inspired property-based
+#   configuration system (LayoutProperty, IPropertyHolder, PropertyHolder, LayoutOptions,
+#   CoreOptions, and the option enums).
+# - These unit requirements decompose the Rendering-Model-Configuration system requirement
+#   declared in rendering.yaml.
+
+sections:
+  - title: Options Unit Requirements
+    requirements:
+      - id: Rendering-Model-Options-Default
+        title: >-
+          Reading a property that has not been set on a holder shall return that property's declared
+          default value.
+        justification: |
+          Declared defaults let algorithms and renderers read any option unconditionally, without
+          each caller having to pre-populate every option first.
+        tests:
+          - Get_UnsetProperty_ReturnsDefault
+
+      - id: Rendering-Model-Options-StoreAndRetrieve
+        title: >-
+          A value written for a property shall be returned by a subsequent read of that same
+          property.
+        justification: |
+          Storing and retrieving option values is the core of the configuration system: callers set
+          the options they care about and algorithms read them back reliably.
+        tests:
+          - Get_AfterSet_ReturnsStoredValue
+
+      - id: Rendering-Model-Options-Contains
+        title: >-
+          A property holder shall report whether a given property has been explicitly set.
+        justification: |
+          Distinguishing an explicitly-set value from a default lets an algorithm honor an override
+          only when a caller actually supplied one.
+        tests:
+          - Contains_ReflectsExplicitSet
+
+      - id: Rendering-Model-Options-TryGet
+        title: >-
+          An attempt to read an unset property shall report that no value was set and shall yield the
+          declared default.
+        justification: |
+          A combined test-and-read operation lets a caller branch on whether an override exists while
+          still receiving a usable default in a single call.
+        tests:
+          - TryGet_UnsetProperty_ReturnsFalseAndDefault

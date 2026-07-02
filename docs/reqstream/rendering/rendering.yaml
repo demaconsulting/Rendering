@@ -1,103 +1,90 @@
 ---
-# Software System Requirements for Rendering
+# DemaConsulting.Rendering (Model) Requirements
 #
-# These requirements describe the externally visible behavior of the library
-# from the perspective of its consumers, without specifying implementation details.
+# PURPOSE:
+# - Define the requirements for the DemaConsulting.Rendering system: the SysML-agnostic
+#   rendering model that provides the placed layout-tree intermediate representation, the
+#   open (ELK-inspired) property-based option system, and the unplaced input layout graph.
+# - The first section holds system-level requirements. Each system requirement decomposes
+#   downward (children) into the unit requirements that provide the detailed behavior.
+# - The remaining sections hold the unit requirements for the three units of this system:
+#   layout-tree (the IR records), options (the property system), and layout-graph (the input model).
+#
+# SCOPE EXCLUSIONS:
+# - The following public members are optional presentation or diagnostic metadata carried through
+#   unchanged by the model. They carry no algorithmic behavior of their own, and the rendered
+#   behavior they influence is specified and verified in the
+#   renderer systems (DemaConsulting.Rendering.Svg / DemaConsulting.Rendering.Skia), not in the
+#   model. They are therefore intentionally excluded from the Rendering-Model requirement set and
+#   are not given individual functional requirements:
+#     - LayoutBox.Keyword          - optional SysML keyword text drawn above the box label
+#     - LayoutTree.Warnings        - non-fatal layout-quality diagnostics (advisory only)
+#     - LayoutGraphNode.Label      - optional input-node display text
+#     - LayoutGraphEdge.Label      - optional input-edge midpoint display text
+#     - LayoutGraphEdge.TargetEnd  - optional input-edge end-marker style hint
+#     - LayoutGraphEdge.LineStyle  - optional input-edge stroke-style hint
 
 sections:
-  - title: Library API
+  - title: Rendering Model System Requirements
     requirements:
-      - id: Template-Lib-Greeting
-        title: The library shall generate a greeting string when given a name.
+      - id: Rendering-Model-LayoutTree
+        title: >-
+          The rendering model shall provide a placed layout-tree representation that carries every
+          diagram element type with absolute coordinates ready for a renderer to draw.
         justification: |
-          Provides a simple demonstration of library functionality following
-          .NET library best practices for DEMA Consulting libraries.
+          Separating a placed, renderer-agnostic intermediate representation from the layout
+          algorithms and the renderers lets a single layout be drawn to any output format (SVG,
+          PNG) without re-computing geometry, and lets new element types be added additively.
         children:
-          - Template-Demo-Greeting
+          - Rendering-Model-LayoutTree-Canvas
+          - Rendering-Model-LayoutTree-AbsoluteCoordinates
+          - Rendering-Model-LayoutTree-Box
+          - Rendering-Model-LayoutTree-DepthNotColor
+          - Rendering-Model-LayoutTree-Port
+          - Rendering-Model-LayoutTree-Line
+          - Rendering-Model-LayoutTree-Label
+          - Rendering-Model-LayoutTree-Badge
+          - Rendering-Model-LayoutTree-Band
+          - Rendering-Model-LayoutTree-Lifeline
+          - Rendering-Model-LayoutTree-Activation
+          - Rendering-Model-LayoutTree-Grid
+          - Rendering-Model-LayoutTree-Geometry
         tests:
-          - Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting
-          - Rendering_SystemCustomization_CustomPrefix_ReturnsExpectedGreeting
+          - LayoutTree_Construction_StoresWidthHeightNodes
+          - LayoutBox_Construction_StoresAllFields
 
-      - id: Template-Lib-GreetingFormat
-        title: The library shall return a greeting string in the format "{prefix}, {name}!".
+      - id: Rendering-Model-Configuration
+        title: >-
+          The rendering model shall provide an open, strongly-typed configuration system that
+          carries options at graph, element, and standalone scope without changing any contract.
         justification: |
-          The format is the core observable contract of the library: callers depend on this
-          specific structure in documentation examples and integration code.
+          An ELK-inspired open property system lets configuration coverage grow purely additively:
+          new options are introduced by declaring new keys, so the layout and rendering contracts
+          never change signature and unknown options are carried harmlessly.
         children:
-          - Template-Demo-Greeting
+          - Rendering-Model-Options-Default
+          - Rendering-Model-Options-StoreAndRetrieve
+          - Rendering-Model-Options-Contains
+          - Rendering-Model-Options-TryGet
         tests:
-          - Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting
-          - Rendering_SystemCustomization_CustomPrefix_ReturnsExpectedGreeting
+          - Get_UnsetProperty_ReturnsDefault
+          - Get_AfterSet_ReturnsStoredValue
 
-      - id: Template-Lib-DefaultPrefix
-        title: The library shall use "Hello" as the default greeting prefix.
+      - id: Rendering-Model-InputGraph
+        title: >-
+          The rendering model shall provide an unplaced input-graph representation of sized nodes
+          and directed edges that a layout algorithm consumes to produce a placed layout tree.
         justification: |
-          Callers constructing the library without a prefix argument need a predictable default
-          greeting to rely on in documentation and examples.
+          A distinct input model lets callers describe what is to be laid out (boxes and their
+          connections) independently of how any algorithm places them, and lets configuration be
+          attached to the whole graph or to individual elements.
         children:
-          - Template-Demo-DefaultPrefix
+          - Rendering-Model-LayoutGraph-AddNode
+          - Rendering-Model-LayoutGraph-AddEdge
+          - Rendering-Model-LayoutGraph-PerElementProperties
+          - Rendering-Model-LayoutGraph-ContainerNodes
+          - Rendering-Model-LayoutGraph-ScopedIdentifiers
+          - Rendering-Model-LayoutGraph-CrossContainerEdge
         tests:
-          - Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting
-
-      - id: Template-Lib-CustomPrefix
-        title: The library shall support a customizable greeting prefix.
-        justification: |
-          Consumers may need to produce greetings with a prefix other than the
-          default, so the library must allow the prefix to be specified at
-          construction time.
-        children:
-          - Template-Demo-AcceptCustomPrefix
-          - Template-Demo-Prefix
-        tests:
-          - Rendering_SystemCustomization_CustomPrefix_ReturnsExpectedGreeting
-
-      - id: Template-Lib-Prefix
-        title: The library shall expose the configured greeting prefix via a read-only property.
-        justification: |
-          Callers may need to inspect the prefix configured at construction time without
-          re-specifying it or relying on the greeting output format to infer it.
-        children:
-          - Template-Demo-Prefix
-        tests:
-          - Rendering_SystemIntegration_CustomPrefix_ExposesPrefix
-
-      - id: Template-Lib-ValidationNull-DemoMethod
-        title: The library shall reject a null name argument to DemoMethod with ArgumentNullException.
-        justification: |
-          Passing null to DemoMethod is a programming error. Throwing ArgumentNullException
-          immediately surfaces the mistake to callers and prevents obscure failures deeper in
-          the call stack.
-        children:
-          - Template-Demo-ValidationNull-DemoMethod
-        tests:
-          - Rendering_SystemValidation_DemoMethodNullInput_ThrowsArgumentNullException
-
-      - id: Template-Lib-ValidationNull-Constructor
-        title: The library shall reject a null prefix argument to the constructor with ArgumentNullException.
-        justification: |
-          Passing null to the constructor is a programming error. Throwing ArgumentNullException
-          immediately surfaces the mistake and prevents invalid instances from being created.
-        children:
-          - Template-Demo-ValidationNull-Constructor
-        tests:
-          - Rendering_SystemValidation_ConstructorNullPrefix_ThrowsArgumentNullException
-
-      - id: Template-Lib-ValidationEmpty-DemoMethod
-        title: The library shall reject an empty-string name argument to DemoMethod with ArgumentException.
-        justification: |
-          Passing an empty string to DemoMethod is a programming error. Throwing ArgumentException
-          immediately surfaces the mistake and prevents malformed output such as "Hello, !".
-        children:
-          - Template-Demo-ValidationEmpty-DemoMethod
-        tests:
-          - Rendering_SystemValidation_DemoMethodEmptyInput_ThrowsArgumentException
-
-      - id: Template-Lib-ValidationEmpty-Constructor
-        title: The library shall reject an empty-string prefix argument to the constructor with ArgumentException.
-        justification: |
-          Passing an empty string to the constructor is a programming error. Throwing ArgumentException
-          immediately surfaces the mistake and prevents malformed output such as ", World!".
-        children:
-          - Template-Demo-ValidationEmpty-Constructor
-        tests:
-          - Rendering_SystemValidation_ConstructorEmptyPrefix_ThrowsArgumentException
+          - AddNode_AppendsNodeAndReturnsIt
+          - AddEdge_AppendsEdgeWithEndpoints

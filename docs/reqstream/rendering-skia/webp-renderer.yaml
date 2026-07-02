@@ -1,0 +1,21 @@
+---
+# DemaConsulting.Rendering.Skia - WebpRenderer Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the WebpRenderer unit: the concrete Skia renderer that encodes the
+#   shared rasterized bitmap as WEBP.
+# - These unit requirements decompose the Rendering-Skia-RenderRasterImage system requirement
+#   declared in rendering-skia.yaml.
+
+sections:
+  - title: WebpRenderer Unit Requirements
+    requirements:
+      - id: Rendering-Skia-WebpRenderer-EmitsWebp
+        title: >-
+          WebpRenderer shall encode the rasterized diagram as a WEBP image, reporting the
+          "image/webp" media type and the ".webp" file extension.
+        justification: |
+          WEBP gives high-quality diagrams at small file sizes for modern web use; reporting its
+          media type and extension lets callers select and name the output correctly.
+        tests:
+          - WebpRenderer_Render_ProducesWebpContainerHeader

@@ -1,0 +1,51 @@
+---
+# DemaConsulting.Rendering.Abstractions - Registries Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the registries unit: LayoutAlgorithmRegistry and RendererRegistry.
+# - These unit requirements decompose the Rendering-Abstractions-Extensibility system requirement declared in
+#   rendering-abstractions.yaml.
+
+sections:
+  - title: Registries Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-Registries-ResolveAlgorithm
+        title: >-
+          The algorithm registry shall register a layout algorithm under its identifier and resolve
+          that algorithm back by the same identifier.
+        justification: |
+          A registry lets an application assemble the set of algorithms it wishes to offer and then
+          resolve the requested one at layout time by the identifier carried in the options.
+        tests:
+          - LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
+
+      - id: Rendering-Abstractions-Registries-ResolveRenderer
+        title: >-
+          The renderer registry shall register a renderer under its media type and resolve that
+          renderer back by the same media type.
+        justification: |
+          A registry lets an application assemble the set of output formats it wishes to offer and
+          then resolve the requested renderer at render time by media type.
+        tests:
+          - RendererRegistry_RegisterThenResolve_ReturnsRenderer
+
+      - id: Rendering-Abstractions-Registries-ResolveRendererByExtension
+        title: >-
+          The renderer registry shall also index each renderer by every file extension it produces
+          and resolve a renderer from an output file extension, ignoring case and an optional leading
+          dot.
+        justification: |
+          Selecting a renderer from an output filename (for example diagram.webp) is a common need
+          for command-line and file-driven callers; matching case-insensitively and with an optional
+          leading dot makes the lookup forgiving of caller input.
+        tests:
+          - RendererRegistry_ResolveByExtension_MatchesAdvertisedExtensions
+
+      - id: Rendering-Abstractions-Registries-MissingThrows
+        title: >-
+          Resolving an identifier that has not been registered shall raise a not-found error.
+        justification: |
+          Failing fast when a requested algorithm or renderer is absent surfaces a configuration
+          mistake immediately rather than returning a null that fails obscurely later.
+        tests:
+          - LayoutAlgorithmRegistry_ResolveMissing_Throws

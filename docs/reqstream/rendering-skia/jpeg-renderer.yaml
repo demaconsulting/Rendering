@@ -1,0 +1,21 @@
+---
+# DemaConsulting.Rendering.Skia - JpegRenderer Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the JpegRenderer unit: the concrete Skia renderer that encodes the
+#   shared rasterized bitmap as JPEG.
+# - These unit requirements decompose the Rendering-Skia-RenderRasterImage system requirement
+#   declared in rendering-skia.yaml.
+
+sections:
+  - title: JpegRenderer Unit Requirements
+    requirements:
+      - id: Rendering-Skia-JpegRenderer-EmitsJpeg
+        title: >-
+          JpegRenderer shall encode the rasterized diagram as a JPEG image, reporting the
+          "image/jpeg" media type and the ".jpg" and ".jpeg" file extensions.
+        justification: |
+          JPEG produces small, widely-compatible images for diagrams where lossy compression is
+          acceptable; advertising both extensions lets callers resolve the renderer by either name.
+        tests:
+          - JpegRenderer_Render_ProducesJpegSignature

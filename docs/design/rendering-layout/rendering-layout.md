@@ -1,0 +1,76 @@
+# Rendering.Layout Design
+
+## Overview
+
+`DemaConsulting.Rendering.Layout` is the placement system for the Rendering stack. A caller supplies a
+`LayoutGraph` plus `LayoutOptions`; the system returns a placed `LayoutTree` of boxes and orthogonally
+routed connectors that downstream renderers can draw without layout knowledge.
+
+The system exposes bundled algorithms for layered, containment, and hierarchical layout. Reusable
+geometric engines provide orthogonal routing, containment packing, and layered interconnection placement,
+while the default facade resolves the requested algorithm from the bundled registry.
+
+## Software Structure
+
+```text
+DemaConsulting.Rendering.Layout (System)
+├── Engine (Subsystem)
+│   ├── OrthogonalEdgeRouter (Unit)
+│   ├── ContainmentPacker (Unit)
+│   ├── InterconnectionLayoutEngine (Unit)
+│   └── LayeredPipeline (Unit)
+├── EdgeRoutingOption (Unit)
+├── ConnectorRouter (Unit)
+├── ContainmentLayout (Unit)
+├── ContainmentLayoutAlgorithm (Unit)
+├── HierarchicalLayoutAlgorithm (Unit)
+├── DefaultLayout (Unit)
+└── LayeredLayoutAlgorithm (Unit)
+```
+
+- **Engine** - reusable model-agnostic geometric engines. Detailed in
+  Engine Subsystem Design, which links to its unit designs.
+- **EdgeRoutingOption** - routing-style configuration keys. Detailed in
+  EdgeRoutingOption Unit Design.
+- **ConnectorRouter** - routes connectors among already placed boxes. Detailed in
+  ConnectorRouter Unit Design.
+- **ContainmentLayout** - packs already sized model boxes into a container region. Detailed in
+  ContainmentLayout Unit Design.
+- **ContainmentLayoutAlgorithm** - public containment algorithm. Detailed in
+  ContainmentLayoutAlgorithm Unit Design.
+- **HierarchicalLayoutAlgorithm** - recursive compound-graph algorithm. Detailed in
+  HierarchicalLayoutAlgorithm Unit Design.
+- **DefaultLayout** - bundled registry factory and layout facade. Detailed in
+  DefaultLayout Unit Design.
+- **LayeredLayoutAlgorithm** - public layered algorithm. Detailed in
+  LayeredLayoutAlgorithm Unit Design.
+
+## System Interactions
+
+The system consumes `LayoutGraph`, `LayoutOptions`, `CoreOptions`, and `LayoutTree` from the Rendering
+model and implements `ILayoutAlgorithm` from Rendering.Abstractions. Callers may use the bundled registry
+and `LayoutEngine` facade, or resolve a specific bundled algorithm directly. Renderers consume only the
+placed tree produced by this system; they do not call the geometric engines directly.
+
+The Engine subsystem operates on model-agnostic geometry and is composed by the public algorithms and
+routing helpers. The hierarchical algorithm composes leaf algorithms per container and routes
+cross-container edges at the owning scope.
+
+## Requirements Traceability
+
+| Requirement ID | Satisfied by |
+| --- | --- |
+| `Rendering-Layout-Algorithm` | LayeredLayoutAlgorithm |
+| `Rendering-Layout-GeometricEngines` | Engine Subsystem |
+| `Rendering-Layout-StagedPipeline` | LayeredPipeline |
+| `Rendering-Layout-ConnectorRouting` | EdgeRoutingOption, ConnectorRouter |
+| `Rendering-Layout-ContainmentPlacement` | ContainmentLayout |
+| `Rendering-Layout-ContainmentAlgorithm` | ContainmentLayoutAlgorithm |
+| `Rendering-Layout-HierarchicalLayout` | HierarchicalLayoutAlgorithm |
+| `Rendering-Layout-DefaultLayout` | DefaultLayout |
+
+## Scope Exclusions
+
+Per-unit data models, algorithms, error handling, and design constraints are intentionally excluded from
+this system document and live in the unit and subsystem documents linked above. Test projects and test
+infrastructure are verification artifacts, not product design scope.

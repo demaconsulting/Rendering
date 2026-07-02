@@ -1,0 +1,64 @@
+---
+# DemaConsulting.Rendering.Layout - InterconnectionLayoutEngine Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the interconnection-layout-engine unit.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: InterconnectionLayoutEngine Unit Requirements
+    requirements:
+      - id: Rendering-Layout-InterconnectionEngine-Layering
+        title: >-
+          InterconnectionLayoutEngine shall assign layer indices using longest-path layering so that
+          every connected pair of nodes occupies different layers.
+        justification: |
+          Longest-path layering guarantees no same-layer connections, eliminating the connector
+          clipping that occurred with the earlier breadth-first approach.
+        tests:
+          - Place_LinearChain_MonotonicLayerAssignment
+          - Place_WorkstationTopology_CorrectLayersAndNoOverlap
+
+      - id: Rendering-Layout-InterconnectionEngine-NonOverlapping
+        title: >-
+          InterconnectionLayoutEngine shall produce node rectangles that do not overlap.
+        justification: |
+          Overlapping boxes prevent readable diagrams; the layered column structure and per-column
+          vertical stacking guarantee non-overlap by construction.
+        tests:
+          - Place_WorkstationTopology_CorrectLayersAndNoOverlap
+
+      - id: Rendering-Layout-InterconnectionEngine-DummyNodes
+        title: >-
+          InterconnectionLayoutEngine shall insert dummy nodes for long edges (span greater than
+          one) and exclude them from the returned rectangles so the rect count equals the input node
+          count.
+        justification: |
+          Dummy nodes force routing through the correct inter-layer corridors, preventing connector
+          lines from clipping intermediate boxes. They must not appear as layout boxes in the output.
+        tests:
+          - Place_LongEdge_RectCountEqualsInputNodeCount
+          - Place_LongEdge_RoutesViaDummyNodesWithinBounds
+
+      - id: Rendering-Layout-InterconnectionEngine-Waypoints
+        title: >-
+          InterconnectionLayoutEngine shall return one waypoint list per input edge; a span-one edge
+          produces a straight two-waypoint path and a long edge routes via dummy nodes within the
+          layout bounds.
+        justification: |
+          Pre-computed waypoints allow the public algorithm and the interconnection view to emit
+          connector lines without any additional routing logic.
+        tests:
+          - Place_SingleEdge_ProducesStraightTwoWaypointPath
+          - Place_LongEdge_RoutesViaDummyNodesWithinBounds
+
+      - id: Rendering-Layout-InterconnectionEngine-Deterministic
+        title: >-
+          Given identical input, InterconnectionLayoutEngine shall produce identical geometry and
+          waypoints on every invocation.
+        justification: |
+          Reproducible layout is required so regenerating a view from unchanged input does not shift
+          boxes or change connector routes.
+        tests:
+          - Place_LinearChain_MonotonicLayerAssignment
+          - Place_WorkstationTopology_CorrectLayersAndNoOverlap

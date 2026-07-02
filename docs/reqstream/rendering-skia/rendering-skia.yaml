@@ -1,0 +1,38 @@
+---
+# Rendering.Skia System Requirements
+#
+# PURPOSE:
+# - Define the system-level requirement for the DemaConsulting.Rendering.Skia system: the
+#   SkiaSharp raster renderer package that renders placed layout trees to PNG, JPEG, and WEBP.
+# - The system requirement is generic: it describes WHAT the Skia raster system delivers. It
+#   decomposes downward (children) into the unit requirements that provide the detailed behaviour.
+#   Those unit requirements live in the per-unit sibling files:
+#     - skia-raster-renderer.yaml  (the shared SkiaSharp rasterizer)
+#     - png-renderer.yaml          (PNG encoding)
+#     - jpeg-renderer.yaml         (JPEG encoding)
+#     - webp-renderer.yaml         (WEBP encoding)
+# - Each unit requirement is verified by SkiaSharp renderer unit tests.
+
+sections:
+  - title: Rendering.Skia Requirements
+    requirements:
+      - id: Rendering-Skia-RenderRasterImage
+        title: >-
+          The Skia system shall render a placed layout tree to raster images in the PNG, JPEG,
+          and WEBP formats using SkiaSharp.
+        justification: |
+          Raster output lets rendered diagrams be embedded where vector formats are not accepted,
+          shared as ordinary image files, and previewed by any image viewer. PNG, JPEG, and WEBP
+          are the formats SkiaSharp encodes reliably across all supported platforms.
+        children:
+          - Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree
+          - Rendering-Skia-SkiaRasterRenderer-ThemeColours
+          - Rendering-Skia-SkiaRasterRenderer-EndMarkers
+          - Rendering-Skia-SkiaRasterRenderer-EmptyTree
+          - Rendering-Skia-PngRenderer-EmitsPng
+          - Rendering-Skia-JpegRenderer-EmitsJpeg
+          - Rendering-Skia-WebpRenderer-EmitsWebp
+        tests:
+          - Render_SingleBox_ProducesPngSignature
+          - JpegRenderer_Render_ProducesJpegSignature
+          - WebpRenderer_Render_ProducesWebpContainerHeader

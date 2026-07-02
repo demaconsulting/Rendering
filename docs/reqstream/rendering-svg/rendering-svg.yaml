@@ -1,0 +1,52 @@
+---
+# DemaConsulting.Rendering.Svg System Requirements
+#
+# PURPOSE:
+# - Define the SYSTEM-level requirement for the DemaConsulting.Rendering.Svg system.
+# - The system requirement is generic: it describes WHAT the SVG system delivers. It decomposes
+#   downward (children) into the SvgRenderer unit requirements that provide the detailed rendering
+#   behaviour. Those unit requirements live in the sibling file svg-renderer.yaml.
+
+sections:
+  - title: Rendering.Svg Requirements
+    requirements:
+      - id: Rendering-Svg-WriteSvgDocument
+        title: >-
+          The SVG system shall render a placed layout tree to a valid SVG document that
+          represents the diagram's elements.
+        justification: |
+          Producing SVG output lets rendered diagrams be embedded in architecture
+          documentation, viewed in any web browser, and version-controlled as text.
+        children:
+          - Rendering-Svg-SvgRenderer-ImplementsIRenderer
+          - Rendering-Svg-SvgRenderer-MediaType
+          - Rendering-Svg-SvgRenderer-DefaultExtension
+          - Rendering-Svg-SvgRenderer-RenderDocument
+          - Rendering-Svg-SvgRenderer-RenderEmptyTree
+          - Rendering-Svg-SvgRenderer-RenderBox
+          - Rendering-Svg-SvgRenderer-RenderBoxRoundedCorners
+          - Rendering-Svg-SvgRenderer-RenderBoxCompartments
+          - Rendering-Svg-SvgRenderer-RenderLabel
+          - Rendering-Svg-SvgRenderer-RenderLabelBold
+          - Rendering-Svg-SvgRenderer-RenderLabelItalic
+          - Rendering-Svg-SvgRenderer-RenderLabelEscaping
+          - Rendering-Svg-SvgRenderer-RenderLine
+          - Rendering-Svg-SvgRenderer-RenderLineRoundedCorners
+          - Rendering-Svg-SvgRenderer-RenderLineDashed
+          - Rendering-Svg-SvgRenderer-RenderLineMidpointLabel
+          - Rendering-Svg-SvgRenderer-RenderNodeKinds
+          - Rendering-Svg-SvgRenderer-RenderBadge
+          - Rendering-Svg-SvgRenderer-RenderBand
+          - Rendering-Svg-SvgRenderer-RenderLifeline
+          - Rendering-Svg-SvgRenderer-RenderActivation
+          - Rendering-Svg-SvgRenderer-RenderGrid
+          - Rendering-Svg-SvgRenderer-EndMarkers
+          - Rendering-Svg-SvgRenderer-EndMarkersOpenChevronReference
+          - Rendering-Svg-SvgRenderer-HollowTriangleEndMarkers
+          - Rendering-Svg-SvgRenderer-HollowTriangleEndMarkerReference
+          - Rendering-Svg-SvgRenderer-TriangleEndMarkerMetrics
+          - Rendering-Svg-SvgRenderer-DiamondEndMarkers
+          - Rendering-Svg-SvgRenderer-DiamondEndMarkerReference
+          - Rendering-Svg-SvgRenderer-CrossbarEndMarkers
+        tests:
+          - SvgRenderer_Render_SingleBox_ProducesSvgDocument

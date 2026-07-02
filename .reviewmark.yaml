@@ -35,46 +35,418 @@ reviews:
     paths:
       - "README.md"
       - "docs/user_guide/**/*.md"
-      - "docs/reqstream/rendering/rendering.yaml"
       - "docs/design/introduction.md"
+      - "docs/verification/introduction.md"
+      # NamespaceDoc.cs files are namespace-level documentation carriers, not
+      # functional code: each is an `internal static class NamespaceDoc` whose
+      # XML <summary> ApiMark renders as the namespace landing-page description.
+      # They advertise the packages' capabilities and "start here" orientation,
+      # so they are reviewed here alongside the other user-facing promises.
+      # (They are also caught by `needs-review: **/*.cs`; this groups them into
+      # the correct compliance question.)
+      - "src/**/NamespaceDoc.cs"
+      # Per the ReviewMark standard, the Purpose review also carries the system-level
+      # requirements and system-level design so the advertised capabilities can be
+      # checked against what each system promises (unit detail is excluded).
+      - "docs/reqstream/rendering/rendering.yaml"
+      - "docs/reqstream/rendering-abstractions/rendering-abstractions.yaml"
+      - "docs/reqstream/rendering-layout/rendering-layout.yaml"
+      - "docs/reqstream/rendering-svg/rendering-svg.yaml"
+      - "docs/reqstream/rendering-skia/rendering-skia.yaml"
       - "docs/design/rendering/rendering.md"
+      - "docs/design/rendering-abstractions/rendering-abstractions.md"
+      - "docs/design/rendering-layout/rendering-layout.md"
+      - "docs/design/rendering-svg/rendering-svg.md"
+      - "docs/design/rendering-skia/rendering-skia.md"
 
-  # Rendering - Specials
-  - id: Rendering-Architecture
-    title: Review of Rendering system architecture and operational validation
+  # =====================================================================
+  # Rendering (Model) system
+  # =====================================================================
+  - id: Rendering-Model-Architecture
+    title: Review that Rendering Model Architecture Satisfies Requirements
     paths:
       - "docs/reqstream/rendering/rendering.yaml"
       - "docs/design/introduction.md"
       - "docs/design/rendering/rendering.md"
       - "docs/verification/introduction.md"
       - "docs/verification/rendering/rendering.md"
-      - "test/DemaConsulting.Rendering.Tests/RenderingTests.cs"
 
-  - id: Rendering-Design
-    title: Review of Rendering architectural and design consistency
+  - id: Rendering-Model-Design
+    title: Review that Rendering Model Design is Consistent and Complete
     paths:
       - "docs/reqstream/rendering/rendering.yaml"
       - "docs/reqstream/rendering/platform-requirements.yaml"
       - "docs/design/introduction.md"
       - "docs/design/rendering/**/*.md"
-      - "docs/verification/introduction.md"
 
-  - id: Rendering-AllRequirements
-    title: Review of Rendering requirements quality and traceability
+  - id: Rendering-Model-AllRequirements
+    title: Review that All Rendering Model Requirements are Complete
     paths:
       - "requirements.yaml"
       - "docs/reqstream/rendering/**/*.yaml"
-      - "docs/reqstream/ots/*.yaml"
+      - "docs/reqstream/ots/**/*.yaml"
 
-  # Rendering - Demo
-  - id: Rendering-Demo
-    title: Review of Demo Unit Implementation
+  - id: Rendering-Model-LayoutTree
+    title: Review that Rendering Model LayoutTree Implementation is Correct
     paths:
-      - "docs/reqstream/rendering/demo.yaml"
-      - "docs/design/rendering/demo.md"
-      - "docs/verification/rendering/demo.md"
-      - "src/DemaConsulting.Rendering/Demo.cs"
-      - "test/DemaConsulting.Rendering.Tests/DemoTests.cs"
+      - "docs/reqstream/rendering/layout-tree.yaml"
+      - "docs/design/rendering/layout-tree.md"
+      - "docs/verification/rendering/layout-tree.md"
+      - "src/DemaConsulting.Rendering/LayoutTree/**/*.cs"
+      - "src/DemaConsulting.Rendering/Rect.cs"
+      - "test/DemaConsulting.Rendering.Tests/LayoutTests.cs"
+
+  - id: Rendering-Model-Options
+    title: Review that Rendering Model Options Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering/options.yaml"
+      - "docs/design/rendering/options.md"
+      - "docs/verification/rendering/options.md"
+      - "src/DemaConsulting.Rendering/Options/**/*.cs"
+      - "test/DemaConsulting.Rendering.Tests/PropertyHolderTests.cs"
+
+  - id: Rendering-Model-LayoutGraph
+    title: Review that Rendering Model LayoutGraph Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering/layout-graph.yaml"
+      - "docs/design/rendering/layout-graph.md"
+      - "docs/verification/rendering/layout-graph.md"
+      - "src/DemaConsulting.Rendering/Graph/**/*.cs"
+      - "test/DemaConsulting.Rendering.Tests/LayoutGraphTests.cs"
+
+  # =====================================================================
+  # Rendering.Abstractions system
+  # =====================================================================
+  - id: Rendering-Abstractions-Architecture
+    title: Review that Rendering Abstractions Architecture Satisfies Requirements
+    paths:
+      - "docs/reqstream/rendering-abstractions/rendering-abstractions.yaml"
+      - "docs/design/introduction.md"
+      - "docs/design/rendering-abstractions/rendering-abstractions.md"
+      - "docs/verification/introduction.md"
+      - "docs/verification/rendering-abstractions/rendering-abstractions.md"
+
+  - id: Rendering-Abstractions-Design
+    title: Review that Rendering Abstractions Design is Consistent and Complete
+    paths:
+      - "docs/reqstream/rendering-abstractions/rendering-abstractions.yaml"
+      - "docs/design/introduction.md"
+      - "docs/design/rendering-abstractions/**/*.md"
+
+  - id: Rendering-Abstractions-AllRequirements
+    title: Review that All Rendering Abstractions Requirements are Complete
+    paths:
+      - "requirements.yaml"
+      - "docs/reqstream/rendering-abstractions/**/*.yaml"
+      - "docs/reqstream/ots/**/*.yaml"
+
+  - id: Rendering-Abstractions-RenderingContracts
+    title: Review that Rendering Abstractions RenderingContracts Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-abstractions/rendering-contracts.yaml"
+      - "docs/design/rendering-abstractions/rendering-contracts.md"
+      - "docs/verification/rendering-abstractions/rendering-contracts.md"
+      - "src/DemaConsulting.Rendering.Abstractions/ILayoutAlgorithm.cs"
+      - "src/DemaConsulting.Rendering.Abstractions/IRenderer.cs"
+      - "src/DemaConsulting.Rendering.Abstractions/RenderOptions.cs"
+      - "src/DemaConsulting.Rendering.Abstractions/RenderOutput.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/RegistryTests.cs"
+
+  - id: Rendering-Abstractions-Registries
+    title: Review that Rendering Abstractions Registries Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-abstractions/registries.yaml"
+      - "docs/design/rendering-abstractions/registries.md"
+      - "docs/verification/rendering-abstractions/registries.md"
+      - "src/DemaConsulting.Rendering.Abstractions/LayoutAlgorithmRegistry.cs"
+      - "src/DemaConsulting.Rendering.Abstractions/RendererRegistry.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/RegistryTests.cs"
+
+  - id: Rendering-Abstractions-Theme
+    title: Review that Rendering Abstractions Theme Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-abstractions/theme.yaml"
+      - "docs/design/rendering-abstractions/theme.md"
+      - "docs/verification/rendering-abstractions/theme.md"
+      - "src/DemaConsulting.Rendering.Abstractions/Theme.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/ThemeTests.cs"
+
+  - id: Rendering-Abstractions-NotationMetrics
+    title: Review that Rendering Abstractions NotationMetrics Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-abstractions/notation-metrics.yaml"
+      - "docs/design/rendering-abstractions/notation-metrics.md"
+      - "docs/verification/rendering-abstractions/notation-metrics.md"
+      - "src/DemaConsulting.Rendering.Abstractions/NotationMetrics.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/NotationMetricsTests.cs"
+
+  - id: Rendering-Abstractions-BoxMetrics
+    title: Review that Rendering Abstractions BoxMetrics Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-abstractions/box-metrics.yaml"
+      - "docs/design/rendering-abstractions/box-metrics.md"
+      - "docs/verification/rendering-abstractions/box-metrics.md"
+      - "src/DemaConsulting.Rendering.Abstractions/BoxMetrics.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/BoxMetricsTests.cs"
+
+  - id: Rendering-Abstractions-ConnectorLabelPlacer
+    title: Review that Rendering Abstractions ConnectorLabelPlacer Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-abstractions/connector-label-placer.yaml"
+      - "docs/design/rendering-abstractions/connector-label-placer.md"
+      - "docs/verification/rendering-abstractions/connector-label-placer.md"
+      - "src/DemaConsulting.Rendering.Abstractions/ConnectorLabelPlacer.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/ConnectorLabelPlacerTests.cs"
+
+  # =====================================================================
+  # Rendering.Layout system (contains the Engine subsystem)
+  # =====================================================================
+  - id: Rendering-Layout-Architecture
+    title: Review that Rendering Layout Architecture Satisfies Requirements
+    paths:
+      - "docs/reqstream/rendering-layout/rendering-layout.yaml"
+      - "docs/design/introduction.md"
+      - "docs/design/rendering-layout/rendering-layout.md"
+      - "docs/verification/introduction.md"
+      - "docs/verification/rendering-layout/rendering-layout.md"
+
+  - id: Rendering-Layout-Design
+    title: Review that Rendering Layout Design is Consistent and Complete
+    paths:
+      - "docs/reqstream/rendering-layout/rendering-layout.yaml"
+      - "docs/design/introduction.md"
+      - "docs/design/rendering-layout/**/*.md"
+
+  - id: Rendering-Layout-AllRequirements
+    title: Review that All Rendering Layout Requirements are Complete
+    paths:
+      - "requirements.yaml"
+      - "docs/reqstream/rendering-layout/**/*.yaml"
+      - "docs/reqstream/ots/**/*.yaml"
+
+  # Engine subsystem (excludes unit source; only its units below carry source)
+  - id: Rendering-Layout-Engine
+    title: Review that Rendering Layout Engine Satisfies Subsystem Requirements
+    paths:
+      - "docs/reqstream/rendering-layout/engine/engine.yaml"
+      - "docs/design/rendering-layout/engine/engine.md"
+      - "docs/verification/rendering-layout/engine/engine.md"
+
+  - id: Rendering-Layout-Engine-OrthogonalEdgeRouter
+    title: Review that Rendering Layout Engine OrthogonalEdgeRouter Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/engine/orthogonal-edge-router.yaml"
+      - "docs/design/rendering-layout/engine/orthogonal-edge-router.md"
+      - "docs/verification/rendering-layout/engine/orthogonal-edge-router.md"
+      - "src/DemaConsulting.Rendering.Layout/Engine/OrthogonalEdgeRouter.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/Engine/OrthogonalEdgeRouterTests.cs"
+
+  - id: Rendering-Layout-Engine-ContainmentPacker
+    title: Review that Rendering Layout Engine ContainmentPacker Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/engine/containment-packer.yaml"
+      - "docs/design/rendering-layout/engine/containment-packer.md"
+      - "docs/verification/rendering-layout/engine/containment-packer.md"
+      - "src/DemaConsulting.Rendering.Layout/Engine/ContainmentPacker.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/Engine/ContainmentPackerTests.cs"
+
+  - id: Rendering-Layout-Engine-InterconnectionLayoutEngine
+    title: Review that Rendering Layout Engine InterconnectionLayoutEngine Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/engine/interconnection-layout-engine.yaml"
+      - "docs/design/rendering-layout/engine/interconnection-layout-engine.md"
+      - "docs/verification/rendering-layout/engine/interconnection-layout-engine.md"
+      - "src/DemaConsulting.Rendering.Layout/Engine/InterconnectionLayoutEngine.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/Engine/InterconnectionLayoutEngineTests.cs"
+
+  - id: Rendering-Layout-Engine-LayeredPipeline
+    title: Review that Rendering Layout Engine LayeredPipeline Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/engine/layered-pipeline.yaml"
+      - "docs/design/rendering-layout/engine/layered-pipeline.md"
+      - "docs/verification/rendering-layout/engine/layered-pipeline.md"
+      - "src/DemaConsulting.Rendering.Layout/Engine/Layered/**/*.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/Engine/Layered/**/*.cs"
+
+  # Rendering.Layout system-level units
+  - id: Rendering-Layout-LayeredLayoutAlgorithm
+    title: Review that Rendering Layout LayeredLayoutAlgorithm Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/layered-layout-algorithm.yaml"
+      - "docs/design/rendering-layout/layered-layout-algorithm.md"
+      - "docs/verification/rendering-layout/layered-layout-algorithm.md"
+      - "src/DemaConsulting.Rendering.Layout/LayeredLayoutAlgorithm.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs"
+
+  - id: Rendering-Layout-ConnectorRouter
+    title: Review that Rendering Layout ConnectorRouter Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/connector-router.yaml"
+      - "docs/design/rendering-layout/connector-router.md"
+      - "docs/verification/rendering-layout/connector-router.md"
+      - "src/DemaConsulting.Rendering.Layout/ConnectorRouter.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/ConnectorRouterTests.cs"
+
+  # The EdgeRouting option unit realizes the CoreOptions.EdgeRouting behavior. The
+  # EdgeRouting enum itself is declared in the Rendering model (covered by the model
+  # Options unit) and consumed by ConnectorRouter (covered above); this unit carries
+  # the option-realization requirements/design/verification and its own tests.
+  - id: Rendering-Layout-EdgeRoutingOption
+    title: Review that Rendering Layout EdgeRoutingOption Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/edge-routing-option.yaml"
+      - "docs/design/rendering-layout/edge-routing-option.md"
+      - "docs/verification/rendering-layout/edge-routing-option.md"
+      - "test/DemaConsulting.Rendering.Layout.Tests/EdgeRoutingOptionTests.cs"
+
+  - id: Rendering-Layout-ContainmentLayout
+    title: Review that Rendering Layout ContainmentLayout Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/containment-layout.yaml"
+      - "docs/design/rendering-layout/containment-layout.md"
+      - "docs/verification/rendering-layout/containment-layout.md"
+      - "src/DemaConsulting.Rendering.Layout/ContainmentLayout.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutTests.cs"
+
+  - id: Rendering-Layout-ContainmentLayoutAlgorithm
+    title: Review that Rendering Layout ContainmentLayoutAlgorithm Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/containment-layout-algorithm.yaml"
+      - "docs/design/rendering-layout/containment-layout-algorithm.md"
+      - "docs/verification/rendering-layout/containment-layout-algorithm.md"
+      - "src/DemaConsulting.Rendering.Layout/ContainmentLayoutAlgorithm.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs"
+
+  - id: Rendering-Layout-HierarchicalLayoutAlgorithm
+    title: Review that Rendering Layout HierarchicalLayoutAlgorithm Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/hierarchical-layout-algorithm.yaml"
+      - "docs/design/rendering-layout/hierarchical-layout-algorithm.md"
+      - "docs/verification/rendering-layout/hierarchical-layout-algorithm.md"
+      - "src/DemaConsulting.Rendering.Layout/HierarchicalLayoutAlgorithm.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs"
+
+  - id: Rendering-Layout-DefaultLayout
+    title: Review that Rendering Layout DefaultLayout Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/default-layout.yaml"
+      - "docs/design/rendering-layout/default-layout.md"
+      - "docs/verification/rendering-layout/default-layout.md"
+      - "src/DemaConsulting.Rendering.Layout/LayoutEngine.cs"
+      - "src/DemaConsulting.Rendering.Layout/LayoutAlgorithms.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutEngineTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutAlgorithmsTests.cs"
+
+  # =====================================================================
+  # Rendering.Svg system
+  # =====================================================================
+  - id: Rendering-Svg-Architecture
+    title: Review that Rendering Svg Architecture Satisfies Requirements
+    paths:
+      - "docs/reqstream/rendering-svg/rendering-svg.yaml"
+      - "docs/design/introduction.md"
+      - "docs/design/rendering-svg/rendering-svg.md"
+      - "docs/verification/introduction.md"
+      - "docs/verification/rendering-svg/rendering-svg.md"
+
+  - id: Rendering-Svg-Design
+    title: Review that Rendering Svg Design is Consistent and Complete
+    paths:
+      - "docs/reqstream/rendering-svg/rendering-svg.yaml"
+      - "docs/design/introduction.md"
+      - "docs/design/rendering-svg/**/*.md"
+
+  - id: Rendering-Svg-AllRequirements
+    title: Review that All Rendering Svg Requirements are Complete
+    paths:
+      - "requirements.yaml"
+      - "docs/reqstream/rendering-svg/**/*.yaml"
+      - "docs/reqstream/ots/**/*.yaml"
+
+  - id: Rendering-Svg-SvgRenderer
+    title: Review that Rendering Svg SvgRenderer Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-svg/svg-renderer.yaml"
+      - "docs/design/rendering-svg/svg-renderer.md"
+      - "docs/verification/rendering-svg/svg-renderer.md"
+      - "src/DemaConsulting.Rendering.Svg/SvgRenderer.cs"
+      - "test/DemaConsulting.Rendering.Svg.Tests/**/*.cs"
+
+  # =====================================================================
+  # Rendering.Skia system
+  # =====================================================================
+  - id: Rendering-Skia-Architecture
+    title: Review that Rendering Skia Architecture Satisfies Requirements
+    paths:
+      - "docs/reqstream/rendering-skia/rendering-skia.yaml"
+      - "docs/design/introduction.md"
+      - "docs/design/rendering-skia/rendering-skia.md"
+      - "docs/verification/introduction.md"
+      - "docs/verification/rendering-skia/rendering-skia.md"
+
+  - id: Rendering-Skia-Design
+    title: Review that Rendering Skia Design is Consistent and Complete
+    paths:
+      - "docs/reqstream/rendering-skia/rendering-skia.yaml"
+      - "docs/design/introduction.md"
+      - "docs/design/rendering-skia/**/*.md"
+
+  - id: Rendering-Skia-AllRequirements
+    title: Review that All Rendering Skia Requirements are Complete
+    paths:
+      - "requirements.yaml"
+      - "docs/reqstream/rendering-skia/**/*.yaml"
+      - "docs/reqstream/ots/**/*.yaml"
+
+  - id: Rendering-Skia-SkiaRasterRenderer
+    title: Review that Rendering Skia SkiaRasterRenderer Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-skia/skia-raster-renderer.yaml"
+      - "docs/design/rendering-skia/skia-raster-renderer.md"
+      - "docs/verification/rendering-skia/skia-raster-renderer.md"
+      - "src/DemaConsulting.Rendering.Skia/SkiaRasterRenderer.cs"
+      - "test/DemaConsulting.Rendering.Skia.Tests/PngRendererPortedTests.cs"
+      - "test/DemaConsulting.Rendering.Skia.Tests/PngEndMarkerTests.cs"
+
+  - id: Rendering-Skia-PngRenderer
+    title: Review that Rendering Skia PngRenderer Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-skia/png-renderer.yaml"
+      - "docs/design/rendering-skia/png-renderer.md"
+      - "docs/verification/rendering-skia/png-renderer.md"
+      - "src/DemaConsulting.Rendering.Skia/PngRenderer.cs"
+      - "test/DemaConsulting.Rendering.Skia.Tests/PngRendererTests.cs"
+      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaFormatRendererTests.cs"
+
+  - id: Rendering-Skia-JpegRenderer
+    title: Review that Rendering Skia JpegRenderer Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-skia/jpeg-renderer.yaml"
+      - "docs/design/rendering-skia/jpeg-renderer.md"
+      - "docs/verification/rendering-skia/jpeg-renderer.md"
+      - "src/DemaConsulting.Rendering.Skia/JpegRenderer.cs"
+      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaFormatRendererTests.cs"
+
+  - id: Rendering-Skia-WebpRenderer
+    title: Review that Rendering Skia WebpRenderer Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-skia/webp-renderer.yaml"
+      - "docs/design/rendering-skia/webp-renderer.md"
+      - "docs/verification/rendering-skia/webp-renderer.md"
+      - "src/DemaConsulting.Rendering.Skia/WebpRenderer.cs"
+      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaFormatRendererTests.cs"
+
+  # Rendering gallery showcase
+  - id: Rendering-Gallery
+    title: Review of the rendering gallery showcase / smoke tests
+    paths:
+      # The gallery project's C# files are caught by `needs-review: **/*.cs`, so
+      # they are grouped here into their own compliance question. They are
+      # showcase/smoke tests, not requirement-verification tests: each fact
+      # renders one curated diagram through the public API and asserts the output
+      # image is valid. The generated images and index under docs/gallery/** are
+      # not in `needs-review` and are intentionally left out of this set.
+      - "test/DemaConsulting.Rendering.Gallery/**/*.cs"
 
   # OTS Items
   - id: OTS-BuildMark

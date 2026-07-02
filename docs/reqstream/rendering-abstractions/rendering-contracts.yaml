@@ -1,0 +1,34 @@
+---
+# DemaConsulting.Rendering.Abstractions - Rendering Contracts Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the rendering-contracts unit: ILayoutAlgorithm, IRenderer,
+#   RenderOptions, and RenderOutput.
+# - These unit requirements decompose the Rendering-Abstractions-Extensibility system requirement declared in
+#   rendering-abstractions.yaml.
+
+sections:
+  - title: Rendering Contracts Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-Contracts-Algorithm
+        title: >-
+          A layout algorithm shall expose a stable identifier used to select it and shall produce a
+          placed layout tree from an unplaced input graph and its options.
+        justification: |
+          A stable identifier lets a caller request a specific algorithm by name, and a uniform
+          apply operation lets any diagram family be laid out through the same contract.
+        tests:
+          - LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
+
+      - id: Rendering-Abstractions-Contracts-Renderer
+        title: >-
+          A renderer shall expose its media type, its default file extension, and the full set of
+          file extensions it produces, and shall write the rendered output for a layout tree to a
+          supplied stream.
+        justification: |
+          Exposing the media type and the file extensions lets callers name and serve the output
+          correctly and resolve a renderer from an output filename, and writing to a caller-supplied
+          stream keeps the renderer free of filesystem concerns.
+        tests:
+          - RendererRegistry_RegisterThenResolve_ReturnsRenderer
+          - PngRenderer_FileExtensions_ContainsDefault

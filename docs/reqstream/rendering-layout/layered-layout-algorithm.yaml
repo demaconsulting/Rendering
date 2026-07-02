@@ -1,0 +1,50 @@
+---
+# DemaConsulting.Rendering.Layout - LayeredLayoutAlgorithm Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the layered-layout-algorithm unit.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: LayeredLayoutAlgorithm Unit Requirements
+    requirements:
+      - id: Rendering-Layout-LayeredAlgorithm-Identity
+        title: >-
+          LayeredLayoutAlgorithm shall expose the stable identifier under which it is selected and
+          registered.
+        justification: |
+          Renderers and registries select an algorithm by its identifier; a stable, well-known value
+          lets the layered algorithm be resolved by name.
+        tests:
+          - Id_IsLayered
+
+      - id: Rendering-Layout-LayeredAlgorithm-PlacesAndRoutes
+        title: >-
+          LayeredLayoutAlgorithm shall convert a layout graph into a placed layout tree with one box
+          per node and one orthogonally routed connector per edge.
+        justification: |
+          The algorithm is the public bridge from an abstract graph to concrete geometry; every node
+          must become a placed box and every edge a routed connector for renderers to draw.
+        tests:
+          - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
+
+      - id: Rendering-Layout-LayeredAlgorithm-EmptyGraph
+        title: >-
+          When given a graph with no nodes, LayeredLayoutAlgorithm shall return an empty placed
+          layout tree.
+        justification: |
+          An empty graph is a valid degenerate case that must yield a well-formed empty canvas rather
+          than an error.
+        tests:
+          - Apply_EmptyGraph_ReturnsEmptyCanvas
+
+      - id: Rendering-Layout-LayeredAlgorithm-Validation
+        title: >-
+          LayeredLayoutAlgorithm shall reject a null graph or null options argument with an
+          argument-null error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public boundary.
+        tests:
+          - Apply_NullGraph_Throws
+          - Apply_NullOptions_Throws

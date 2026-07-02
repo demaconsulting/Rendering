@@ -1,109 +1,47 @@
-# System Verification Design
+# Rendering Model Verification
 
-This document describes the system-level verification strategy for the Rendering.
+This document describes the system-level verification design for the `DemaConsulting.Rendering`
+(rendering model) system and links to the per-unit verification documents for its three units. It
+records the verification strategy, test environment, and acceptance criteria shared by every unit, and
+maps each system-level requirement to at least one named test scenario. The detailed per-requirement
+scenarios live in the unit documents:
+
+- Layout Tree Unit Verification
+- Options Unit Verification
+- Layout Graph Unit Verification
 
 ## Verification Strategy
 
-The Rendering system is verified through system-level integration tests that
-exercise the library as a whole from the perspective of a consumer. Tests instantiate the library
-using its public API and assert on observable outputs, without relying on knowledge of internal
-implementation details. No mocking or stubbing is required at the system level — the entire
-integrated system is exercised as it would be used by a real caller.
-
-System tests reside in `RenderingTests.cs` within the
-`DemaConsulting.Rendering.Tests` project.
+The rendering model is a pure data-and-configuration library with no I/O, so it is verified entirely
+through in-process unit tests that construct the model types and assert on their observable state.
+Each test constructs the type directly with known inputs and asserts that every field is stored and
+retrieved unchanged, confirming the model's core invariants (absolute coordinates, depth-not-color,
+default-then-override configuration). No mocking or stubbing is required because the model has no
+dependencies to isolate.
 
 ## Test Environment
 
-- **Framework**: xUnit v3 running under the .NET SDK
-- **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline
-- **Dependencies**: No external services, databases, or network access required
-- **Isolation**: Each test method constructs its own `Demo` instance; no shared state between tests
-
-## External Interface Simulation
-
-The system has no external interfaces requiring simulation. It is a pure in-process .NET library
-with no I/O, network calls, or platform services. System tests call the public API directly
-with controlled inputs and verify returned values and thrown exceptions.
-
-## System-Level Test Scenarios
-
-### Integration: Provides Expected Functionality
-
-**Test**: `Rendering_SystemIntegration_DefaultConstruction_ReturnsExpectedGreeting`
-
-Exercises end-to-end system behavior: constructs a `Demo` instance using the default constructor
-and calls `DemoMethod` with a valid name. Asserts that the system produces the expected greeting
-string `"Hello, System!"`, confirming that all components integrate correctly under default
-configuration.
-
-### Customization: Handles Configuration Properly
-
-**Test**: `Rendering_SystemCustomization_CustomPrefix_ReturnsExpectedGreeting`
-
-Verifies that the system correctly propagates a custom prefix supplied at construction time.
-Constructs a `Demo` instance with prefix `"Welcome"`, calls `DemoMethod` with a valid name, and
-asserts the result is `"Welcome, Integration!"`. Confirms that the configuration path through all
-integrated components functions as expected.
-
-### Validation: DemoMethod Null Input Throws ArgumentNullException
-
-**Test**: `Rendering_SystemValidation_DemoMethodNullInput_ThrowsArgumentNullException`
-
-Verifies that the system rejects a `null` argument to `DemoMethod` with `ArgumentNullException`.
-Constructs a `Demo` instance with the default constructor and passes `null` to `DemoMethod`.
-Confirms that the system boundary enforces the null-rejection contract.
-
-### Validation: DemoMethod Empty Input Throws ArgumentException
-
-**Test**: `Rendering_SystemValidation_DemoMethodEmptyInput_ThrowsArgumentException`
-
-Verifies that the system rejects an empty-string argument to `DemoMethod` with `ArgumentException`.
-Constructs a `Demo` instance with the default constructor and passes `string.Empty` to `DemoMethod`.
-Confirms that the system boundary enforces the empty-string rejection contract.
-
-### Validation: Constructor Null Prefix Throws ArgumentNullException
-
-**Test**: `Rendering_SystemValidation_ConstructorNullPrefix_ThrowsArgumentNullException`
-
-Verifies that the system rejects a `null` prefix argument at construction time with
-`ArgumentNullException`. Attempts to construct a `Demo` instance with `null` as the prefix.
-Confirms that the system boundary prevents invalid configuration from being established.
-
-### Validation: Constructor Empty Prefix Throws ArgumentException
-
-**Test**: `Rendering_SystemValidation_ConstructorEmptyPrefix_ThrowsArgumentException`
-
-Verifies that the system rejects an empty-string prefix argument at construction time with
-`ArgumentException`. Attempts to construct a `Demo` instance with `string.Empty` as the prefix.
-Confirms that the system boundary prevents empty-string configuration from being established.
-
-### Integration: Exposes Configured Prefix
-
-**Test**: `Rendering_SystemIntegration_CustomPrefix_ExposesPrefix`
-
-Verifies that the `Prefix` property exposes the prefix supplied at construction time. Constructs
-a `Demo` instance with a custom prefix and reads the `Prefix` property. Confirms the system's
-public API correctly surfaces the configured prefix to callers.
+- **Framework**: xUnit v3 running under the .NET SDK.
+- **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Dependencies**: none; no external services, network, or filesystem access.
+- **Isolation**: each test constructs its own model instances; there is no shared state.
+- **Test project**: `DemaConsulting.Rendering.Tests` (`LayoutTests.cs`, `PropertyHolderTests.cs`,
+  `LayoutGraphTests.cs`).
 
 ## Acceptance Criteria
 
-A system-level test run passes when all seven scenarios above pass without error or exception beyond
-those explicitly asserted. Any unexpected exception, wrong exception type, or wrong return value
-constitutes a failure.
+A verification run passes when every scenario in this system document and in the three unit documents
+passes without error or unexpected exception. Any wrong stored value, wrong type, or unexpected
+exception constitutes a failure.
 
-## Requirements Coverage
+## System Requirements Coverage
 
-| Requirement ID                           | Test Scenario(s)                                                 |
-|------------------------------------------|------------------------------------------------------------------|
-| Template-Lib-Greeting                    | Integration: Provides Expected Functionality                     |
-| Template-Lib-Greeting                    | Customization: Handles Configuration Properly                    |
-| Template-Lib-GreetingFormat              | Integration: Provides Expected Functionality                     |
-| Template-Lib-GreetingFormat              | Customization: Handles Configuration Properly                    |
-| Template-Lib-DefaultPrefix               | Integration: Provides Expected Functionality                     |
-| Template-Lib-CustomPrefix                | Customization: Handles Configuration Properly                    |
-| Template-Lib-Prefix                      | Integration: Exposes Configured Prefix                           |
-| Template-Lib-ValidationNull-DemoMethod   | Validation: DemoMethod Null Input Throws ArgumentNullException   |
-| Template-Lib-ValidationNull-Constructor  | Validation: Constructor Null Prefix Throws ArgumentNullException |
-| Template-Lib-ValidationEmpty-DemoMethod  | Validation: DemoMethod Empty Input Throws ArgumentException      |
-| Template-Lib-ValidationEmpty-Constructor | Validation: Constructor Empty Prefix Throws ArgumentException    |
+The system requirements are satisfied through the unit scenarios documented in the per-unit
+verification files; the representative system-level scenarios are:
+
+- **`Rendering-Model-LayoutTree`**: LayoutTree_Construction_StoresWidthHeightNodes,
+  LayoutBox_Construction_StoresAllFields (see Layout Tree Unit Verification)
+- **`Rendering-Model-Configuration`**: Get_UnsetProperty_ReturnsDefault, Get_AfterSet_ReturnsStoredValue
+  (see Options Unit Verification)
+- **`Rendering-Model-InputGraph`**: AddNode_AppendsNodeAndReturnsIt, AddEdge_AppendsEdgeWithEndpoints
+  (see Layout Graph Unit Verification)

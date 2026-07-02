@@ -1,0 +1,77 @@
+---
+# DemaConsulting.Rendering.Abstractions - Notation Metrics Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the notation-metrics unit: NotationMetrics and MarkerVertex shared notation geometry.
+# - These unit requirements decompose the Rendering-Abstractions-SharedGeometry system requirement declared in
+#   rendering-abstractions.yaml.
+
+sections:
+  - title: Notation Metrics Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-NotationMetrics-TriangleGeometry
+        title: >-
+          The notation metrics shall define the triangular end-marker geometry with the canonical
+          marker dimensions and an apex vertex that overshoots the line endpoint.
+        justification: |
+          The open chevron, hollow triangle, and filled arrow all share one triangle geometry;
+          defining it once ensures every renderer draws these markers identically.
+        tests:
+          - TriangleFamily_HasCanonicalValues
+          - TriangleVertices_ReproduceSvgBoxPoints
+          - TriangleVertices_Apex_OvershootsEndpoint
+
+      - id: Rendering-Abstractions-NotationMetrics-DiamondGeometry
+        title: >-
+          The notation metrics shall define the diamond end-marker geometry with the canonical
+          dimensions and a far vertex that lands on the line endpoint.
+        justification: |
+          The hollow and filled diamonds share one geometry whose far point must sit on the endpoint;
+          defining it once keeps the two renderers' diamonds identical and correctly anchored.
+        tests:
+          - Diamond_HasCanonicalValues
+          - DiamondVertices_ReproduceSvgBoxPoints
+          - DiamondVertices_FarPoint_LandsOnEndpoint
+
+      - id: Rendering-Abstractions-NotationMetrics-CircleBarGeometry
+        title: >-
+          The notation metrics shall define the canonical circle and bar end-marker geometry.
+        justification: |
+          Circle and bar markers complete the end-decoration set; defining their canonical
+          dimensions once keeps them consistent across renderers.
+        tests:
+          - CircleAndBar_HaveCanonicalValues
+
+      - id: Rendering-Abstractions-NotationMetrics-Crossbar
+        title: >-
+          The notation metrics shall position the redefinition crossbar at the documented fraction of
+          the end-marker length.
+        justification: |
+          The crossbar variant marks redefinition; deriving its position from a single fraction keeps
+          it aligned with the triangle it crosses in every renderer.
+        tests:
+          - Crossbar_IsDerivedFraction
+
+      - id: Rendering-Abstractions-NotationMetrics-AlongLineLength
+        title: >-
+          The notation metrics shall report the along-line length consumed by each end-marker style.
+        justification: |
+          Layout strategies reserve a clean straight approach and renderers clamp the final corner
+          radius using this length, so both must read it from one place to stay in agreement.
+        tests:
+          - AlongLineLength_MatchesMarkerBox
+
+      - id: Rendering-Abstractions-NotationMetrics-BoxDecorations
+        title: >-
+          The notation metrics shall define the port square, folder-tab, note-fold, rounded-rectangle
+          corner, badge, and label-background proportions used to draw box decorations.
+        justification: |
+          These intrinsic, theme-independent proportions describe SysML box notation; defining each
+          once ensures the SVG and PNG renderers draw the same shapes at the same sizes.
+        tests:
+          - Port_SizeIsTwiceHalfSize
+          - FolderTab_HasDocumentedConstants
+          - NoteFold_HasDocumentedConstants
+          - RoundedRectRadius_IsThemeRadiusTimesFactor
+          - BadgeFractions_HaveDocumentedValues
+          - LabelBackground_ExtentMatchesInset

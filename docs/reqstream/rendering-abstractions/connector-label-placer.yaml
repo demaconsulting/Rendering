@@ -1,0 +1,40 @@
+---
+# DemaConsulting.Rendering.Abstractions - Connector Label Placer Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the connector-label-placer unit: ConnectorLabelPlacer connector
+#   midpoint-label placement.
+# - These unit requirements decompose the Rendering-Abstractions-SharedGeometry system requirement declared in
+#   rendering-abstractions.yaml.
+
+sections:
+  - title: Connector Label Placer Unit Requirements
+    requirements:
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled
+        title: >-
+          The connector-label placer shall omit lines that carry no midpoint label from its result.
+        justification: |
+          Only labelled connectors need a placed position; omitting unlabelled lines keeps the result
+          limited to the labels a renderer must actually draw.
+        tests:
+          - Place_LineWithoutLabel_IsOmitted
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment
+        title: >-
+          The connector-label placer shall place a label at the midpoint of its line's longest
+          segment.
+        justification: |
+          The longest segment is the most open run between boxes; placing the label there gives it
+          the most clear space and the least chance of overlapping other diagram content.
+        tests:
+          - Place_SingleLine_UsesLongestSegmentMidpoint
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap
+        title: >-
+          The connector-label placer shall separate labels whose preferred positions would otherwise
+          overlap.
+        justification: |
+          Two connectors that cross would place their labels on the same point; nudging one aside
+          keeps both labels readable, and both renderers share the placer so their layouts match.
+        tests:
+          - Place_CollidingLabels_AreSeparated

@@ -1,0 +1,261 @@
+---
+# DemaConsulting.Rendering.Svg - SvgRenderer Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the SvgRenderer unit: the stateless SVG renderer that implements
+#   IRenderer and writes SVG markup for every supported LayoutTree node kind.
+# - These unit requirements decompose the Rendering-Svg-WriteSvgDocument system requirement declared
+#   in rendering-svg.yaml.
+
+sections:
+  - title: SvgRenderer Unit Requirements
+    requirements:
+      - id: Rendering-Svg-SvgRenderer-ImplementsIRenderer
+        title: >-
+          SvgRenderer shall implement the IRenderer interface.
+        justification: |
+          Implementing the shared renderer interface lets a caller select SVG output uniformly.
+        tests:
+          - SvgRenderer_Render_SingleBox_ProducesSvgDocument
+
+      - id: Rendering-Svg-SvgRenderer-MediaType
+        title: >-
+          SvgRenderer shall report the "image/svg+xml" media type.
+        justification: |
+          The media type lets callers identify and serve the rendered SVG output correctly.
+        tests:
+          - SvgRenderer_Render_SingleBox_ProducesSvgDocument
+
+      - id: Rendering-Svg-SvgRenderer-DefaultExtension
+        title: >-
+          SvgRenderer shall report ".svg" as the default file extension.
+        justification: |
+          The default extension lets callers name persisted SVG outputs consistently.
+        tests:
+          - SvgRenderer_Render_SingleBox_ProducesSvgDocument
+
+      - id: Rendering-Svg-SvgRenderer-RenderDocument
+        title: >-
+          SvgRenderer shall write an SVG 1.1 document containing the root svg element.
+        justification: |
+          A root svg element is required by every SVG viewer and is the container for all rendered
+          diagram content.
+        tests:
+          - SvgRenderer_Render_EmptyTree_ProducesSvgDocument
+
+      - id: Rendering-Svg-SvgRenderer-RenderEmptyTree
+        title: >-
+          SvgRenderer shall write a non-empty SVG document for an empty layout tree.
+        justification: |
+          The empty-tree boundary case must still produce a valid SVG container so callers can handle
+          empty diagrams without special cases.
+        tests:
+          - SvgRenderer_Render_EmptyTree_ProducesSvgDocument
+
+      - id: Rendering-Svg-SvgRenderer-RenderBox
+        title: >-
+          SvgRenderer shall render each box node as a rect element.
+        justification: |
+          Boxes are the primary diagram element, so each box must appear as an SVG rectangle.
+        tests:
+          - SvgRenderer_Render_SingleBox_ProducesRectElement
+
+      - id: Rendering-Svg-SvgRenderer-RenderBoxRoundedCorners
+        title: >-
+          SvgRenderer shall emit rounded-corner attributes for rounded-rectangle box nodes.
+        justification: |
+          Rounded corners convey the notation for rounded-rectangle boxes.
+        tests:
+          - SvgRenderer_Render_BoxRoundedRectangle_ProducesRxAttribute
+
+      - id: Rendering-Svg-SvgRenderer-RenderBoxCompartments
+        title: >-
+          SvgRenderer shall draw box compartment dividers and row text.
+        justification: |
+          Compartments convey structured properties and operations within box notation.
+        tests:
+          - SvgRenderer_Render_BoxWithCompartment_ProducesLineAndText
+
+      - id: Rendering-Svg-SvgRenderer-RenderLabel
+        title: >-
+          SvgRenderer shall render each label node as a text element.
+        justification: |
+          Labels carry element names and annotations that must appear as SVG text.
+        tests:
+          - SvgRenderer_Render_SingleLabel_ProducesTextElement
+
+      - id: Rendering-Svg-SvgRenderer-RenderLabelBold
+        title: >-
+          SvgRenderer shall apply the bold font-weight attribute for bold label nodes.
+        justification: |
+          Bold styling conveys emphasis requested by the placed layout tree.
+        tests:
+          - SvgRenderer_Render_LabelWithBold_ProducesBoldAttribute
+
+      - id: Rendering-Svg-SvgRenderer-RenderLabelItalic
+        title: >-
+          SvgRenderer shall apply the italic font-style attribute for italic label nodes.
+        justification: |
+          Italic styling conveys emphasis requested by the placed layout tree.
+        tests:
+          - SvgRenderer_Render_LabelWithItalic_ProducesItalicAttribute
+
+      - id: Rendering-Svg-SvgRenderer-RenderLabelEscaping
+        title: >-
+          SvgRenderer shall escape XML-special characters in rendered label text.
+        justification: |
+          Escaping keeps the SVG document well-formed for any model text.
+        tests:
+          - SvgRenderer_Render_LabelWithXmlSpecialCharacters_ProducesWellFormedEscapedSvg
+
+      - id: Rendering-Svg-SvgRenderer-RenderLine
+        title: >-
+          SvgRenderer shall render each connector line as a path element.
+        justification: |
+          Connectors express relationships and must appear as SVG paths following their routed
+          waypoints.
+        tests:
+          - SvgRenderer_Render_SingleLine_ProducesPathElement
+
+      - id: Rendering-Svg-SvgRenderer-RenderLineRoundedCorners
+        title: >-
+          SvgRenderer shall render rounded connector corners with SVG arc commands.
+        justification: |
+          Rounded connector corners convey the theme's configured line-corner radius.
+        tests:
+          - SvgRenderer_Render_SingleLine_WithCornerRadius_ProducesArcInPath
+
+      - id: Rendering-Svg-SvgRenderer-RenderLineDashed
+        title: >-
+          SvgRenderer shall render dashed connector lines with a stroke-dasharray attribute.
+        justification: |
+          Dashed styling conveys connector semantics requested by the placed layout tree.
+        tests:
+          - SvgRenderer_Render_SingleLine_Dashed_ProducesDashArray
+
+      - id: Rendering-Svg-SvgRenderer-RenderLineMidpointLabel
+        title: >-
+          SvgRenderer shall render connector midpoint labels as text elements.
+        justification: |
+          Connector labels carry relationship names and semantics that must remain visible in the SVG.
+        tests:
+          - SvgRenderer_Render_LineWithMidpointLabel_ProducesTextElement
+
+      - id: Rendering-Svg-SvgRenderer-RenderNodeKinds
+        title: >-
+          SvgRenderer shall render port nodes as rect elements.
+        justification: |
+          Ports pin connection points to box edges and must be visible as SVG rectangles.
+        tests:
+          - SvgRenderer_Render_SinglePort_ProducesRect
+
+      - id: Rendering-Svg-SvgRenderer-RenderBadge
+        title: >-
+          SvgRenderer shall render filled-circle badge nodes as circle elements.
+        justification: |
+          Filled-circle badges are notation icons that must appear as SVG circles.
+        tests:
+          - SvgRenderer_Render_SingleBadge_FilledCircle_ProducesCircle
+
+      - id: Rendering-Svg-SvgRenderer-RenderBand
+        title: >-
+          SvgRenderer shall render band nodes as rect elements.
+        justification: |
+          Bands group diagram contents and must appear as SVG rectangles.
+        tests:
+          - SvgRenderer_Render_SingleBand_ProducesRect
+
+      - id: Rendering-Svg-SvgRenderer-RenderLifeline
+        title: >-
+          SvgRenderer shall render lifeline nodes with a header rect and stem line.
+        justification: |
+          Sequence-diagram lifelines require both the participant header and the vertical stem.
+        tests:
+          - SvgRenderer_Render_SingleLifeline_ProducesRectAndLine
+
+      - id: Rendering-Svg-SvgRenderer-RenderActivation
+        title: >-
+          SvgRenderer shall render activation nodes as rect elements.
+        justification: |
+          Activation bars mark active intervals on lifelines and must appear as narrow rectangles.
+        tests:
+          - SvgRenderer_Render_SingleActivation_ProducesRect
+
+      - id: Rendering-Svg-SvgRenderer-RenderGrid
+        title: >-
+          SvgRenderer shall render grid cells as rect elements.
+        justification: |
+          Tabular notation requires visible SVG cell boundaries.
+        tests:
+          - SvgRenderer_Render_SingleGrid_ProducesRects
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkers
+        title: >-
+          SvgRenderer shall define the open-chevron connector end marker as an open polyline.
+        justification: |
+          An open chevron expresses a distinct connector end shape and must not be closed as a
+          polygon.
+        tests:
+          - OpenChevron_IsDefinedAsPolyline
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkersOpenChevronReference
+        title: >-
+          SvgRenderer shall reference the open-chevron marker from open-chevron connector ends.
+        justification: |
+          Referencing the marker from the connector path attaches the open-chevron decoration to the
+          rendered line.
+        tests:
+          - OpenChevronLine_ReferencesOpenChevronMarker
+
+      - id: Rendering-Svg-SvgRenderer-HollowTriangleEndMarkers
+        title: >-
+          SvgRenderer shall define the hollow-triangle connector end marker as a closed polygon.
+        justification: |
+          Hollow-triangle markers express relationship direction and must remain closed shapes.
+        tests:
+          - HollowTriangle_IsDefinedAsClosedPolygon
+
+      - id: Rendering-Svg-SvgRenderer-HollowTriangleEndMarkerReference
+        title: >-
+          SvgRenderer shall emit a marker-end attribute for hollow-triangle target connector ends.
+        justification: |
+          Referencing a marker-end attaches the hollow-triangle decoration to the rendered line.
+        tests:
+          - SvgRenderer_Render_SingleLine_WithHollowTriangleArrowhead_ProducesMarkerEnd
+
+      - id: Rendering-Svg-SvgRenderer-TriangleEndMarkerMetrics
+        title: >-
+          SvgRenderer shall derive triangle marker dimensions from the shared notation metrics.
+        justification: |
+          Shared notation metrics keep SVG triangle markers geometrically consistent with raster
+          renderers.
+        tests:
+          - TriangleMarker_DimensionsDeriveFromNotationMetrics
+
+      - id: Rendering-Svg-SvgRenderer-DiamondEndMarkers
+        title: >-
+          SvgRenderer shall derive diamond marker dimensions from the shared notation metrics.
+        justification: |
+          Shared notation metrics keep SVG diamond markers geometrically consistent with raster
+          renderers.
+        tests:
+          - DiamondMarker_DimensionsDeriveFromNotationMetrics
+
+      - id: Rendering-Svg-SvgRenderer-DiamondEndMarkerReference
+        title: >-
+          SvgRenderer shall include the hollow-diamond marker id when rendering a hollow-diamond line
+          end.
+        justification: |
+          The hollow-diamond marker id identifies the connector-end decoration used for diamond line
+          ends.
+        tests:
+          - SvgRenderer_Render_SingleLine_WithDiamondArrowhead_ProducesDiamondMarker
+
+      - id: Rendering-Svg-SvgRenderer-CrossbarEndMarkers
+        title: >-
+          SvgRenderer shall include the hollow-triangle-crossbar marker id when rendering a crossbar
+          line end.
+        justification: |
+          The crossbar marker id identifies the connector-end decoration used for crossbar line ends.
+        tests:
+          - SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker

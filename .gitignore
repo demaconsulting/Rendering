@@ -90,6 +90,9 @@ __pycache__/
 # Generated documentation
 **/generated/
 
+# ApiMark-generated API reference (one api/ folder per library project)
+src/*/api/
+
 # Test results
 TestResults/
 *.trx

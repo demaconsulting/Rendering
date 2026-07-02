@@ -1,0 +1,80 @@
+# DefaultLayout Unit Design
+
+Part of the Rendering Layout system.
+
+## DefaultLayout Purpose
+
+`LayoutAlgorithms` and `LayoutEngine` form the batteries-included happy path: the smallest possible way
+to lay out a graph with the algorithm it declares. `LayoutAlgorithms` is a factory for a
+`LayoutAlgorithmRegistry` pre-populated with the three bundled algorithms; `LayoutEngine` is a thin
+facade that resolves the declared algorithm and applies it. Together they turn "lay out my graph with
+whatever algorithm it declares" into one call that correctly handles both flat and nested graphs, with
+no registry assembly or engine choice required of the caller. Both units are additive: they compose the
+existing algorithms and change no existing behavior.
+
+## DefaultLayout Data Model
+
+Both units are static and hold no per-call state. `LayoutAlgorithms.CreateDefaultRegistry()` builds a
+fresh `LayoutAlgorithmRegistry` and registers `LayeredLayoutAlgorithm` (`"layered"`),
+`ContainmentLayoutAlgorithm` (`"containment"`), and `HierarchicalLayoutAlgorithm` (`"hierarchical"`),
+returning a new, independently mutable instance on each call. `LayoutEngine` exposes the
+`DefaultAlgorithmId` constant (`"hierarchical"`) and holds one private static `LayoutAlgorithmRegistry`
+built once from `CreateDefaultRegistry()`; because the bundled algorithms are stateless, that shared
+registry is safe to read (resolve) concurrently.
+
+## DefaultLayout Methods
+
+`LayoutEngine.Layout(graph, options)` resolves against the shared default registry;
+`LayoutEngine.Layout(graph, options, registry)` resolves against a caller-supplied registry. Both reject
+null arguments with `ArgumentNullException`, then:
+
+1. **Resolve the algorithm identifier.** The identifier is read from an explicit `CoreOptions.Algorithm`
+   on the graph, else from an explicit `CoreOptions.Algorithm` on the options, else `DefaultAlgorithmId`
+   (`"hierarchical"`). Resolution consults *explicit* settings only (via `TryGet`), so an unset graph and
+   options fall through to the hierarchical default rather than the `CoreOptions.Algorithm` property
+   default of `"layered"`. The graph takes precedence over the options because, in the ELK-style model,
+   layout options are naturally attached to the graph being laid out.
+2. **Resolve and apply.** The identifier is resolved from the registry and the resolved algorithm's
+   `Apply(graph, options)` produces the placed `LayoutTree`.
+
+Defaulting to the hierarchical engine is what lets the single facade serve both flat and nested graphs.
+It is safe because of the hierarchical engine's flat-graph equivalence guarantee: for a graph with no
+container nodes the engine returns output byte-for-byte identical to the selected leaf algorithm
+(default `"layered"`) applied directly. A flat graph therefore lays out exactly as the layered algorithm
+would, while a nested graph is composed correctly — with no decision required from the caller.
+
+## DefaultLayout Design Constraints
+
+- The factory shall live in the Layout package, not in Abstractions, because it references the concrete
+  bundled algorithms; the `LayoutAlgorithmRegistry` it populates remains in Abstractions. This keeps the
+  dependency direction intact (model &lt;- Abstractions &lt;- Layout).
+- The facade shall default to the hierarchical engine, not the layered algorithm, so one entry point
+  handles both flat and nested graphs; the flat-graph equivalence guarantee makes this behavior-
+  preserving.
+- The facade shall consult only explicit algorithm declarations when resolving, so an unset graph and
+  options reach the hierarchical default rather than the layered property default.
+
+## DefaultLayout Error Handling
+
+Null `graph`, `options`, or (three-argument overload) `registry` throw `ArgumentNullException`. A
+declared algorithm identifier absent from the resolving registry surfaces the registry's
+`KeyNotFoundException`.
+
+## DefaultLayout Interactions
+
+`LayoutAlgorithms` depends on `LayoutAlgorithmRegistry` and the three bundled algorithm units.
+`LayoutEngine` depends on `LayoutAlgorithms`, `LayoutAlgorithmRegistry`, `LayoutGraph`, `LayoutOptions`,
+`LayoutTree`, and `CoreOptions`. Callers typically pair `LayoutEngine.Layout(...)` with an `IRenderer`
+(for example `SvgRenderer`) to go from graph to rendered output in two calls.
+
+## Requirements Traceability
+
+| Requirement ID | Satisfied by |
+| --- | --- |
+| Rendering-Layout-DefaultRegistry-BundledAlgorithms | DefaultLayout behavior described above |
+| Rendering-Layout-LayoutEngine-DefaultAlgorithm | DefaultLayout behavior described above |
+| Rendering-Layout-LayoutEngine-Resolution | DefaultLayout behavior described above |
+| Rendering-Layout-LayoutEngine-FlatEquivalence | DefaultLayout behavior described above |
+| Rendering-Layout-LayoutEngine-NestedComposition | DefaultLayout behavior described above |
+| Rendering-Layout-LayoutEngine-CustomRegistry | DefaultLayout behavior described above |
+| Rendering-Layout-LayoutEngine-Validation | DefaultLayout behavior described above |

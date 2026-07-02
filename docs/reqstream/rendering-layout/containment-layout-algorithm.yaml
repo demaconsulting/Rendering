@@ -1,0 +1,80 @@
+---
+# DemaConsulting.Rendering.Layout - ContainmentLayoutAlgorithm Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the containment-layout-algorithm unit.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: ContainmentLayoutAlgorithm Unit Requirements
+    requirements:
+      - id: Rendering-Layout-ContainmentAlgorithm-Identity
+        title: >-
+          ContainmentLayoutAlgorithm shall expose the stable identifier under which it is selected and
+          registered.
+        justification: |
+          Renderers and registries select an algorithm by its identifier; a stable, well-known value
+          lets the containment algorithm be resolved by name alongside the layered algorithm.
+        tests:
+          - Id_IsContainment
+
+      - id: Rendering-Layout-ContainmentAlgorithm-PacksNodes
+        title: >-
+          ContainmentLayoutAlgorithm shall place one box per top-level node, in input order and without
+          overlap, entirely within the canvas it reports.
+        justification: |
+          The algorithm's core arrangement is order-preserving row packing; every node must become a
+          placed box that renders inside the reported canvas and does not obscure any other box.
+        tests:
+          - Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas
+
+      - id: Rendering-Layout-ContainmentAlgorithm-RoutesEdges
+        title: >-
+          ContainmentLayoutAlgorithm shall emit one routed connector per input edge, carrying that
+          edge's target end marker, line style, and label.
+        justification: |
+          A diagram's edges must be drawn as well as its nodes; each edge becomes a routed connector
+          that preserves its requested styling so renderers reproduce the intended notation.
+        tests:
+          - Apply_Graph_RoutesOneConnectorPerEdgeCarryingStyling
+
+      - id: Rendering-Layout-ContainmentAlgorithm-RoutesAroundObstacle
+        title: >-
+          ContainmentLayoutAlgorithm shall route an edge whose endpoints are separated by an intervening
+          packed box around that box rather than through its interior.
+        justification: |
+          The value of routing edges among packed nodes is obstacle avoidance; an edge crossing an
+          intervening box would be ambiguous, so the connector must steer around the box.
+        tests:
+          - Apply_EdgeCrossingInterveningBox_RoutesAroundIt
+
+      - id: Rendering-Layout-ContainmentAlgorithm-EmptyGraph
+        title: >-
+          When given a graph with no nodes, ContainmentLayoutAlgorithm shall return an empty placed
+          layout tree with a positive-size canvas.
+        justification: |
+          An empty graph is a valid degenerate case that must yield a well-formed empty canvas rather
+          than an error or a zero-size result.
+        tests:
+          - Apply_EmptyGraph_ReturnsEmptyCanvas
+
+      - id: Rendering-Layout-ContainmentAlgorithm-SkipsOutOfGraphEdges
+        title: >-
+          ContainmentLayoutAlgorithm shall skip any edge whose source or target is not a top-level node
+          of the graph.
+        justification: |
+          Edges may reference descendant nodes that this flat algorithm does not place; skipping such
+          out-of-graph endpoints keeps routing well-defined and mirrors the layered algorithm's handling.
+        tests:
+          - Apply_EdgeReferencingOutOfGraphNode_IsSkipped
+
+      - id: Rendering-Layout-ContainmentAlgorithm-Validation
+        title: >-
+          ContainmentLayoutAlgorithm shall reject a null graph or null options argument with an
+          argument-null error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public algorithm boundary.
+        tests:
+          - Apply_NullGraph_Throws
+          - Apply_NullOptions_Throws

@@ -1,0 +1,102 @@
+---
+# DemaConsulting.Rendering.Layout - HierarchicalLayoutAlgorithm Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the hierarchical-layout-algorithm unit.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: HierarchicalLayoutAlgorithm Unit Requirements
+    requirements:
+      - id: Rendering-Layout-HierarchicalLayout-Identity
+        title: >-
+          HierarchicalLayoutAlgorithm shall expose the stable identifier under which it is selected and
+          registered.
+        justification: |
+          Renderers and registries select an algorithm by its identifier; a stable, well-known value
+          lets the hierarchical engine be resolved by name alongside the leaf algorithms.
+        tests:
+          - Id_IsHierarchical
+
+      - id: Rendering-Layout-HierarchicalLayout-FlatEquivalence
+        title: >-
+          When given a graph in which no node is a container, HierarchicalLayoutAlgorithm shall produce
+          a placed layout tree identical to the selected leaf algorithm applied to the same graph.
+        justification: |
+          The engine is purely additive: a flat graph must lay out exactly as it did before the
+          hierarchical engine existed, so selecting the engine can never change any existing output.
+        tests:
+          - Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly
+          - Apply_FlatRandomGraphs_MatchContainmentAlgorithmExactly
+
+      - id: Rendering-Layout-HierarchicalLayout-NestsChildren
+        title: >-
+          HierarchicalLayoutAlgorithm shall place a container node's children within that container's
+          bounds and size the container to enclose them.
+        justification: |
+          Nested content is only meaningful when it renders inside its container; sizing each container
+          to its children and positioning the children within its bounds is the engine's core behavior.
+        tests:
+          - Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely
+          - Apply_ThreeLevelNesting_Succeeds
+
+      - id: Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm
+        title: >-
+          HierarchicalLayoutAlgorithm shall lay out each scope with the algorithm selected on that scope,
+          allowing a container to be arranged by a different algorithm than its parent.
+        justification: |
+          Different levels of a diagram suit different arrangements; letting each container select its
+          own algorithm — inheriting the parent's when unset — lets, for example, a packed container hold
+          a layered one without either level knowing about the other.
+        tests:
+          - Apply_ContainmentRootWithLayeredContainer_Composes
+          - Apply_LayeredRootWithContainmentContainer_Composes
+
+      - id: Rendering-Layout-HierarchicalLayout-HierarchyHandling
+        title: >-
+          HierarchicalLayoutAlgorithm shall lay out each container's children in their own coordinate
+          space and compose them into the parent at absolute coordinates.
+        justification: |
+          Laying out each container independently and then composing it into its parent keeps container
+          placements deterministic and lets sub-layouts be reused as self-contained regions, mirroring
+          the separate-children hierarchy-handling mode.
+        tests:
+          - Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely
+          - Apply_CompoundGraph_DoesNotMutateInputNodeSizes
+
+      - id: Rendering-Layout-HierarchicalLayout-CrossContainerEdge
+        title: >-
+          HierarchicalLayoutAlgorithm shall route an edge whose endpoints live in different containers at
+          the scope that owns it, steering around any intervening container rather than through it.
+        justification: |
+          A cross-container edge belongs to the coordinate space of the container that owns it; routing
+          it around the sibling containers between its endpoints keeps the connector unambiguous.
+        tests:
+          - Apply_CrossContainerEdge_RoutesAroundInterveningContainer
+
+      - id: Rendering-Layout-HierarchicalLayout-ValidatesGraph
+        title: >-
+          HierarchicalLayoutAlgorithm shall reject a null graph argument with an argument-null error.
+        justification: |
+          Failing fast on a null graph prevents undefined behavior and surfaces caller errors at the
+          public algorithm boundary.
+        tests:
+          - Apply_NullGraph_Throws
+
+      - id: Rendering-Layout-HierarchicalLayout-ValidatesOptions
+        title: >-
+          HierarchicalLayoutAlgorithm shall reject a null options argument with an argument-null error.
+        justification: |
+          Failing fast on null options prevents undefined behavior and surfaces caller errors at the
+          public algorithm boundary.
+        tests:
+          - Apply_NullOptions_Throws
+
+      - id: Rendering-Layout-HierarchicalLayout-ValidatesRegistry
+        title: >-
+          HierarchicalLayoutAlgorithm shall reject a null registry argument with an argument-null error.
+        justification: |
+          Failing fast on a null registry prevents undefined behavior and surfaces caller errors at the
+          construction boundary.
+        tests:
+          - Constructor_NullRegistry_Throws

@@ -1,0 +1,197 @@
+---
+# Rendering.Layout System Requirements
+#
+# PURPOSE:
+# - Define requirements for the Rendering.Layout software system
+#   (package DemaConsulting.Rendering.Layout).
+# - The system provides the bundled layout algorithms - the ELK-style layered algorithm, the
+#   containment (shelf-packing) algorithm, and the recursive hierarchical engine that composes them -
+#   plus public connector routing, the EdgeRouting option realization, a default layout facade, and
+#   the reusable geometric engines the algorithms are built from.
+# - Requirements describe observable geometric behavior, not the algorithms used.
+#
+# STRUCTURE:
+# - The first section holds system-level requirements that decompose into the units and the Engine
+#   subsystem. The subsystem and per-unit requirements live in the sibling files
+#   engine/*.yaml and {unit-name}.yaml.
+
+sections:
+  - title: Rendering.Layout System Requirements
+    requirements:
+      - id: Rendering-Layout-Algorithm
+        title: >-
+          The rendering layout system shall provide a named layout algorithm that arranges a layout
+          graph into a placed layout tree of layered boxes and orthogonally routed connectors.
+        justification: |
+          The system's product boundary is the public layout algorithm consumed by renderers. It
+          converts a caller's abstract graph into concrete placed geometry so downstream SVG and PNG
+          renderers can draw the diagram without any layout knowledge of their own.
+        children:
+          - Rendering-Layout-LayeredAlgorithm-Identity
+          - Rendering-Layout-LayeredAlgorithm-PlacesAndRoutes
+          - Rendering-Layout-LayeredAlgorithm-EmptyGraph
+          - Rendering-Layout-LayeredAlgorithm-Validation
+        tests:
+          - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
+          - Id_IsLayered
+
+      - id: Rendering-Layout-GeometricEngines
+        title: >-
+          The rendering layout system shall be built from reusable, model-agnostic geometric engines
+          that provide orthogonal connector routing, containment row-packing, and layered
+          interconnection placement as independently verifiable capabilities.
+        justification: |
+          Grouping the geometric engines into a single subsystem keeps the layout algorithm free of
+          model knowledge and lets each engine be developed, verified, and reused on its own. The
+          public algorithm composes these engines to turn an abstract graph into placed geometry.
+        children:
+          - Rendering-Layout-OrthogonalRouting
+          - Rendering-Layout-Containment
+          - Rendering-Layout-Interconnection
+        tests:
+          - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
+
+      - id: Rendering-Layout-StagedPipeline
+        title: >-
+          The rendering layout system shall compute layered placement through a composable, ordered
+          sequence of ELK-style stages over a single shared graph state object.
+        justification: |
+          Expressing the algorithm as ordered, independently testable stages lets the pipeline be
+          extended, reordered, and verified one stage at a time instead of as one monolithic method.
+        children:
+          - Rendering-Layout-LayeredPipeline-StagedPipeline
+          - Rendering-Layout-LayeredPipeline-BehaviorPreserving
+          - Rendering-Layout-LayeredPipeline-FlatHierarchyOnly
+          - Rendering-Layout-LayeredPipeline-Directions
+          - Rendering-Layout-LayeredPipeline-OrthogonalConnectors
+          - Rendering-Layout-LayeredPipeline-CycleBreaking
+          - Rendering-Layout-LayeredPipeline-LayerAssignment
+          - Rendering-Layout-LayeredPipeline-LongEdgeSplitting
+          - Rendering-Layout-LayeredPipeline-CrossingMinimization
+          - Rendering-Layout-LayeredPipeline-CoordinateAssignment
+          - Rendering-Layout-LayeredPipeline-PortDistribution
+          - Rendering-Layout-LayeredPipeline-OrthogonalRouting
+          - Rendering-Layout-LayeredPipeline-BackEdgeApproach
+          - Rendering-Layout-LayeredPipeline-LongEdgeJoining
+          - Rendering-Layout-LayeredPipeline-ComponentPacking
+          - Rendering-Layout-LayeredPipeline-SharedState
+          - Rendering-Layout-LayeredPipeline-InputValidation
+        tests:
+          - LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing
+          - Pipeline_MatchesLegacyOracle_OnRandomGraphs
+
+      - id: Rendering-Layout-ConnectorRouting
+        title: >-
+          The rendering layout system shall route connectors among already-placed boxes, choosing a
+          routing style per scope and producing one placed connector line per connection.
+        justification: |
+          Placing boxes is only half of a diagram; the connectors joining them must be routed among
+          the placed geometry. Exposing a model-agnostic routing orchestration lets any caller connect
+          two boxes without reimplementing anchor selection, obstacle avoidance, and per-connector
+          routing, and lets the routing style be selected through the same open property system that
+          selects the algorithm.
+        children:
+          - Rendering-Layout-EdgeRouting-Selection
+          - Rendering-Layout-EdgeRouting-Defaults
+          - Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther
+          - Rendering-Layout-ConnectorRouter-AvoidsObstacles
+          - Rendering-Layout-ConnectorRouter-ExcludesEndpoints
+          - Rendering-Layout-ConnectorRouter-CarriesStyling
+          - Rendering-Layout-ConnectorRouter-BatchOrder
+          - Rendering-Layout-ConnectorRouter-Validation
+        tests:
+          - Route_TargetToTheRight_AnchorsFaceEachOther
+          - Route_ObstacleBetweenEndpoints_RoutesAroundInterior
+
+      - id: Rendering-Layout-ContainmentPlacement
+        title: >-
+          The rendering layout system shall pack a set of already-sized model boxes into a single
+          container region, arranging them into rows within a width budget and reporting the enclosing
+          region size.
+        justification: |
+          A container groups peer elements whose reading order, not their connectivity, drives the
+          layout. Exposing a model-speaking packing operation lets any caller arrange boxes inside a
+          container without reimplementing row packing, and returns both the repositioned boxes and the
+          region size a renderer needs to draw the container, keeping container sizing consistent across
+          every view that nests elements.
+        children:
+          - Rendering-Layout-ContainmentLayout-Order
+          - Rendering-Layout-ContainmentLayout-NoOverlap
+          - Rendering-Layout-ContainmentLayout-WithinRegion
+          - Rendering-Layout-ContainmentLayout-Wrapping
+          - Rendering-Layout-ContainmentLayout-OversizedChild
+          - Rendering-Layout-ContainmentLayout-EmptyInput
+          - Rendering-Layout-ContainmentLayout-PreservesFields
+          - Rendering-Layout-ContainmentLayout-Defaults
+          - Rendering-Layout-ContainmentLayout-Validation
+        tests:
+          - Pack_ItemsFitInRow_PreservesOrderLeftToRight
+          - Pack_MixedSizes_ProducesNoOverlaps
+
+      - id: Rendering-Layout-ContainmentAlgorithm
+        title: >-
+          The rendering layout system shall provide a named containment layout algorithm that packs a
+          layout graph's top-level nodes into rows and routes each edge around the packed boxes.
+        justification: |
+          Some diagrams group their elements as peers whose reading order, not their connectivity,
+          drives placement. Exposing a second bundled algorithm that packs nodes into a balanced block
+          and routes the edges around them lets a caller select this arrangement by name, additively,
+          without changing the layered algorithm or any existing output.
+        children:
+          - Rendering-Layout-ContainmentAlgorithm-Identity
+          - Rendering-Layout-ContainmentAlgorithm-PacksNodes
+          - Rendering-Layout-ContainmentAlgorithm-RoutesEdges
+          - Rendering-Layout-ContainmentAlgorithm-RoutesAroundObstacle
+          - Rendering-Layout-ContainmentAlgorithm-EmptyGraph
+          - Rendering-Layout-ContainmentAlgorithm-SkipsOutOfGraphEdges
+          - Rendering-Layout-ContainmentAlgorithm-Validation
+        tests:
+          - Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas
+          - Id_IsContainment
+
+      - id: Rendering-Layout-HierarchicalLayout
+        title: >-
+          The rendering layout system shall provide a named hierarchical layout algorithm that lays out
+          a compound layout graph by placing each container's children within their own region, sizing
+          each container to enclose its children, and routing edges that cross container boundaries.
+        justification: |
+          Diagrams often nest groups within groups — a package holding its members, a block holding its
+          parts. Exposing a recursive engine that composes the bundled leaf algorithms lets a caller lay
+          out a nested graph by name, additively, while guaranteeing that a graph with no nesting is
+          placed exactly as the selected leaf algorithm would place it so no existing output changes.
+        children:
+          - Rendering-Layout-HierarchicalLayout-Identity
+          - Rendering-Layout-HierarchicalLayout-FlatEquivalence
+          - Rendering-Layout-HierarchicalLayout-NestsChildren
+          - Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm
+          - Rendering-Layout-HierarchicalLayout-HierarchyHandling
+          - Rendering-Layout-HierarchicalLayout-CrossContainerEdge
+          - Rendering-Layout-HierarchicalLayout-ValidatesGraph
+          - Rendering-Layout-HierarchicalLayout-ValidatesOptions
+          - Rendering-Layout-HierarchicalLayout-ValidatesRegistry
+        tests:
+          - Id_IsHierarchical
+          - Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly
+
+      - id: Rendering-Layout-DefaultLayout
+        title: >-
+          The rendering layout system shall provide a batteries-included facade that lays out a layout
+          graph with the algorithm the graph or options declares, resolved from the bundled algorithms,
+          defaulting to the hierarchical engine so both flat and nested graphs lay out from one call.
+        justification: |
+          The most common request — "lay out my graph with whatever algorithm it declares" — should be a
+          single call, not a registry-assembly exercise. Exposing a default registry factory and a thin
+          layout facade that defaults to the hierarchical engine lets a caller lay out either a flat or a
+          nested graph without choosing an engine, while preserving every existing output because the
+          hierarchical engine is byte-identical to the leaf algorithm for a flat graph.
+        children:
+          - Rendering-Layout-DefaultRegistry-BundledAlgorithms
+          - Rendering-Layout-LayoutEngine-DefaultAlgorithm
+          - Rendering-Layout-LayoutEngine-Resolution
+          - Rendering-Layout-LayoutEngine-FlatEquivalence
+          - Rendering-Layout-LayoutEngine-NestedComposition
+          - Rendering-Layout-LayoutEngine-CustomRegistry
+          - Rendering-Layout-LayoutEngine-Validation
+        tests:
+          - CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms
+          - Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly

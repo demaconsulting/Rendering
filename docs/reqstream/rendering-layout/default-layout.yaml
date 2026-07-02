@@ -1,0 +1,96 @@
+---
+# DemaConsulting.Rendering.Layout - DefaultLayout Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the default-layout unit.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: DefaultLayout Unit Requirements
+    requirements:
+      - id: Rendering-Layout-DefaultRegistry-BundledAlgorithms
+        title: >-
+          The default layout-algorithm registry factory shall return a registry from which each of the
+          three bundled algorithms — layered, containment, and hierarchical — resolves by its identifier,
+          and each call shall return an independently mutable registry.
+        justification: |
+          A batteries-included factory removes the boilerplate of registering the bundled algorithms by
+          hand; returning a fresh, independent registry on every call lets a caller extend or replace an
+          algorithm without affecting any other caller.
+        tests:
+          - CreateDefaultRegistry_ResolvesLayeredAlgorithm
+          - CreateDefaultRegistry_ResolvesContainmentAlgorithm
+          - CreateDefaultRegistry_ResolvesHierarchicalAlgorithm
+          - CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms
+          - CreateDefaultRegistry_ReturnsIndependentInstances
+
+      - id: Rendering-Layout-LayoutEngine-DefaultAlgorithm
+        title: >-
+          When neither the graph nor the options declares an algorithm, the layout facade shall lay the
+          graph out with the hierarchical engine.
+        justification: |
+          Defaulting to the hierarchical engine lets the single facade lay out both flat and nested
+          graphs correctly; the choice is safe because the engine is byte-identical to the leaf algorithm
+          for a flat graph, so no existing output changes.
+        tests:
+          - DefaultAlgorithmId_IsHierarchical
+          - Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly
+
+      - id: Rendering-Layout-LayoutEngine-Resolution
+        title: >-
+          The layout facade shall resolve the algorithm from an explicit declaration on the graph in
+          preference to one on the options, applying the resolved algorithm to the graph.
+        justification: |
+          Layout options are naturally attached to the graph in the ELK-style model, so a graph-level
+          declaration must take precedence over a free-standing options declaration, giving callers a
+          predictable single source of truth for algorithm selection.
+        tests:
+          - Layout_OptionsDeclareLayered_MatchesLayeredAlgorithmExactly
+          - Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly
+          - Layout_GraphDeclarationOverridesOptions
+
+      - id: Rendering-Layout-LayoutEngine-FlatEquivalence
+        title: >-
+          For a flat graph, the layout facade shall produce a placed layout tree identical to the
+          declared (or defaulted) leaf algorithm applied to the same graph.
+        justification: |
+          The facade is purely additive: a flat graph must lay out exactly as it would through the leaf
+          algorithm directly, so routing every call through the facade can never change existing output.
+        tests:
+          - Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly
+          - Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly
+
+      - id: Rendering-Layout-LayoutEngine-NestedComposition
+        title: >-
+          For a nested graph laid out with the default hierarchical engine, the layout facade shall
+          produce a composed tree in which each container box carries its recursively laid-out children.
+        justification: |
+          The whole point of defaulting to the hierarchical engine is that a nested graph is composed
+          correctly from one call; the container box must hold its placed children rather than treating
+          the nesting as opaque.
+        tests:
+          - Layout_NestedGraphNoAlgorithmDeclared_ProducesComposedTree
+
+      - id: Rendering-Layout-LayoutEngine-CustomRegistry
+        title: >-
+          The layout facade shall resolve the declared algorithm from a caller-supplied registry when one
+          is provided, and surface a lookup error when the declared algorithm is not registered.
+        justification: |
+          Callers that register custom algorithms must be able to lay out through the same facade;
+          resolving against their registry and failing clearly on an unknown identifier keeps algorithm
+          selection open and its errors diagnosable.
+        tests:
+          - Layout_CustomRegistry_ResolvesRegisteredAlgorithm
+          - Layout_UnregisteredAlgorithm_Throws
+
+      - id: Rendering-Layout-LayoutEngine-Validation
+        title: >-
+          The layout facade shall reject a null graph, null options, or null registry argument with an
+          argument-null error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public facade boundary.
+        tests:
+          - Layout_NullGraph_Throws
+          - Layout_NullOptions_Throws
+          - Layout_NullRegistry_Throws
