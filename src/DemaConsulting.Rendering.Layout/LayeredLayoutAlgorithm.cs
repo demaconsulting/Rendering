@@ -4,6 +4,7 @@
 
 using DemaConsulting.Rendering.Abstractions;
 using DemaConsulting.Rendering.Layout.Engine;
+using DemaConsulting.Rendering.Layout.Engine.Layered;
 
 namespace DemaConsulting.Rendering.Layout;
 
@@ -11,7 +12,9 @@ namespace DemaConsulting.Rendering.Layout;
 /// The bundled ELK-style layered layout algorithm: arranges the input graph into Sugiyama layers and
 /// routes edges orthogonally, producing a placed <see cref="LayoutTree"/> of boxes and connectors.
 /// This is the reference <see cref="ILayoutAlgorithm"/> implementation; it wraps the reusable layered
-/// pipeline under <c>Engine/Layered/</c>.
+/// pipeline under <c>Engine/Layered/</c>. It honors <see cref="CoreOptions.Direction"/> so the layers
+/// progress right, left, down, or up (a downward flow lays action-flow and state-transition diagrams
+/// out top-to-bottom).
 /// </summary>
 public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
 {
@@ -55,7 +58,8 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
             }
         }
 
-        var result = InterconnectionLayoutEngine.Place(engineNodes, engineEdges);
+        var direction = ToEngineDirection(ResolveDirection(graph, options));
+        var result = InterconnectionLayoutEngine.Place(engineNodes, engineEdges, direction);
 
         var nodes = new List<LayoutNode>(count + graph.Edges.Count);
 
@@ -130,4 +134,38 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
 
     private static Point2D Centre(Rect rect) =>
         new(rect.X + (rect.Width / 2.0), rect.Y + (rect.Height / 2.0));
+
+    /// <summary>
+    /// Resolves the primary flow direction for this layout: an explicit
+    /// <see cref="CoreOptions.Direction"/> on the graph takes precedence, then one on the options,
+    /// falling back to the property default when neither declares one.
+    /// </summary>
+    /// <param name="graph">The graph whose explicit direction declaration takes precedence.</param>
+    /// <param name="options">The options consulted when the graph declares no direction.</param>
+    /// <returns>The flow direction to lay the graph out along.</returns>
+    private static LayoutFlowDirection ResolveDirection(LayoutGraph graph, LayoutOptions options)
+    {
+        if (graph.TryGet(CoreOptions.Direction, out var fromGraph))
+        {
+            return fromGraph;
+        }
+
+        return options.TryGet(CoreOptions.Direction, out var fromOptions)
+            ? fromOptions
+            : CoreOptions.Direction.DefaultValue;
+    }
+
+    /// <summary>
+    /// Maps the public <see cref="LayoutFlowDirection"/> option to the engine's internal
+    /// <see cref="LayoutDirection"/> the layered pipeline understands.
+    /// </summary>
+    /// <param name="direction">The public flow direction selected through the options.</param>
+    /// <returns>The equivalent internal engine direction.</returns>
+    private static LayoutDirection ToEngineDirection(LayoutFlowDirection direction) => direction switch
+    {
+        LayoutFlowDirection.Down => LayoutDirection.Down,
+        LayoutFlowDirection.Left => LayoutDirection.Left,
+        LayoutFlowDirection.Up => LayoutDirection.Up,
+        _ => LayoutDirection.Right,
+    };
 }

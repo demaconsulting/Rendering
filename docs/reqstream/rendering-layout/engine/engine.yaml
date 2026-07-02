@@ -59,6 +59,7 @@ sections:
           - Rendering-Layout-InterconnectionEngine-NonOverlapping
           - Rendering-Layout-InterconnectionEngine-DummyNodes
           - Rendering-Layout-InterconnectionEngine-Waypoints
+          - Rendering-Layout-InterconnectionEngine-Direction
           - Rendering-Layout-InterconnectionEngine-Deterministic
         tests:
           - Place_LinearChain_MonotonicLayerAssignment

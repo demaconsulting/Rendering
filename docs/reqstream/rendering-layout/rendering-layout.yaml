@@ -30,6 +30,7 @@ sections:
           - Rendering-Layout-LayeredAlgorithm-Identity
           - Rendering-Layout-LayeredAlgorithm-PlacesAndRoutes
           - Rendering-Layout-LayeredAlgorithm-EmptyGraph
+          - Rendering-Layout-LayeredAlgorithm-Direction
           - Rendering-Layout-LayeredAlgorithm-Validation
         tests:
           - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges

@@ -72,6 +72,40 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
+    ///     Renders the direction showcase left-to-right, proving the layered algorithm honors the
+    ///     default rightward flow direction.
+    /// </summary>
+    [Fact]
+    public void Gallery_DirectionRight_RendersSvg()
+    {
+        var options = LayoutOptions.ForAlgorithm("layered");
+        options.Set(CoreOptions.Direction, LayoutFlowDirection.Right);
+
+        GalleryWriter.Svg(
+            GalleryCatalog.DirectionRightSvg,
+            GalleryDiagrams.DirectionShowcase(),
+            options,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the same direction showcase top-to-bottom, proving the layered algorithm honors a
+    ///     downward flow direction and produces a genuinely different, transposed layout.
+    /// </summary>
+    [Fact]
+    public void Gallery_DirectionDown_RendersSvg()
+    {
+        var options = LayoutOptions.ForAlgorithm("layered");
+        options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        GalleryWriter.Svg(
+            GalleryCatalog.DirectionDownSvg,
+            GalleryDiagrams.DirectionShowcase(),
+            options,
+            Themes.Dark);
+    }
+
+    /// <summary>
     ///     Renders the representative diagram with the light theme to PNG, giving it a solid light
     ///     background.
     /// </summary>

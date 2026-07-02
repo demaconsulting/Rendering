@@ -70,10 +70,16 @@ internal static class InterconnectionLayoutEngine
     /// </summary>
     /// <param name="nodes">Input nodes to place, in caller order.</param>
     /// <param name="edges">Directed edges between nodes (by index).</param>
+    /// <param name="direction">
+    /// The primary flow direction the layers progress along. Defaults to
+    /// <see cref="LayoutDirection.Right"/>, which is byte-identical to the original engine; the other
+    /// directions are realized by the pipeline's <see cref="AxisTransform"/> stage.
+    /// </param>
     /// <returns>Placement result with rects, layer assignments, and connector waypoints.</returns>
     public static LayerResult Place(
         IReadOnlyList<LayerNode> nodes,
-        IReadOnlyList<LayerEdge> edges)
+        IReadOnlyList<LayerEdge> edges,
+        LayoutDirection direction = LayoutDirection.Right)
     {
         ArgumentNullException.ThrowIfNull(nodes);
         ArgumentNullException.ThrowIfNull(edges);
@@ -84,9 +90,9 @@ internal static class InterconnectionLayoutEngine
             return new LayerResult([], 2.0 * Padding, 2.0 * Padding, [], []);
         }
 
-        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right);
+        var graph = new LayeredGraph(nodes, edges, direction);
         var pipeline = LayeredLayoutPipeline.Builder()
-            .Direction(LayoutDirection.Right)
+            .Direction(direction)
             .Hierarchy(Layered.HierarchyHandling.Flat)
             .AddDefaultStages()
             .Build();
@@ -97,20 +103,34 @@ internal static class InterconnectionLayoutEngine
         var columnX = graph.ColumnX;
         var maxColWidth = graph.MaxColWidth;
 
-        // Assemble result.
+        // Assemble result. After the pipeline's AxisTransform stage the augmented coordinates are in
+        // screen space, so each box is placed at its screen top-left with its intrinsic (un-swapped)
+        // width and height.
         var rects = new Rect[n];
         for (var i = 0; i < n; i++)
         {
             rects[i] = new Rect(augX[i], augY[i], nodes[i].Width, nodes[i].Height);
         }
 
+        // The abstract stages compute two extents: the along-extent (layer progression, from the
+        // column geometry) and the cross-extent (within-layer, from the placed screen coordinates). A
+        // RIGHT/LEFT flow maps the along-axis to screen X and the cross-axis to screen Y; a DOWN/UP flow
+        // transposes them. Computing both extents once and assigning them by direction keeps the
+        // RIGHT path byte-identical while giving DOWN/UP correct screen dimensions.
         var lastLayer = columnX.Length - 1;
-        var totalWidth = columnX[lastLayer] + maxColWidth[lastLayer] + Padding;
-        var totalHeight = Padding;
+        var alongTotal = columnX[lastLayer] + maxColWidth[lastLayer] + Padding;
+        var transposed = direction is LayoutDirection.Down or LayoutDirection.Up;
+        var crossTotal = Padding;
         for (var i = 0; i < n; i++)
         {
-            totalHeight = Math.Max(totalHeight, augY[i] + nodes[i].Height + Padding);
+            var crossFar = transposed
+                ? augX[i] + nodes[i].Width
+                : augY[i] + nodes[i].Height;
+            crossTotal = Math.Max(crossTotal, crossFar + Padding);
         }
+
+        var totalWidth = transposed ? crossTotal : alongTotal;
+        var totalHeight = transposed ? alongTotal : crossTotal;
 
         return new LayerResult(rects, totalWidth, totalHeight, graph.NodeLayers, graph.Waypoints)
         {

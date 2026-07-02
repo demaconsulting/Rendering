@@ -22,6 +22,20 @@ Sibling boxes packed compactly by the containment algorithm.
 
 A container node holding a nested child graph, with a cross-container edge.
 
+## Flow direction
+
+The same directed graph laid out in two flow directions, selected with the direction option. A rightward flow arranges
+the layers left-to-right for block and pipeline diagrams; a downward flow arranges them top-to-bottom for action flows
+and state machines, swapping each node's width and height so layer spacing follows node height.
+
+![Directed flow laid out left to right](direction-right.svg)
+
+The default rightward direction: layers progress left-to-right.
+
+![The same directed flow laid out top to bottom](direction-down.svg)
+
+The downward direction: the same graph's layers progress top-to-bottom.
+
 ## Edge routing
 
 Orthogonal connectors step around the boxes between their endpoints instead of cutting through them.
