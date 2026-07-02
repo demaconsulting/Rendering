@@ -82,6 +82,15 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     public const string AlgorithmId = "hierarchical";
 
     /// <summary>
+    /// The leaf algorithm a scope is placed with when it resolves to this engine's own
+    /// <see cref="AlgorithmId"/>. Because this engine is not a leaf and is never registered into the leaf
+    /// registry, selecting <c>"hierarchical"</c> for a scope (including through the facade default) means
+    /// "apply the hierarchical engine, placing this level with the default leaf algorithm" rather than a
+    /// self-referential lookup that cannot resolve. That default leaf is <see cref="LayeredLayoutAlgorithm"/>.
+    /// </summary>
+    private const string DefaultLeafAlgorithmId = LayeredLayoutAlgorithm.AlgorithmId;
+
+    /// <summary>
     /// Inset, in logical pixels, kept on every side between a container's border and the sub-layout of
     /// its children. Sizing each container to its children plus this padding keeps nested content from
     /// touching the container edge.
@@ -403,9 +412,16 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     /// </summary>
     /// <param name="scope">The graph or node whose algorithm override is consulted.</param>
     /// <param name="inherited">The algorithm inherited when the scope carries no override.</param>
-    /// <returns>The algorithm identifier to place the scope with.</returns>
-    private static string ResolveScopeAlgorithm(PropertyHolder scope, string inherited) =>
-        scope.TryGet(CoreOptions.Algorithm, out var value) ? value : inherited;
+    /// <returns>
+    /// The leaf-algorithm identifier to place the scope with. When the scope resolves to this engine's own
+    /// <see cref="AlgorithmId"/> (which is not a leaf), the <see cref="DefaultLeafAlgorithmId"/> is
+    /// substituted so recursion terminates in a registered leaf instead of failing to resolve.
+    /// </returns>
+    private static string ResolveScopeAlgorithm(PropertyHolder scope, string inherited)
+    {
+        var resolved = scope.TryGet(CoreOptions.Algorithm, out var value) ? value : inherited;
+        return resolved == AlgorithmId ? DefaultLeafAlgorithmId : resolved;
+    }
 
     /// <summary>
     /// Records that <paramref name="node"/> and all of its descendants belong to the direct-member

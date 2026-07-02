@@ -325,4 +325,36 @@ public sealed class LayoutTests
         Assert.Equal(TextAlign.Left, storedCell.Align);
         Assert.Equal(1, storedCell.ColSpan);
     }
+
+    /// <summary>
+    ///     A Point2D constructed with explicit coordinates stores its X and Y unchanged, confirming
+    ///     the shared point value type carries absolute coordinates verbatim.
+    /// </summary>
+    [Fact]
+    public void Point2D_Construction_StoresXY()
+    {
+        // Arrange / Act: construct a point at a known location
+        var point = new Point2D(12.5, -7.25);
+
+        // Assert: both coordinates equal the supplied values
+        Assert.Equal(12.5, point.X);
+        Assert.Equal(-7.25, point.Y);
+    }
+
+    /// <summary>
+    ///     A Rect constructed with explicit position and size stores all four fields unchanged,
+    ///     confirming the shared axis-aligned rectangle value type carries bounds verbatim.
+    /// </summary>
+    [Fact]
+    public void Rect_Construction_StoresAllFields()
+    {
+        // Arrange / Act: construct a rectangle with all four fields non-default
+        var rect = new Rect(10.0, 20.0, 300.0, 150.0);
+
+        // Assert: all four fields equal the supplied values
+        Assert.Equal(10.0, rect.X);
+        Assert.Equal(20.0, rect.Y);
+        Assert.Equal(300.0, rect.Width);
+        Assert.Equal(150.0, rect.Height);
+    }
 }

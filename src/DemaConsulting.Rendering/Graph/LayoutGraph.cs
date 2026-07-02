@@ -46,11 +46,11 @@ public sealed class LayoutGraph : PropertyHolder
     private readonly HashSet<string> _nodeIds = new(StringComparer.Ordinal);
     private readonly HashSet<string> _edgeIds = new(StringComparer.Ordinal);
 
-    /// <summary>Gets the nodes to be placed, in insertion order.</summary>
-    public Collection<LayoutGraphNode> Nodes => _nodes;
+    /// <summary>Gets the nodes to be placed, in insertion order. Read-only: add nodes through <see cref="AddNode"/>.</summary>
+    public IReadOnlyList<LayoutGraphNode> Nodes => _nodes;
 
-    /// <summary>Gets the directed edges connecting the nodes.</summary>
-    public Collection<LayoutGraphEdge> Edges => _edges;
+    /// <summary>Gets the directed edges connecting the nodes. Read-only: add edges through <see cref="AddEdge"/>.</summary>
+    public IReadOnlyList<LayoutGraphEdge> Edges => _edges;
 
     /// <summary>
     /// Creates a node, adds it to <see cref="Nodes"/>, and returns it for further configuration.

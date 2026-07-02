@@ -375,6 +375,76 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that naming this engine's own "hierarchical" identifier as the scope algorithm — the
+    ///     documented default id — does not fail to resolve, but degrades to the default leaf algorithm
+    ///     (layered) and yields output identical to the default (unset) path.
+    /// </summary>
+    [Fact]
+    public void Apply_ExplicitHierarchicalOptions_MatchesDefaultLeafExactly()
+    {
+        for (var seed = 0; seed < 50; seed++)
+        {
+            // Arrange: the same flat graph selected explicitly as "hierarchical" and (implicitly) layered
+            var graph = BuildRandomFlatGraph(seed);
+
+            // Act
+            var explicitHierarchical = new HierarchicalLayoutAlgorithm()
+                .Apply(graph, LayoutOptions.ForAlgorithm(HierarchicalLayoutAlgorithm.AlgorithmId));
+            var layered = new LayeredLayoutAlgorithm()
+                .Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+            // Assert: explicit "hierarchical" resolves to the layered leaf, bit-for-bit
+            AssertTreesIdentical($"explicit-hierarchical seed {seed}", layered, explicitHierarchical);
+        }
+    }
+
+    /// <summary>
+    ///     Proves that a container node explicitly set to the "hierarchical" algorithm composes without a
+    ///     resolution failure, placing that scope with the default leaf algorithm.
+    /// </summary>
+    [Fact]
+    public void Apply_ContainerNodeSetHierarchical_Composes()
+    {
+        // Arrange: a layered root holding a container that overrides its algorithm to "hierarchical"
+        var graph = new LayoutGraph();
+        var group = graph.AddNode("group", 10, 10);
+        group.Set(CoreOptions.Algorithm, HierarchicalLayoutAlgorithm.AlgorithmId);
+        var a = group.Children.AddNode("a", 80, 40);
+        var b = group.Children.AddNode("b", 80, 40);
+        group.Children.AddEdge("a-b", a, b);
+        graph.AddNode("peer", 80, 40);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the container was composed with its two nested children
+        var containerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>(), box => box.Children.Count > 0);
+        Assert.Equal(2, containerBox.Children.OfType<LayoutBox>().Count());
+    }
+
+    /// <summary>
+    ///     Proves that a graph whose root carries an explicit "hierarchical" algorithm override lays out
+    ///     without a resolution failure.
+    /// </summary>
+    [Fact]
+    public void Apply_GraphSetHierarchical_DoesNotThrow()
+    {
+        // Arrange: a compound graph whose root explicitly selects "hierarchical"
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, HierarchicalLayoutAlgorithm.AlgorithmId);
+        var group = graph.AddNode("group", 10, 10);
+        group.Children.AddNode("child", 80, 40);
+        graph.AddNode("peer", 80, 40);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        // Assert: the container was composed with its nested child
+        var containerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>(), box => box.Children.Count > 0);
+        Assert.Single(containerBox.Children.OfType<LayoutBox>());
+    }
+
+    /// <summary>
     ///     Deterministically builds a flat (non-nested) layout graph for the given seed, with random
     ///     node sizes and arbitrary edges (including self-loops, parallel edges, and cycles).
     /// </summary>
