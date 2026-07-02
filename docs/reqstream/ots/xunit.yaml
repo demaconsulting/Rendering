@@ -2,45 +2,49 @@
 # xUnit OTS Software Requirements
 #
 # Requirements for the xUnit testing framework functionality.
+#
+# Unlike the DemaConsulting tool OTS items (BuildMark, ReviewMark, ...) which are verified by their
+# own self-validation TRX, xUnit is the test framework itself: its OTS requirements are satisfied by
+# this repository's own test methods, which xUnit discovers, executes, and records into the TRX result
+# files that ReqStream traces. The linked tests below are a stable, representative sample spanning the
+# model, layout, and renderer projects.
 
 sections:
   - title: OTS Software Requirements
     sections:
       - title: xUnit Requirements
         requirements:
-          - id: Template-OTS-xUnit-Execute
+          - id: Rendering-OTS-xUnit-Execute
             title: xUnit shall discover and execute unit tests.
             justification: |
               xUnit v3 (xunit.v3 and xunit.runner.visualstudio) is the unit-testing framework used
               by the project. It discovers and runs all test methods annotated with [Fact] or
-              [Theory]. Passing tests confirm the framework correctly identifies and executes each
-              test method.
+              [Theory]. These passing tests, drawn from across the solution, confirm the framework
+              correctly identifies and executes each test method.
             tags: [ots]
             tests:
-              - Demo_DemoMethod_DefaultPrefix_ReturnsGreeting
-              - Demo_DemoMethod_CustomPrefix_ReturnsGreeting
-              - Demo_DemoMethod_NullInput_ThrowsArgumentNullException
-              - Demo_DemoMethod_EmptyInput_ThrowsArgumentException
-              - Demo_Constructor_NullPrefix_ThrowsArgumentNullException
-              - Demo_Constructor_EmptyPrefix_ThrowsArgumentException
-              - Demo_DefaultPrefix_Read_IsHello
-              - Demo_Prefix_WithCustomConstruction_ReturnsCustomPrefix
-              - Demo_DefaultConstructor_WithNoArgs_SetsDefaultPrefix
-          - id: Template-OTS-xUnit-Report
+              - Get_AfterSet_ReturnsStoredValue
+              - Contains_ReflectsExplicitSet
+              - AddNode_AppendsNodeAndReturnsIt
+              - LayoutTree_Construction_StoresWidthHeightNodes
+              - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
+              - Id_IsLayered
+              - SvgRenderer_Render_SingleBox_ProducesSvgDocument
+              - PngRenderer_Render_SingleBox_ProducesNonEmptyOutput
+          - id: Rendering-OTS-xUnit-Report
             title: xUnit shall record test results in TRX output files.
             justification: |
               xUnit v3 with xunit.runner.visualstudio writes TRX result files that feed into
-              coverage reporting and requirements traceability via ReqStream. The presence of
+              coverage reporting and requirements traceability via ReqStream. The presence of these
               named test results in the TRX output confirms the reporting pipeline is functioning
               correctly.
             tags: [ots]
             tests:
-              - Demo_DemoMethod_DefaultPrefix_ReturnsGreeting
-              - Demo_DemoMethod_CustomPrefix_ReturnsGreeting
-              - Demo_DemoMethod_NullInput_ThrowsArgumentNullException
-              - Demo_DemoMethod_EmptyInput_ThrowsArgumentException
-              - Demo_Constructor_NullPrefix_ThrowsArgumentNullException
-              - Demo_Constructor_EmptyPrefix_ThrowsArgumentException
-              - Demo_DefaultPrefix_Read_IsHello
-              - Demo_Prefix_WithCustomConstruction_ReturnsCustomPrefix
-              - Demo_DefaultConstructor_WithNoArgs_SetsDefaultPrefix
+              - Get_AfterSet_ReturnsStoredValue
+              - Contains_ReflectsExplicitSet
+              - AddNode_AppendsNodeAndReturnsIt
+              - LayoutTree_Construction_StoresWidthHeightNodes
+              - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
+              - Id_IsLayered
+              - SvgRenderer_Render_SingleBox_ProducesSvgDocument
+              - PngRenderer_Render_SingleBox_ProducesNonEmptyOutput

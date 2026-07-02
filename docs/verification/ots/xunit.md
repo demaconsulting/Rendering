@@ -12,108 +12,94 @@ correctly.
 
 ## Verification Approach
 
-xUnit is verified by self-validation evidence from the CI pipeline. Each scenario names a specific
-test method that xUnit must discover, execute, and record in a TRX result file. A passing pipeline
-run for all scenarios constitutes evidence that both requirements are satisfied.
+Unlike the DemaConsulting tool OTS items, which are verified by their own self-validation evidence,
+xUnit is the test framework itself. It is therefore verified by this repository's own test methods:
+each scenario names a real test — drawn from across the model, layout, and renderer projects — that
+xUnit must discover, execute, and record in a TRX result file. A passing pipeline run for all
+scenarios constitutes evidence that both requirements are satisfied.
 
 ## Test Scenarios
 
-### Demo_DemoMethod_DefaultPrefix_ReturnsGreeting
+### Get_AfterSet_ReturnsStoredValue
 
-**Scenario**: xUnit discovers and runs this test; the test verifies that DemoMethod returns the
-expected greeting using the default prefix.
-
-**Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
-
-**Requirement coverage**: `Template-OTS-xUnit-Execute`, `Template-OTS-xUnit-Report`.
-
-### Demo_DemoMethod_CustomPrefix_ReturnsGreeting
-
-**Scenario**: xUnit discovers and runs this test; the test verifies that DemoMethod returns the
-expected greeting using a custom prefix.
+**Scenario**: xUnit discovers and runs this property-system test, which stores a value and reads it
+back.
 
 **Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
 
-**Requirement coverage**: `Template-OTS-xUnit-Execute`, `Template-OTS-xUnit-Report`.
+**Requirement coverage**: `Rendering-OTS-xUnit-Execute`, `Rendering-OTS-xUnit-Report`.
 
-### Demo_DemoMethod_NullInput_ThrowsArgumentNullException
+### Contains_ReflectsExplicitSet
 
-**Scenario**: xUnit discovers and runs this test; the test verifies that DemoMethod rejects a null
-argument with ArgumentNullException.
-
-**Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
-
-**Requirement coverage**: `Template-OTS-xUnit-Execute`, `Template-OTS-xUnit-Report`.
-
-### Demo_DemoMethod_EmptyInput_ThrowsArgumentException
-
-**Scenario**: xUnit discovers and runs this test; the test verifies that DemoMethod rejects an
-empty string argument with ArgumentException.
+**Scenario**: xUnit discovers and runs this property-system test, which checks that `Contains`
+reflects an explicit set.
 
 **Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
 
-**Requirement coverage**: `Template-OTS-xUnit-Execute`, `Template-OTS-xUnit-Report`.
+**Requirement coverage**: `Rendering-OTS-xUnit-Execute`, `Rendering-OTS-xUnit-Report`.
 
-### Demo_Constructor_NullPrefix_ThrowsArgumentNullException
+### AddNode_AppendsNodeAndReturnsIt
 
-**Scenario**: xUnit discovers and runs this test; the test verifies that the constructor rejects a
-null prefix with ArgumentNullException.
-
-**Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
-
-**Requirement coverage**: `Template-OTS-xUnit-Execute`, `Template-OTS-xUnit-Report`.
-
-### Demo_Constructor_EmptyPrefix_ThrowsArgumentException
-
-**Scenario**: xUnit discovers and runs this test; the test verifies that the constructor rejects an
-empty string prefix with ArgumentException.
+**Scenario**: xUnit discovers and runs this layout-graph test, which appends a node and returns it.
 
 **Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
 
-**Requirement coverage**: `Template-OTS-xUnit-Execute`, `Template-OTS-xUnit-Report`.
+**Requirement coverage**: `Rendering-OTS-xUnit-Execute`, `Rendering-OTS-xUnit-Report`.
 
-### Demo_DefaultPrefix_Read_IsHello
+### LayoutTree_Construction_StoresWidthHeightNodes
 
-**Scenario**: xUnit discovers and runs this test; the test verifies that the DefaultPrefix constant
-has the value "Hello".
-
-**Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
-
-**Requirement coverage**: `Template-OTS-xUnit-Execute`, `Template-OTS-xUnit-Report`.
-
-### Demo_Prefix_WithCustomConstruction_ReturnsCustomPrefix
-
-**Scenario**: xUnit discovers and runs this test; the test verifies that the Prefix property
-returns the value supplied at construction.
+**Scenario**: xUnit discovers and runs this model test, which constructs a layout tree and asserts
+its stored fields.
 
 **Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
 
-**Requirement coverage**: `Template-OTS-xUnit-Execute`, `Template-OTS-xUnit-Report`.
+**Requirement coverage**: `Rendering-OTS-xUnit-Execute`, `Rendering-OTS-xUnit-Report`.
 
-### Demo_DefaultConstructor_WithNoArgs_SetsDefaultPrefix
+### Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
 
-**Scenario**: xUnit discovers and runs this test; the test verifies that the default constructor
-sets Prefix to the DefaultPrefix constant.
+**Scenario**: xUnit discovers and runs this layout test, which lays out a chain graph with the
+layered algorithm.
 
 **Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
 
-**Requirement coverage**: `Template-OTS-xUnit-Execute`, `Template-OTS-xUnit-Report`.
+**Requirement coverage**: `Rendering-OTS-xUnit-Execute`, `Rendering-OTS-xUnit-Report`.
+
+### Id_IsLayered
+
+**Scenario**: xUnit discovers and runs this layout test, which asserts the layered algorithm's stable
+identifier.
+
+**Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
+
+**Requirement coverage**: `Rendering-OTS-xUnit-Execute`, `Rendering-OTS-xUnit-Report`.
+
+### SvgRenderer_Render_SingleBox_ProducesSvgDocument
+
+**Scenario**: xUnit discovers and runs this renderer test, which renders a single box to an SVG
+document.
+
+**Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
+
+**Requirement coverage**: `Rendering-OTS-xUnit-Execute`, `Rendering-OTS-xUnit-Report`.
+
+### PngRenderer_Render_SingleBox_ProducesNonEmptyOutput
+
+**Scenario**: xUnit discovers and runs this renderer test, which renders a single box to a non-empty
+PNG.
+
+**Expected**: xUnit executes the test, the test passes, and the result appears in the TRX output.
+
+**Requirement coverage**: `Rendering-OTS-xUnit-Execute`, `Rendering-OTS-xUnit-Report`.
 
 ## Requirements Coverage
 
-- **`Template-OTS-xUnit-Execute`**: Demo_DemoMethod_DefaultPrefix_ReturnsGreeting,
-  Demo_DemoMethod_CustomPrefix_ReturnsGreeting,
-  Demo_DemoMethod_NullInput_ThrowsArgumentNullException,
-  Demo_DemoMethod_EmptyInput_ThrowsArgumentException,
-  Demo_Constructor_NullPrefix_ThrowsArgumentNullException,
-  Demo_Constructor_EmptyPrefix_ThrowsArgumentException, Demo_DefaultPrefix_Read_IsHello,
-  Demo_Prefix_WithCustomConstruction_ReturnsCustomPrefix,
-  Demo_DefaultConstructor_WithNoArgs_SetsDefaultPrefix
-- **`Template-OTS-xUnit-Report`**: Demo_DemoMethod_DefaultPrefix_ReturnsGreeting,
-  Demo_DemoMethod_CustomPrefix_ReturnsGreeting,
-  Demo_DemoMethod_NullInput_ThrowsArgumentNullException,
-  Demo_DemoMethod_EmptyInput_ThrowsArgumentException,
-  Demo_Constructor_NullPrefix_ThrowsArgumentNullException,
-  Demo_Constructor_EmptyPrefix_ThrowsArgumentException, Demo_DefaultPrefix_Read_IsHello,
-  Demo_Prefix_WithCustomConstruction_ReturnsCustomPrefix,
-  Demo_DefaultConstructor_WithNoArgs_SetsDefaultPrefix
+- **`Rendering-OTS-xUnit-Execute`**: Get_AfterSet_ReturnsStoredValue, Contains_ReflectsExplicitSet,
+  AddNode_AppendsNodeAndReturnsIt, LayoutTree_Construction_StoresWidthHeightNodes,
+  Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges, Id_IsLayered,
+  SvgRenderer_Render_SingleBox_ProducesSvgDocument,
+  PngRenderer_Render_SingleBox_ProducesNonEmptyOutput
+- **`Rendering-OTS-xUnit-Report`**: Get_AfterSet_ReturnsStoredValue, Contains_ReflectsExplicitSet,
+  AddNode_AppendsNodeAndReturnsIt, LayoutTree_Construction_StoresWidthHeightNodes,
+  Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges, Id_IsLayered,
+  SvgRenderer_Render_SingleBox_ProducesSvgDocument,
+  PngRenderer_Render_SingleBox_ProducesNonEmptyOutput
