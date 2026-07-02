@@ -1,12 +1,12 @@
 # SvgRenderer Unit Verification
 
-Part of the [Rendering.Svg Verification](rendering-svg.md).
+Part of the Rendering.Svg Verification.
 
 This document describes the verification design for the `SvgRenderer` unit of the
 `DemaConsulting.Rendering.Svg` system. It maps every SvgRenderer unit requirement to at least one
 named test scenario so a reviewer can confirm coverage without reading the test code. The verification
 strategy, test environment, and acceptance criteria are described in the
-[system verification document](rendering-svg.md); the test project is
+system verification document; the test project is
 `DemaConsulting.Rendering.Svg.Tests`.
 
 ## SvgRenderer Unit Scenarios

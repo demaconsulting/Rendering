@@ -2,7 +2,7 @@
 
 This document describes the system-level verification design for the `DemaConsulting.Rendering.Svg`
 system and links to the per-unit verification document for its single unit. Detailed per-requirement
-scenarios live in [SvgRenderer Unit Verification](svg-renderer.md).
+scenarios live in SvgRenderer Unit Verification.
 
 ## Verification Strategy
 
@@ -26,7 +26,7 @@ use `Themes.Light`, write to `MemoryStream`, and inspect the resulting SVG text.
 ## Acceptance Criteria
 
 A verification run passes when the system scenario below and every scenario in
-[SvgRenderer Unit Verification](svg-renderer.md) pass without unexpected exception. Any missing SVG root,
+SvgRenderer Unit Verification pass without unexpected exception. Any missing SVG root,
 wrong renderer metadata, wrong emitted element or attribute, malformed XML escaping, or marker geometry
 that does not match `NotationMetrics` constitutes a failure.
 
@@ -36,4 +36,4 @@ The system requirement is satisfied through the SvgRenderer unit scenarios; the 
 system-level scenario is:
 
 - **`Rendering-Svg-WriteSvgDocument`**: `Render_SingleBox_ProducesSvgDocument` (see
-  [SvgRenderer Unit Verification](svg-renderer.md)).
+  SvgRenderer Unit Verification).

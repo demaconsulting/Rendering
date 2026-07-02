@@ -1,6 +1,6 @@
 # OrthogonalEdgeRouter Unit Verification
 
-Part of the [Rendering Layout Verification](../rendering-layout.md).
+Part of the Rendering Layout Verification.
 
 This document maps the OrthogonalEdgeRouter unit requirements to named test scenarios.
 

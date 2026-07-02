@@ -1,6 +1,6 @@
 # Options Unit Design
 
-Part of the [Rendering Model](rendering.md) system.
+Part of the Rendering Model system.
 
 ## Options Overview
 

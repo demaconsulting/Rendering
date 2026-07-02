@@ -25,12 +25,12 @@ DemaConsulting.Rendering (System)
 
 - **Layout Tree** — the placed intermediate representation: `LayoutTree` and the `LayoutNode`
   discriminated-union hierarchy of concrete node records, plus the shared `Point2D` / `Rect`
-  geometry value types. Detailed in [Layout Tree Unit Design](layout-tree.md).
+  geometry value types. Detailed in Layout Tree Unit Design.
 - **Options** — the open configuration system: `LayoutProperty<T>`, `IPropertyHolder`,
   `PropertyHolder`, `LayoutOptions`, `CoreOptions`, `LayoutFlowDirection`, and `HierarchyHandling`.
-  Detailed in [Options Unit Design](options.md).
+  Detailed in Options Unit Design.
 - **Layout Graph** — the unplaced input model: `LayoutGraph`, `LayoutGraphNode`, `LayoutGraphEdge`.
-  Detailed in [Layout Graph Unit Design](layout-graph.md).
+  Detailed in Layout Graph Unit Design.
 
 ## System Interactions
 
@@ -45,9 +45,9 @@ of the pipeline.
 
 | Requirement ID | Satisfied by |
 | --- | --- |
-| Rendering-Model-LayoutTree | The `LayoutTree` and `LayoutNode` hierarchy (see [Layout Tree Unit Design](layout-tree.md)) |
-| Rendering-Model-Configuration | The `IPropertyHolder` / `LayoutProperty<T>` option system (see [Options Unit Design](options.md)) |
-| Rendering-Model-InputGraph | The `LayoutGraph` input model (see [Layout Graph Unit Design](layout-graph.md)) |
+| Rendering-Model-LayoutTree | The `LayoutTree` and `LayoutNode` hierarchy (see Layout Tree Unit Design) |
+| Rendering-Model-Configuration | The `IPropertyHolder` / `LayoutProperty<T>` option system (see Options Unit Design) |
+| Rendering-Model-InputGraph | The `LayoutGraph` input model (see Layout Graph Unit Design) |
 
 ## Model Scope Exclusions
 

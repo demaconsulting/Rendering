@@ -1,6 +1,6 @@
 # EdgeRouting Option Unit Verification
 
-Part of the [Rendering Layout Verification](rendering-layout.md).
+Part of the Rendering Layout Verification.
 
 This document maps the edge-routing-option behavior requirements to named test scenarios.
 

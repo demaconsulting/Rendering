@@ -28,15 +28,15 @@ DemaConsulting.Rendering.Abstractions (System)
 ```
 
 - **Rendering Contracts** — `ILayoutAlgorithm`, `IRenderer`, `RenderOptions`, `RenderOutput`.
-  Detailed in [Rendering Contracts Unit Design](rendering-contracts.md).
+  Detailed in Rendering Contracts Unit Design.
 - **Registries** — `LayoutAlgorithmRegistry`, `RendererRegistry`. Detailed in
-  [Registries Unit Design](registries.md).
-- **Theme** — `Theme` and the built-in `Themes`. Detailed in [Theme Unit Design](theme.md).
+  Registries Unit Design.
+- **Theme** — `Theme` and the built-in `Themes`. Detailed in Theme Unit Design.
 - **Notation Metrics** — `NotationMetrics` and `MarkerVertex`. Detailed in
-  [Notation Metrics Unit Design](notation-metrics.md).
-- **Box Metrics** — `BoxMetrics`. Detailed in [Box Metrics Unit Design](box-metrics.md).
+  Notation Metrics Unit Design.
+- **Box Metrics** — `BoxMetrics`. Detailed in Box Metrics Unit Design.
 - **Connector Label Placer** — `ConnectorLabelPlacer`. Detailed in
-  [Connector Label Placer Unit Design](connector-label-placer.md).
+  Connector Label Placer Unit Design.
 
 ## System Interactions
 
@@ -57,5 +57,5 @@ implementations use.
 | Requirement ID | Satisfied by |
 | --- | --- |
 | Rendering-Abstractions-Extensibility | The contracts and registries units |
-| Rendering-Abstractions-Theming | The `Theme` and `Themes` types (see [Theme Unit Design](theme.md)) |
+| Rendering-Abstractions-Theming | The `Theme` and `Themes` types (see Theme Unit Design) |
 | Rendering-Abstractions-SharedGeometry | The notation, box, and label geometry units |

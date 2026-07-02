@@ -1,12 +1,12 @@
 # SkiaRasterRenderer Unit Verification
 
-Part of the [Rendering.Skia Verification](rendering-skia.md).
+Part of the Rendering.Skia Verification.
 
 This document describes the verification design for the `SkiaRasterRenderer` unit of the
 `DemaConsulting.Rendering.Skia` system. It maps every SkiaRasterRenderer unit requirement to at least
 one named test scenario so a reviewer can confirm coverage without reading the test code. The
 verification strategy, test environment, and acceptance criteria are described in the
-[system verification document](rendering-skia.md); the test project is
+system verification document; the test project is
 `DemaConsulting.Rendering.Skia.Tests` (`PngRendererPortedTests.cs`, `PngEndMarkerTests.cs`).
 
 ## SkiaRasterRenderer Unit Scenarios
@@ -19,6 +19,7 @@ Tests `PngRenderer_Render_SingleBox_ProducesNonEmptyOutput`, `PngRenderer_Render
 `PngRenderer_Render_SingleBadge_FilledCircle_CenterPixelIsStrokeColor`,
 `PngRenderer_Render_SingleLifeline_StemPixelIsStrokeColor`,
 `PngRenderer_Render_SingleActivation_CenterPixelIsWhite`,
+`PngRenderer_Render_SingleBand_BorderIsStrokeColor`,
 `PngRenderer_Render_DeeplyNestedBoxes_DoesNotStackOverflow`, and
 `PngRenderer_Render_LabelWithXmlSpecialCharacters_ProducesValidPng` render layout trees containing the
 supported node kinds and assert that representative pixels take the expected colour or that rendering
@@ -66,6 +67,7 @@ valid image with the PNG signature is produced, proving the minimum one by one p
   PngRenderer_Render_SingleBadge_FilledCircle_CenterPixelIsStrokeColor,
   PngRenderer_Render_SingleLifeline_StemPixelIsStrokeColor,
   PngRenderer_Render_SingleActivation_CenterPixelIsWhite,
+  PngRenderer_Render_SingleBand_BorderIsStrokeColor,
   PngRenderer_Render_DeeplyNestedBoxes_DoesNotStackOverflow,
   PngRenderer_Render_LabelWithXmlSpecialCharacters_ProducesValidPng
 - **`Rendering-Skia-SkiaRasterRenderer-ThemeColours`**: PngRenderer_Render_SingleBox_FillColorMatchesTheme,

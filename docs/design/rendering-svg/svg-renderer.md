@@ -1,6 +1,6 @@
 # SvgRenderer Unit Design
 
-Part of the [Rendering.Svg](rendering-svg.md) system.
+Part of the Rendering.Svg system.
 
 ## SvgRenderer Overview
 

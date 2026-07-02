@@ -6,10 +6,10 @@ strategy, test environment, and acceptance criteria shared by every unit, and ma
 requirement to representative named test scenarios. The detailed per-requirement scenarios live in the
 unit documents:
 
-- [SkiaRasterRenderer Unit Verification](skia-raster-renderer.md)
-- [PngRenderer Unit Verification](png-renderer.md)
-- [JpegRenderer Unit Verification](jpeg-renderer.md)
-- [WebpRenderer Unit Verification](webp-renderer.md)
+- SkiaRasterRenderer Unit Verification
+- PngRenderer Unit Verification
+- JpegRenderer Unit Verification
+- WebpRenderer Unit Verification
 
 ## Verification Strategy
 

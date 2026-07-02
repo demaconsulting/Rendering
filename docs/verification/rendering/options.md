@@ -1,12 +1,12 @@
 # Options Unit Verification
 
-Part of the [Rendering Model Verification](rendering.md).
+Part of the Rendering Model Verification.
 
 This document describes the verification design for the options unit of the
 `DemaConsulting.Rendering` system. It maps every options unit requirement to at least one named test
 scenario so a reviewer can confirm coverage without reading the test code. The verification strategy,
 test environment, and acceptance criteria are described in the
-[system verification document](rendering.md); the test project is `DemaConsulting.Rendering.Tests`
+system verification document; the test project is `DemaConsulting.Rendering.Tests`
 (`PropertyHolderTests.cs`).
 
 ## Options Unit Scenarios

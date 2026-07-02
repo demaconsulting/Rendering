@@ -1,12 +1,12 @@
 # JpegRenderer Unit Verification
 
-Part of the [Rendering.Skia Verification](rendering-skia.md).
+Part of the Rendering.Skia Verification.
 
 This document describes the verification design for the `JpegRenderer` unit of the
 `DemaConsulting.Rendering.Skia` system. It maps every JpegRenderer unit requirement to at least one
 named test scenario so a reviewer can confirm coverage without reading the test code. The verification
 strategy, test environment, and acceptance criteria are described in the
-[system verification document](rendering-skia.md); the test project is
+system verification document; the test project is
 `DemaConsulting.Rendering.Skia.Tests` (`SkiaFormatRendererTests.cs`).
 
 ## JpegRenderer Unit Scenarios

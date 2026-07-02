@@ -74,14 +74,29 @@ sections:
         tests:
           - Apply_CrossContainerEdge_RoutesAroundInterveningContainer
 
-      - id: Rendering-Layout-HierarchicalLayout-Validation
+      - id: Rendering-Layout-HierarchicalLayout-ValidatesGraph
         title: >-
-          HierarchicalLayoutAlgorithm shall reject a null graph, null options, or null registry argument
-          with an argument-null error.
+          HierarchicalLayoutAlgorithm shall reject a null graph argument with an argument-null error.
         justification: |
-          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          Failing fast on a null graph prevents undefined behavior and surfaces caller errors at the
           public algorithm boundary.
         tests:
           - Apply_NullGraph_Throws
+
+      - id: Rendering-Layout-HierarchicalLayout-ValidatesOptions
+        title: >-
+          HierarchicalLayoutAlgorithm shall reject a null options argument with an argument-null error.
+        justification: |
+          Failing fast on null options prevents undefined behavior and surfaces caller errors at the
+          public algorithm boundary.
+        tests:
           - Apply_NullOptions_Throws
+
+      - id: Rendering-Layout-HierarchicalLayout-ValidatesRegistry
+        title: >-
+          HierarchicalLayoutAlgorithm shall reject a null registry argument with an argument-null error.
+        justification: |
+          Failing fast on a null registry prevents undefined behavior and surfaces caller errors at the
+          construction boundary.
+        tests:
           - Constructor_NullRegistry_Throws

@@ -1,6 +1,6 @@
 # InterconnectionLayoutEngine Unit Verification
 
-Part of the [Rendering Layout Verification](../rendering-layout.md).
+Part of the Rendering Layout Verification.
 
 This document maps the InterconnectionLayoutEngine unit requirements to named test scenarios.
 

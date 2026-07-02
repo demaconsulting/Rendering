@@ -1,6 +1,6 @@
 # ContainmentLayout Unit Verification
 
-Part of the [Rendering Layout Verification](rendering-layout.md).
+Part of the Rendering Layout Verification.
 
 This document maps the containment-layout unit requirements to named test scenarios.
 

@@ -1,6 +1,6 @@
 # Engine Subsystem Design
 
-Part of the [Rendering Layout](../rendering-layout.md) system.
+Part of the Rendering Layout system.
 
 ## Engine Subsystem Overview
 
@@ -20,13 +20,13 @@ Engine (Subsystem)
 ```
 
 - **OrthogonalEdgeRouter** — routes individual orthogonal connectors. Detailed in
-  [OrthogonalEdgeRouter Unit Design](orthogonal-edge-router.md).
+  OrthogonalEdgeRouter Unit Design.
 - **ContainmentPacker** — packs variable-size items into rows. Detailed in
-  [ContainmentPacker Unit Design](containment-packer.md).
+  ContainmentPacker Unit Design.
 - **InterconnectionLayoutEngine** — adapts the layered pipeline to the geometric placement result.
-  Detailed in [InterconnectionLayoutEngine Unit Design](interconnection-layout-engine.md).
+  Detailed in InterconnectionLayoutEngine Unit Design.
 - **LayeredPipeline** — the whole `Engine/Layered` staged layout pipeline. Detailed in
-  [Layered Pipeline Unit Design](layered-pipeline.md).
+  Layered Pipeline Unit Design.
 
 This subsystem design intentionally does not restate unit internals; those details live in the unit
 design documents listed above.

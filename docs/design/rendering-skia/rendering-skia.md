@@ -29,13 +29,13 @@ Rendering.Skia (System)
 
 - **SkiaRasterRenderer** - the shared SkiaSharp rasterizer that allocates the bitmap, initializes it
   with the render theme's background color, draws layout-tree nodes, and encodes the bitmap using the
-  derived renderer's format. Detailed in [SkiaRasterRenderer Unit Design](skia-raster-renderer.md).
+  derived renderer's format. Detailed in SkiaRasterRenderer Unit Design.
 - **PngRenderer** - the concrete renderer that emits lossless PNG output. Detailed in
-  [PngRenderer Unit Design](png-renderer.md).
+  PngRenderer Unit Design.
 - **JpegRenderer** - the concrete renderer that emits lossy JPEG output. Detailed in
-  [JpegRenderer Unit Design](jpeg-renderer.md).
+  JpegRenderer Unit Design.
 - **WebpRenderer** - the concrete renderer that emits WEBP output. Detailed in
-  [WebpRenderer Unit Design](webp-renderer.md).
+  WebpRenderer Unit Design.
 
 ## System Interactions
 

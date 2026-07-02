@@ -19,7 +19,7 @@ DemaConsulting.Rendering.Svg (System)
 ```
 
 - **SvgRenderer** - writes SVG markup for placed layout nodes, connector paths, labels, and end-marker
-  definitions. Detailed in [SvgRenderer Unit Design](svg-renderer.md).
+  definitions. Detailed in SvgRenderer Unit Design.
 
 ## System Interactions
 
@@ -35,9 +35,9 @@ Rendering.Layout first to place a graph, then passes the resulting tree to this 
 
 | Requirement ID | Satisfied by |
 | --- | --- |
-| `Rendering-Svg-WriteSvgDocument` | [SvgRenderer Unit Design](svg-renderer.md) |
+| `Rendering-Svg-WriteSvgDocument` | SvgRenderer Unit Design |
 
 ## Scope Exclusions
 
 Detailed SVG element generation, font styling, text fitting, XML escaping, and marker geometry are unit
-scope and live in [SvgRenderer Unit Design](svg-renderer.md).
+scope and live in SvgRenderer Unit Design.

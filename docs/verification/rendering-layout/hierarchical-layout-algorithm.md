@@ -1,6 +1,6 @@
 # HierarchicalLayoutAlgorithm Unit Verification
 
-Part of the [Rendering Layout Verification](rendering-layout.md).
+Part of the Rendering Layout Verification.
 
 This document maps the hierarchical-layout-algorithm unit requirements to named test scenarios.
 
@@ -32,9 +32,11 @@ This document maps the hierarchical-layout-algorithm unit requirements to named 
   `Apply_CrossContainerEdge_RoutesAroundInterveningContainer` confirms an edge between children of
   different sibling containers is routed at the owning scope and no routed segment passes through the
   intervening container's interior.
-- **Validation** (`Rendering-Layout-HierarchicalLayout-Validation`): `Apply_NullGraph_Throws`,
-  `Apply_NullOptions_Throws`, and `Constructor_NullRegistry_Throws` confirm null arguments are rejected
-  with an argument-null error.
+- **Validation** (`Rendering-Layout-HierarchicalLayout-ValidatesGraph`,
+  `Rendering-Layout-HierarchicalLayout-ValidatesOptions`,
+  `Rendering-Layout-HierarchicalLayout-ValidatesRegistry`): `Apply_NullGraph_Throws`,
+  `Apply_NullOptions_Throws`, and `Constructor_NullRegistry_Throws` confirm a null graph, null options,
+  and null registry are each rejected with an argument-null error.
 
 ## Requirements Coverage
 
@@ -50,5 +52,9 @@ This document maps the hierarchical-layout-algorithm unit requirements to named 
   Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely, Apply_CompoundGraph_DoesNotMutateInputNodeSizes
 - **`Rendering-Layout-HierarchicalLayout-CrossContainerEdge`**:
   Apply_CrossContainerEdge_RoutesAroundInterveningContainer
-- **`Rendering-Layout-HierarchicalLayout-Validation`**:
-  Apply_NullGraph_Throws, Apply_NullOptions_Throws, Constructor_NullRegistry_Throws
+- **`Rendering-Layout-HierarchicalLayout-ValidatesGraph`**:
+  Apply_NullGraph_Throws
+- **`Rendering-Layout-HierarchicalLayout-ValidatesOptions`**:
+  Apply_NullOptions_Throws
+- **`Rendering-Layout-HierarchicalLayout-ValidatesRegistry`**:
+  Constructor_NullRegistry_Throws

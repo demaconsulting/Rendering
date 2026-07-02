@@ -6,9 +6,9 @@ records the verification strategy, test environment, and acceptance criteria sha
 maps each system-level requirement to at least one named test scenario. The detailed per-requirement
 scenarios live in the unit documents:
 
-- [Layout Tree Unit Verification](layout-tree.md)
-- [Options Unit Verification](options.md)
-- [Layout Graph Unit Verification](layout-graph.md)
+- Layout Tree Unit Verification
+- Options Unit Verification
+- Layout Graph Unit Verification
 
 ## Verification Strategy
 
@@ -40,8 +40,8 @@ The system requirements are satisfied through the unit scenarios documented in t
 verification files; the representative system-level scenarios are:
 
 - **`Rendering-Model-LayoutTree`**: LayoutTree_Construction_StoresWidthHeightNodes,
-  LayoutBox_Construction_StoresAllFields (see [Layout Tree Unit Verification](layout-tree.md))
+  LayoutBox_Construction_StoresAllFields (see Layout Tree Unit Verification)
 - **`Rendering-Model-Configuration`**: Get_UnsetProperty_ReturnsDefault, Get_AfterSet_ReturnsStoredValue
-  (see [Options Unit Verification](options.md))
+  (see Options Unit Verification)
 - **`Rendering-Model-InputGraph`**: AddNode_AppendsNodeAndReturnsIt, AddEdge_AppendsEdgeWithEndpoints
-  (see [Layout Graph Unit Verification](layout-graph.md))
+  (see Layout Graph Unit Verification)

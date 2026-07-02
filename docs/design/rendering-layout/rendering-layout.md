@@ -29,21 +29,21 @@ DemaConsulting.Rendering.Layout (System)
 ```
 
 - **Engine** - reusable model-agnostic geometric engines. Detailed in
-  [Engine Subsystem Design](engine/engine.md), which links to its unit designs.
+  Engine Subsystem Design, which links to its unit designs.
 - **EdgeRoutingOption** - routing-style configuration keys. Detailed in
-  [EdgeRoutingOption Unit Design](edge-routing-option.md).
+  EdgeRoutingOption Unit Design.
 - **ConnectorRouter** - routes connectors among already placed boxes. Detailed in
-  [ConnectorRouter Unit Design](connector-router.md).
+  ConnectorRouter Unit Design.
 - **ContainmentLayout** - packs already sized model boxes into a container region. Detailed in
-  [ContainmentLayout Unit Design](containment-layout.md).
+  ContainmentLayout Unit Design.
 - **ContainmentLayoutAlgorithm** - public containment algorithm. Detailed in
-  [ContainmentLayoutAlgorithm Unit Design](containment-layout-algorithm.md).
+  ContainmentLayoutAlgorithm Unit Design.
 - **HierarchicalLayoutAlgorithm** - recursive compound-graph algorithm. Detailed in
-  [HierarchicalLayoutAlgorithm Unit Design](hierarchical-layout-algorithm.md).
+  HierarchicalLayoutAlgorithm Unit Design.
 - **DefaultLayout** - bundled registry factory and layout facade. Detailed in
-  [DefaultLayout Unit Design](default-layout.md).
+  DefaultLayout Unit Design.
 - **LayeredLayoutAlgorithm** - public layered algorithm. Detailed in
-  [LayeredLayoutAlgorithm Unit Design](layered-layout-algorithm.md).
+  LayeredLayoutAlgorithm Unit Design.
 
 ## System Interactions
 
@@ -60,14 +60,14 @@ cross-container edges at the owning scope.
 
 | Requirement ID | Satisfied by |
 | --- | --- |
-| `Rendering-Layout-Algorithm` | [LayeredLayoutAlgorithm](layered-layout-algorithm.md) |
-| `Rendering-Layout-GeometricEngines` | [Engine Subsystem](engine/engine.md) |
-| `Rendering-Layout-StagedPipeline` | [LayeredPipeline](engine/layered-pipeline.md) |
-| `Rendering-Layout-ConnectorRouting` | [EdgeRoutingOption](edge-routing-option.md), [ConnectorRouter](connector-router.md) |
-| `Rendering-Layout-ContainmentPlacement` | [ContainmentLayout](containment-layout.md) |
-| `Rendering-Layout-ContainmentAlgorithm` | [ContainmentLayoutAlgorithm](containment-layout-algorithm.md) |
-| `Rendering-Layout-HierarchicalLayout` | [HierarchicalLayoutAlgorithm](hierarchical-layout-algorithm.md) |
-| `Rendering-Layout-DefaultLayout` | [DefaultLayout](default-layout.md) |
+| `Rendering-Layout-Algorithm` | LayeredLayoutAlgorithm |
+| `Rendering-Layout-GeometricEngines` | Engine Subsystem |
+| `Rendering-Layout-StagedPipeline` | LayeredPipeline |
+| `Rendering-Layout-ConnectorRouting` | EdgeRoutingOption, ConnectorRouter |
+| `Rendering-Layout-ContainmentPlacement` | ContainmentLayout |
+| `Rendering-Layout-ContainmentAlgorithm` | ContainmentLayoutAlgorithm |
+| `Rendering-Layout-HierarchicalLayout` | HierarchicalLayoutAlgorithm |
+| `Rendering-Layout-DefaultLayout` | DefaultLayout |
 
 ## Scope Exclusions
 

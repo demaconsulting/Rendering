@@ -1,6 +1,6 @@
 # EdgeRouting Option Unit Design
 
-Part of the [Rendering Layout](rendering-layout.md) system.
+Part of the Rendering Layout system.
 
 ## EdgeRouting Option Overview
 

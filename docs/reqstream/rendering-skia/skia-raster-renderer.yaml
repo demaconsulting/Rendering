@@ -28,6 +28,7 @@ sections:
           - PngRenderer_Render_SingleBadge_FilledCircle_CenterPixelIsStrokeColor
           - PngRenderer_Render_SingleLifeline_StemPixelIsStrokeColor
           - PngRenderer_Render_SingleActivation_CenterPixelIsWhite
+          - PngRenderer_Render_SingleBand_BorderIsStrokeColor
           - PngRenderer_Render_DeeplyNestedBoxes_DoesNotStackOverflow
           - PngRenderer_Render_LabelWithXmlSpecialCharacters_ProducesValidPng
 

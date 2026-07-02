@@ -1,12 +1,12 @@
 # Layout Graph Unit Verification
 
-Part of the [Rendering Model Verification](rendering.md).
+Part of the Rendering Model Verification.
 
 This document describes the verification design for the layout-graph unit of the
 `DemaConsulting.Rendering` system. It maps every layout-graph unit requirement to at least one named
 test scenario so a reviewer can confirm coverage without reading the test code. The verification
 strategy, test environment, and acceptance criteria are described in the
-[system verification document](rendering.md); the test project is `DemaConsulting.Rendering.Tests`
+system verification document; the test project is `DemaConsulting.Rendering.Tests`
 (`LayoutGraphTests.cs`).
 
 ## Layout Graph Unit Scenarios
@@ -49,7 +49,9 @@ Tests `LayoutGraph_AddNode_ChildScope_AllowsIdReuseAcrossScopes` and
 `LayoutGraph_AddNode_ChildScope_DuplicateId_ThrowsArgumentException` add a node named `x` inside two
 different container scopes and assert both are accepted as distinct instances, then add a duplicate id
 within one scope and assert it is rejected and not appended — confirming per-scope uniqueness with
-cross-scope reuse.
+cross-scope reuse. `LayoutGraph_AddEdge_ChildScope_AllowsEdgeIdReuseAcrossScopes` adds an edge with
+the same id inside two sibling container scopes and asserts both are accepted as distinct edges,
+confirming edge identifiers are scoped per container just as node identifiers are.
 
 **Covers**: `Rendering-Model-LayoutGraph-ScopedIdentifiers`.
 
@@ -58,7 +60,10 @@ cross-scope reuse.
 Test `LayoutGraphEdge_CrossContainer_ReferencingDescendant_ConstructibleAtRoot` adds, at the root
 graph, an edge between a root-level leaf node and a node nested inside a container, then asserts the
 edge is held at the root yet references the descendant endpoint and that the descendant is not itself
-a root-level node — confirming a cross-container edge is expressible at the lowest common ancestor.
+a root-level node. `LayoutGraphEdge_CrossContainer_BetweenSiblingContainers_ConstructibleAtRoot` adds,
+at the root, an edge between descendant nodes living in two different sibling containers and asserts
+the edge is held at the root yet references both descendants — together confirming a cross-container
+edge is expressible at the lowest common ancestor, including the sibling-container case.
 
 **Covers**: `Rendering-Model-LayoutGraph-CrossContainerEdge`.
 
@@ -72,6 +77,8 @@ a root-level node — confirming a cross-container edge is expressible at the lo
   LayoutGraphNode_HasChildren_LeafNode_ReturnsFalse
 - **`Rendering-Model-LayoutGraph-ScopedIdentifiers`**:
   LayoutGraph_AddNode_ChildScope_AllowsIdReuseAcrossScopes,
-  LayoutGraph_AddNode_ChildScope_DuplicateId_ThrowsArgumentException
+  LayoutGraph_AddNode_ChildScope_DuplicateId_ThrowsArgumentException,
+  LayoutGraph_AddEdge_ChildScope_AllowsEdgeIdReuseAcrossScopes
 - **`Rendering-Model-LayoutGraph-CrossContainerEdge`**:
-  LayoutGraphEdge_CrossContainer_ReferencingDescendant_ConstructibleAtRoot
+  LayoutGraphEdge_CrossContainer_ReferencingDescendant_ConstructibleAtRoot,
+  LayoutGraphEdge_CrossContainer_BetweenSiblingContainers_ConstructibleAtRoot

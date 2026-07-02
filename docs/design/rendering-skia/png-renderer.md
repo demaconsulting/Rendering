@@ -1,6 +1,6 @@
 # PngRenderer Unit Design
 
-Part of the [Rendering.Skia](rendering-skia.md) system.
+Part of the Rendering.Skia system.
 
 ## PngRenderer Overview
 

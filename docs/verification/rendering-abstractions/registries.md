@@ -1,12 +1,12 @@
 # Registries Unit Verification
 
-Part of the [Rendering Abstractions Verification](rendering-abstractions.md).
+Part of the Rendering Abstractions Verification.
 
 This document describes the verification design for the registries unit of the
 `DemaConsulting.Rendering.Abstractions` system. It maps every registries unit requirement to at least
 one named test scenario so a reviewer can confirm coverage without reading the test code. The
 verification strategy, test environment, and acceptance criteria are described in the
-[system verification document](rendering-abstractions.md); the test project is
+system verification document; the test project is
 `DemaConsulting.Rendering.Abstractions.Tests` (`RegistryTests.cs`).
 
 ## Registries Unit Scenarios

@@ -31,8 +31,10 @@ software items:
 - **Rendering.Abstractions (System)** — the service-provider interfaces: the `ILayoutAlgorithm`
   and `IRenderer` contracts, their registries, the `Theme`, render options, and the shared
   notation-geometry helpers.
-- **Rendering.Layout (System)** — the pluggable layout algorithms: the ELK-style layered
-  pipeline engines and the `LayeredLayoutAlgorithm` that exposes them.
+- **Rendering.Layout (System)** — the pluggable layout algorithms and the reusable geometric
+  engines they are built from: the ELK-style layered pipeline plus the bundled `layered`,
+  `containment`, and `hierarchical` algorithms, orthogonal connector routing, and the default
+  layout facade.
 - **Rendering.Svg (System)** — the SVG renderer.
 - **Rendering.Skia (System)** — the SkiaSharp raster renderers (PNG, JPEG, and WEBP).
 
@@ -122,11 +124,16 @@ on nothing.
 
 ## Companion Artifact Structure
 
-Each software item has corresponding artifacts in parallel directory trees:
+Each software item has corresponding artifacts in parallel directory trees. Each system is
+decomposed into a slim system-level file plus one file per unit (and per subsystem where one
+exists, such as the Layout `engine/` subsystem), so a system-level review excludes unit detail and
+each unit review carries only its own slice:
 
-- Requirements: `docs/reqstream/{system}/{system}.yaml` (system and unit sections; kebab-case)
-- Design docs: `docs/design/{system}/{system}.md` (kebab-case)
-- Verification design: `docs/verification/{system}/{system}.md` (kebab-case)
+- Requirements: `docs/reqstream/{system}/{system}.yaml` (system-level) plus
+  `docs/reqstream/{system}/[{subsystem}/]{unit}.yaml` per unit (kebab-case)
+- Design docs: `docs/design/{system}/{system}.md` plus `docs/design/{system}/[{subsystem}/]{unit}.md`
+- Verification design: `docs/verification/{system}/{system}.md` plus
+  `docs/verification/{system}/[{subsystem}/]{unit}.md`
 - Source code: `src/{System}/.../{Item}.cs` (PascalCase for C#)
 - Tests: `test/{System}.Tests/.../{Item}Tests.cs` (PascalCase for C#)
 - Review-sets: defined in `.reviewmark.yaml`

@@ -253,4 +253,57 @@ public class LayoutGraphTests
         Assert.Same(inner, cross.Target);
         Assert.DoesNotContain(inner, graph.Nodes);
     }
+
+    /// <summary>
+    ///     Proves that an edge identifier used in one container scope may be reused in a different
+    ///     scope, confirming edge identifiers are scoped per container just like node identifiers.
+    /// </summary>
+    [Fact]
+    public void LayoutGraph_AddEdge_ChildScope_AllowsEdgeIdReuseAcrossScopes()
+    {
+        // Arrange: two sibling containers, each with two nodes to connect
+        var graph = new LayoutGraph();
+        var left = graph.AddNode("left", 100, 100);
+        var right = graph.AddNode("right", 100, 100);
+        var la = left.Children.AddNode("a", 40, 40);
+        var lb = left.Children.AddNode("b", 40, 40);
+        var ra = right.Children.AddNode("a", 40, 40);
+        var rb = right.Children.AddNode("b", 40, 40);
+
+        // Act: add an edge with the same id "e" inside each container scope
+        var leftEdge = left.Children.AddEdge("e", la, lb);
+        var rightEdge = right.Children.AddEdge("e", ra, rb);
+
+        // Assert: both are accepted as distinct edges in their own scopes
+        Assert.Same(la, leftEdge.Source);
+        Assert.Same(rb, rightEdge.Target);
+        Assert.NotSame(leftEdge, rightEdge);
+        Assert.Single(left.Children.Edges);
+        Assert.Single(right.Children.Edges);
+    }
+
+    /// <summary>
+    ///     Proves that a cross-container edge between nodes living in two different sibling
+    ///     containers is constructible at their lowest common ancestor (the root).
+    /// </summary>
+    [Fact]
+    public void LayoutGraphEdge_CrossContainer_BetweenSiblingContainers_ConstructibleAtRoot()
+    {
+        // Arrange: two sibling containers, each holding one descendant node
+        var graph = new LayoutGraph();
+        var groupA = graph.AddNode("groupA", 120, 100);
+        var groupB = graph.AddNode("groupB", 120, 100);
+        var innerA = groupA.Children.AddNode("innerA", 40, 40);
+        var innerB = groupB.Children.AddNode("innerB", 40, 40);
+
+        // Act: add an edge at the root (the LCA of the two siblings) spanning both containers
+        var cross = graph.AddEdge("sibling-cross", innerA, innerB);
+
+        // Assert: the edge lives at the root yet references descendants of different siblings
+        Assert.Single(graph.Edges);
+        Assert.Same(innerA, cross.Source);
+        Assert.Same(innerB, cross.Target);
+        Assert.DoesNotContain(innerA, graph.Nodes);
+        Assert.DoesNotContain(innerB, graph.Nodes);
+    }
 }

@@ -246,6 +246,36 @@ public sealed class PngRendererPortedTests
     }
 
     /// <summary>
+    ///     Render a LayoutBand and scan its top border row. At least one pixel along the band's top
+    ///     edge must approximate the theme stroke color, confirming the swim-lane band render path
+    ///     executes and draws its border.
+    /// </summary>
+    [Fact]
+    public void PngRenderer_Render_SingleBand_BorderIsStrokeColor()
+    {
+        // Arrange: a horizontal band spanning x in [20,180] with its top edge at y=20
+        var band = new LayoutBand(20, 20, 160, 60, BandOrientation.Horizontal, null, []);
+        var layout = new LayoutTree(200, 100, [band]);
+        var options = new RenderOptions(Themes.Light);
+
+        // Act
+        using var bmp = RenderToBitmap(layout, options);
+
+        // Assert: some pixel on the band's top border row is drawn in the stroke color
+        var strokeColor = ParseHex(Themes.Light.StrokeColor);
+        var found = false;
+        for (var x = 20; x <= 180 && !found; x++)
+        {
+            if (ColorNear(strokeColor, bmp.GetPixel(x, 20), tolerance: 80))
+            {
+                found = true;
+            }
+        }
+
+        Assert.True(found, "Expected the band's top border to be drawn in the stroke color");
+    }
+
+    /// <summary>
     ///     Render a LayoutLifeline and sample the stem pixel. The pixel at the CentreX
     ///     midway down the stem must approximate the stroke color, confirming the stem is drawn.
     /// </summary>

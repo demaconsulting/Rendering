@@ -1,12 +1,12 @@
 # Rendering Contracts Unit Verification
 
-Part of the [Rendering Abstractions Verification](rendering-abstractions.md).
+Part of the Rendering Abstractions Verification.
 
 This document describes the verification design for the rendering-contracts unit of the
 `DemaConsulting.Rendering.Abstractions` system. It maps every rendering-contracts unit requirement to
 at least one named test scenario so a reviewer can confirm coverage without reading the test code. The
 verification strategy, test environment, and acceptance criteria are described in the
-[system verification document](rendering-abstractions.md); the primary test project is
+system verification document; the primary test project is
 `DemaConsulting.Rendering.Abstractions.Tests` (`RegistryTests.cs`). Concrete renderer extension
 coverage also appears in `DemaConsulting.Rendering.Skia.Tests` (`SkiaFormatRendererTests.cs`).
 

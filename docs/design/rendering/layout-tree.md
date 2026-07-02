@@ -1,6 +1,6 @@
 # Layout Tree Unit Design
 
-Part of the [Rendering Model](rendering.md) system.
+Part of the Rendering Model system.
 
 ## Layout Tree Overview
 

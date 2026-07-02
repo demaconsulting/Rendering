@@ -41,16 +41,29 @@ namespace DemaConsulting.Rendering;
 /// </remarks>
 public sealed class LayoutGraph : PropertyHolder
 {
-    private readonly Collection<LayoutGraphNode> _nodes = [];
-    private readonly Collection<LayoutGraphEdge> _edges = [];
+    private readonly List<LayoutGraphNode> _nodes = [];
+    private readonly List<LayoutGraphEdge> _edges = [];
+    private readonly ReadOnlyCollection<LayoutGraphNode> _nodesView;
+    private readonly ReadOnlyCollection<LayoutGraphEdge> _edgesView;
     private readonly HashSet<string> _nodeIds = new(StringComparer.Ordinal);
     private readonly HashSet<string> _edgeIds = new(StringComparer.Ordinal);
 
-    /// <summary>Gets the nodes to be placed, in insertion order. Read-only: add nodes through <see cref="AddNode"/>.</summary>
-    public IReadOnlyList<LayoutGraphNode> Nodes => _nodes;
+    /// <summary>
+    /// Initializes a new, empty <see cref="LayoutGraph"/> container scope.
+    /// </summary>
+    public LayoutGraph()
+    {
+        _nodesView = _nodes.AsReadOnly();
+        _edgesView = _edges.AsReadOnly();
+    }
 
-    /// <summary>Gets the directed edges connecting the nodes. Read-only: add edges through <see cref="AddEdge"/>.</summary>
-    public IReadOnlyList<LayoutGraphEdge> Edges => _edges;
+    /// <summary>Gets the nodes to be placed, in insertion order. The returned view is genuinely
+    /// read-only (a <see cref="ReadOnlyCollection{T}"/>); add nodes through <see cref="AddNode"/>.</summary>
+    public IReadOnlyList<LayoutGraphNode> Nodes => _nodesView;
+
+    /// <summary>Gets the directed edges connecting the nodes. The returned view is genuinely read-only
+    /// (a <see cref="ReadOnlyCollection{T}"/>); add edges through <see cref="AddEdge"/>.</summary>
+    public IReadOnlyList<LayoutGraphEdge> Edges => _edgesView;
 
     /// <summary>
     /// Creates a node, adds it to <see cref="Nodes"/>, and returns it for further configuration.

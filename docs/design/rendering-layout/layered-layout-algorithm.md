@@ -1,6 +1,6 @@
 # LayeredLayoutAlgorithm Unit Design
 
-Part of the [Rendering Layout](rendering-layout.md) system.
+Part of the Rendering Layout system.
 
 ## LayeredLayoutAlgorithm Purpose
 

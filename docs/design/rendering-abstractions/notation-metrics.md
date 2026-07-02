@@ -1,6 +1,6 @@
 # Notation Metrics Unit Design
 
-Part of the [Rendering Abstractions](rendering-abstractions.md) system.
+Part of the Rendering Abstractions system.
 
 ## Notation Metrics Overview
 

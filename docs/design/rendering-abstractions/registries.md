@@ -1,6 +1,6 @@
 # Registries Unit Design
 
-Part of the [Rendering Abstractions](rendering-abstractions.md) system.
+Part of the Rendering Abstractions system.
 
 ## Registries Overview
 

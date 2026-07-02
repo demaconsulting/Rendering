@@ -6,12 +6,12 @@ its six units. It records the verification strategy, test environment, and accep
 by every unit, and maps each system-level requirement to named test scenarios. The detailed
 per-requirement scenarios live in the unit documents:
 
-- [Rendering Contracts Unit Verification](rendering-contracts.md)
-- [Registries Unit Verification](registries.md)
-- [Theme Unit Verification](theme.md)
-- [Notation Metrics Unit Verification](notation-metrics.md)
-- [Box Metrics Unit Verification](box-metrics.md)
-- [Connector Label Placer Unit Verification](connector-label-placer.md)
+- Rendering Contracts Unit Verification
+- Registries Unit Verification
+- Theme Unit Verification
+- Notation Metrics Unit Verification
+- Box Metrics Unit Verification
+- Connector Label Placer Unit Verification
 
 ## Verification Strategy
 
@@ -47,13 +47,13 @@ verification files; the representative system-level scenarios are:
   LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm,
   RendererRegistry_RegisterThenResolve_ReturnsRenderer,
   RendererRegistry_ResolveByExtension_MatchesAdvertisedExtensions (see
-  [Rendering Contracts Unit Verification](rendering-contracts.md) and
-  [Registries Unit Verification](registries.md))
+  Rendering Contracts Unit Verification and
+  Registries Unit Verification)
 - **`Rendering-Abstractions-Theming`**: ConnectorApproachZone_SumsStubBendAndClearance,
-  Themes_HaveExpectedConnectorGeometry (see [Theme Unit Verification](theme.md))
+  Themes_HaveExpectedConnectorGeometry (see Theme Unit Verification)
 - **`Rendering-Abstractions-SharedGeometry`**: TriangleFamily_HasCanonicalValues,
   BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding,
   Place_SingleLine_UsesLongestSegmentMidpoint (see
-  [Notation Metrics Unit Verification](notation-metrics.md),
-  [Box Metrics Unit Verification](box-metrics.md), and
-  [Connector Label Placer Unit Verification](connector-label-placer.md))
+  Notation Metrics Unit Verification,
+  Box Metrics Unit Verification, and
+  Connector Label Placer Unit Verification)

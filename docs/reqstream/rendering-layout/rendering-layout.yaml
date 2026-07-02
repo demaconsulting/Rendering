@@ -4,18 +4,16 @@
 # PURPOSE:
 # - Define requirements for the Rendering.Layout software system
 #   (package DemaConsulting.Rendering.Layout).
-# - The system provides the bundled ELK-style layered layout algorithm plus the
-#   reusable geometric engines it is built from.
+# - The system provides the bundled layout algorithms - the ELK-style layered algorithm, the
+#   containment (shelf-packing) algorithm, and the recursive hierarchical engine that composes them -
+#   plus public connector routing, the EdgeRouting option realization, a default layout facade, and
+#   the reusable geometric engines the algorithms are built from.
 # - Requirements describe observable geometric behavior, not the algorithms used.
 #
 # STRUCTURE:
-# - The first section holds system-level requirements. Two decompose directly
-#   into top-level units (the layered pipeline and the public layered layout
-#   algorithm); the third (geometric-engines) decomposes into the Engine
-#   subsystem requirements.
-# - The Engine subsystem section holds the subsystem-level requirements for the
-#   reusable geometric engines, which decompose in turn into the channel-router,
-#   containment-packer, and interconnection-layout-engine unit requirements.
+# - The first section holds system-level requirements that decompose into the units and the Engine
+#   subsystem. The subsystem and per-unit requirements live in the sibling files
+#   engine/*.yaml and {unit-name}.yaml.
 
 sections:
   - title: Rendering.Layout System Requirements
@@ -168,7 +166,9 @@ sections:
           - Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm
           - Rendering-Layout-HierarchicalLayout-HierarchyHandling
           - Rendering-Layout-HierarchicalLayout-CrossContainerEdge
-          - Rendering-Layout-HierarchicalLayout-Validation
+          - Rendering-Layout-HierarchicalLayout-ValidatesGraph
+          - Rendering-Layout-HierarchicalLayout-ValidatesOptions
+          - Rendering-Layout-HierarchicalLayout-ValidatesRegistry
         tests:
           - Id_IsHierarchical
           - Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly
