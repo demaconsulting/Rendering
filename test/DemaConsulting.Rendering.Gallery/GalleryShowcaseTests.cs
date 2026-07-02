@@ -26,7 +26,7 @@ public sealed class GalleryShowcaseTests
             GalleryCatalog.LayeredPipelineSvg,
             GalleryDiagrams.LayeredPipeline(),
             LayoutOptions.ForAlgorithm("layered"),
-            Themes.Light);
+            Themes.Dark);
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ public sealed class GalleryShowcaseTests
             GalleryCatalog.ContainmentPackedSvg,
             GalleryDiagrams.ContainmentPacked(),
             LayoutOptions.ForAlgorithm("containment"),
-            Themes.Light);
+            Themes.Dark);
     }
 
     /// <summary>
@@ -54,7 +54,7 @@ public sealed class GalleryShowcaseTests
             GalleryCatalog.HierarchicalNestedSvg,
             GalleryDiagrams.HierarchicalNested(),
             new LayoutOptions(),
-            Themes.Light);
+            Themes.Dark);
     }
 
     /// <summary>
@@ -68,43 +68,46 @@ public sealed class GalleryShowcaseTests
             GalleryCatalog.OrthogonalObstacleSvg,
             GalleryDiagrams.OrthogonalObstacle(),
             new LayoutOptions(),
-            Themes.Light);
+            Themes.Dark);
     }
 
     /// <summary>
-    ///     Renders the representative diagram with the light theme.
+    ///     Renders the representative diagram with the light theme to PNG, giving it a solid light
+    ///     background.
     /// </summary>
     [Fact]
-    public void Gallery_ThemeLight_RendersSvg()
+    public void Gallery_ThemeLight_RendersPng()
     {
-        GalleryWriter.Svg(
-            GalleryCatalog.ThemeLightSvg,
+        GalleryWriter.Png(
+            GalleryCatalog.ThemeLightPng,
             GalleryDiagrams.ThemeShowcase(),
             new LayoutOptions(),
             Themes.Light);
     }
 
     /// <summary>
-    ///     Renders the representative diagram with the dark theme.
+    ///     Renders the representative diagram with the dark theme to PNG, giving it a solid dark
+    ///     background.
     /// </summary>
     [Fact]
-    public void Gallery_ThemeDark_RendersSvg()
+    public void Gallery_ThemeDark_RendersPng()
     {
-        GalleryWriter.Svg(
-            GalleryCatalog.ThemeDarkSvg,
+        GalleryWriter.Png(
+            GalleryCatalog.ThemeDarkPng,
             GalleryDiagrams.ThemeShowcase(),
             new LayoutOptions(),
             Themes.Dark);
     }
 
     /// <summary>
-    ///     Renders the representative diagram with the print theme.
+    ///     Renders the representative diagram with the print theme to PNG, giving it a solid light
+    ///     background suited to black-and-white output.
     /// </summary>
     [Fact]
-    public void Gallery_ThemePrint_RendersSvg()
+    public void Gallery_ThemePrint_RendersPng()
     {
-        GalleryWriter.Svg(
-            GalleryCatalog.ThemePrintSvg,
+        GalleryWriter.Png(
+            GalleryCatalog.ThemePrintPng,
             GalleryDiagrams.ThemeShowcase(),
             new LayoutOptions(),
             Themes.Print);
@@ -121,7 +124,7 @@ public sealed class GalleryShowcaseTests
             GalleryCatalog.LayeredPipelinePng,
             GalleryDiagrams.LayeredPipeline(),
             LayoutOptions.ForAlgorithm("layered"),
-            Themes.Light);
+            Themes.Dark);
     }
 
     /// <summary>
@@ -135,6 +138,6 @@ public sealed class GalleryShowcaseTests
             GalleryCatalog.HierarchicalNestedPng,
             GalleryDiagrams.HierarchicalNested(),
             new LayoutOptions(),
-            Themes.Light);
+            Themes.Dark);
     }
 }

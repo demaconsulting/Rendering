@@ -33,24 +33,25 @@ A connector routed orthogonally around an intervening container box.
 ## Themes
 
 One representative diagram rendered with each of the three built-in themes, showing how the theme controls colours,
-stroke, and corner style without touching the layout.
+stroke, and corner style without touching the layout. These are rendered through the raster path to PNG so each carries
+a solid theme background.
 
-![Representative diagram in the light theme](theme-light.svg)
+![Representative diagram in the light theme](theme-light.png)
 
 The light theme, suited to on-screen viewing.
 
-![Representative diagram in the dark theme](theme-dark.svg)
+![Representative diagram in the dark theme](theme-dark.png)
 
 The dark theme, suited to dark-mode viewing.
 
-![Representative diagram in the print theme](theme-print.svg)
+![Representative diagram in the print theme](theme-print.png)
 
 The print theme, optimised for black-and-white output.
 
 ## Raster output
 
-The same diagrams rendered through the SkiaSharp raster path to prove multi-format output. Every diagram above is
-available as SVG; these two are additionally rendered to PNG.
+The layout-algorithm diagrams above are rendered as SVG with the dark theme; here the same two diagrams are rendered
+through the SkiaSharp raster path to PNG, proving multi-format output.
 
 ![Layered pipeline diagram as PNG](layered-pipeline.png)
 

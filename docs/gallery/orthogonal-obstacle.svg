@@ -1,46 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="224.00" height="514.00" viewBox="0 0 224.00 514.00">
   <defs>
     <marker id="line-end-open-chevron" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#1A1A2E" stroke-width="1.50"/>
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#C0C0D8" stroke-width="1.50"/>
     </marker>
     <marker id="line-end-hollow-triangle" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
     </marker>
     <marker id="line-end-filled-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50"/>
+      <polygon points="0 0, 10 3.5, 0 7" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
     </marker>
     <marker id="line-end-hollow-triangle-crossbar" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
-      <line x1="7" y1="0" x2="7" y2="7" stroke="#1A1A2E" stroke-width="1.50"/>
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+      <line x1="7" y1="0" x2="7" y2="7" stroke="#C0C0D8" stroke-width="1.50"/>
     </marker>
     <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
-      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
     </marker>
     <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
-      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50"/>
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
     </marker>
     <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
-      <circle cx="5" cy="5" r="4" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+      <circle cx="5" cy="5" r="4" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
     </marker>
     <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2" refY="6" orient="auto">
-      <line x1="2" y1="0" x2="2" y2="12" stroke="#1A1A2E" stroke-width="1.50"/>
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#C0C0D8" stroke-width="1.50"/>
     </marker>
     <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
-      <feFlood flood-color="#FFFFFF"/>
+      <feFlood flood-color="#1E1E2E"/>
       <feComposite in="SourceGraphic" operator="over"/>
     </filter>
   </defs>
-  <rect x="20.00" y="20.00" width="184.00" height="138.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
-  <text x="112.00" y="33.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Left</text>
-  <rect x="52.00" y="76.00" width="120.00" height="50.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
-  <text x="112.00" y="89.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Source</text>
-  <rect x="20.00" y="188.00" width="184.00" height="138.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
-  <text x="112.00" y="201.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Obstacle</text>
-  <rect x="52.00" y="244.00" width="120.00" height="50.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
-  <text x="112.00" y="257.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Blocker</text>
-  <rect x="20.00" y="356.00" width="184.00" height="138.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
-  <text x="112.00" y="369.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Right</text>
-  <rect x="52.00" y="412.00" width="120.00" height="50.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
-  <text x="112.00" y="425.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Sink</text>
-  <path d="M 112.00 158.00 L 112.00 174.00 A 4.00 4.00 0 0 0 116.00 178.00 L 206.00 178.00 A 4.00 4.00 0 0 1 210.00 182.00 L 210.00 332.00 A 4.00 4.00 0 0 1 206.00 336.00 L 116.00 336.00 A 4.00 4.00 0 0 0 112.00 340.00 L 112.00 356.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="20.00" y="20.00" width="184.00" height="138.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="112.00" y="33.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Left</text>
+  <rect x="52.00" y="76.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="112.00" y="89.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Source</text>
+  <rect x="20.00" y="188.00" width="184.00" height="138.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="112.00" y="201.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Obstacle</text>
+  <rect x="52.00" y="244.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="112.00" y="257.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Blocker</text>
+  <rect x="20.00" y="356.00" width="184.00" height="138.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="112.00" y="369.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Right</text>
+  <rect x="52.00" y="412.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="112.00" y="425.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Sink</text>
+  <path d="M 112.00 158.00 L 112.00 174.00 A 4.00 4.00 0 0 0 116.00 178.00 L 206.00 178.00 A 4.00 4.00 0 0 1 210.00 182.00 L 210.00 332.00 A 4.00 4.00 0 0 1 206.00 336.00 L 116.00 336.00 A 4.00 4.00 0 0 0 112.00 340.00 L 112.00 356.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
 </svg>

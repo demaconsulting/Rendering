@@ -35,9 +35,9 @@ internal static class GalleryCatalog
     public const string ContainmentPackedSvg = "containment-packed.svg";
     public const string HierarchicalNestedSvg = "hierarchical-nested.svg";
     public const string OrthogonalObstacleSvg = "orthogonal-obstacle.svg";
-    public const string ThemeLightSvg = "theme-light.svg";
-    public const string ThemeDarkSvg = "theme-dark.svg";
-    public const string ThemePrintSvg = "theme-print.svg";
+    public const string ThemeLightPng = "theme-light.png";
+    public const string ThemeDarkPng = "theme-dark.png";
+    public const string ThemePrintPng = "theme-print.png";
     public const string LayeredPipelinePng = "layered-pipeline.png";
     public const string HierarchicalNestedPng = "hierarchical-nested.png";
 
@@ -76,25 +76,27 @@ internal static class GalleryCatalog
         new GallerySection(
             "Themes",
             "One representative diagram rendered with each of the three built-in themes, showing how the "
-            + "theme controls colours, stroke, and corner style without touching the layout.",
+            + "theme controls colours, stroke, and corner style without touching the layout. These are "
+            + "rendered through the raster path to PNG so each carries a solid theme background.",
             [
                 new GalleryImage(
-                    ThemeLightSvg,
+                    ThemeLightPng,
                     "Representative diagram in the light theme",
                     "The light theme, suited to on-screen viewing."),
                 new GalleryImage(
-                    ThemeDarkSvg,
+                    ThemeDarkPng,
                     "Representative diagram in the dark theme",
                     "The dark theme, suited to dark-mode viewing."),
                 new GalleryImage(
-                    ThemePrintSvg,
+                    ThemePrintPng,
                     "Representative diagram in the print theme",
                     "The print theme, optimised for black-and-white output."),
             ]),
         new GallerySection(
             "Raster output",
-            "The same diagrams rendered through the SkiaSharp raster path to prove multi-format output. "
-            + "Every diagram above is available as SVG; these two are additionally rendered to PNG.",
+            "The layout-algorithm diagrams above are rendered as SVG with the dark theme; here the same "
+            + "two diagrams are rendered through the SkiaSharp raster path to PNG, proving multi-format "
+            + "output.",
             [
                 new GalleryImage(
                     LayeredPipelinePng,
