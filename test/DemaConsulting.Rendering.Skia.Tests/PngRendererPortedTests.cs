@@ -152,22 +152,28 @@ public sealed class PngRendererPortedTests
     }
 
     /// <summary>
-    ///     Render an empty LayoutTree and sample the pixel at (0, 0). The background fill
-    ///     must be white, confirming the canvas is initialized to white before any drawing.
+    ///     Render an empty LayoutTree with a given theme and sample the pixel at (0, 0). The background
+    ///     fill must equal that theme's background color, confirming the canvas is initialized from
+    ///     <see cref="RenderOptions.Theme"/> rather than a hardcoded white. The dark theme (whose
+    ///     background is not white) proves the fill is genuinely theme-driven.
     /// </summary>
-    [Fact]
-    public void PngRenderer_Render_BackgroundIsWhite()
+    [Theory]
+    [InlineData("Light")]
+    [InlineData("Dark")]
+    public void PngRenderer_Render_BackgroundIsThemeBackground(string themeName)
     {
-        // Arrange: empty tree at 100×100
+        // Arrange: empty tree at 100×100 rendered with the named theme
+        var theme = themeName == "Dark" ? Themes.Dark : Themes.Light;
         var layout = new LayoutTree(100, 100, []);
-        var options = new RenderOptions(Themes.Light);
+        var options = new RenderOptions(theme);
 
         // Act
         using var bmp = RenderToBitmap(layout, options);
 
-        // Assert: top-left pixel is white
+        // Assert: top-left pixel equals the theme's background color
+        var expected = ParseHex(theme.BackgroundColor);
         var actual = bmp.GetPixel(0, 0);
-        Assert.True(ColorNear(SKColors.White, actual), $"Expected white ≈ {actual}");
+        Assert.True(ColorNear(expected, actual), $"Expected theme background {expected} ≈ {actual}");
     }
 
     /// <summary>

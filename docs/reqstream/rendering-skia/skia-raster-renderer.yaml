@@ -22,7 +22,7 @@ sections:
           midpoint-label backplates consistent under non-white themes.
         tests:
           - PngRenderer_Render_SingleBox_ProducesNonEmptyOutput
-          - PngRenderer_Render_BackgroundIsWhite
+          - PngRenderer_Render_BackgroundIsThemeBackground
           - PngRenderer_Render_SingleLine_PixelOnLineIsStrokeColor
           - PngRenderer_Render_SinglePort_CenterPixelIsStrokeColor
           - PngRenderer_Render_SingleBadge_FilledCircle_CenterPixelIsStrokeColor

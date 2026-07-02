@@ -15,6 +15,7 @@ public sealed class ConnectorLabelPlacerTests
     [Fact]
     public void Place_LineWithoutLabel_IsOmitted()
     {
+        // Arrange
         var line = new LayoutLine(
             [new Point2D(0, 0), new Point2D(100, 0)],
             EndMarkerStyle.None,
@@ -22,8 +23,10 @@ public sealed class ConnectorLabelPlacerTests
             LineStyle.Solid,
             MidpointLabel: null);
 
+        // Act
         var result = ConnectorLabelPlacer.Place([line], fontSize: 12);
 
+        // Assert
         Assert.Empty(result);
     }
 
@@ -31,7 +34,7 @@ public sealed class ConnectorLabelPlacerTests
     [Fact]
     public void Place_SingleLine_UsesLongestSegmentMidpoint()
     {
-        // A short vertical stub then a long horizontal run: the label should land on the long run.
+        // Arrange: a short vertical stub then a long horizontal run; the label should land on the run.
         var line = new LayoutLine(
             [new Point2D(0, 0), new Point2D(0, 10), new Point2D(200, 10)],
             EndMarkerStyle.None,
@@ -39,8 +42,10 @@ public sealed class ConnectorLabelPlacerTests
             LineStyle.Solid,
             MidpointLabel: "[guard]");
 
+        // Act
         var result = ConnectorLabelPlacer.Place([line], fontSize: 12);
 
+        // Assert
         var (x, y) = result[line];
         Assert.Equal(100, x, precision: 3);
         Assert.Equal(10, y, precision: 3);
@@ -50,7 +55,7 @@ public sealed class ConnectorLabelPlacerTests
     [Fact]
     public void Place_CollidingLabels_AreSeparated()
     {
-        // Two lines whose longest-segment midpoints are the same point.
+        // Arrange: two lines whose longest-segment midpoints are the same point.
         var a = new LayoutLine(
             [new Point2D(0, 0), new Point2D(200, 0)],
             EndMarkerStyle.None,
@@ -64,12 +69,12 @@ public sealed class ConnectorLabelPlacerTests
             LineStyle.Solid,
             MidpointLabel: "[timeout]");
 
+        // Act
         var result = ConnectorLabelPlacer.Place([a, b], fontSize: 12);
 
+        // Assert: the first keeps the preferred midpoint; the second is nudged away vertically.
         var posA = result[a];
         var posB = result[b];
-
-        // The first keeps the preferred midpoint; the second is nudged away vertically.
         Assert.Equal(100, posA.X, precision: 3);
         Assert.Equal(0, posA.Y, precision: 3);
         Assert.NotEqual(posB.Y, posA.Y, precision: 3);

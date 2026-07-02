@@ -18,10 +18,13 @@ public class RegistryTests
     [Fact]
     public void LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm()
     {
+        // Arrange
         var registry = new LayoutAlgorithmRegistry();
 
+        // Act
         registry.Register(new FakeAlgorithm());
 
+        // Assert
         Assert.True(registry.Contains("fake"));
         Assert.Equal("fake", registry.Resolve("fake").Id);
     }
@@ -32,8 +35,10 @@ public class RegistryTests
     [Fact]
     public void LayoutAlgorithmRegistry_ResolveMissing_Throws()
     {
+        // Arrange
         var registry = new LayoutAlgorithmRegistry();
 
+        // Act / Assert
         Assert.Throws<KeyNotFoundException>(() => registry.Resolve("missing"));
     }
 
@@ -43,10 +48,13 @@ public class RegistryTests
     [Fact]
     public void RendererRegistry_RegisterThenResolve_ReturnsRenderer()
     {
+        // Arrange
         var registry = new RendererRegistry();
 
+        // Act
         registry.Register(new FakeRenderer());
 
+        // Assert
         Assert.True(registry.Contains("text/plain"));
         Assert.Equal("text/plain", registry.Resolve("text/plain").MediaType);
     }
@@ -58,10 +66,13 @@ public class RegistryTests
     [Fact]
     public void RendererRegistry_ResolveByExtension_MatchesAdvertisedExtensions()
     {
+        // Arrange
         var registry = new RendererRegistry();
 
+        // Act
         registry.Register(new FakeRenderer());
 
+        // Assert
         Assert.True(registry.ContainsExtension(".txt"));
         Assert.Equal("text/plain", registry.ResolveByExtension(".txt").MediaType);
         // Leading dot optional and matching is case-insensitive.

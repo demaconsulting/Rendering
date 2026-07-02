@@ -219,10 +219,11 @@ public sealed class SvgRendererPortedTests
         // Act
         renderer.Render(layout, options, output);
 
-        // Assert
+        // Assert: the connector path references the hollow-diamond marker on its source end
+        // (not merely that the marker id appears in <defs>).
         output.Position = 0;
         var svgText = new StreamReader(output).ReadToEnd();
-        Assert.Contains("line-end-hollow-diamond", svgText, StringComparison.Ordinal);
+        Assert.Contains("marker-start=\"url(#line-end-hollow-diamond)\"", svgText, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -514,10 +515,11 @@ public sealed class SvgRendererPortedTests
         // Act
         renderer.Render(layout, options, output);
 
-        // Assert
+        // Assert: the connector path references the hollow-triangle-crossbar marker on its target end
+        // (not merely that the marker id appears in <defs>).
         output.Position = 0;
         var svgText = new StreamReader(output).ReadToEnd();
-        Assert.Contains("line-end-hollow-triangle-crossbar", svgText, StringComparison.Ordinal);
+        Assert.Contains("marker-end=\"url(#line-end-hollow-triangle-crossbar)\"", svgText, StringComparison.Ordinal);
     }
 
     /// <summary>

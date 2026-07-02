@@ -13,7 +13,7 @@ verification strategy, test environment, and acceptance criteria are described i
 
 ### Draws all layout-tree node kinds
 
-Tests `PngRenderer_Render_SingleBox_ProducesNonEmptyOutput`, `PngRenderer_Render_BackgroundIsWhite`,
+Tests `PngRenderer_Render_SingleBox_ProducesNonEmptyOutput`, `PngRenderer_Render_BackgroundIsThemeBackground`,
 `PngRenderer_Render_SingleLine_PixelOnLineIsStrokeColor`,
 `PngRenderer_Render_SinglePort_CenterPixelIsStrokeColor`,
 `PngRenderer_Render_SingleBadge_FilledCircle_CenterPixelIsStrokeColor`,
@@ -24,10 +24,10 @@ Tests `PngRenderer_Render_SingleBox_ProducesNonEmptyOutput`, `PngRenderer_Render
 supported node kinds and assert that representative pixels take the expected colour or that rendering
 produces a valid PNG without overflowing the stack.
 
-The background contract is that the bitmap is initialized from `RenderOptions.Theme.BackgroundColor`;
-the current `PngRenderer_Render_BackgroundIsWhite` test uses `Themes.Light`, whose background is white,
-and still hardcodes `SKColors.White`. A later test update should assert the selected theme background
-value directly.
+The background contract is that the bitmap is initialized from `RenderOptions.Theme.BackgroundColor`.
+The `PngRenderer_Render_BackgroundIsThemeBackground` theory renders an empty tree with both the light
+and dark themes and asserts the top-left pixel equals each theme's background color; the dark theme,
+whose background is not white, proves the fill is genuinely theme-driven rather than a hardcoded white.
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree`.
 
@@ -60,7 +60,7 @@ valid image with the PNG signature is produced, proving the minimum one by one p
 ## Requirements Coverage
 
 - **`Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree`**:
-  PngRenderer_Render_SingleBox_ProducesNonEmptyOutput, PngRenderer_Render_BackgroundIsWhite,
+  PngRenderer_Render_SingleBox_ProducesNonEmptyOutput, PngRenderer_Render_BackgroundIsThemeBackground,
   PngRenderer_Render_SingleLine_PixelOnLineIsStrokeColor,
   PngRenderer_Render_SinglePort_CenterPixelIsStrokeColor,
   PngRenderer_Render_SingleBadge_FilledCircle_CenterPixelIsStrokeColor,

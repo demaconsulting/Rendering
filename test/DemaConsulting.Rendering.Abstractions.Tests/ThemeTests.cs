@@ -29,6 +29,7 @@ public sealed class ThemeTests
     [Fact]
     public void Themes_HaveExpectedConnectorGeometry()
     {
+        // Act / Assert: each built-in theme exposes its documented connector geometry
         Assert.Equal(8.0, Themes.Light.ConnectorStub, 6);
         Assert.Equal(4.0, Themes.Light.BendRadius, 6);
         Assert.Equal(8.0, Themes.Dark.ConnectorStub, 6);

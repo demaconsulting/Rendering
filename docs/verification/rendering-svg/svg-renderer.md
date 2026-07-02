@@ -103,10 +103,11 @@ dimensions and points match `NotationMetrics` and that the rendered SVG contains
 Test `SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker` asserts that
 the rendered SVG contains the `line-end-hollow-triangle-crossbar` id.
 
-The diamond and crossbar id-presence assertions inspect the full SVG document. Because the `<defs>`
-block contains all marker ids, those assertions can pass even if the connector path does not reference
-the marker. They are documented here as id-presence assertions rather than strong path-reference
-assertions.
+The diamond and crossbar assertions now check that the connector path element carries the marker
+reference itself — `marker-start="url(#line-end-hollow-diamond)"` for the source end and
+`marker-end="url(#line-end-hollow-triangle-crossbar)"` for the target end — rather than only that the
+marker id appears somewhere in the document. This prevents a false pass if the marker is defined in
+`<defs>` but no longer referenced by the connector.
 
 **Covers**: `Rendering-Svg-SvgRenderer-EndMarkers`,
 `Rendering-Svg-SvgRenderer-EndMarkersOpenChevronReference`,
