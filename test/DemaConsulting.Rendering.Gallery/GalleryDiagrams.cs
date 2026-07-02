@@ -36,17 +36,38 @@ internal static class GalleryDiagrams
     }
 
     /// <summary>
-    ///     A set of sibling boxes with no edges, suited to the containment algorithm which packs them
-    ///     compactly into a tidy rectangle.
+    ///     A set of differently-sized sibling boxes with no edges, suited to the containment algorithm
+    ///     which shelf-packs them left-to-right and wraps them into a compact block. The varied widths
+    ///     make the row packing visible, distinguishing it from the layered algorithm's connectivity-driven
+    ///     layers.
     /// </summary>
-    /// <returns>A flat graph of labelled boxes for packing.</returns>
+    /// <returns>A flat graph of labelled boxes of varied widths for packing.</returns>
     public static LayoutGraph ContainmentPacked()
     {
         var graph = new LayoutGraph();
-        string[] names = ["Core", "Model", "Layout", "Svg", "Skia", "Abstractions", "Themes", "Options"];
-        for (var i = 0; i < names.Length; i++)
+
+        // Labelled peers of varied widths; with no edges, the containment algorithm packs them by
+        // reading order into rows that wrap into a tidy rectangle.
+        (string Label, double Width)[] boxes =
+        [
+            ("Core", 90),
+            ("Model", 150),
+            ("Layout", 110),
+            ("Svg", 70),
+            ("Skia", 80),
+            ("Abstractions", 200),
+            ("Themes", 120),
+            ("Options", 130),
+            ("Engine", 110),
+            ("Registry", 140),
+            ("Renderer", 150),
+            ("Graph", 90),
+        ];
+
+        for (var i = 0; i < boxes.Length; i++)
         {
-            AddLabelled(graph, $"box{i}", names[i]);
+            var node = graph.AddNode($"box{i}", boxes[i].Width, 50);
+            node.Label = boxes[i].Label;
         }
 
         return graph;
