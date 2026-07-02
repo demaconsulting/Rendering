@@ -44,7 +44,8 @@ Tests `SvgRenderer_Render_SingleLabel_ProducesTextElement`,
 `SvgRenderer_Render_LabelWithBold_ProducesBoldAttribute`,
 `SvgRenderer_Render_LabelWithItalic_ProducesItalicAttribute`, and
 `SvgRenderer_Render_LabelWithXmlSpecialCharacters_ProducesWellFormedEscapedSvg` render labels and
-assert on `<text>`, bold and italic attributes, escaped XML entities, and XML parseability.
+assert on `<text>`, bold and italic attributes, escaped XML entities, and that the output remains
+well-formed XML.
 
 **Covers**: `Rendering-Svg-SvgRenderer-RenderLabel`,
 `Rendering-Svg-SvgRenderer-RenderLabelBold`, `Rendering-Svg-SvgRenderer-RenderLabelItalic`,
