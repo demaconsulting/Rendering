@@ -206,6 +206,7 @@ jobs:
           --no-build
           --no-restore
           --configuration Release
+          --output packages
           --property:PackageVersion=${{ inputs.version }}
 
       # === UPLOAD ARTIFACTS ===
@@ -218,13 +219,16 @@ jobs:
           name: artifacts-build-${{ matrix.os }}
           path: artifacts/
 
+      # Pack writes every library's .nupkg and .snupkg into a single flat 'packages'
+      # directory (via --output above), so this artifact is a flat set of packages -
+      # all package files at the archive root, as the release step requires.
       - name: Upload packages
         uses: actions/upload-artifact@v7
         with:
           name: packages-${{ matrix.os }}
           path: |
-            src/DemaConsulting.Rendering/bin/Release/*.nupkg
-            src/DemaConsulting.Rendering/bin/Release/*.snupkg
+            packages/*.nupkg
+            packages/*.snupkg
 
   # Runs CodeQL security and quality analysis, gathering results to include
   # in the code quality report.
