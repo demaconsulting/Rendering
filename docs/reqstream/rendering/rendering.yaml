@@ -9,6 +9,20 @@
 #   downward (children) into the unit requirements that provide the detailed behavior.
 # - The remaining sections hold the unit requirements for the three units of this system:
 #   layout-tree (the IR records), options (the property system), and layout-graph (the input model).
+#
+# SCOPE EXCLUSIONS:
+# - The following public members are optional presentation or diagnostic metadata carried through
+#   unchanged by the model. They carry no algorithmic behavior of their own, and the rendered
+#   behavior they influence is specified and verified in the
+#   renderer systems (DemaConsulting.Rendering.Svg / DemaConsulting.Rendering.Skia), not in the
+#   model. They are therefore intentionally excluded from the Rendering-Model requirement set and
+#   are not given individual functional requirements:
+#     - LayoutBox.Keyword          - optional SysML keyword text drawn above the box label
+#     - LayoutTree.Warnings        - non-fatal layout-quality diagnostics (advisory only)
+#     - LayoutGraphNode.Label      - optional input-node display text
+#     - LayoutGraphEdge.Label      - optional input-edge midpoint display text
+#     - LayoutGraphEdge.TargetEnd  - optional input-edge end-marker style hint
+#     - LayoutGraphEdge.LineStyle  - optional input-edge stroke-style hint
 
 sections:
   - title: Rendering Model System Requirements
@@ -67,6 +81,9 @@ sections:
           - Rendering-Model-LayoutGraph-AddNode
           - Rendering-Model-LayoutGraph-AddEdge
           - Rendering-Model-LayoutGraph-PerElementProperties
+          - Rendering-Model-LayoutGraph-ContainerNodes
+          - Rendering-Model-LayoutGraph-ScopedIdentifiers
+          - Rendering-Model-LayoutGraph-CrossContainerEdge
         tests:
           - AddNode_AppendsNodeAndReturnsIt
           - AddEdge_AppendsEdgeWithEndpoints
@@ -267,3 +284,40 @@ sections:
           the rest of the graph, supporting the open configuration model.
         tests:
           - Node_CarriesPerElementProperties
+
+      - id: Rendering-Model-LayoutGraph-ContainerNodes
+        title: >-
+          A graph node shall be able to contain a nested child subgraph of nodes and edges, and shall
+          report whether it currently acts as such a container.
+        justification: |
+          A hierarchical input model lets a caller describe compound elements — a package holding its
+          members, a block holding its parts — as a node that in turn contains its own graph, so a
+          layout engine can place nested content recursively. Reporting container status lets
+          consumers distinguish a container from a leaf and skip empty containers.
+        tests:
+          - LayoutGraphNode_Children_ContainerNode_HoldsChildNodesAndEdges
+          - LayoutGraphNode_HasChildren_LeafNode_ReturnsFalse
+
+      - id: Rendering-Model-LayoutGraph-ScopedIdentifiers
+        title: >-
+          Node and edge identifiers shall be unique within each container scope and may be reused
+          across different scopes.
+        justification: |
+          Scoping identifiers to a container lets each nested subgraph be described independently
+          without a caller having to invent globally-unique names, while still guaranteeing that a
+          layout engine can address every element unambiguously within its own scope.
+        tests:
+          - LayoutGraph_AddNode_ChildScope_AllowsIdReuseAcrossScopes
+          - LayoutGraph_AddNode_ChildScope_DuplicateId_ThrowsArgumentException
+
+      - id: Rendering-Model-LayoutGraph-CrossContainerEdge
+        title: >-
+          An edge held in a container shall be able to reference nodes that reside in different
+          descendant containers, so that connections spanning container boundaries are expressible.
+        justification: |
+          Real diagrams connect elements that live in different groups; allowing an edge in an ancestor
+          container to reference descendant endpoints lets a caller express those cross-boundary
+          connections without a distinct edge type, so a layout engine can route them at the lowest
+          common ancestor.
+        tests:
+          - LayoutGraphEdge_CrossContainer_ReferencingDescendant_ConstructibleAtRoot

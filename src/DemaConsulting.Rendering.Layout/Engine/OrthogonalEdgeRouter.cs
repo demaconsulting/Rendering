@@ -1,4 +1,4 @@
-// <copyright file="ChannelRouter.cs" company="DemaConsulting">
+// <copyright file="OrthogonalEdgeRouter.cs" company="DemaConsulting">
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
@@ -45,7 +45,7 @@ internal readonly record struct CostBand(bool IsHorizontal, double Start, double
 /// result is always returned.
 /// </para>
 /// </remarks>
-internal static class ChannelRouter
+internal static class OrthogonalEdgeRouter
 {
     /// <summary>Direction of travel along a segment, used for turn-penalty accounting.</summary>
     private enum Dir

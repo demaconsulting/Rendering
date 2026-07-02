@@ -74,7 +74,7 @@ internal sealed class LayeredGraph
     /// The default is <see cref="LayeredLayoutMetrics.ConnectorClearance"/>, which exactly reproduces
     /// the original engine: the router's first slot already starts one
     /// <see cref="LayeredLayoutMetrics.ConnectorClearance"/> past the source column, so the
-    /// <c>Math.Max</c> clamp in <see cref="OrthogonalRouter"/> is a no-op at the default and forward
+    /// <c>Math.Max</c> clamp in <see cref="LayeredCorridorRouter"/> is a no-op at the default and forward
     /// geometry stays byte-identical. A consumer that draws a longer end decoration (for example the
     /// state-transition view's open chevron) raises this so the rounded corner never intrudes into the
     /// decoration.
@@ -90,7 +90,7 @@ internal sealed class LayeredGraph
     /// </summary>
     /// <remarks>
     /// <see cref="CycleBreaker"/> records this flag so later stages can recognize edges whose true
-    /// direction was flipped for layering. <see cref="OrthogonalRouter"/> reads it to guarantee a
+    /// direction was flipped for layering. <see cref="LayeredCorridorRouter"/> reads it to guarantee a
     /// minimum entry approach for the arrowhead that the consumer draws on the (un-reversed) target.
     /// </remarks>
     public bool[] AcyclicReversed { get; set; } = [];

@@ -94,7 +94,7 @@ Rendering.Abstractions (System)
 
 Rendering.Layout (System)
 ├── Engine (Subsystem)
-│   ├── ChannelRouter (Unit)
+│   ├── OrthogonalEdgeRouter (Unit)
 │   ├── ContainmentPacker (Unit)
 │   └── InterconnectionLayoutEngine (Unit)
 ├── LayeredPipeline (Unit)          — the ELK-style layered Sugiyama stage pipeline

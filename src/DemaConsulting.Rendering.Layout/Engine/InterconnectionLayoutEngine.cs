@@ -87,7 +87,7 @@ internal static class InterconnectionLayoutEngine
         var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right);
         var pipeline = LayeredLayoutPipeline.Builder()
             .Direction(LayoutDirection.Right)
-            .Hierarchy(HierarchyHandling.Flat)
+            .Hierarchy(Layered.HierarchyHandling.Flat)
             .AddDefaultStages()
             .Build();
         pipeline.Run(graph);

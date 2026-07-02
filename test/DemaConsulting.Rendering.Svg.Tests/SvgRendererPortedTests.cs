@@ -170,13 +170,13 @@ public sealed class SvgRendererPortedTests
     }
 
     /// <summary>
-    ///     Render a LayoutLine with an Open target arrowhead produces SVG output containing
+    ///     Render a LayoutLine with a HollowTriangle target arrowhead produces SVG output containing
     ///     a marker-end attribute, confirming arrowhead markers are referenced correctly.
     /// </summary>
     [Fact]
-    public void SvgRenderer_Render_SingleLine_WithOpenArrowhead_ProducesMarkerEnd()
+    public void SvgRenderer_Render_SingleLine_WithHollowTriangleArrowhead_ProducesMarkerEnd()
     {
-        // Arrange: a line with Open arrowhead at the target
+        // Arrange: a line with a hollow-triangle arrowhead at the target
         var renderer = new SvgRenderer();
         var line = new LayoutLine(
             [new Point2D(10, 10), new Point2D(90, 10)],

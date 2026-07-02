@@ -37,6 +37,23 @@ public sealed class RendererRegistry
     public RendererRegistry Register(IRenderer renderer)
     {
         ArgumentNullException.ThrowIfNull(renderer);
+
+        // If a renderer was previously registered under this media type, purge any extension
+        // aliases that still point to it. Otherwise a re-registration whose new renderer claims
+        // fewer or different extensions would leave stale aliases resolving to the old renderer.
+        if (_byMediaType.TryGetValue(renderer.MediaType, out var previous) &&
+            !ReferenceEquals(previous, renderer))
+        {
+            var staleExtensions = _byExtension
+                .Where(pair => ReferenceEquals(pair.Value, previous))
+                .Select(pair => pair.Key)
+                .ToList();
+            foreach (var extension in staleExtensions)
+            {
+                _byExtension.Remove(extension);
+            }
+        }
+
         _byMediaType[renderer.MediaType] = renderer;
         foreach (var extension in renderer.FileExtensions)
         {

@@ -14,7 +14,12 @@ public sealed class LayoutOptions : PropertyHolder
     /// <summary>
     /// Creates a <see cref="LayoutOptions"/> pre-set with the given layout algorithm identifier.
     /// </summary>
-    /// <param name="algorithmId">Identifier of the layout algorithm to run (see <see cref="CoreOptions.Algorithm"/>).</param>
+    /// <param name="algorithmId">
+    /// Identifier of the layout algorithm to run (see <see cref="CoreOptions.Algorithm"/>). Prefer a
+    /// bundled algorithm-id constant — <c>LayeredLayoutAlgorithm.AlgorithmId</c>,
+    /// <c>ContainmentLayoutAlgorithm.AlgorithmId</c>, or <c>HierarchicalLayoutAlgorithm.AlgorithmId</c> —
+    /// over a hardcoded string such as <c>"hierarchical"</c>.
+    /// </param>
     /// <returns>A new options instance with <see cref="CoreOptions.Algorithm"/> set.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="algorithmId"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="algorithmId"/> is empty.</exception>

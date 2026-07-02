@@ -12,5 +12,6 @@
     <Project Path="test/DemaConsulting.Rendering.Layout.Tests/DemaConsulting.Rendering.Layout.Tests.csproj" />
     <Project Path="test/DemaConsulting.Rendering.Svg.Tests/DemaConsulting.Rendering.Svg.Tests.csproj" />
     <Project Path="test/DemaConsulting.Rendering.Skia.Tests/DemaConsulting.Rendering.Skia.Tests.csproj" />
+    <Project Path="test/DemaConsulting.Rendering.Gallery/DemaConsulting.Rendering.Gallery.csproj" />
   </Folder>
 </Solution>

@@ -26,7 +26,7 @@ DemaConsulting.Rendering (System)
 - **Layout Tree** — the placed intermediate representation: `LayoutTree` and the `LayoutNode`
   discriminated-union hierarchy of concrete node records.
 - **Options** — the open configuration system: `LayoutProperty<T>`, `IPropertyHolder`,
-  `PropertyHolder`, `LayoutOptions`, `CoreOptions`, and `LayoutFlowDirection`.
+  `PropertyHolder`, `LayoutOptions`, `CoreOptions`, `LayoutFlowDirection`, and `HierarchyHandling`.
 - **Layout Graph** — the unplaced input model: `LayoutGraph`, `LayoutGraphNode`, `LayoutGraphEdge`.
 
 ## Layout Tree Unit
@@ -51,6 +51,8 @@ the top-left, so a renderer can draw each element directly without resolving nes
 - `LayoutLine` (node record) — `Waypoints`, `SourceEnd`, `TargetEnd`, `LineStyle`, and
   `MidpointLabel`.
 - `Point2D` (sealed record) — `X` and `Y`.
+- `Rect` (readonly record struct) — `X`, `Y`, `Width`, `Height`; the shared public axis-aligned
+  rectangle geometry value type in logical pixels, used alongside `Point2D` and `PortSide`.
 - `LayoutLabel` (node record) — `X`, `Y`, `MaxWidth`, `Text`, `Align`, `Weight`, `Style`, `FontSize`.
 - `LayoutBadge` (node record) — `CentreX`, `CentreY`, `Size`, `Shape`, and `Label`.
 - `LayoutBand` (node record) — `X`, `Y`, `Width`, `Height`, `Orientation`, `Label`, and `Children`.
@@ -97,9 +99,13 @@ by each property's identifier.
 - `IPropertyHolder` (interface) — `Get`, `TryGet`, `Set`, `Contains`.
 - `PropertyHolder` (class implementing `IPropertyHolder`) — dictionary-backed store.
 - `LayoutOptions` (sealed class extending `PropertyHolder`) — with a `ForAlgorithm(string)` factory.
-- `CoreOptions` (static class) — well-known keys `Algorithm`, `Direction`, `NodeSpacing`,
-  `LayerSpacing`.
+- `CoreOptions` (static class) — well-known keys `Algorithm`, `HierarchyHandling`, `Direction`,
+  `EdgeRouting`, `NodeSpacing`, `LayerSpacing`.
 - `LayoutFlowDirection` (enum) — `Right`, `Left`, `Down`, `Up`.
+- `HierarchyHandling` (enum) — `SeparateChildren` (the only shipped mode). Mirrors ELK's
+  `elk.hierarchyHandling`; selects how a hierarchical layout engine treats a container node's nested
+  children. Under `SeparateChildren` each container is laid out in its own coordinate space and sized
+  to fit its children. An `IncludeChildren` (cross-boundary) mode is a planned future additive value.
 
 ### Options Key Methods
 
@@ -141,10 +147,27 @@ boxes and directed `LayoutGraphEdge` connections. `LayoutGraph` itself derives f
 so graph-wide options may be attached directly to it, and each node and edge also carries its own
 property overrides.
 
+The input model is **hierarchical (recursive)**, mirroring the Eclipse Layout Kernel (ELK)
+`ElkNode`: a node is either a *leaf* or a *container* (compound node) that owns a nested child
+subgraph of further nodes and the edges contained at that level. A `LayoutGraphNode` becomes a
+container by populating its `Children` graph, which is an ordinary `LayoutGraph`. Hierarchy is thus
+expressed by recursion over a single container type rather than by a distinct nested-graph type: the
+`LayoutGraph` a caller creates directly is the top-level (root) container, and each container node's
+`Children` is a container nested one level deeper.
+
+The nesting is **additive and behavior-preserving**. The child subgraph is created lazily, so a leaf
+node allocates no child graph and a flat (non-nested) graph behaves exactly as it did before nesting
+existed. A layout algorithm that reads only the top-level `Nodes` and `Edges` — such as the bundled
+`LayeredLayoutAlgorithm` — is unaffected by the presence of the capability; consuming the nesting is
+the responsibility of a hierarchical layout engine (a later delivery).
+
 ### Layout Graph Data Model
 
-- `LayoutGraph` (sealed class extending `PropertyHolder`) — `Nodes`, `Edges`, `AddNode`, `AddEdge`.
-- `LayoutGraphNode` (sealed class extending `PropertyHolder`) — `Id`, `Width`, `Height`, `Label`.
+- `LayoutGraph` (sealed class extending `PropertyHolder`) — `Nodes`, `Edges`, `AddNode`, `AddEdge`;
+  each instance is a container scope (the root graph, or a node's `Children`).
+- `LayoutGraphNode` (sealed class extending `PropertyHolder`) — `Id`, `Width`, `Height`, `Label`,
+  `Children` (the lazily-created nested child subgraph), and `HasChildren` (whether the node holds at
+  least one child).
 - `LayoutGraphEdge` (sealed class extending `PropertyHolder`) — `Id`, `Source`, `Target`,
   `TargetEnd`, `LineStyle`, `Label`.
 
@@ -156,7 +179,18 @@ configuration.
 
 `LayoutGraphEdge AddEdge(string id, LayoutGraphNode source, LayoutGraphNode target)` — creates a
 directed edge referencing the two endpoint nodes, appends it to `Edges`, and returns it. The
-`LayoutGraphEdge` constructor rejects a null identifier, source, or target.
+`LayoutGraphEdge` constructor rejects a null identifier, source, or target. The endpoints need not be
+direct members of the graph the edge is added to, which is what makes cross-container edges
+expressible (see the design constraints below).
+
+`LayoutGraph LayoutGraphNode.Children { get; }` — the nested child subgraph, created lazily on first
+access, through which a caller adds nested nodes and contained edges (`node.Children.AddNode(...)`,
+`node.Children.AddEdge(...)`), reusing the container's identifier-uniqueness and insertion-order
+guarantees.
+
+`bool LayoutGraphNode.HasChildren { get; }` — reports whether the node currently holds at least one
+child without forcing the lazy allocation, so consumers can distinguish a container from a leaf and
+skip empty containers.
 
 ### Layout Graph Design Constraints
 
@@ -164,12 +198,25 @@ directed edge referencing the two endpoint nodes, appends it to `Edges`, and ret
   layout algorithm processes elements deterministically.
 - A `LayoutGraphNode` identifier shall be unique within its owning graph, and an empty identifier
   shall be rejected at construction.
+- Identifier uniqueness shall be scoped **per container**: each `LayoutGraph` (the root, or any node's
+  `Children`) shall enforce its own node- and edge-identifier uniqueness, so an identifier may be
+  reused across different scopes but not twice within one scope.
+- A leaf node shall allocate no child subgraph, so that adding the hierarchy capability leaves a flat
+  graph's structure and layout unchanged; `HasChildren` shall not force that allocation.
+- An edge shall reside in the container at or above the *lowest common ancestor* (LCA) of its two
+  endpoints. An edge whose endpoints live in different descendant containers (a *cross-container*
+  edge) shall therefore be added to an ancestor container while its `Source` and `Target` reference
+  the descendant nodes directly; the model shall not add membership validation that would forbid such
+  cross-scope references. A hierarchical layout engine resolves the routing in the owning container's
+  coordinate space.
 
 ### Layout Graph Interactions
 
 A `LayoutGraph` plus a `LayoutOptions` is the input to `ILayoutAlgorithm.Apply` (see the
 *Rendering Abstractions* design), which produces a placed `LayoutTree`. Each `LayoutGraphEdge`
-carries an `EndMarkerStyle` and `LineStyle` from the Layout Tree unit's enumerations.
+carries an `EndMarkerStyle` and `LineStyle` from the Layout Tree unit's enumerations. The bundled
+`LayeredLayoutAlgorithm` (see the *Rendering Layout* design) consumes only the top-level `Nodes` and
+`Edges`; the recursive `Children` structure is intended for a future hierarchical layout engine.
 
 ## Requirements Traceability
 
@@ -197,3 +244,25 @@ carries an `EndMarkerStyle` and `LineStyle` from the Layout Tree unit's enumerat
 | Rendering-Model-LayoutGraph-AddNode | `LayoutGraph.AddNode` |
 | Rendering-Model-LayoutGraph-AddEdge | `LayoutGraph.AddEdge` |
 | Rendering-Model-LayoutGraph-PerElementProperties | `LayoutGraphNode` : `PropertyHolder` |
+| Rendering-Model-LayoutGraph-ContainerNodes | `LayoutGraphNode.Children` / `HasChildren` |
+| Rendering-Model-LayoutGraph-ScopedIdentifiers | Per-`LayoutGraph` id-uniqueness reused by `Children` |
+| Rendering-Model-LayoutGraph-CrossContainerEdge | `LayoutGraphEdge` endpoints referencing descendant nodes |
+
+## Model Scope Exclusions
+
+The following public members are optional presentation or diagnostic metadata that the model carries
+through unchanged. The
+model's only obligation is to store and return them unchanged; they carry no algorithmic behavior of
+their own, and the rendered behavior they influence is specified and verified in the renderer systems
+(`DemaConsulting.Rendering.Svg` / `DemaConsulting.Rendering.Skia`), not in the model. They are
+therefore intentionally excluded from the Rendering-Model requirement set and are not given
+individual functional requirements or verification scenarios:
+
+| Member | Kind | Rationale |
+| --- | --- | --- |
+| `LayoutBox.Keyword` | presentation | Optional SysML keyword drawn above the box label; renderer pass-through. |
+| `LayoutTree.Warnings` | diagnostic | Non-fatal layout-quality diagnostics; advisory only. |
+| `LayoutGraphNode.Label` | input-graph presentation | Optional display text carried to the renderer. |
+| `LayoutGraphEdge.Label` | input-graph presentation | Optional midpoint display text carried to the renderer. |
+| `LayoutGraphEdge.TargetEnd` | input-graph presentation | Optional end-marker style hint carried to the renderer. |
+| `LayoutGraphEdge.LineStyle` | input-graph presentation | Optional stroke-style hint carried to the renderer. |

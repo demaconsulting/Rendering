@@ -105,7 +105,7 @@ internal sealed class LayeredLayoutPipeline
             _stages.Add(new CrossingMinimizer());
             _stages.Add(new BrandesKopfPlacer());
             _stages.Add(new PortDistributor());
-            _stages.Add(new OrthogonalRouter());
+            _stages.Add(new LayeredCorridorRouter());
             _stages.Add(new LongEdgeJoiner());
             _stages.Add(new AxisTransform());
             return this;

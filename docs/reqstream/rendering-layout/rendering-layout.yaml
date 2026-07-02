@@ -9,11 +9,13 @@
 # - Requirements describe observable geometric behavior, not the algorithms used.
 #
 # STRUCTURE:
-# - The first section holds system-level requirements that decompose (via
-#   children) into the unit requirements defined in the sections that follow.
-# - The engine subsystem contributes the channel-router, containment-packer, and
-#   interconnection-layout-engine units; the layered pipeline and the public
-#   layered layout algorithm are documented as their own units.
+# - The first section holds system-level requirements. Two decompose directly
+#   into top-level units (the layered pipeline and the public layered layout
+#   algorithm); the third (geometric-engines) decomposes into the Engine
+#   subsystem requirements.
+# - The Engine subsystem section holds the subsystem-level requirements for the
+#   reusable geometric engines, which decompose in turn into the channel-router,
+#   containment-packer, and interconnection-layout-engine unit requirements.
 
 sections:
   - title: Rendering.Layout System Requirements
@@ -35,23 +37,21 @@ sections:
           - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
           - Id_IsLayered
 
-      - id: Rendering-Layout-Interconnection
+      - id: Rendering-Layout-GeometricEngines
         title: >-
-          The rendering layout system shall place directed graphs using Sugiyama-style layered
-          layout and return one orthogonal connector route per input edge.
+          The rendering layout system shall be built from reusable, model-agnostic geometric engines
+          that provide orthogonal connector routing, containment row-packing, and layered
+          interconnection placement as independently verifiable capabilities.
         justification: |
-          Layered placement with per-edge routing is the geometric contract the public algorithm and
-          the interconnection view depend on; exposing it as a stable facade lets both consume the
-          same behavior-preserving engine.
+          Grouping the geometric engines into a single subsystem keeps the layout algorithm free of
+          model knowledge and lets each engine be developed, verified, and reused on its own. The
+          public algorithm composes these engines to turn an abstract graph into placed geometry.
         children:
-          - Rendering-Layout-InterconnectionEngine-Layering
-          - Rendering-Layout-InterconnectionEngine-NonOverlapping
-          - Rendering-Layout-InterconnectionEngine-DummyNodes
-          - Rendering-Layout-InterconnectionEngine-Waypoints
-          - Rendering-Layout-InterconnectionEngine-Deterministic
+          - Rendering-Layout-OrthogonalRouting
+          - Rendering-Layout-Containment
+          - Rendering-Layout-Interconnection
         tests:
-          - Place_LinearChain_MonotonicLayerAssignment
-          - Place_WorkstationTopology_CorrectLayersAndNoOverlap
+          - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
 
       - id: Rendering-Layout-StagedPipeline
         title: >-
@@ -82,29 +82,145 @@ sections:
           - LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing
           - Pipeline_MatchesLegacyOracle_OnRandomGraphs
 
+      - id: Rendering-Layout-ConnectorRouting
+        title: >-
+          The rendering layout system shall route connectors among already-placed boxes, choosing a
+          routing style per scope and producing one placed connector line per connection.
+        justification: |
+          Placing boxes is only half of a diagram; the connectors joining them must be routed among
+          the placed geometry. Exposing a model-agnostic routing orchestration lets any caller connect
+          two boxes without reimplementing anchor selection, obstacle avoidance, and per-connector
+          routing, and lets the routing style be selected through the same open property system that
+          selects the algorithm.
+        children:
+          - Rendering-Layout-EdgeRouting-Selection
+          - Rendering-Layout-EdgeRouting-Defaults
+          - Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther
+          - Rendering-Layout-ConnectorRouter-AvoidsObstacles
+          - Rendering-Layout-ConnectorRouter-ExcludesEndpoints
+          - Rendering-Layout-ConnectorRouter-CarriesStyling
+          - Rendering-Layout-ConnectorRouter-BatchOrder
+          - Rendering-Layout-ConnectorRouter-Validation
+        tests:
+          - Route_TargetToTheRight_AnchorsFaceEachOther
+          - Route_ObstacleBetweenEndpoints_RoutesAroundInterior
+
+      - id: Rendering-Layout-ContainmentPlacement
+        title: >-
+          The rendering layout system shall pack a set of already-sized model boxes into a single
+          container region, arranging them into rows within a width budget and reporting the enclosing
+          region size.
+        justification: |
+          A container groups peer elements whose reading order, not their connectivity, drives the
+          layout. Exposing a model-speaking packing operation lets any caller arrange boxes inside a
+          container without reimplementing row packing, and returns both the repositioned boxes and the
+          region size a renderer needs to draw the container, keeping container sizing consistent across
+          every view that nests elements.
+        children:
+          - Rendering-Layout-ContainmentLayout-Order
+          - Rendering-Layout-ContainmentLayout-NoOverlap
+          - Rendering-Layout-ContainmentLayout-WithinRegion
+          - Rendering-Layout-ContainmentLayout-Wrapping
+          - Rendering-Layout-ContainmentLayout-OversizedChild
+          - Rendering-Layout-ContainmentLayout-EmptyInput
+          - Rendering-Layout-ContainmentLayout-PreservesFields
+          - Rendering-Layout-ContainmentLayout-Defaults
+          - Rendering-Layout-ContainmentLayout-Validation
+        tests:
+          - Pack_ItemsFitInRow_PreservesOrderLeftToRight
+          - Pack_MixedSizes_ProducesNoOverlaps
+
+      - id: Rendering-Layout-ContainmentAlgorithm
+        title: >-
+          The rendering layout system shall provide a named containment layout algorithm that packs a
+          layout graph's top-level nodes into rows and routes each edge around the packed boxes.
+        justification: |
+          Some diagrams group their elements as peers whose reading order, not their connectivity,
+          drives placement. Exposing a second bundled algorithm that packs nodes into a balanced block
+          and routes the edges around them lets a caller select this arrangement by name, additively,
+          without changing the layered algorithm or any existing output.
+        children:
+          - Rendering-Layout-ContainmentAlgorithm-Identity
+          - Rendering-Layout-ContainmentAlgorithm-PacksNodes
+          - Rendering-Layout-ContainmentAlgorithm-RoutesEdges
+          - Rendering-Layout-ContainmentAlgorithm-RoutesAroundObstacle
+          - Rendering-Layout-ContainmentAlgorithm-EmptyGraph
+          - Rendering-Layout-ContainmentAlgorithm-SkipsOutOfGraphEdges
+          - Rendering-Layout-ContainmentAlgorithm-Validation
+        tests:
+          - Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas
+          - Id_IsContainment
+
+      - id: Rendering-Layout-HierarchicalLayout
+        title: >-
+          The rendering layout system shall provide a named hierarchical layout algorithm that lays out
+          a compound layout graph by placing each container's children within their own region, sizing
+          each container to enclose its children, and routing edges that cross container boundaries.
+        justification: |
+          Diagrams often nest groups within groups — a package holding its members, a block holding its
+          parts. Exposing a recursive engine that composes the bundled leaf algorithms lets a caller lay
+          out a nested graph by name, additively, while guaranteeing that a graph with no nesting is
+          placed exactly as the selected leaf algorithm would place it so no existing output changes.
+        children:
+          - Rendering-Layout-HierarchicalLayout-Identity
+          - Rendering-Layout-HierarchicalLayout-FlatEquivalence
+          - Rendering-Layout-HierarchicalLayout-NestsChildren
+          - Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm
+          - Rendering-Layout-HierarchicalLayout-HierarchyHandling
+          - Rendering-Layout-HierarchicalLayout-CrossContainerEdge
+          - Rendering-Layout-HierarchicalLayout-Validation
+        tests:
+          - Id_IsHierarchical
+          - Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly
+
+      - id: Rendering-Layout-DefaultLayout
+        title: >-
+          The rendering layout system shall provide a batteries-included facade that lays out a layout
+          graph with the algorithm the graph or options declares, resolved from the bundled algorithms,
+          defaulting to the hierarchical engine so both flat and nested graphs lay out from one call.
+        justification: |
+          The most common request — "lay out my graph with whatever algorithm it declares" — should be a
+          single call, not a registry-assembly exercise. Exposing a default registry factory and a thin
+          layout facade that defaults to the hierarchical engine lets a caller lay out either a flat or a
+          nested graph without choosing an engine, while preserving every existing output because the
+          hierarchical engine is byte-identical to the leaf algorithm for a flat graph.
+        children:
+          - Rendering-Layout-DefaultRegistry-BundledAlgorithms
+          - Rendering-Layout-LayoutEngine-DefaultAlgorithm
+          - Rendering-Layout-LayoutEngine-Resolution
+          - Rendering-Layout-LayoutEngine-FlatEquivalence
+          - Rendering-Layout-LayoutEngine-NestedComposition
+          - Rendering-Layout-LayoutEngine-CustomRegistry
+          - Rendering-Layout-LayoutEngine-Validation
+        tests:
+          - CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms
+          - Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly
+
+  - title: Engine Subsystem Requirements
+    requirements:
       - id: Rendering-Layout-OrthogonalRouting
         title: >-
-          The rendering layout system shall route individual orthogonal connectors between two
-          anchors, steering around obstacles by a caller-specified clearance.
+          The Rendering.Layout engine subsystem shall route individual orthogonal connectors between
+          two anchors, steering around obstacles by a caller-specified clearance.
         justification: |
           Connector quality throughout every produced diagram flows through a single reusable
-          orthogonal router, so its obstacle-avoidance and clearance behavior is a system capability
-          in its own right.
+          orthogonal router, so its obstacle-avoidance and clearance behavior is an engine-subsystem
+          capability in its own right.
         children:
-          - Rendering-Layout-ChannelRouter-Orthogonal
-          - Rendering-Layout-ChannelRouter-AvoidObstacles
-          - Rendering-Layout-ChannelRouter-Clearance
-          - Rendering-Layout-ChannelRouter-PerpendicularEnds
-          - Rendering-Layout-ChannelRouter-CrossingStatus
-          - Rendering-Layout-ChannelRouter-CostBands
+          - Rendering-Layout-OrthogonalEdgeRouter-Orthogonal
+          - Rendering-Layout-OrthogonalEdgeRouter-AvoidObstacles
+          - Rendering-Layout-OrthogonalEdgeRouter-Clearance
+          - Rendering-Layout-OrthogonalEdgeRouter-PerpendicularEnds
+          - Rendering-Layout-OrthogonalEdgeRouter-CrossingStatus
+          - Rendering-Layout-OrthogonalEdgeRouter-CostBands
         tests:
           - Route_NoObstacles_ProducesOrthogonalPath
           - Route_ObstacleBetween_RoutesAround
 
       - id: Rendering-Layout-Containment
         title: >-
-          The rendering layout system shall pack a sequence of variable-size items into rows within
-          a width budget without overlap.
+          The Rendering.Layout engine subsystem shall pack a sequence of variable-size items into
+          rows within a width budget without overlap.
         justification: |
           Containment packing lays out child elements inside a containing box; providing it as a
           reusable engine keeps container sizing consistent across every view that nests elements.
@@ -120,11 +236,29 @@ sections:
           - Pack_MixedSizes_ProducesNoOverlaps
           - Pack_ItemsFitInRow_ShareSameRow
 
-  - title: ChannelRouter Unit Requirements
-    requirements:
-      - id: Rendering-Layout-ChannelRouter-Orthogonal
+      - id: Rendering-Layout-Interconnection
         title: >-
-          ChannelRouter shall produce a path of axis-aligned segments connecting the source anchor
+          The Rendering.Layout engine subsystem shall place directed graphs using Sugiyama-style
+          layered layout and return one orthogonal connector route per input edge.
+        justification: |
+          Layered placement with per-edge routing is the geometric contract the public algorithm and
+          the interconnection view depend on; exposing it as a stable facade lets both consume the
+          same behavior-preserving engine.
+        children:
+          - Rendering-Layout-InterconnectionEngine-Layering
+          - Rendering-Layout-InterconnectionEngine-NonOverlapping
+          - Rendering-Layout-InterconnectionEngine-DummyNodes
+          - Rendering-Layout-InterconnectionEngine-Waypoints
+          - Rendering-Layout-InterconnectionEngine-Deterministic
+        tests:
+          - Place_LinearChain_MonotonicLayerAssignment
+          - Place_WorkstationTopology_CorrectLayersAndNoOverlap
+
+  - title: OrthogonalEdgeRouter Unit Requirements
+    requirements:
+      - id: Rendering-Layout-OrthogonalEdgeRouter-Orthogonal
+        title: >-
+          OrthogonalEdgeRouter shall produce a path of axis-aligned segments connecting the source anchor
           to the target anchor.
         justification: |
           Orthogonal (axis-aligned) connectors are the convention for the block, state, and activity
@@ -134,9 +268,9 @@ sections:
           - Route_NoObstacles_ProducesOrthogonalPath
           - Route_AlignedEndpoints_ProducesStraightLine
 
-      - id: Rendering-Layout-ChannelRouter-AvoidObstacles
+      - id: Rendering-Layout-OrthogonalEdgeRouter-AvoidObstacles
         title: >-
-          When an obstacle-free path exists, ChannelRouter shall route around obstacle rectangles
+          When an obstacle-free path exists, OrthogonalEdgeRouter shall route around obstacle rectangles
           without passing through their interiors.
         justification: |
           Connectors that cut through unrelated boxes are unreadable. The router must steer segments
@@ -146,9 +280,9 @@ sections:
           - Route_MultipleObstacles_RemainsValid
           - RouteWithStatus_ObstacleBetween_RoutesAroundWithoutCrossing
 
-      - id: Rendering-Layout-ChannelRouter-Clearance
+      - id: Rendering-Layout-OrthogonalEdgeRouter-Clearance
         title: >-
-          When an obstacle-free path is achievable, ChannelRouter shall keep routed segments clear
+          When an obstacle-free path is achievable, OrthogonalEdgeRouter shall keep routed segments clear
           of obstacles by the caller-specified clearance distance.
         justification: |
           A connector that grazes the edge of a box reads as touching it. Honoring a clearance keeps
@@ -156,9 +290,9 @@ sections:
         tests:
           - RouteWithStatus_CleanRoute_KeepsClearanceFromObstacles
 
-      - id: Rendering-Layout-ChannelRouter-PerpendicularEnds
+      - id: Rendering-Layout-OrthogonalEdgeRouter-PerpendicularEnds
         title: >-
-          When an anchor is given with the box side it sits on, ChannelRouter shall leave or enter
+          When an anchor is given with the box side it sits on, OrthogonalEdgeRouter shall leave or enter
           that anchor with a segment perpendicular to the side.
         justification: |
           Connectors that meet a box edge at a right angle read as attached to the box rather than
@@ -167,9 +301,9 @@ sections:
           - Route_WithSourceSide_LeavesPerpendicular
           - Route_WithTargetSide_EntersPerpendicular
 
-      - id: Rendering-Layout-ChannelRouter-CrossingStatus
+      - id: Rendering-Layout-OrthogonalEdgeRouter-CrossingStatus
         title: >-
-          ChannelRouter shall report whether the produced path could not be routed without crossing
+          OrthogonalEdgeRouter shall report whether the produced path could not be routed without crossing
           an obstacle.
         justification: |
           When geometry forces a connector through a box (for example an enclosed target), callers
@@ -179,9 +313,9 @@ sections:
           - RouteWithStatus_NoBlockingObstacle_ReportsNotCrossed
           - RouteWithStatus_TargetEnclosedByObstacle_ReportsCrossed
 
-      - id: Rendering-Layout-ChannelRouter-CostBands
+      - id: Rendering-Layout-OrthogonalEdgeRouter-CostBands
         title: >-
-          When cost bands are supplied, ChannelRouter shall prefer routing through a cheaper band
+          When cost bands are supplied, OrthogonalEdgeRouter shall prefer routing through a cheaper band
           over an equal-length alternative outside it.
         justification: |
           Highway bundling depends on a cost discount so parallel wires share a corridor; the router
@@ -571,3 +705,438 @@ sections:
           public boundary.
         tests:
           - Apply_NullGraph_Throws
+          - Apply_NullOptions_Throws
+
+  - title: EdgeRouting Option Unit Requirements
+    requirements:
+      - id: Rendering-Layout-EdgeRouting-Selection
+        title: >-
+          The connector routing style shall be selectable per scope through the
+          rendering.edgerouting property key, which shall default to orthogonal routing when unset.
+        justification: |
+          Mirroring ELK's elk.edgeRouting, routing style rides the same open property system that
+          selects the algorithm, so any scope (graph, node, edge, or a free-standing options object)
+          can choose a style. An unset scope must fall back to the orthogonal default so existing
+          callers route orthogonally without opting in.
+        tests:
+          - CoreOptions_EdgeRouting_DefaultsToOrthogonal
+          - CoreOptions_EdgeRouting_HasStableId
+          - CoreOptions_EdgeRouting_SelectablePerScope
+          - CoreOptions_EdgeRouting_UnsetReturnsDefault
+
+      - id: Rendering-Layout-EdgeRouting-Defaults
+        title: >-
+          The connector route options shall default to orthogonal routing with a caller-overridable
+          clearance of twelve logical pixels.
+        justification: |
+          A caller that supplies no routing preference must still get a sensible route; defaulting to
+          orthogonal routing with a fixed clearance provides that, while allowing the clearance to be
+          overridden so a downstream adapter can reproduce a specific spacing.
+        tests:
+          - ConnectorRouteOptions_Defaults_AreOrthogonalWithTwelvePixelClearance
+
+  - title: ConnectorRouter Unit Requirements
+    requirements:
+      - id: Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther
+        title: >-
+          ConnectorRouter shall anchor each connector on the box side whose outward normal best points
+          at the opposing box, so connectors leave and arrive on the faces the two boxes present to
+          each other.
+        justification: |
+          A connector reads as joining two boxes only when it leaves and enters the faces that point
+          at one another; anchoring toward the opposing box centre produces that presentation
+          regardless of the boxes' relative positions.
+        tests:
+          - Route_TargetToTheRight_AnchorsFaceEachOther
+          - Route_TargetBelow_AnchorsFaceEachOther
+
+      - id: Rendering-Layout-ConnectorRouter-AvoidsObstacles
+        title: >-
+          ConnectorRouter shall route a connector around an intervening box without passing through
+          that box's interior, using axis-aligned segments.
+        justification: |
+          Connectors that cut through unrelated boxes are unreadable; the orchestration must steer the
+          route around boxes that lie between the two endpoints while keeping the path orthogonal.
+        tests:
+          - Route_ObstacleBetweenEndpoints_RoutesAroundInterior
+
+      - id: Rendering-Layout-ConnectorRouter-ExcludesEndpoints
+        title: >-
+          ConnectorRouter shall exclude a connection's two endpoint boxes, matched by instance
+          identity, from the obstacle set used to route that connection.
+        justification: |
+          A connector must be free to leave and enter the boxes it joins; treating the endpoint boxes
+          as obstacles would block the connector's own anchors. Endpoints are matched by reference so
+          no domain concept enters the routing.
+        tests:
+          - Route_EndpointBoxes_AreExcludedFromObstacles
+
+      - id: Rendering-Layout-ConnectorRouter-CarriesStyling
+        title: >-
+          ConnectorRouter shall carry a connection's requested target end marker, line style, and
+          label onto the produced connector line and shall leave the source end unmarked.
+        justification: |
+          The routing orchestration owns only geometry; the caller's styling choices must survive onto
+          the placed line so renderers draw the intended arrowhead, stroke, and label.
+        tests:
+          - Route_Connection_CarriesRequestedStyling
+
+      - id: Rendering-Layout-ConnectorRouter-BatchOrder
+        title: >-
+          Given a list of connections, ConnectorRouter shall return one routed connector line per
+          connection in the input order.
+        justification: |
+          Callers correlate produced lines with their connections positionally; a stable one-to-one,
+          in-order result keeps that correlation unambiguous.
+        tests:
+          - Route_MultipleConnections_ReturnsOneLinePerConnectionInOrder
+
+      - id: Rendering-Layout-ConnectorRouter-Validation
+        title: >-
+          ConnectorRouter shall reject a null box list, connection list, connection, or options
+          argument with an argument-null error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public routing boundary.
+        tests:
+          - Route_NullBoxes_Throws
+          - Route_NullConnections_Throws
+          - Route_NullOptions_Throws
+          - Route_NullConnection_Throws
+
+  - title: ContainmentLayout Unit Requirements
+    requirements:
+      - id: Rendering-Layout-ContainmentLayout-Order
+        title: >-
+          ContainmentLayout shall return the packed child boxes in their input order, positioned left to
+          right along each row.
+        justification: |
+          Callers rely on stable, order-preserving packing so a box's position in the input predicts its
+          reading position in the container; the repositioned children must appear in the same order they
+          were supplied.
+        tests:
+          - Pack_ItemsFitInRow_PreservesOrderLeftToRight
+
+      - id: Rendering-Layout-ContainmentLayout-NoOverlap
+        title: >-
+          ContainmentLayout shall position packed child boxes so that no two of them overlap.
+        justification: |
+          Overlapping children hide one another. Whatever mix of sizes is supplied, every packed box must
+          be disjoint from every other.
+        tests:
+          - Pack_MixedSizes_ProducesNoOverlaps
+
+      - id: Rendering-Layout-ContainmentLayout-WithinRegion
+        title: >-
+          ContainmentLayout shall place every packed child box within the bounds of the region size it
+          reports.
+        justification: |
+          Callers size the container from the reported region width and height. Every packed box must lie
+          inside those bounds so nothing is clipped or drawn outside the container.
+        tests:
+          - Pack_MixedSizes_AllChildrenWithinRegion
+
+      - id: Rendering-Layout-ContainmentLayout-Wrapping
+        title: >-
+          ContainmentLayout shall wrap a child that would exceed the maximum content width onto a new row
+          positioned below the current row.
+        justification: |
+          A row may not grow past the width budget. When the next child would overflow it, the operation
+          must start a new row beneath the current one so the content stays within the allotted width.
+        tests:
+          - Pack_ChildExceedsWidth_WrapsToNewRow
+
+      - id: Rendering-Layout-ContainmentLayout-OversizedChild
+        title: >-
+          ContainmentLayout shall place a child wider than the maximum content width alone on its own row
+          and shall widen the region to contain it.
+        justification: |
+          A child that cannot fit the width budget still has to be placed. It must occupy its own row, and
+          the reported region must grow so the oversized child remains fully contained.
+        tests:
+          - Pack_OversizedChild_PlacedAloneAndRegionWidens
+
+      - id: Rendering-Layout-ContainmentLayout-EmptyInput
+        title: >-
+          When given no children, ContainmentLayout shall return no children and a region consisting
+          solely of the requested padding.
+        justification: |
+          An empty input is a valid degenerate case. The operation must return a well-formed, empty result
+          sized only by the padding rather than failing.
+        tests:
+          - Pack_EmptyInput_ReturnsPaddingOnlyRegion
+
+      - id: Rendering-Layout-ContainmentLayout-PreservesFields
+        title: >-
+          ContainmentLayout shall carry every non-position field of each child (label, depth, shape,
+          compartments, nested children, and keyword) unchanged onto the repositioned box, updating only
+          its X and Y coordinates.
+        justification: |
+          The operation adjusts placement only; a child's identity and content must survive so the packed
+          boxes render exactly as supplied, just relocated to their packed coordinates.
+        tests:
+          - Pack_PreservesNonPositionFields
+
+      - id: Rendering-Layout-ContainmentLayout-Defaults
+        title: >-
+          The containment options shall default the horizontal gap and vertical gap to eight logical
+          pixels and the padding to twelve logical pixels, so a caller need only supply the content width.
+        justification: |
+          Sensible spacing defaults let a caller pack boxes with a single required parameter while still
+          allowing each gap and the padding to be overridden to reproduce a specific container spacing.
+        tests:
+          - ContainmentOptions_Defaults_AreSensibleGapsAndPadding
+
+      - id: Rendering-Layout-ContainmentLayout-Validation
+        title: >-
+          ContainmentLayout shall reject a null children list, a null options argument, or a null child
+          element with an argument-null error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public packing boundary.
+        tests:
+          - Pack_NullChildren_Throws
+          - Pack_NullOptions_Throws
+          - Pack_NullChildElement_Throws
+
+  - title: ContainmentLayoutAlgorithm Unit Requirements
+    requirements:
+      - id: Rendering-Layout-ContainmentAlgorithm-Identity
+        title: >-
+          ContainmentLayoutAlgorithm shall expose the stable identifier under which it is selected and
+          registered.
+        justification: |
+          Renderers and registries select an algorithm by its identifier; a stable, well-known value
+          lets the containment algorithm be resolved by name alongside the layered algorithm.
+        tests:
+          - Id_IsContainment
+
+      - id: Rendering-Layout-ContainmentAlgorithm-PacksNodes
+        title: >-
+          ContainmentLayoutAlgorithm shall place one box per top-level node, in input order and without
+          overlap, entirely within the canvas it reports.
+        justification: |
+          The algorithm's core arrangement is order-preserving row packing; every node must become a
+          placed box that renders inside the reported canvas and does not obscure any other box.
+        tests:
+          - Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas
+
+      - id: Rendering-Layout-ContainmentAlgorithm-RoutesEdges
+        title: >-
+          ContainmentLayoutAlgorithm shall emit one routed connector per input edge, carrying that
+          edge's target end marker, line style, and label.
+        justification: |
+          A diagram's edges must be drawn as well as its nodes; each edge becomes a routed connector
+          that preserves its requested styling so renderers reproduce the intended notation.
+        tests:
+          - Apply_Graph_RoutesOneConnectorPerEdgeCarryingStyling
+
+      - id: Rendering-Layout-ContainmentAlgorithm-RoutesAroundObstacle
+        title: >-
+          ContainmentLayoutAlgorithm shall route an edge whose endpoints are separated by an intervening
+          packed box around that box rather than through its interior.
+        justification: |
+          The value of routing edges among packed nodes is obstacle avoidance; an edge crossing an
+          intervening box would be ambiguous, so the connector must steer around the box.
+        tests:
+          - Apply_EdgeCrossingInterveningBox_RoutesAroundIt
+
+      - id: Rendering-Layout-ContainmentAlgorithm-EmptyGraph
+        title: >-
+          When given a graph with no nodes, ContainmentLayoutAlgorithm shall return an empty placed
+          layout tree with a positive-size canvas.
+        justification: |
+          An empty graph is a valid degenerate case that must yield a well-formed empty canvas rather
+          than an error or a zero-size result.
+        tests:
+          - Apply_EmptyGraph_ReturnsEmptyCanvas
+
+      - id: Rendering-Layout-ContainmentAlgorithm-SkipsOutOfGraphEdges
+        title: >-
+          ContainmentLayoutAlgorithm shall skip any edge whose source or target is not a top-level node
+          of the graph.
+        justification: |
+          Edges may reference descendant nodes that this flat algorithm does not place; skipping such
+          out-of-graph endpoints keeps routing well-defined and mirrors the layered algorithm's handling.
+        tests:
+          - Apply_EdgeReferencingOutOfGraphNode_IsSkipped
+
+      - id: Rendering-Layout-ContainmentAlgorithm-Validation
+        title: >-
+          ContainmentLayoutAlgorithm shall reject a null graph or null options argument with an
+          argument-null error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public algorithm boundary.
+        tests:
+          - Apply_NullGraph_Throws
+          - Apply_NullOptions_Throws
+
+  - title: HierarchicalLayoutAlgorithm Unit Requirements
+    requirements:
+      - id: Rendering-Layout-HierarchicalLayout-Identity
+        title: >-
+          HierarchicalLayoutAlgorithm shall expose the stable identifier under which it is selected and
+          registered.
+        justification: |
+          Renderers and registries select an algorithm by its identifier; a stable, well-known value
+          lets the hierarchical engine be resolved by name alongside the leaf algorithms.
+        tests:
+          - Id_IsHierarchical
+
+      - id: Rendering-Layout-HierarchicalLayout-FlatEquivalence
+        title: >-
+          When given a graph in which no node is a container, HierarchicalLayoutAlgorithm shall produce
+          a placed layout tree identical to the selected leaf algorithm applied to the same graph.
+        justification: |
+          The engine is purely additive: a flat graph must lay out exactly as it did before the
+          hierarchical engine existed, so selecting the engine can never change any existing output.
+        tests:
+          - Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly
+          - Apply_FlatRandomGraphs_MatchContainmentAlgorithmExactly
+
+      - id: Rendering-Layout-HierarchicalLayout-NestsChildren
+        title: >-
+          HierarchicalLayoutAlgorithm shall place a container node's children within that container's
+          bounds and size the container to enclose them.
+        justification: |
+          Nested content is only meaningful when it renders inside its container; sizing each container
+          to its children and positioning the children within its bounds is the engine's core behavior.
+        tests:
+          - Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely
+          - Apply_ThreeLevelNesting_Succeeds
+
+      - id: Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm
+        title: >-
+          HierarchicalLayoutAlgorithm shall lay out each scope with the algorithm selected on that scope,
+          allowing a container to be arranged by a different algorithm than its parent.
+        justification: |
+          Different levels of a diagram suit different arrangements; letting each container select its
+          own algorithm — inheriting the parent's when unset — lets, for example, a packed container hold
+          a layered one without either level knowing about the other.
+        tests:
+          - Apply_ContainmentRootWithLayeredContainer_Composes
+          - Apply_LayeredRootWithContainmentContainer_Composes
+
+      - id: Rendering-Layout-HierarchicalLayout-HierarchyHandling
+        title: >-
+          HierarchicalLayoutAlgorithm shall lay out each container's children in their own coordinate
+          space and compose them into the parent at absolute coordinates.
+        justification: |
+          Laying out each container independently and then composing it into its parent keeps container
+          placements deterministic and lets sub-layouts be reused as self-contained regions, mirroring
+          the separate-children hierarchy-handling mode.
+        tests:
+          - Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely
+          - Apply_CompoundGraph_DoesNotMutateInputNodeSizes
+
+      - id: Rendering-Layout-HierarchicalLayout-CrossContainerEdge
+        title: >-
+          HierarchicalLayoutAlgorithm shall route an edge whose endpoints live in different containers at
+          the scope that owns it, steering around any intervening container rather than through it.
+        justification: |
+          A cross-container edge belongs to the coordinate space of the container that owns it; routing
+          it around the sibling containers between its endpoints keeps the connector unambiguous.
+        tests:
+          - Apply_CrossContainerEdge_RoutesAroundInterveningContainer
+
+      - id: Rendering-Layout-HierarchicalLayout-Validation
+        title: >-
+          HierarchicalLayoutAlgorithm shall reject a null graph, null options, or null registry argument
+          with an argument-null error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public algorithm boundary.
+        tests:
+          - Apply_NullGraph_Throws
+          - Apply_NullOptions_Throws
+          - Constructor_NullRegistry_Throws
+
+  - title: DefaultLayout Unit Requirements
+    requirements:
+      - id: Rendering-Layout-DefaultRegistry-BundledAlgorithms
+        title: >-
+          The default layout-algorithm registry factory shall return a registry from which each of the
+          three bundled algorithms — layered, containment, and hierarchical — resolves by its identifier,
+          and each call shall return an independently mutable registry.
+        justification: |
+          A batteries-included factory removes the boilerplate of registering the bundled algorithms by
+          hand; returning a fresh, independent registry on every call lets a caller extend or replace an
+          algorithm without affecting any other caller.
+        tests:
+          - CreateDefaultRegistry_ResolvesLayeredAlgorithm
+          - CreateDefaultRegistry_ResolvesContainmentAlgorithm
+          - CreateDefaultRegistry_ResolvesHierarchicalAlgorithm
+          - CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms
+          - CreateDefaultRegistry_ReturnsIndependentInstances
+
+      - id: Rendering-Layout-LayoutEngine-DefaultAlgorithm
+        title: >-
+          When neither the graph nor the options declares an algorithm, the layout facade shall lay the
+          graph out with the hierarchical engine.
+        justification: |
+          Defaulting to the hierarchical engine lets the single facade lay out both flat and nested
+          graphs correctly; the choice is safe because the engine is byte-identical to the leaf algorithm
+          for a flat graph, so no existing output changes.
+        tests:
+          - DefaultAlgorithmId_IsHierarchical
+          - Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly
+
+      - id: Rendering-Layout-LayoutEngine-Resolution
+        title: >-
+          The layout facade shall resolve the algorithm from an explicit declaration on the graph in
+          preference to one on the options, applying the resolved algorithm to the graph.
+        justification: |
+          Layout options are naturally attached to the graph in the ELK-style model, so a graph-level
+          declaration must take precedence over a free-standing options declaration, giving callers a
+          predictable single source of truth for algorithm selection.
+        tests:
+          - Layout_OptionsDeclareLayered_MatchesLayeredAlgorithmExactly
+          - Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly
+          - Layout_GraphDeclarationOverridesOptions
+
+      - id: Rendering-Layout-LayoutEngine-FlatEquivalence
+        title: >-
+          For a flat graph, the layout facade shall produce a placed layout tree identical to the
+          declared (or defaulted) leaf algorithm applied to the same graph.
+        justification: |
+          The facade is purely additive: a flat graph must lay out exactly as it would through the leaf
+          algorithm directly, so routing every call through the facade can never change existing output.
+        tests:
+          - Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly
+          - Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly
+
+      - id: Rendering-Layout-LayoutEngine-NestedComposition
+        title: >-
+          For a nested graph laid out with the default hierarchical engine, the layout facade shall
+          produce a composed tree in which each container box carries its recursively laid-out children.
+        justification: |
+          The whole point of defaulting to the hierarchical engine is that a nested graph is composed
+          correctly from one call; the container box must hold its placed children rather than treating
+          the nesting as opaque.
+        tests:
+          - Layout_NestedGraphNoAlgorithmDeclared_ProducesComposedTree
+
+      - id: Rendering-Layout-LayoutEngine-CustomRegistry
+        title: >-
+          The layout facade shall resolve the declared algorithm from a caller-supplied registry when one
+          is provided, and surface a lookup error when the declared algorithm is not registered.
+        justification: |
+          Callers that register custom algorithms must be able to lay out through the same facade;
+          resolving against their registry and failing clearly on an unknown identifier keeps algorithm
+          selection open and its errors diagnosable.
+        tests:
+          - Layout_CustomRegistry_ResolvesRegisteredAlgorithm
+          - Layout_UnregisteredAlgorithm_Throws
+
+      - id: Rendering-Layout-LayoutEngine-Validation
+        title: >-
+          The layout facade shall reject a null graph, null options, or null registry argument with an
+          argument-null error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public facade boundary.
+        tests:
+          - Layout_NullGraph_Throws
+          - Layout_NullOptions_Throws
+          - Layout_NullRegistry_Throws

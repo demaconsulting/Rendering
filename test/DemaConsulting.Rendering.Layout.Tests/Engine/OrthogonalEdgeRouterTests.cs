@@ -1,4 +1,4 @@
-// <copyright file="ChannelRouterTests.cs" company="DemaConsulting">
+// <copyright file="OrthogonalEdgeRouterTests.cs" company="DemaConsulting">
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
@@ -8,9 +8,9 @@ using DemaConsulting.Rendering.Layout.Engine;
 namespace DemaConsulting.Rendering.Layout.Tests.Engine;
 
 /// <summary>
-///     Tests for <see cref="ChannelRouter"/> orthogonal edge routing.
+///     Tests for <see cref="OrthogonalEdgeRouter"/> orthogonal edge routing.
 /// </summary>
-public sealed class ChannelRouterTests
+public sealed class OrthogonalEdgeRouterTests
 {
     /// <summary>
     ///     A route with no obstacles still produces a valid orthogonal path from source to target.
@@ -19,7 +19,7 @@ public sealed class ChannelRouterTests
     public void Route_NoObstacles_ProducesOrthogonalPath()
     {
         // Act: route between two diagonal points with no obstacles
-        var path = ChannelRouter.Route(new Point2D(0, 0), new Point2D(100, 80), [], clearance: 10);
+        var path = OrthogonalEdgeRouter.Route(new Point2D(0, 0), new Point2D(100, 80), [], clearance: 10);
 
         // Assert: path starts at source, ends at target, and every segment is axis-aligned
         AssertEndpoints(path, new Point2D(0, 0), new Point2D(100, 80));
@@ -38,7 +38,7 @@ public sealed class ChannelRouterTests
         var obstacles = new[] { new Rect(80, 0, 40, 100) };
 
         // Act
-        var path = ChannelRouter.Route(source, target, obstacles, clearance: 10);
+        var path = OrthogonalEdgeRouter.Route(source, target, obstacles, clearance: 10);
 
         // Assert: valid orthogonal path that does not cross the obstacle interior
         AssertEndpoints(path, source, target);
@@ -63,7 +63,7 @@ public sealed class ChannelRouterTests
         };
 
         // Act
-        var path = ChannelRouter.Route(source, target, obstacles, clearance: 12);
+        var path = OrthogonalEdgeRouter.Route(source, target, obstacles, clearance: 12);
 
         // Assert
         AssertEndpoints(path, source, target);
@@ -78,7 +78,7 @@ public sealed class ChannelRouterTests
     public void Route_AlignedEndpoints_ProducesStraightLine()
     {
         // Act: source and target share a Y coordinate with no obstacles
-        var path = ChannelRouter.Route(new Point2D(0, 30), new Point2D(150, 30), [], clearance: 10);
+        var path = OrthogonalEdgeRouter.Route(new Point2D(0, 30), new Point2D(150, 30), [], clearance: 10);
 
         // Assert: a simple two-point straight segment
         Assert.Equal(2, path.Count);
@@ -97,7 +97,7 @@ public sealed class ChannelRouterTests
         var target = new Point2D(200, 20);
 
         // Act: the source anchor is on the Right side, so the first move must go right (+x)
-        var path = ChannelRouter.Route(source, target, [], clearance: 10, sourceSide: PortSide.Right);
+        var path = OrthogonalEdgeRouter.Route(source, target, [], clearance: 10, sourceSide: PortSide.Right);
 
         // Assert: first segment is horizontal and heads to the right (outward from the Right side)
         Assert.True(path.Count >= 2);
@@ -120,7 +120,7 @@ public sealed class ChannelRouterTests
         var target = new Point2D(150, 100);
 
         // Act: the target anchor is on the Top side, so the last move must arrive going down (+y)
-        var path = ChannelRouter.Route(source, target, [], clearance: 10, targetSide: PortSide.Top);
+        var path = OrthogonalEdgeRouter.Route(source, target, [], clearance: 10, targetSide: PortSide.Top);
 
         // Assert: last segment is vertical and arrives from above (entering the Top side)
         Assert.Equal(target.X, path[^1].X, 6);
@@ -137,7 +137,7 @@ public sealed class ChannelRouterTests
     public void RouteWithStatus_NoBlockingObstacle_ReportsNotCrossed()
     {
         // Act: route around a single obstacle that a channel exists past
-        var result = ChannelRouter.RouteWithStatus(
+        var result = OrthogonalEdgeRouter.RouteWithStatus(
             new Point2D(0, 50), new Point2D(200, 50), [new Rect(80, 0, 40, 100)], clearance: 10);
 
         // Assert: a valid orthogonal route was found, so Crossed is false
@@ -156,7 +156,7 @@ public sealed class ChannelRouterTests
         var obstacles = new[] { new Rect(40, 40, 40, 40) };
 
         // Act
-        var result = ChannelRouter.RouteWithStatus(
+        var result = OrthogonalEdgeRouter.RouteWithStatus(
             new Point2D(0, 60), new Point2D(120, 60), obstacles, clearance: 8);
 
         // Assert: routed cleanly (no crossing) and no segment passes through the obstacle interior
@@ -175,7 +175,7 @@ public sealed class ChannelRouterTests
         var obstacles = new[] { new Rect(50, 0, 200, 100) };
 
         // Act: target (100, 50) is strictly inside the obstacle
-        var result = ChannelRouter.RouteWithStatus(
+        var result = OrthogonalEdgeRouter.RouteWithStatus(
             new Point2D(0, 50), new Point2D(100, 50), obstacles, clearance: 10);
 
         // Assert: no clean path exists, so Crossed is reported true
@@ -196,7 +196,7 @@ public sealed class ChannelRouterTests
         var bands = new[] { new CostBand(IsHorizontal: true, Start: 40, End: 80, Multiplier: 0.6) };
 
         // Act: route with the discounted band biasing the detour
-        var result = ChannelRouter.RouteWithStatus(source, target, obstacles, clearance: 10, costBands: bands);
+        var result = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, clearance: 10, costBands: bands);
 
         // Assert: the route dips downward into the cheaper band instead of detouring up
         Assert.False(result.Crossed);
@@ -215,7 +215,7 @@ public sealed class ChannelRouterTests
         var obstacles = new[] { obstacle };
 
         // Act: route from above-right of the obstacle to below it.
-        var result = ChannelRouter.RouteWithStatus(
+        var result = OrthogonalEdgeRouter.RouteWithStatus(
             new Point2D(62, 0), new Point2D(30, 200), obstacles, clearance: 10);
 
         // Assert: routed cleanly and every segment stays at least (nearly) the clearance away.
@@ -226,6 +226,39 @@ public sealed class ChannelRouterTests
                 SegmentDistanceToRect(result.Waypoints[i], result.Waypoints[i + 1], obstacle) > 10.0 - 1e-6,
                 $"Segment {i} runs closer than the clearance to the obstacle.");
         }
+    }
+
+    /// <summary>
+    ///     A null source anchor is rejected.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_NullSource_Throws()
+    {
+        // Act / Assert: a null source is rejected before routing
+        Assert.Throws<ArgumentNullException>(
+            () => OrthogonalEdgeRouter.RouteWithStatus(null!, new Point2D(100, 80), [], clearance: 10));
+    }
+
+    /// <summary>
+    ///     A null target anchor is rejected.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_NullTarget_Throws()
+    {
+        // Act / Assert: a null target is rejected before routing
+        Assert.Throws<ArgumentNullException>(
+            () => OrthogonalEdgeRouter.RouteWithStatus(new Point2D(0, 0), null!, [], clearance: 10));
+    }
+
+    /// <summary>
+    ///     A null obstacle list is rejected.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_NullObstacles_Throws()
+    {
+        // Act / Assert: a null obstacle list is rejected before routing
+        Assert.Throws<ArgumentNullException>(
+            () => OrthogonalEdgeRouter.RouteWithStatus(new Point2D(0, 0), new Point2D(100, 80), null!, clearance: 10));
     }
 
     /// <summary>

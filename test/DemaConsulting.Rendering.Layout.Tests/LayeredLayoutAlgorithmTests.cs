@@ -75,4 +75,34 @@ public class LayeredLayoutAlgorithmTests
         Assert.Throws<ArgumentNullException>(
             () => new LayeredLayoutAlgorithm().Apply(null!, new LayoutOptions()));
     }
+
+    /// <summary>
+    ///     Proves that the hierarchical input-model capability is behavior-preserving: a flat graph
+    ///     whose nodes declare no children lays out exactly as before, because the layered algorithm
+    ///     reads only the top-level nodes and edges and ignores nesting.
+    /// </summary>
+    [Fact]
+    public void Apply_FlatGraphWithNoChildren_PlacesTopLevelStructureUnchanged()
+    {
+        // Arrange: build a flat chain graph and confirm none of its nodes are containers
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 80, 40);
+        var b = graph.AddNode("b", 80, 40);
+        var c = graph.AddNode("c", 80, 40);
+        graph.AddEdge("e1", a, b);
+        graph.AddEdge("e2", b, c);
+        Assert.All(new[] { a, b, c }, node => Assert.False(node.HasChildren));
+
+        // Act: lay the flat graph out with the bundled algorithm
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        // Assert: the placed structure matches the classic flat result (one box per node,
+        // one connector per edge, left-to-right chain ordering)
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(3, boxes.Count);
+        Assert.Equal(2, lines.Count);
+        Assert.True(boxes[0].X < boxes[1].X);
+        Assert.True(boxes[1].X < boxes[2].X);
+    }
 }

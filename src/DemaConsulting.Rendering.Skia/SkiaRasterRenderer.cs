@@ -176,8 +176,8 @@ public abstract class SkiaRasterRenderer : IRenderer
     /// <remarks>
     /// The bitmap dimensions are derived from <see cref="LayoutTree.Width"/> and
     /// <see cref="LayoutTree.Height"/> scaled by <see cref="RenderOptions.Scale"/>,
-    /// with a minimum of 1×1 pixels. The background is filled with
-    /// <see cref="SKColors.White"/> before any nodes are drawn.
+    /// with a minimum of 1×1 pixels. The background is filled with the theme's
+    /// <see cref="Theme.BackgroundColor"/> before any nodes are drawn.
     /// </remarks>
     public void Render(LayoutTree layout, RenderOptions options, Stream output)
     {
@@ -194,8 +194,10 @@ public abstract class SkiaRasterRenderer : IRenderer
         using var bitmap = new SKBitmap(w, h, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var canvas = new SKCanvas(bitmap);
 
-        // Fill the background with white before drawing diagram elements
-        canvas.Clear(SKColors.White);
+        // Fill the background with the theme background color before drawing diagram elements, so the
+        // canvas fill and the hollow-marker occlusion (which also paints in the theme background)
+        // share a single source of truth and stay consistent under non-white themes.
+        canvas.Clear(SKColor.Parse(options.Theme.BackgroundColor));
 
         foreach (var node in layout.Nodes)
         {
@@ -1160,7 +1162,9 @@ public abstract class SkiaRasterRenderer : IRenderer
 
         using (var bgPaint = new SKPaint())
         {
-            bgPaint.Color = SKColors.White;
+            // Occlude the connector line behind the label using the theme background, matching the
+            // canvas fill so the label reads cleanly under non-white themes.
+            bgPaint.Color = SKColor.Parse(theme.BackgroundColor);
             bgPaint.Style = SKPaintStyle.Fill;
             canvas.DrawRect(bgRect, bgPaint);
         }

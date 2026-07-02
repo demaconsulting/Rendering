@@ -219,12 +219,13 @@ public sealed class SvgRenderer : IRenderer
         sb.AppendLine();
         sb.AppendLine(MarkerClose);
 
-        // Auto-sizing white background for text drawn over lines (e.g. message and guard labels).
+        // Auto-sizing background for text drawn over lines (e.g. message and guard labels), painted in
+        // the theme background so it occludes the connector line consistently under any theme.
         // The filter region defaults to the text bounding box; the small negative inset adds padding.
         sb.Append(CultureInfo.InvariantCulture,
             $"""    <filter id="label-bg" x="{M(-NotationMetrics.LabelBgInset)}" y="{M(-NotationMetrics.LabelBgInset)}" width="{M(NotationMetrics.LabelBgExtent)}" height="{M(NotationMetrics.LabelBgExtent)}">""");
         sb.AppendLine();
-        sb.AppendLine("""      <feFlood flood-color="#FFFFFF"/>""");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"""      <feFlood flood-color="{bg}"/>""");
         sb.AppendLine("""      <feComposite in="SourceGraphic" operator="over"/>""");
         sb.AppendLine("    </filter>");
 

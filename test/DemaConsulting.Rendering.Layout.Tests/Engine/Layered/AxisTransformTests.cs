@@ -36,7 +36,7 @@ public sealed class AxisTransformTests
         new CrossingMinimizer().Apply(graph);
         new BrandesKopfPlacer().Apply(graph);
         new PortDistributor().Apply(graph);
-        new OrthogonalRouter().Apply(graph);
+        new LayeredCorridorRouter().Apply(graph);
         new LongEdgeJoiner().Apply(graph);
 
         var beforeX = (double[])graph.AugX.Clone();
@@ -170,7 +170,7 @@ public sealed class AxisTransformTests
         var graph = new LayeredGraph(nodes, edges, direction);
         var pipeline = LayeredLayoutPipeline.Builder()
             .Direction(direction)
-            .Hierarchy(HierarchyHandling.Flat)
+            .Hierarchy(global::DemaConsulting.Rendering.Layout.Engine.Layered.HierarchyHandling.Flat)
             .AddDefaultStages()
             .Build();
         pipeline.Run(graph);

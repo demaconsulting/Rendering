@@ -1,4 +1,4 @@
-// <copyright file="OrthogonalRouter.cs" company="DemaConsulting">
+// <copyright file="LayeredCorridorRouter.cs" company="DemaConsulting">
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 using static DemaConsulting.Rendering.Layout.Engine.Layered.LayeredLayoutMetrics;
@@ -9,7 +9,7 @@ namespace DemaConsulting.Rendering.Layout.Engine.Layered;
 /// Pipeline stage that routes every corridor using ELK's <c>OrthogonalRoutingGenerator</c> slot
 /// algorithm, producing the orthogonal bend points for each augmented sub-edge.
 /// </summary>
-internal sealed class OrthogonalRouter : ILayoutStage
+internal sealed class LayeredCorridorRouter : ILayoutStage
 {
     /// <inheritdoc/>
     public void Apply(LayeredGraph graph)

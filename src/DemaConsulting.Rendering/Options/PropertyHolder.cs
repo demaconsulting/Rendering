@@ -17,19 +17,29 @@ public class PropertyHolder : IPropertyHolder
     public TValue Get<TValue>(LayoutProperty<TValue> property)
     {
         ArgumentNullException.ThrowIfNull(property);
-        return _values.TryGetValue(property.Id, out var stored) && stored is TValue typed
-            ? typed
-            : property.DefaultValue;
+        return TryGet(property, out var value) ? value : property.DefaultValue;
     }
 
     /// <inheritdoc/>
     public bool TryGet<TValue>(LayoutProperty<TValue> property, out TValue value)
     {
         ArgumentNullException.ThrowIfNull(property);
-        if (_values.TryGetValue(property.Id, out var stored) && stored is TValue typed)
+        if (_values.TryGetValue(property.Id, out var stored))
         {
-            value = typed;
-            return true;
+            // A present key counts as explicitly set, even when the stored value is null
+            // (for reference or nullable value types). This keeps Contains, TryGet, and Get
+            // consistent: setting a property to null is honored rather than folded into the default.
+            if (stored is TValue typed)
+            {
+                value = typed;
+                return true;
+            }
+
+            if (stored is null)
+            {
+                value = default!;
+                return true;
+            }
         }
 
         value = property.DefaultValue;

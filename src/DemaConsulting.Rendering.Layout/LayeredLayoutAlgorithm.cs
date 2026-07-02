@@ -15,7 +15,11 @@ namespace DemaConsulting.Rendering.Layout;
 /// </summary>
 public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
 {
-    /// <summary>The stable identifier under which this algorithm is selected and registered.</summary>
+    /// <summary>
+    /// The stable algorithm identifier <c>"layered"</c> under which this algorithm is selected and
+    /// registered. Pass it to <see cref="LayoutOptions.ForAlgorithm(string)"/> or
+    /// <see cref="CoreOptions.Algorithm"/> instead of hardcoding the literal string.
+    /// </summary>
     public const string AlgorithmId = "layered";
 
     /// <inheritdoc/>

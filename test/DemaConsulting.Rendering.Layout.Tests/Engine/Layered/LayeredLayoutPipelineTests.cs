@@ -26,7 +26,7 @@ public sealed class LayeredLayoutPipelineTests
         var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right);
         var pipeline = LayeredLayoutPipeline.Builder()
             .Direction(LayoutDirection.Right)
-            .Hierarchy(HierarchyHandling.Flat)
+            .Hierarchy(global::DemaConsulting.Rendering.Layout.Engine.Layered.HierarchyHandling.Flat)
             .AddDefaultStages()
             .Build();
 
@@ -46,7 +46,7 @@ public sealed class LayeredLayoutPipelineTests
     {
         // Arrange: a builder configured for recursive hierarchy handling.
         var builder = LayeredLayoutPipeline.Builder()
-            .Hierarchy(HierarchyHandling.Recursive)
+            .Hierarchy(global::DemaConsulting.Rendering.Layout.Engine.Layered.HierarchyHandling.Recursive)
             .AddDefaultStages();
 
         // Act / Assert: building rejects the unsupported mode.

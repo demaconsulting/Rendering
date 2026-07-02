@@ -1,0 +1,109 @@
+// <copyright file="GalleryCatalog.cs" company="DemaConsulting">
+// Copyright (c) DemaConsulting. All rights reserved.
+// </copyright>
+
+namespace DemaConsulting.Rendering.Gallery;
+
+/// <summary>
+///     One generated showcase image: its stable output filename plus the alt text and caption used in
+///     the browsable <c>gallery.md</c> index.
+/// </summary>
+/// <param name="FileName">Stable output filename (for example <c>layered-pipeline.svg</c>).</param>
+/// <param name="Alt">Alt text for the Markdown image link.</param>
+/// <param name="Caption">One-line caption shown beneath the image link in the index.</param>
+internal sealed record GalleryImage(string FileName, string Alt, string Caption);
+
+/// <summary>
+///     A titled group of related showcase images with a short introduction, rendered as one section of
+///     the <c>gallery.md</c> index.
+/// </summary>
+/// <param name="Title">Section heading.</param>
+/// <param name="Intro">One-paragraph description of what the section demonstrates.</param>
+/// <param name="Images">The images belonging to the section, in display order.</param>
+internal sealed record GallerySection(string Title, string Intro, IReadOnlyList<GalleryImage> Images);
+
+/// <summary>
+///     The single source of truth for the gallery showcase: the stable output filenames and the
+///     structure of the browsable index. The showcase facts render to these filenames and the index
+///     generator lays the same entries out as Markdown, so the two never drift apart.
+/// </summary>
+internal static class GalleryCatalog
+{
+    // Stable output filenames. Facts and the index both reference these constants so a rename is a
+    // single edit that keeps the committed artifacts and the index in lockstep.
+    public const string LayeredPipelineSvg = "layered-pipeline.svg";
+    public const string ContainmentPackedSvg = "containment-packed.svg";
+    public const string HierarchicalNestedSvg = "hierarchical-nested.svg";
+    public const string OrthogonalObstacleSvg = "orthogonal-obstacle.svg";
+    public const string ThemeLightSvg = "theme-light.svg";
+    public const string ThemeDarkSvg = "theme-dark.svg";
+    public const string ThemePrintSvg = "theme-print.svg";
+    public const string LayeredPipelinePng = "layered-pipeline.png";
+    public const string HierarchicalNestedPng = "hierarchical-nested.png";
+
+    /// <summary>Gets the browsable sections of the gallery, in display order.</summary>
+    public static IReadOnlyList<GallerySection> Sections { get; } =
+    [
+        new GallerySection(
+            "Layout algorithms",
+            "The bundled algorithms, each laying out the same kind of node-and-edge graph in its own "
+            + "style. Select one with the algorithm option and let the engine place the boxes and route "
+            + "the edges.",
+            [
+                new GalleryImage(
+                    LayeredPipelineSvg,
+                    "Layered pipeline diagram",
+                    "A directed pipeline laid out left to right by the layered algorithm."),
+                new GalleryImage(
+                    ContainmentPackedSvg,
+                    "Containment packed diagram",
+                    "Sibling boxes packed compactly by the containment algorithm."),
+                new GalleryImage(
+                    HierarchicalNestedSvg,
+                    "Hierarchical nested diagram",
+                    "A container node holding a nested child graph, with a cross-container edge."),
+            ]),
+        new GallerySection(
+            "Edge routing",
+            "Orthogonal connectors step around the boxes between their endpoints instead of cutting "
+            + "through them.",
+            [
+                new GalleryImage(
+                    OrthogonalObstacleSvg,
+                    "Orthogonal edge routed around an obstacle",
+                    "A connector routed orthogonally around an intervening container box."),
+            ]),
+        new GallerySection(
+            "Themes",
+            "One representative diagram rendered with each of the three built-in themes, showing how the "
+            + "theme controls colours, stroke, and corner style without touching the layout.",
+            [
+                new GalleryImage(
+                    ThemeLightSvg,
+                    "Representative diagram in the light theme",
+                    "The light theme, suited to on-screen viewing."),
+                new GalleryImage(
+                    ThemeDarkSvg,
+                    "Representative diagram in the dark theme",
+                    "The dark theme, suited to dark-mode viewing."),
+                new GalleryImage(
+                    ThemePrintSvg,
+                    "Representative diagram in the print theme",
+                    "The print theme, optimised for black-and-white output."),
+            ]),
+        new GallerySection(
+            "Raster output",
+            "The same diagrams rendered through the SkiaSharp raster path to prove multi-format output. "
+            + "Every diagram above is available as SVG; these two are additionally rendered to PNG.",
+            [
+                new GalleryImage(
+                    LayeredPipelinePng,
+                    "Layered pipeline diagram as PNG",
+                    "The layered pipeline rendered to a raster PNG image."),
+                new GalleryImage(
+                    HierarchicalNestedPng,
+                    "Hierarchical nested diagram as PNG",
+                    "The hierarchical nested diagram rendered to a raster PNG image."),
+            ]),
+    ];
+}

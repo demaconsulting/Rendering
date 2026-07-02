@@ -41,7 +41,7 @@ public static class ConnectorLabelPlacer
     {
         ArgumentNullException.ThrowIfNull(lines);
 
-        var placed = new List<Rect>();
+        var placed = new List<Bounds>();
         var result = new Dictionary<LayoutLine, (double X, double Y)>();
 
         foreach (var line in lines)
@@ -55,7 +55,7 @@ public static class ConnectorLabelPlacer
             var halfHeight = (fontSize * HeightFactor / 2.0) + Gap;
 
             var position = ChoosePosition(line.Waypoints, halfWidth, halfHeight, placed);
-            placed.Add(new Rect(position.X - halfWidth, position.Y - halfHeight, position.X + halfWidth, position.Y + halfHeight));
+            placed.Add(new Bounds(position.X - halfWidth, position.Y - halfHeight, position.X + halfWidth, position.Y + halfHeight));
             result[line] = position;
         }
 
@@ -82,7 +82,7 @@ public static class ConnectorLabelPlacer
         IReadOnlyList<Point2D> waypoints,
         double halfWidth,
         double halfHeight,
-        List<Rect> placed)
+        List<Bounds> placed)
     {
         if (waypoints.Count == 1)
         {
@@ -134,8 +134,12 @@ public static class ConnectorLabelPlacer
             }
         }
 
-        // Give up: fall back to the longest segment's midpoint.
-        return (best.X, best.Y);
+        // Final fallback: drop the label just beneath every placed label so it is guaranteed not to
+        // overlap, preserving the documented no-overlap guarantee even when the perpendicular nudges
+        // above are exhausted (for example where many connectors cross at a single point). Because a
+        // clear segment was not found in the first pass, `placed` is guaranteed to be non-empty here.
+        var clearBottom = placed.Max(r => r.Bottom);
+        return (best.X, clearBottom + halfHeight + Gap);
     }
 
     /// <summary>Tests whether a candidate label box overlaps any already-placed box.</summary>
@@ -145,7 +149,7 @@ public static class ConnectorLabelPlacer
     /// <param name="halfHeight">Half the candidate box height.</param>
     /// <param name="placed">Boxes already placed.</param>
     /// <returns><see langword="true"/> if the candidate overlaps a placed box.</returns>
-    private static bool Collides(double centreX, double centreY, double halfWidth, double halfHeight, List<Rect> placed)
+    private static bool Collides(double centreX, double centreY, double halfWidth, double halfHeight, List<Bounds> placed)
     {
         var left = centreX - halfWidth;
         var top = centreY - halfHeight;
@@ -162,10 +166,15 @@ public static class ConnectorLabelPlacer
         return false;
     }
 
-    /// <summary>An axis-aligned rectangle used for label overlap tests.</summary>
+    /// <summary>
+    /// An axis-aligned bounding box used only for label overlap tests. Distinct from the public
+    /// geometry <see cref="Rect"/>: this type is expressed as edge coordinates
+    /// (left/top/right/bottom) rather than position-and-size, which keeps the overlap arithmetic
+    /// direct.
+    /// </summary>
     /// <param name="Left">Left edge.</param>
     /// <param name="Top">Top edge.</param>
     /// <param name="Right">Right edge.</param>
     /// <param name="Bottom">Bottom edge.</param>
-    private readonly record struct Rect(double Left, double Top, double Right, double Bottom);
+    private readonly record struct Bounds(double Left, double Top, double Right, double Bottom);
 }

@@ -11,7 +11,7 @@ using static DemaConsulting.Rendering.Layout.Engine.Layered.LayeredLayoutMetrics
 namespace DemaConsulting.Rendering.Layout.Tests.Engine.Layered;
 
 /// <summary>
-///     Tests for the reversed (back) edge entry-approach clamp in <see cref="OrthogonalRouter"/>,
+///     Tests for the reversed (back) edge entry-approach clamp in <see cref="LayeredCorridorRouter"/>,
 ///     driven by the <see cref="LayeredGraph.BackEdgeEntryApproach"/> parameter. A reversed edge is
 ///     stored flipped, so the consumer draws the end marker on the augmented-source face of the first
 ///     sub-edge; the clamp guarantees that final straight approach is at least
@@ -287,7 +287,7 @@ public sealed class OrthogonalRouterBackEdgeTests
         new CrossingMinimizer().Apply(graph);
         new BrandesKopfPlacer().Apply(graph);
         new PortDistributor().Apply(graph);
-        new OrthogonalRouter().Apply(graph);
+        new LayeredCorridorRouter().Apply(graph);
         new LongEdgeJoiner().Apply(graph);
         return graph;
     }

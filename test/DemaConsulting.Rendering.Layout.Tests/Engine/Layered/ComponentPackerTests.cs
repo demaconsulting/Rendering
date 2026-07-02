@@ -298,7 +298,7 @@ public sealed class ComponentPackerTests
         new CrossingMinimizer().Apply(graph);
         new BrandesKopfPlacer().Apply(graph);
         new PortDistributor().Apply(graph);
-        new OrthogonalRouter().Apply(graph);
+        new LayeredCorridorRouter().Apply(graph);
         new LongEdgeJoiner().Apply(graph);
         new AxisTransform().Apply(graph);
         return graph;

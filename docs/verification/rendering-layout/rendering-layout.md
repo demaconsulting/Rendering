@@ -31,7 +31,8 @@ Two families of tests carry special weight:
 - **Framework**: xUnit v3 running under the .NET SDK.
 - **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Location**: `test/DemaConsulting.Rendering.Layout.Tests/`, with `Engine/` and `Engine/Layered/`
-  subfolders mirroring the source structure, plus `LayeredLayoutAlgorithmTests.cs` at the root.
+  subfolders mirroring the source structure, plus `LayeredLayoutAlgorithmTests.cs`,
+  `ContainmentLayoutAlgorithmTests.cs`, and `HierarchicalLayoutAlgorithmTests.cs` at the root.
 - **Dependencies**: No external services, files, or network access. Tests use in-memory synthetic
   graphs and geometry only.
 - **Isolation**: Each test builds its own inputs; engines are stateless, so no shared state exists
@@ -39,27 +40,27 @@ Two families of tests carry special weight:
 
 ## Engine Subsystem Verification
 
-### ChannelRouter Scenarios
+### OrthogonalEdgeRouter Scenarios
 
-- **Orthogonal path** (`Rendering-Layout-ChannelRouter-Orthogonal`):
+- **Orthogonal path** (`Rendering-Layout-OrthogonalEdgeRouter-Orthogonal`):
   `Route_NoObstacles_ProducesOrthogonalPath` asserts consecutive waypoints share an X or Y
   coordinate; `Route_AlignedEndpoints_ProducesStraightLine` confirms aligned anchors yield a
   straight two-point path.
-- **Obstacle avoidance** (`Rendering-Layout-ChannelRouter-AvoidObstacles`):
+- **Obstacle avoidance** (`Rendering-Layout-OrthogonalEdgeRouter-AvoidObstacles`):
   `Route_ObstacleBetween_RoutesAround` and `Route_MultipleObstacles_RemainsValid` verify the path
   never enters an obstacle interior; `RouteWithStatus_ObstacleBetween_RoutesAroundWithoutCrossing`
   confirms the crossing flag stays clear when a clean detour exists.
-- **Clearance** (`Rendering-Layout-ChannelRouter-Clearance`):
+- **Clearance** (`Rendering-Layout-OrthogonalEdgeRouter-Clearance`):
   `RouteWithStatus_CleanRoute_KeepsClearanceFromObstacles` asserts routed segments keep the
   requested clearance from obstacles.
-- **Perpendicular ends** (`Rendering-Layout-ChannelRouter-PerpendicularEnds`):
+- **Perpendicular ends** (`Rendering-Layout-OrthogonalEdgeRouter-PerpendicularEnds`):
   `Route_WithSourceSide_LeavesPerpendicular` and `Route_WithTargetSide_EntersPerpendicular` confirm
   the connector leaves/enters an anchor perpendicular to the given box side.
-- **Crossing status** (`Rendering-Layout-ChannelRouter-CrossingStatus`):
+- **Crossing status** (`Rendering-Layout-OrthogonalEdgeRouter-CrossingStatus`):
   `RouteWithStatus_NoBlockingObstacle_ReportsNotCrossed` reports a clean route, and
   `RouteWithStatus_TargetEnclosedByObstacle_ReportsCrossed` reports a forced crossing for an enclosed
   target.
-- **Cost bands** (`Rendering-Layout-ChannelRouter-CostBands`):
+- **Cost bands** (`Rendering-Layout-OrthogonalEdgeRouter-CostBands`):
   `RouteWithStatus_HighwayBand_PrefersBandedDetour` confirms the router prefers a discounted band
   over an equal-length alternative.
 
@@ -190,7 +191,165 @@ nothing is mocked.
 - **Empty graph** (`Rendering-Layout-LayeredAlgorithm-EmptyGraph`):
   `Apply_EmptyGraph_ReturnsEmptyCanvas` confirms an empty graph yields an empty placed layout tree.
 - **Validation** (`Rendering-Layout-LayeredAlgorithm-Validation`): `Apply_NullGraph_Throws` confirms
-  a null graph argument is rejected with an argument-null error.
+  a null graph argument is rejected with an argument-null error, and `Apply_NullOptions_Throws`
+  confirms a null options argument is likewise rejected with an argument-null error.
+
+## ConnectorRouter Verification
+
+### EdgeRouting Option Scenarios
+
+- **Per-scope selection** (`Rendering-Layout-EdgeRouting-Selection`):
+  `CoreOptions_EdgeRouting_DefaultsToOrthogonal` and `CoreOptions_EdgeRouting_HasStableId` confirm the
+  `rendering.edgerouting` key defaults to `Orthogonal` and carries the ELK-flavored id;
+  `CoreOptions_EdgeRouting_SelectablePerScope` sets and reads the style back through the property
+  system, and `CoreOptions_EdgeRouting_UnsetReturnsDefault` confirms an unset scope falls back to the
+  orthogonal default.
+- **Route-option defaults** (`Rendering-Layout-EdgeRouting-Defaults`):
+  `ConnectorRouteOptions_Defaults_AreOrthogonalWithTwelvePixelClearance` confirms the default style is
+  orthogonal, the default clearance is twelve logical pixels, and the clearance is caller-overridable.
+
+### ConnectorRouter Scenarios
+
+- **Anchors face each other** (`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`):
+  `Route_TargetToTheRight_AnchorsFaceEachOther` and `Route_TargetBelow_AnchorsFaceEachOther` confirm
+  the route starts and ends on the box faces that point at the opposing box.
+- **Obstacle avoidance** (`Rendering-Layout-ConnectorRouter-AvoidsObstacles`):
+  `Route_ObstacleBetweenEndpoints_RoutesAroundInterior` confirms the route is orthogonal and never
+  enters an intervening box's interior.
+- **Endpoint exclusion** (`Rendering-Layout-ConnectorRouter-ExcludesEndpoints`):
+  `Route_EndpointBoxes_AreExcludedFromObstacles` confirms the connector reaches the endpoints' boundary
+  anchors even though both boxes appear in the box list.
+- **Styling carried** (`Rendering-Layout-ConnectorRouter-CarriesStyling`):
+  `Route_Connection_CarriesRequestedStyling` confirms the requested target marker, line style, and
+  label flow onto the produced line while the source end stays unmarked.
+- **Batch order** (`Rendering-Layout-ConnectorRouter-BatchOrder`):
+  `Route_MultipleConnections_ReturnsOneLinePerConnectionInOrder` confirms one line per connection in
+  input order.
+- **Validation** (`Rendering-Layout-ConnectorRouter-Validation`): `Route_NullBoxes_Throws`,
+  `Route_NullConnections_Throws`, `Route_NullOptions_Throws`, and `Route_NullConnection_Throws` confirm
+  null arguments are rejected with an argument-null error.
+
+## ContainmentLayout Verification
+
+### ContainmentLayout Scenarios
+
+- **Order preserved** (`Rendering-Layout-ContainmentLayout-Order`):
+  `Pack_ItemsFitInRow_PreservesOrderLeftToRight` confirms the packed children keep their input order,
+  positioned left to right along a shared row.
+- **No overlap** (`Rendering-Layout-ContainmentLayout-NoOverlap`): `Pack_MixedSizes_ProducesNoOverlaps`
+  asserts no two packed children overlap for a multi-row mix of sizes.
+- **Within region** (`Rendering-Layout-ContainmentLayout-WithinRegion`):
+  `Pack_MixedSizes_AllChildrenWithinRegion` asserts every child lies inside the reported region.
+- **Wrapping** (`Rendering-Layout-ContainmentLayout-Wrapping`):
+  `Pack_ChildExceedsWidth_WrapsToNewRow` confirms an overflowing child starts a new row beneath the
+  current one at the left origin.
+- **Oversized child** (`Rendering-Layout-ContainmentLayout-OversizedChild`):
+  `Pack_OversizedChild_PlacedAloneAndRegionWidens` confirms a child wider than the content width is
+  placed alone and the region widens to contain it.
+- **Empty input** (`Rendering-Layout-ContainmentLayout-EmptyInput`):
+  `Pack_EmptyInput_ReturnsPaddingOnlyRegion` confirms an empty input yields no children and a
+  padding-only region.
+- **Fields preserved** (`Rendering-Layout-ContainmentLayout-PreservesFields`):
+  `Pack_PreservesNonPositionFields` confirms label, depth, shape, compartments, nested children, and
+  keyword survive unchanged while only X and Y are updated.
+- **Option defaults** (`Rendering-Layout-ContainmentLayout-Defaults`):
+  `ContainmentOptions_Defaults_AreSensibleGapsAndPadding` confirms the default gaps are eight pixels and
+  the default padding is twelve pixels.
+- **Validation** (`Rendering-Layout-ContainmentLayout-Validation`): `Pack_NullChildren_Throws`,
+  `Pack_NullOptions_Throws`, and `Pack_NullChildElement_Throws` confirm null arguments are rejected with
+  an argument-null error.
+
+## ContainmentLayoutAlgorithm Verification
+
+### ContainmentLayoutAlgorithm Scenarios
+
+- **Identity** (`Rendering-Layout-ContainmentAlgorithm-Identity`): `Id_IsContainment` asserts the
+  algorithm reports the stable `"containment"` identifier.
+- **Packs nodes** (`Rendering-Layout-ContainmentAlgorithm-PacksNodes`):
+  `Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas` confirms one placed box per node, in
+  input order, with no two boxes overlapping and every box inside the reported canvas.
+- **Routes edges** (`Rendering-Layout-ContainmentAlgorithm-RoutesEdges`):
+  `Apply_Graph_RoutesOneConnectorPerEdgeCarryingStyling` confirms one routed connector per input edge,
+  each carrying the edge's target end marker, line style, and label.
+- **Routes around obstacle** (`Rendering-Layout-ContainmentAlgorithm-RoutesAroundObstacle`):
+  `Apply_EdgeCrossingInterveningBox_RoutesAroundIt` confirms an edge whose endpoints straddle an
+  intervening packed box is routed around that box's interior.
+- **Empty graph** (`Rendering-Layout-ContainmentAlgorithm-EmptyGraph`):
+  `Apply_EmptyGraph_ReturnsEmptyCanvas` confirms an empty graph yields an empty placed tree with a
+  positive-size canvas.
+- **Skips out-of-graph edges** (`Rendering-Layout-ContainmentAlgorithm-SkipsOutOfGraphEdges`):
+  `Apply_EdgeReferencingOutOfGraphNode_IsSkipped` confirms an edge whose endpoint is not a top-level
+  node is skipped rather than routed.
+- **Validation** (`Rendering-Layout-ContainmentAlgorithm-Validation`): `Apply_NullGraph_Throws` and
+  `Apply_NullOptions_Throws` confirm null arguments are rejected with an argument-null error.
+
+## HierarchicalLayoutAlgorithm Verification
+
+### HierarchicalLayoutAlgorithm Scenarios
+
+- **Identity** (`Rendering-Layout-HierarchicalLayout-Identity`): `Id_IsHierarchical` asserts the engine
+  reports the stable `"hierarchical"` identifier.
+- **Flat equivalence** (`Rendering-Layout-HierarchicalLayout-FlatEquivalence`):
+  `Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly` and
+  `Apply_FlatRandomGraphs_MatchContainmentAlgorithmExactly` feed hundreds of pseudo-random flat graphs
+  through the engine and the selected leaf algorithm and deep-compare the two placed trees bit-for-bit
+  (canvas size, node kinds, box geometry and attributes, and every line waypoint), proving a graph with
+  no container nodes is placed identically to the leaf algorithm applied directly.
+- **Nests children** (`Rendering-Layout-HierarchicalLayout-NestsChildren`):
+  `Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely` confirms a container is sized to
+  enclose its children and each nested box lies within the container's bounds;
+  `Apply_ThreeLevelNesting_Succeeds` confirms three levels compose so a box contains a box that contains
+  a box.
+- **Per-node algorithm** (`Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm`):
+  `Apply_ContainmentRootWithLayeredContainer_Composes` and
+  `Apply_LayeredRootWithContainmentContainer_Composes` confirm a container overriding its algorithm is
+  laid out with that algorithm while its parent uses another, composing with nested children.
+- **Hierarchy handling** (`Rendering-Layout-HierarchicalLayout-HierarchyHandling`):
+  `Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely` confirms children are laid out in
+  their own coordinate space and composed into the parent at absolute coordinates.
+  `Apply_CompoundGraph_DoesNotMutateInputNodeSizes` confirms the engine sizes containers over an
+  internal sized view and never mutates the caller's input node dimensions.
+- **Cross-container edge** (`Rendering-Layout-HierarchicalLayout-CrossContainerEdge`):
+  `Apply_CrossContainerEdge_RoutesAroundInterveningContainer` confirms an edge between children of
+  different sibling containers is routed at the owning scope and no routed segment passes through the
+  intervening container's interior.
+- **Validation** (`Rendering-Layout-HierarchicalLayout-Validation`): `Apply_NullGraph_Throws`,
+  `Apply_NullOptions_Throws`, and `Constructor_NullRegistry_Throws` confirm null arguments are rejected
+  with an argument-null error.
+
+## LayoutAlgorithms and LayoutEngine Verification
+
+### DefaultLayout Scenarios
+
+- **Bundled algorithms** (`Rendering-Layout-DefaultRegistry-BundledAlgorithms`):
+  `CreateDefaultRegistry_ResolvesLayeredAlgorithm`, `CreateDefaultRegistry_ResolvesContainmentAlgorithm`,
+  and `CreateDefaultRegistry_ResolvesHierarchicalAlgorithm` confirm each bundled algorithm resolves by
+  its identifier; `CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms` confirms exactly those
+  three identifiers are present; `CreateDefaultRegistry_ReturnsIndependentInstances` confirms registering
+  into one returned registry does not affect a registry from a separate call.
+- **Default algorithm** (`Rendering-Layout-LayoutEngine-DefaultAlgorithm`): `DefaultAlgorithmId_IsHierarchical`
+  confirms the facade's declared default is `"hierarchical"`;
+  `Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly` confirms an undeclared flat graph is
+  laid out through the hierarchical engine to a result identical to the layered leaf algorithm.
+- **Resolution** (`Rendering-Layout-LayoutEngine-Resolution`):
+  `Layout_OptionsDeclareLayered_MatchesLayeredAlgorithmExactly` and
+  `Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly` confirm an explicit options
+  declaration selects that algorithm; `Layout_GraphDeclarationOverridesOptions` confirms a graph-level
+  declaration takes precedence over the options.
+- **Flat equivalence** (`Rendering-Layout-LayoutEngine-FlatEquivalence`):
+  `Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly` and
+  `Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly` deep-compare the facade's output
+  bit-for-bit with the leaf algorithm applied directly, proving the facade changes no existing output.
+- **Nested composition** (`Rendering-Layout-LayoutEngine-NestedComposition`):
+  `Layout_NestedGraphNoAlgorithmDeclared_ProducesComposedTree` confirms an undeclared nested graph is
+  composed so the container box carries its recursively laid-out children.
+- **Custom registry** (`Rendering-Layout-LayoutEngine-CustomRegistry`):
+  `Layout_CustomRegistry_ResolvesRegisteredAlgorithm` confirms a caller-supplied registry's algorithm is
+  resolved and applied; `Layout_UnregisteredAlgorithm_Throws` confirms an unknown identifier surfaces a
+  key-not-found error.
+- **Validation** (`Rendering-Layout-LayoutEngine-Validation`): `Layout_NullGraph_Throws`,
+  `Layout_NullOptions_Throws`, and `Layout_NullRegistry_Throws` confirm null arguments are rejected with
+  an argument-null error.
 
 ## Acceptance Criteria
 
@@ -211,17 +370,17 @@ Every requirement maps to at least one named test scenario:
 - **`Rendering-Layout-OrthogonalRouting`**: Route_NoObstacles_ProducesOrthogonalPath,
   Route_ObstacleBetween_RoutesAround
 - **`Rendering-Layout-Containment`**: Pack_MixedSizes_ProducesNoOverlaps, Pack_ItemsFitInRow_ShareSameRow
-- **`Rendering-Layout-ChannelRouter-Orthogonal`**: Route_NoObstacles_ProducesOrthogonalPath,
+- **`Rendering-Layout-OrthogonalEdgeRouter-Orthogonal`**: Route_NoObstacles_ProducesOrthogonalPath,
   Route_AlignedEndpoints_ProducesStraightLine
-- **`Rendering-Layout-ChannelRouter-AvoidObstacles`**: Route_ObstacleBetween_RoutesAround,
+- **`Rendering-Layout-OrthogonalEdgeRouter-AvoidObstacles`**: Route_ObstacleBetween_RoutesAround,
   Route_MultipleObstacles_RemainsValid,
   RouteWithStatus_ObstacleBetween_RoutesAroundWithoutCrossing
-- **`Rendering-Layout-ChannelRouter-Clearance`**: RouteWithStatus_CleanRoute_KeepsClearanceFromObstacles
-- **`Rendering-Layout-ChannelRouter-PerpendicularEnds`**: Route_WithSourceSide_LeavesPerpendicular,
+- **`Rendering-Layout-OrthogonalEdgeRouter-Clearance`**: RouteWithStatus_CleanRoute_KeepsClearanceFromObstacles
+- **`Rendering-Layout-OrthogonalEdgeRouter-PerpendicularEnds`**: Route_WithSourceSide_LeavesPerpendicular,
   Route_WithTargetSide_EntersPerpendicular
-- **`Rendering-Layout-ChannelRouter-CrossingStatus`**: RouteWithStatus_NoBlockingObstacle_ReportsNotCrossed,
+- **`Rendering-Layout-OrthogonalEdgeRouter-CrossingStatus`**: RouteWithStatus_NoBlockingObstacle_ReportsNotCrossed,
   RouteWithStatus_TargetEnclosedByObstacle_ReportsCrossed
-- **`Rendering-Layout-ChannelRouter-CostBands`**: RouteWithStatus_HighwayBand_PrefersBandedDetour
+- **`Rendering-Layout-OrthogonalEdgeRouter-CostBands`**: RouteWithStatus_HighwayBand_PrefersBandedDetour
 - **`Rendering-Layout-ContainmentPacker-SingleRow`**: Pack_ItemsFitInRow_ShareSameRow
 - **`Rendering-Layout-ContainmentPacker-Wrapping`**: Pack_ItemsExceedWidth_WrapToNewRow
 - **`Rendering-Layout-ContainmentPacker-NoOverlap`**: Pack_MixedSizes_ProducesNoOverlaps
@@ -295,4 +454,70 @@ Every requirement maps to at least one named test scenario:
 - **`Rendering-Layout-LayeredAlgorithm-Identity`**: Id_IsLayered
 - **`Rendering-Layout-LayeredAlgorithm-PlacesAndRoutes`**: Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
 - **`Rendering-Layout-LayeredAlgorithm-EmptyGraph`**: Apply_EmptyGraph_ReturnsEmptyCanvas
-- **`Rendering-Layout-LayeredAlgorithm-Validation`**: Apply_NullGraph_Throws
+- **`Rendering-Layout-LayeredAlgorithm-Validation`**: Apply_NullGraph_Throws, Apply_NullOptions_Throws
+- **`Rendering-Layout-ConnectorRouting`**: Route_TargetToTheRight_AnchorsFaceEachOther,
+  Route_ObstacleBetweenEndpoints_RoutesAroundInterior
+- **`Rendering-Layout-EdgeRouting-Selection`**: CoreOptions_EdgeRouting_DefaultsToOrthogonal,
+  CoreOptions_EdgeRouting_HasStableId, CoreOptions_EdgeRouting_SelectablePerScope,
+  CoreOptions_EdgeRouting_UnsetReturnsDefault
+- **`Rendering-Layout-EdgeRouting-Defaults`**: ConnectorRouteOptions_Defaults_AreOrthogonalWithTwelvePixelClearance
+- **`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`**: Route_TargetToTheRight_AnchorsFaceEachOther,
+  Route_TargetBelow_AnchorsFaceEachOther
+- **`Rendering-Layout-ConnectorRouter-AvoidsObstacles`**: Route_ObstacleBetweenEndpoints_RoutesAroundInterior
+- **`Rendering-Layout-ConnectorRouter-ExcludesEndpoints`**: Route_EndpointBoxes_AreExcludedFromObstacles
+- **`Rendering-Layout-ConnectorRouter-CarriesStyling`**: Route_Connection_CarriesRequestedStyling
+- **`Rendering-Layout-ConnectorRouter-BatchOrder`**: Route_MultipleConnections_ReturnsOneLinePerConnectionInOrder
+- **`Rendering-Layout-ConnectorRouter-Validation`**: Route_NullBoxes_Throws, Route_NullConnections_Throws,
+  Route_NullOptions_Throws, Route_NullConnection_Throws
+- **`Rendering-Layout-ContainmentPlacement`**: Pack_ItemsFitInRow_PreservesOrderLeftToRight,
+  Pack_MixedSizes_ProducesNoOverlaps
+- **`Rendering-Layout-ContainmentLayout-Order`**: Pack_ItemsFitInRow_PreservesOrderLeftToRight
+- **`Rendering-Layout-ContainmentLayout-NoOverlap`**: Pack_MixedSizes_ProducesNoOverlaps
+- **`Rendering-Layout-ContainmentLayout-WithinRegion`**: Pack_MixedSizes_AllChildrenWithinRegion
+- **`Rendering-Layout-ContainmentLayout-Wrapping`**: Pack_ChildExceedsWidth_WrapsToNewRow
+- **`Rendering-Layout-ContainmentLayout-OversizedChild`**: Pack_OversizedChild_PlacedAloneAndRegionWidens
+- **`Rendering-Layout-ContainmentLayout-EmptyInput`**: Pack_EmptyInput_ReturnsPaddingOnlyRegion
+- **`Rendering-Layout-ContainmentLayout-PreservesFields`**: Pack_PreservesNonPositionFields
+- **`Rendering-Layout-ContainmentLayout-Defaults`**: ContainmentOptions_Defaults_AreSensibleGapsAndPadding
+- **`Rendering-Layout-ContainmentLayout-Validation`**: Pack_NullChildren_Throws, Pack_NullOptions_Throws,
+  Pack_NullChildElement_Throws
+- **`Rendering-Layout-ContainmentAlgorithm`**: Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas,
+  Id_IsContainment
+- **`Rendering-Layout-ContainmentAlgorithm-Identity`**: Id_IsContainment
+- **`Rendering-Layout-ContainmentAlgorithm-PacksNodes`**: Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas
+- **`Rendering-Layout-ContainmentAlgorithm-RoutesEdges`**: Apply_Graph_RoutesOneConnectorPerEdgeCarryingStyling
+- **`Rendering-Layout-ContainmentAlgorithm-RoutesAroundObstacle`**: Apply_EdgeCrossingInterveningBox_RoutesAroundIt
+- **`Rendering-Layout-ContainmentAlgorithm-EmptyGraph`**: Apply_EmptyGraph_ReturnsEmptyCanvas
+- **`Rendering-Layout-ContainmentAlgorithm-SkipsOutOfGraphEdges`**: Apply_EdgeReferencingOutOfGraphNode_IsSkipped
+- **`Rendering-Layout-ContainmentAlgorithm-Validation`**: Apply_NullGraph_Throws, Apply_NullOptions_Throws
+- **`Rendering-Layout-HierarchicalLayout`**: Id_IsHierarchical, Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly
+- **`Rendering-Layout-HierarchicalLayout-Identity`**: Id_IsHierarchical
+- **`Rendering-Layout-HierarchicalLayout-FlatEquivalence`**: Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly,
+  Apply_FlatRandomGraphs_MatchContainmentAlgorithmExactly
+- **`Rendering-Layout-HierarchicalLayout-NestsChildren`**:
+  Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely, Apply_ThreeLevelNesting_Succeeds
+- **`Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm`**: Apply_ContainmentRootWithLayeredContainer_Composes,
+  Apply_LayeredRootWithContainmentContainer_Composes
+- **`Rendering-Layout-HierarchicalLayout-HierarchyHandling`**:
+  Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely,
+  Apply_CompoundGraph_DoesNotMutateInputNodeSizes
+- **`Rendering-Layout-HierarchicalLayout-CrossContainerEdge`**:
+  Apply_CrossContainerEdge_RoutesAroundInterveningContainer
+- **`Rendering-Layout-HierarchicalLayout-Validation`**: Apply_NullGraph_Throws, Apply_NullOptions_Throws,
+  Constructor_NullRegistry_Throws
+- **`Rendering-Layout-DefaultLayout`**: CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms,
+  Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly
+- **`Rendering-Layout-DefaultRegistry-BundledAlgorithms`**: CreateDefaultRegistry_ResolvesLayeredAlgorithm,
+  CreateDefaultRegistry_ResolvesContainmentAlgorithm, CreateDefaultRegistry_ResolvesHierarchicalAlgorithm,
+  CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms, CreateDefaultRegistry_ReturnsIndependentInstances
+- **`Rendering-Layout-LayoutEngine-DefaultAlgorithm`**: DefaultAlgorithmId_IsHierarchical,
+  Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly
+- **`Rendering-Layout-LayoutEngine-Resolution`**: Layout_OptionsDeclareLayered_MatchesLayeredAlgorithmExactly,
+  Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly, Layout_GraphDeclarationOverridesOptions
+- **`Rendering-Layout-LayoutEngine-FlatEquivalence`**: Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly,
+  Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly
+- **`Rendering-Layout-LayoutEngine-NestedComposition`**: Layout_NestedGraphNoAlgorithmDeclared_ProducesComposedTree
+- **`Rendering-Layout-LayoutEngine-CustomRegistry`**: Layout_CustomRegistry_ResolvesRegisteredAlgorithm,
+  Layout_UnregisteredAlgorithm_Throws
+- **`Rendering-Layout-LayoutEngine-Validation`**: Layout_NullGraph_Throws, Layout_NullOptions_Throws,
+  Layout_NullRegistry_Throws

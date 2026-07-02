@@ -37,6 +37,14 @@ reviews:
       - "docs/user_guide/**/*.md"
       - "docs/design/introduction.md"
       - "docs/verification/introduction.md"
+      # NamespaceDoc.cs files are namespace-level documentation carriers, not
+      # functional code: each is an `internal static class NamespaceDoc` whose
+      # XML <summary> ApiMark renders as the namespace landing-page description.
+      # They advertise the packages' capabilities and "start here" orientation,
+      # so they are reviewed here alongside the other user-facing promises.
+      # (They are also caught by `needs-review: **/*.cs`; this groups them into
+      # the correct compliance question.)
+      - "src/**/NamespaceDoc.cs"
 
   # All requirements quality and traceability
   - id: Rendering-AllRequirements
@@ -91,15 +99,27 @@ reviews:
       - "src/DemaConsulting.Rendering.Svg/**/*.cs"
       - "test/DemaConsulting.Rendering.Svg.Tests/**/*.cs"
 
-  # Rendering.Png system
+  # Rendering.Skia system
   - id: rendering-skia
     title: Review of the PNG renderer
     paths:
       - "docs/reqstream/rendering-skia/**/*.yaml"
       - "docs/design/rendering-skia/**/*.md"
       - "docs/verification/rendering-skia/**/*.md"
-      - "src/DemaConsulting.Rendering.Png/**/*.cs"
-      - "test/DemaConsulting.Rendering.Png.Tests/**/*.cs"
+      - "src/DemaConsulting.Rendering.Skia/**/*.cs"
+      - "test/DemaConsulting.Rendering.Skia.Tests/**/*.cs"
+
+  # Rendering gallery showcase
+  - id: Rendering-Gallery
+    title: Review of the rendering gallery showcase / smoke tests
+    paths:
+      # The gallery project's C# files are caught by `needs-review: **/*.cs`, so
+      # they are grouped here into their own compliance question. They are
+      # showcase/smoke tests, not requirement-verification tests: each fact
+      # renders one curated diagram through the public API and asserts the output
+      # image is valid. The generated images and index under docs/gallery/** are
+      # not in `needs-review` and are intentionally left out of this set.
+      - "test/DemaConsulting.Rendering.Gallery/**/*.cs"
 
   # OTS Items
   - id: OTS-BuildMark

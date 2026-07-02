@@ -74,7 +74,7 @@ public sealed class LongEdgeJoinerTests
         new CrossingMinimizer().Apply(graph);
         new BrandesKopfPlacer().Apply(graph);
         new PortDistributor().Apply(graph);
-        new OrthogonalRouter().Apply(graph);
+        new LayeredCorridorRouter().Apply(graph);
         new LongEdgeJoiner().Apply(graph);
         return graph;
     }

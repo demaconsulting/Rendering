@@ -8,7 +8,7 @@ using DemaConsulting.Rendering.Layout.Engine.Layered;
 namespace DemaConsulting.Rendering.Layout.Tests.Engine.Layered;
 
 /// <summary>
-///     Tests for <see cref="OrthogonalRouter"/> covering that an aligned edge produces no bend
+///     Tests for <see cref="LayeredCorridorRouter"/> covering that an aligned edge produces no bend
 ///     points and that every bend list is empty or a two-point vertical segment.
 /// </summary>
 public sealed class OrthogonalRouterTests
@@ -62,7 +62,7 @@ public sealed class OrthogonalRouterTests
         new CrossingMinimizer().Apply(graph);
         new BrandesKopfPlacer().Apply(graph);
         new PortDistributor().Apply(graph);
-        new OrthogonalRouter().Apply(graph);
+        new LayeredCorridorRouter().Apply(graph);
         return graph;
     }
 }

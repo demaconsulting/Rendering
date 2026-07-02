@@ -57,7 +57,10 @@ words:
   - posis
   - longedge
   - selfloop
+  - edgerouting
+  - hierarchyhandling
   - facade
+  - browsable
   # Non-ASCII terms retained verbatim in extracted source comments
   - façade
   - Köpf
@@ -66,6 +69,7 @@ words:
   - colour
   - colours
   - initialised
+  - optimised
 
 # Exclude common build artifacts, dependencies, and vendored third-party code
 ignorePaths:
@@ -76,6 +80,7 @@ ignorePaths:
   - "**/third-party/**"
   - "**/3rd-party/**"
   - "**/generated/**"
+  - "src/*/api/**"
   - "**/AGENT_REPORT_*.md"
   - "**/.agent-logs/**"
   - "**/bin/**"
