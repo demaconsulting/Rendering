@@ -38,9 +38,23 @@ software items:
 - **Rendering.Svg (System)** — the SVG renderer.
 - **Rendering.Skia (System)** — the SkiaSharp raster renderers (PNG, JPEG, and WEBP).
 
+The integration design for the following OTS build, compliance, and documentation tools is also
+covered (their internal design is out of scope):
+
+- **BuildMark** — build-notes documentation tool
+- **FileAssert** — document assertion tool
+- **Pandoc** — Markdown-to-HTML conversion tool
+- **ReqStream** — requirements traceability tool
+- **ReviewMark** — file review enforcement tool
+- **SarifMark** — SARIF report conversion tool
+- **SonarMark** — SonarCloud quality report tool
+- **VersionMark** — tool-version documentation tool
+- **WeasyPrint** — HTML-to-PDF conversion tool
+- **xUnit** — unit-testing framework
+
 The following topics are explicitly excluded:
 
-- External library internals and third-party OTS components
+- Internal design or source of third-party OTS components (only their integration/usage design is covered)
 - Build pipeline configuration and CI/CD processes
 - Deployment, packaging, and distribution mechanisms
 - Test projects and test infrastructure
@@ -116,7 +130,24 @@ Rendering.Skia (System)
 ├── PngRenderer (Unit)          — lossless PNG output
 ├── JpegRenderer (Unit)         — JPEG output
 └── WebpRenderer (Unit)         — WEBP output
+
+OTS Software Items
+├── BuildMark    — build-notes documentation from GitHub Actions metadata
+├── FileAssert   — generated-document assertion tool
+├── Pandoc       — Markdown-to-HTML conversion
+├── ReqStream    — requirements traceability and enforcement
+├── ReviewMark   — file-review plan, report, and enforcement
+├── SarifMark    — CodeQL SARIF-to-Markdown conversion
+├── SonarMark    — SonarCloud quality-report generation
+├── VersionMark  — tool-version capture and publishing
+├── WeasyPrint   — HTML-to-PDF (PDF/A) conversion
+└── xUnit        — unit-testing framework
 ```
+
+The OTS software items are compliance, build, and documentation tooling consumed while building,
+verifying, and documenting the Rendering libraries; they are not linked into the delivered packages.
+Their integration design is described in the OTS Integration Design section and the per-item documents
+under `docs/design/ots/`.
 
 Package dependencies form an acyclic graph: `Abstractions` and `Layout` depend on the
 `Rendering` model; `Svg` and `Skia` depend on the model and `Abstractions`; the model depends
@@ -137,6 +168,12 @@ each unit review carries only its own slice:
 - Source code: `src/{System}/.../{Item}.cs` (PascalCase for C#)
 - Tests: `test/{System}.Tests/.../{Item}Tests.cs` (PascalCase for C#)
 - Review-sets: defined in `.reviewmark.yaml`
+
+OTS items sit parallel to the system folders and have no source code:
+
+- Requirements: `docs/reqstream/ots/{ots-name}.yaml` (kebab-case)
+- Design docs: `docs/design/ots.md` (integration index) plus `docs/design/ots/{ots-name}.md`
+- Verification: `docs/verification/ots/{ots-name}.md` (kebab-case)
 
 The five systems map to these kebab-case folders:
 
