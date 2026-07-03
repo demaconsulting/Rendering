@@ -4,19 +4,19 @@
 # requirements plus the unit-level requirements (as separate sections) that decompose them.
 includes:
   # In-house software systems
-  - docs/reqstream/rendering/rendering.yaml
+  - docs/reqstream/rendering.yaml
   - docs/reqstream/rendering/layout-tree.yaml
   - docs/reqstream/rendering/options.yaml
   - docs/reqstream/rendering/layout-graph.yaml
   - docs/reqstream/rendering/platform-requirements.yaml
-  - docs/reqstream/rendering-abstractions/rendering-abstractions.yaml
+  - docs/reqstream/rendering-abstractions.yaml
   - docs/reqstream/rendering-abstractions/rendering-contracts.yaml
   - docs/reqstream/rendering-abstractions/registries.yaml
   - docs/reqstream/rendering-abstractions/theme.yaml
   - docs/reqstream/rendering-abstractions/notation-metrics.yaml
   - docs/reqstream/rendering-abstractions/box-metrics.yaml
   - docs/reqstream/rendering-abstractions/connector-label-placer.yaml
-  - docs/reqstream/rendering-layout/rendering-layout.yaml
+  - docs/reqstream/rendering-layout.yaml
   - docs/reqstream/rendering-layout/engine/engine.yaml
   - docs/reqstream/rendering-layout/engine/orthogonal-edge-router.yaml
   - docs/reqstream/rendering-layout/engine/containment-packer.yaml
@@ -29,9 +29,9 @@ includes:
   - docs/reqstream/rendering-layout/containment-layout-algorithm.yaml
   - docs/reqstream/rendering-layout/hierarchical-layout-algorithm.yaml
   - docs/reqstream/rendering-layout/default-layout.yaml
-  - docs/reqstream/rendering-svg/rendering-svg.yaml
+  - docs/reqstream/rendering-svg.yaml
   - docs/reqstream/rendering-svg/svg-renderer.yaml
-  - docs/reqstream/rendering-skia/rendering-skia.yaml
+  - docs/reqstream/rendering-skia.yaml
   - docs/reqstream/rendering-skia/skia-raster-renderer.yaml
   - docs/reqstream/rendering-skia/png-renderer.yaml
   - docs/reqstream/rendering-skia/jpeg-renderer.yaml

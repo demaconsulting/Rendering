@@ -5,11 +5,11 @@ resource-path:
 input-files:
   - docs/verification/title.txt
   - docs/verification/introduction.md
-  - docs/verification/rendering/rendering.md
-  - docs/verification/rendering-abstractions/rendering-abstractions.md
-  - docs/verification/rendering-layout/rendering-layout.md
-  - docs/verification/rendering-svg/rendering-svg.md
-  - docs/verification/rendering-skia/rendering-skia.md
+  - docs/verification/rendering.md
+  - docs/verification/rendering-abstractions.md
+  - docs/verification/rendering-layout.md
+  - docs/verification/rendering-svg.md
+  - docs/verification/rendering-skia.md
   - docs/verification/ots/buildmark.md
   - docs/verification/ots/fileassert.md
   - docs/verification/ots/pandoc.md
