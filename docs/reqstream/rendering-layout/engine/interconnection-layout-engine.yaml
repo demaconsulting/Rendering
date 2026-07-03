@@ -40,34 +40,66 @@ sections:
           - Place_LongEdge_RectCountEqualsInputNodeCount
           - Place_LongEdge_RoutesViaDummyNodesWithinBounds
 
-      - id: Rendering-Layout-InterconnectionEngine-Waypoints
+      - id: Rendering-Layout-InterconnectionEngine-Waypoints-AcyclicMapping
         title: >-
-          InterconnectionLayoutEngine shall return one waypoint list per acyclic edge (after
-          self-loop removal, duplicate-pair de-duplication, and back-edge reversal), index-aligned
-          with the reported acyclic edge set; a span-one edge produces a straight two-waypoint path
-          and a long edge routes via dummy nodes within the layout bounds.
+          InterconnectionLayoutEngine shall return one waypoint list per acyclic edge after
+          self-loop removal, duplicate-pair de-duplication, and back-edge reversal, with the
+          waypoint list index-aligned to the reported acyclic edge set.
         justification: |
           Pre-computed waypoints allow the public algorithm and the interconnection view to emit
-          connector lines without any additional routing logic. The layered-layout pipeline requires
-          an acyclic graph to assign layers, so cycle-breaking (self-loop removal, de-duplication,
-          and back-edge reversal) necessarily runs before routing; the waypoint contract reflects
-          this and the acyclic edge set (index-aligned with the waypoints) lets a consumer recover
-          each input edge's route.
+          connector lines without additional routing logic. The layered-layout pipeline requires an
+          acyclic graph to assign layers, so cycle-breaking necessarily runs before routing; the
+          waypoint contract reflects this and lets a consumer recover each retained edge's route.
+        tests:
+          - Place_CyclicGraph_ReversesBackEdgeAndProducesWaypoint
+
+      - id: Rendering-Layout-InterconnectionEngine-Waypoints-StraightSpanOne
+        title: >-
+          InterconnectionLayoutEngine shall route a span-one edge as a straight two-waypoint path.
+        justification: |
+          A direct connection between adjacent layers does not require dummy nodes or bend points, so
+          the routed path should remain a straight source-port to target-port segment.
         tests:
           - Place_SingleEdge_ProducesStraightTwoWaypointPath
+
+      - id: Rendering-Layout-InterconnectionEngine-Waypoints-LongEdgeRouting
+        title: >-
+          InterconnectionLayoutEngine shall route a long edge via dummy nodes within the layout
+          bounds.
+        justification: |
+          Routing long edges through intermediate dummy nodes keeps connectors in the correct
+          inter-layer corridors and prevents them from clipping intervening boxes.
+        tests:
           - Place_LongEdge_RoutesViaDummyNodesWithinBounds
 
-      - id: Rendering-Layout-InterconnectionEngine-Direction
+      - id: Rendering-Layout-InterconnectionEngine-Direction-RequestedFlow
         title: >-
-          InterconnectionLayoutEngine shall place the nodes along the requested flow direction,
-          transposing the layout and its reported total dimensions for a top-to-bottom or bottom-to-top
-          flow, and shall default to the left-to-right flow.
+          InterconnectionLayoutEngine shall place nodes along the requested flow direction.
         justification: |
-          Directed views request a top-to-bottom placement; the engine must honor the requested
-          direction and report total dimensions that match the transposed layout, while the default
-          leaves the established left-to-right geometry unchanged.
+          Directed views request a specific reading order, so the engine must orient the node stack
+          to match the selected layout direction.
         tests:
           - Place_DownDirection_TransposesTotalsRelativeToRight
+
+      - id: Rendering-Layout-InterconnectionEngine-Direction-TransposedTotals
+        title: >-
+          InterconnectionLayoutEngine shall transpose the reported total dimensions for top-to-bottom
+          and bottom-to-top flow directions.
+        justification: |
+          Consumers need total dimensions that match the rendered screen-space orientation when the
+          layered layout is rotated away from the default rightward flow.
+        tests:
+          - Place_DownDirection_TransposesTotalsRelativeToRight
+
+      - id: Rendering-Layout-InterconnectionEngine-Direction-DefaultsToRight
+        title: >-
+          InterconnectionLayoutEngine shall default to the left-to-right flow when no direction is
+          requested.
+        justification: |
+          Preserving the established rightward default keeps existing callers behavior-preserving when
+          they omit the optional direction argument.
+        tests:
+          - Place_DefaultDirection_MatchesRightFlow
 
       - id: Rendering-Layout-InterconnectionEngine-Deterministic
         title: >-
@@ -77,5 +109,4 @@ sections:
           Reproducible layout is required so regenerating a view from unchanged input does not shift
           boxes or change connector routes.
         tests:
-          - Place_LinearChain_MonotonicLayerAssignment
-          - Place_WorkstationTopology_CorrectLayersAndNoOverlap
+          - Place_RepeatedInvocation_ProducesIdenticalGeometry

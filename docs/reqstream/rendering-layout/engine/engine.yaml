@@ -58,8 +58,12 @@ sections:
           - Rendering-Layout-InterconnectionEngine-Layering
           - Rendering-Layout-InterconnectionEngine-NonOverlapping
           - Rendering-Layout-InterconnectionEngine-DummyNodes
-          - Rendering-Layout-InterconnectionEngine-Waypoints
-          - Rendering-Layout-InterconnectionEngine-Direction
+          - Rendering-Layout-InterconnectionEngine-Waypoints-AcyclicMapping
+          - Rendering-Layout-InterconnectionEngine-Waypoints-StraightSpanOne
+          - Rendering-Layout-InterconnectionEngine-Waypoints-LongEdgeRouting
+          - Rendering-Layout-InterconnectionEngine-Direction-RequestedFlow
+          - Rendering-Layout-InterconnectionEngine-Direction-TransposedTotals
+          - Rendering-Layout-InterconnectionEngine-Direction-DefaultsToRight
           - Rendering-Layout-InterconnectionEngine-Deterministic
         tests:
           - Place_LinearChain_MonotonicLayerAssignment

@@ -59,6 +59,10 @@ strategy to obtain a placement result.
 | Rendering-Layout-InterconnectionEngine-Layering | InterconnectionLayoutEngine behavior described above |
 | Rendering-Layout-InterconnectionEngine-NonOverlapping | InterconnectionLayoutEngine behavior described above |
 | Rendering-Layout-InterconnectionEngine-DummyNodes | InterconnectionLayoutEngine behavior described above |
-| Rendering-Layout-InterconnectionEngine-Waypoints | InterconnectionLayoutEngine behavior described above |
-| Rendering-Layout-InterconnectionEngine-Direction | InterconnectionLayoutEngine behavior described above |
+| Rendering-Layout-InterconnectionEngine-Waypoints-AcyclicMapping | See above |
+| Rendering-Layout-InterconnectionEngine-Waypoints-StraightSpanOne | See above |
+| Rendering-Layout-InterconnectionEngine-Waypoints-LongEdgeRouting | See above |
+| Rendering-Layout-InterconnectionEngine-Direction-RequestedFlow | See above |
+| Rendering-Layout-InterconnectionEngine-Direction-TransposedTotals | See above |
+| Rendering-Layout-InterconnectionEngine-Direction-DefaultsToRight | See above |
 | Rendering-Layout-InterconnectionEngine-Deterministic | InterconnectionLayoutEngine behavior described above |
