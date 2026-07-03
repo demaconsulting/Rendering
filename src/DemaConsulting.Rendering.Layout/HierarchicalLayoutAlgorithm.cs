@@ -253,8 +253,10 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
     /// <summary>
     /// Builds an internal, side-effect-free sized view of <paramref name="graph"/>: the same nodes in
-    /// the same order (container nodes carrying their effective size, leaves their own size) and only
-    /// the edges whose endpoints are both direct members of this scope.
+    /// the same order (container nodes carrying their effective size, leaves their own size), only
+    /// the edges whose endpoints are both direct members of this scope, and the scope's own
+    /// <see cref="CoreOptions.Direction"/> override (when present) so it is honored by leaf algorithms
+    /// that read direction directly from the graph.
     /// </summary>
     /// <param name="graph">The caller's scope, which is never mutated.</param>
     /// <param name="effectiveSize">Effective sizes for the container nodes of this scope.</param>
@@ -264,6 +266,16 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
         Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize)
     {
         var view = new LayoutGraph();
+
+        // Propagate the scope's own CoreOptions.Direction override (if any) onto the sized view, so a
+        // leaf algorithm that reads it directly from the graph (e.g. LayeredLayoutAlgorithm) honors a
+        // caller-supplied direction override on this container scope instead of falling back to the
+        // shared options. CoreOptions.Algorithm is handled separately by ResolveScopeAlgorithm.
+        if (graph.TryGet(CoreOptions.Direction, out var direction))
+        {
+            view.Set(CoreOptions.Direction, direction);
+        }
+
         var viewOf = new Dictionary<LayoutGraphNode, LayoutGraphNode>(graph.Nodes.Count);
         foreach (var node in graph.Nodes)
         {

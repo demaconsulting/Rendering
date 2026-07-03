@@ -167,6 +167,7 @@ sections:
           - Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm
           - Rendering-Layout-HierarchicalLayout-HierarchyHandling
           - Rendering-Layout-HierarchicalLayout-CrossContainerEdge
+          - Rendering-Layout-HierarchicalLayout-PropagatesDirection
           - Rendering-Layout-HierarchicalLayout-ValidatesGraph
           - Rendering-Layout-HierarchicalLayout-ValidatesOptions
           - Rendering-Layout-HierarchicalLayout-ValidatesRegistry

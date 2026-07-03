@@ -74,6 +74,19 @@ sections:
         tests:
           - Apply_CrossContainerEdge_RoutesAroundInterveningContainer
 
+      - id: Rendering-Layout-HierarchicalLayout-PropagatesDirection
+        title: >-
+          HierarchicalLayoutAlgorithm shall carry a container scope's own CoreOptions.Direction override
+          onto the sized view graph passed to the leaf algorithm for that scope.
+        justification: |
+          A leaf algorithm such as LayeredLayoutAlgorithm reads CoreOptions.Direction directly from the
+          graph it is given, in preference to the shared options. Without propagating a scope's own
+          direction override onto the internal sized view, a caller-supplied override on a nested
+          container would be silently dropped and the container would fall back to the parent options'
+          direction instead.
+        tests:
+          - Apply_ContainerWithDirectionOverride_HonorsNestedDirection
+
       - id: Rendering-Layout-HierarchicalLayout-ValidatesGraph
         title: >-
           HierarchicalLayoutAlgorithm shall reject a null graph argument with an argument-null error.

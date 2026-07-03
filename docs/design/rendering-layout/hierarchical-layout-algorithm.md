@@ -44,9 +44,11 @@ algoId, options)` performs:
    sub-layout size grown by `ContainerPadding` on every side plus a title band when the container is
    labelled.
 3. **Sized view.** The engine builds an internal, side-effect-free *view* graph with the same nodes in
-   the same order (container nodes carrying their effective size, leaves their own size, labels copied)
-   and only the edges whose endpoints are both direct members of this scope. The caller's input graph
-   is never mutated.
+   the same order (container nodes carrying their effective size, leaves their own size, labels copied),
+   only the edges whose endpoints are both direct members of this scope, and the scope's own
+   `CoreOptions.Direction` override (when set) so it is honored by a leaf algorithm that reads direction
+   directly from the graph (e.g. `LayeredLayoutAlgorithm`) instead of falling back to the shared options.
+   The caller's input graph is never mutated.
 4. **Placement.** The resolved leaf algorithm places the sized view, emitting one box per node in input
    order followed by routed lines for the in-scope edges.
 5. **Composition.** Each container's placed box receives its recursively laid-out children, translated
@@ -87,8 +89,8 @@ treated as errors.
   contract and resolves the per-scope leaf algorithm from the injected registry.
 - **Rendering model** (`DemaConsulting.Rendering`) — the `LayoutGraph`, `LayoutGraphNode`,
   `LayoutTree`, `LayoutBox`, `LayoutLine`, and `Point2D` types on the layout contract, plus
-  `CoreOptions.Algorithm`, `CoreOptions.EdgeRouting`, and `CoreOptions.HierarchyHandling` for
-  configuration.
+  `CoreOptions.Algorithm`, `CoreOptions.Direction`, `CoreOptions.EdgeRouting`, and
+  `CoreOptions.HierarchyHandling` for configuration.
 - **Layout units** — `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm` as bundled leaf
   algorithms registered in the default registry, and `ConnectorRouter` for LCA cross-container edge
   routing. See *ConnectorRouter Unit Design*.
@@ -128,6 +130,7 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-HierarchyHandling | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-CrossContainerEdge | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-PropagatesDirection | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-ValidatesGraph | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-ValidatesOptions | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-ValidatesRegistry | HierarchicalLayoutAlgorithm behavior described above |

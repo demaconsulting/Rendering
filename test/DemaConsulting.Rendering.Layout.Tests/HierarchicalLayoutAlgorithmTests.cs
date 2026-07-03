@@ -169,6 +169,42 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a container scope's own <see cref="CoreOptions.Direction"/> override is honored by
+    ///     the leaf algorithm laying out its children, even though the engine builds a fresh sized-view
+    ///     graph for that scope. Regression test: previously <c>BuildSizedView</c> did not propagate the
+    ///     scope's direction override onto the sized view, so a nested container's chain fell back to the
+    ///     parent options' direction (or the leaf default) instead of the override set directly on the
+    ///     container's children graph.
+    /// </summary>
+    [Fact]
+    public void Apply_ContainerWithDirectionOverride_HonorsNestedDirection()
+    {
+        // Arrange: a labelled container whose children graph overrides Direction to Down, while the
+        // top-level options select the (default) Right direction.
+        var graph = new LayoutGraph();
+        var group = graph.AddNode("group", 10, 10);
+        group.Label = "Group";
+        group.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+        var a = group.Children.AddNode("a", 80, 40);
+        var b = group.Children.AddNode("b", 80, 40);
+        var c = group.Children.AddNode("c", 80, 40);
+        group.Children.AddEdge("a-b", a, b);
+        group.Children.AddEdge("b-c", b, c);
+        graph.AddNode("outside", 80, 40);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the nested chain stacks vertically (strictly increasing Y), proving the container's own
+        // Down override was honored rather than falling back to the top-level Right default.
+        var containerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>(), box => box.Children.Count > 0);
+        var nestedBoxes = containerBox.Children.OfType<LayoutBox>().ToList();
+        Assert.Equal(3, nestedBoxes.Count);
+        Assert.True(nestedBoxes[0].Y < nestedBoxes[1].Y);
+        Assert.True(nestedBoxes[1].Y < nestedBoxes[2].Y);
+    }
+
+    /// <summary>
     ///     Proves that a cross-container edge — one whose endpoints live inside different sibling
     ///     containers — is routed at the owning scope around the intervening container rather than
     ///     through its interior.
