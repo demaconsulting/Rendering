@@ -42,12 +42,17 @@ sections:
 
       - id: Rendering-Layout-InterconnectionEngine-Waypoints
         title: >-
-          InterconnectionLayoutEngine shall return one waypoint list per input edge; a span-one edge
-          produces a straight two-waypoint path and a long edge routes via dummy nodes within the
-          layout bounds.
+          InterconnectionLayoutEngine shall return one waypoint list per acyclic edge (after
+          self-loop removal, duplicate-pair de-duplication, and back-edge reversal), index-aligned
+          with the reported acyclic edge set; a span-one edge produces a straight two-waypoint path
+          and a long edge routes via dummy nodes within the layout bounds.
         justification: |
           Pre-computed waypoints allow the public algorithm and the interconnection view to emit
-          connector lines without any additional routing logic.
+          connector lines without any additional routing logic. The layered-layout pipeline requires
+          an acyclic graph to assign layers, so cycle-breaking (self-loop removal, de-duplication,
+          and back-edge reversal) necessarily runs before routing; the waypoint contract reflects
+          this and the acyclic edge set (index-aligned with the waypoints) lets a consumer recover
+          each input edge's route.
         tests:
           - Place_SingleEdge_ProducesStraightTwoWaypointPath
           - Place_LongEdge_RoutesViaDummyNodesWithinBounds
