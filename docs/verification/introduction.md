@@ -37,6 +37,7 @@ The following OTS items are also covered:
 - **ReqStream** — requirements traceability tool
 - **ReviewMark** — file review enforcement tool
 - **SarifMark** — SARIF report conversion tool
+- **SkiaSharp** — raster graphics library (bitmap drawing and PNG/JPEG/WEBP encoding)
 - **SonarMark** — SonarCloud quality report tool
 - **VersionMark** — tool-version documentation tool
 - **WeasyPrint** — HTML-to-PDF conversion tool
