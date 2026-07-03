@@ -48,6 +48,7 @@ documentation. The following topics are explicitly excluded:
 
 - Build pipeline and CI/CD process testing
 - Infrastructure and hosting environment testing
+- Test projects and test infrastructure
 
 ## Verification Approach
 
