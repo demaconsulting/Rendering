@@ -180,15 +180,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
         // Flat fast path: when no direct node is a container, delegate straight to the leaf algorithm so
         // the result is byte-for-byte identical to invoking that algorithm directly. This preserves the
         // flat-graph equivalence guarantee: no cloning, no post-processing, no mutation.
-        var anyContainer = false;
-        foreach (var node in graph.Nodes)
-        {
-            if (node.HasChildren)
-            {
-                anyContainer = true;
-                break;
-            }
-        }
+        var anyContainer = graph.Nodes.Any(node => node.HasChildren);
 
         if (!anyContainer)
         {

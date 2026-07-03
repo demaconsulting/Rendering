@@ -22,8 +22,8 @@ public sealed class BrandesKopfPlacerTests
     {
         // Arrange / Act: place a three-node chain.
         var graph = BuildPlacedGraph(
-            new List<LayerNode> { new(60, 40), new(60, 40), new(60, 40) },
-            new List<LayerEdge> { new(0, 1), new(1, 2) });
+            [new(60, 40), new(60, 40), new(60, 40)],
+            [new(0, 1), new(1, 2)]);
 
         // Assert: coordinate arrays are sized correctly and finite.
         Assert.Equal(graph.AugNodes.Count, graph.AugX.Length);
@@ -43,8 +43,8 @@ public sealed class BrandesKopfPlacerTests
     {
         // Arrange / Act: place a three-node chain (three layers).
         var graph = BuildPlacedGraph(
-            new List<LayerNode> { new(60, 40), new(60, 40), new(60, 40) },
-            new List<LayerEdge> { new(0, 1), new(1, 2) });
+            [new(60, 40), new(60, 40), new(60, 40)],
+            [new(0, 1), new(1, 2)]);
 
         // Assert: column left edges strictly increase.
         for (var l = 1; l < graph.ColumnX.Length; l++)
@@ -65,8 +65,8 @@ public sealed class BrandesKopfPlacerTests
     {
         // Arrange / Act: one source fanning out to two equal-size targets in the next layer.
         var graph = BuildPlacedGraph(
-            new List<LayerNode> { new(60, 40), new(60, 40), new(60, 40) },
-            new List<LayerEdge> { new(0, 1), new(0, 2) });
+            [new(60, 40), new(60, 40), new(60, 40)],
+            [new(0, 1), new(0, 2)]);
 
         // The two targets occupy layer 1; the source occupies layer 0.
         var sourceY = graph.AugY[0];

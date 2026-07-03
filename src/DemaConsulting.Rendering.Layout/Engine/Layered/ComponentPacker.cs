@@ -140,12 +140,9 @@ internal sealed class ComponentPacker : ILayoutStage
         }
 
         // Union the endpoints of every non-self edge so connected nodes share a representative root.
-        foreach (var edge in graph.Edges)
+        foreach (var edge in graph.Edges.Where(edge => edge.Source != edge.Target))
         {
-            if (edge.Source != edge.Target)
-            {
-                Union(parent, edge.Source, edge.Target);
-            }
+            Union(parent, edge.Source, edge.Target);
         }
 
         // Group nodes by their representative root. Iterating nodes in ascending order makes the first

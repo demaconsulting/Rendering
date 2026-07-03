@@ -22,8 +22,8 @@ public sealed class LongEdgeJoinerTests
     {
         // Arrange / Act: join a single 0->1 edge.
         var graph = BuildJoinedGraph(
-            new List<LayerNode> { new(60, 40), new(60, 40) },
-            new List<LayerEdge> { new(0, 1) });
+            [new(60, 40), new(60, 40)],
+            [new(0, 1)]);
 
         // Assert: one polyline of two points.
         Assert.Single(graph.Waypoints);
@@ -39,7 +39,7 @@ public sealed class LongEdgeJoinerTests
     {
         // Arrange: a chain plus a span-three edge 0->3 (original edge index 3).
         var nodes = new List<LayerNode> { new(60, 40), new(60, 40), new(60, 40), new(60, 40) };
-        var graph = BuildJoinedGraph(nodes, new List<LayerEdge> { new(0, 1), new(1, 2), new(2, 3), new(0, 3) });
+        var graph = BuildJoinedGraph(nodes, [new(0, 1), new(1, 2), new(2, 3), new(0, 3)]);
 
         const int origIdx = 3;
         var polyline = graph.Waypoints[origIdx];

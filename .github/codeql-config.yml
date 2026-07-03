@@ -2,3 +2,10 @@
 # CodeQL configuration for Rendering
 
 name: "Rendering CodeQL Config"
+
+# Exclude build-generated sources from analysis. The obj/ and bin/ trees contain
+# compiler- and SDK-generated files (for example the xUnit auto-generated entry
+# point), which are not maintainable source and only produce noise alerts.
+paths-ignore:
+  - "**/obj/**"
+  - "**/bin/**"

@@ -21,7 +21,7 @@ public sealed class PortDistributorTests
     {
         // Arrange / Act: distribute ports for a single 0->1 edge.
         var nodes = new List<LayerNode> { new(60, 40), new(60, 40) };
-        var graph = BuildPortedGraph(nodes, new List<LayerEdge> { new(0, 1) });
+        var graph = BuildPortedGraph(nodes, [new(0, 1)]);
 
         var src = graph.AugEdges[0].Source;
         var tgt = graph.AugEdges[0].Target;
@@ -40,7 +40,7 @@ public sealed class PortDistributorTests
     {
         // Arrange / Act: distribute ports for a four-node diamond.
         var nodes = new List<LayerNode> { new(60, 40), new(60, 40), new(60, 40), new(60, 40) };
-        var graph = BuildPortedGraph(nodes, new List<LayerEdge> { new(0, 1), new(0, 2), new(1, 3), new(2, 3) });
+        var graph = BuildPortedGraph(nodes, [new(0, 1), new(0, 2), new(1, 3), new(2, 3)]);
 
         // Assert: one source and one target port per sub-edge.
         Assert.Equal(graph.AugEdges.Count, graph.AugPortYSrc.Length);
@@ -60,7 +60,7 @@ public sealed class PortDistributorTests
     {
         // Arrange / Act: distribute ports for a fan-out from a face far shorter than the clearance band.
         var nodes = new List<LayerNode> { new(60, 10), new(60, 10), new(60, 10) };
-        var graph = BuildPortedGraph(nodes, new List<LayerEdge> { new(0, 1), new(0, 2) });
+        var graph = BuildPortedGraph(nodes, [new(0, 1), new(0, 2)]);
 
         // Assert: every recorded port is finite and sits within its owning node's face.
         Assert.Equal(graph.AugEdges.Count, graph.AugPortYSrc.Length);

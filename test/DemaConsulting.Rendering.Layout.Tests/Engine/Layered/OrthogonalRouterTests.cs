@@ -22,8 +22,8 @@ public sealed class OrthogonalRouterTests
     {
         // Arrange / Act: route a single 0->1 edge.
         var graph = BuildRoutedGraph(
-            new List<LayerNode> { new(60, 40), new(60, 40) },
-            new List<LayerEdge> { new(0, 1) });
+            [new(60, 40), new(60, 40)],
+            [new(0, 1)]);
 
         // Assert: the single sub-edge has no bend points.
         Assert.Single(graph.AugBendPoints);
@@ -39,8 +39,8 @@ public sealed class OrthogonalRouterTests
     {
         // Arrange / Act: route a four-node diamond.
         var graph = BuildRoutedGraph(
-            new List<LayerNode> { new(60, 40), new(60, 40), new(60, 40), new(60, 40) },
-            new List<LayerEdge> { new(0, 1), new(0, 2), new(1, 3), new(2, 3) });
+            [new(60, 40), new(60, 40), new(60, 40), new(60, 40)],
+            [new(0, 1), new(0, 2), new(1, 3), new(2, 3)]);
 
         // Assert: each bend list is empty or a vertical two-point segment.
         Assert.All(graph.AugBendPoints, bend =>
