@@ -2,7 +2,7 @@
 
 ### Purpose
 
-FileAssert (`demaconsulting.fileassert`) validates the documents produced during the build. It asserts
+FileAssert (`DemaConsulting.FileAssert`) validates the documents produced during the build. It asserts
 that each generated HTML and PDF document exists, has a non-trivial size, and contains expected content.
 It provides the OTS verification evidence for Pandoc and WeasyPrint (whose output correctness is proven
 by FileAssert assertions) and independently confirms that document generation succeeded before ReqStream

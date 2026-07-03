@@ -2,7 +2,7 @@
 
 ### Purpose
 
-Pandoc (`demaconsulting.pandoctool`) converts the repository's Markdown documentation collections into
+Pandoc (`DemaConsulting.PandocTool`) converts the repository's Markdown documentation collections into
 HTML as the first stage of the document-generation pipeline. It is used to compile the build notes, code
 quality, code review plan and report, design, verification, requirements, and user guide collections
 into single HTML documents that WeasyPrint then renders to PDF.

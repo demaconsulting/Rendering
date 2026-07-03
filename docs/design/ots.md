@@ -36,7 +36,7 @@ The OTS items fall into two consumption models:
   manifest and restored with `dotnet tool restore`. They are invoked as `dotnet {tool}` commands from
   the CI workflows (`.github/workflows/build.yaml` and `release.yaml`) and, for the linting subset,
   from `lint.ps1`. The Pandoc and WeasyPrint tools are DemaConsulting distributions
-  (`demaconsulting.pandoctool`, `demaconsulting.weasyprinttool`) that package the underlying converters
+  (`DemaConsulting.PandocTool`, `DemaConsulting.WeasyPrintTool`) that package the underlying converters
   as .NET tools.
 - **Test framework** — xUnit is referenced as a NuGet test-framework dependency by the test projects
   and is exercised by `dotnet test`; it discovers and runs the repository's own test methods and

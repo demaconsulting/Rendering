@@ -2,7 +2,7 @@
 
 ### Purpose
 
-ReqStream (`demaconsulting.reqstream`) is the requirements-traceability tool for the repository. It
+ReqStream (`DemaConsulting.ReqStream`) is the requirements-traceability tool for the repository. It
 processes `requirements.yaml` and its include chain together with the TRX test-result files to produce a
 requirements report, a justifications document, and a traceability matrix, and — in enforcement mode —
 fails the build when any requirement lacks passing test evidence. It is the tool that ties requirements,

@@ -2,7 +2,7 @@
 
 ### Purpose
 
-SonarMark (`demaconsulting.sonarmark`) retrieves quality-gate status, metrics, issues, and security
+SonarMark (`DemaConsulting.SonarMark`) retrieves quality-gate status, metrics, issues, and security
 hotspots from SonarCloud for the repository's project and renders them as a Markdown quality report that
 is compiled into the release artifacts. It turns the SonarCloud analysis into an offline, reviewable
 compliance document.

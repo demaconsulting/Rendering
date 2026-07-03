@@ -2,7 +2,7 @@
 
 ### Purpose
 
-WeasyPrint (`demaconsulting.weasyprinttool`) converts the HTML documents produced by Pandoc into
+WeasyPrint (`DemaConsulting.WeasyPrintTool`) converts the HTML documents produced by Pandoc into
 archival PDF/A files. It is the final rendering stage of the document-generation pipeline, producing the
 release PDF artifacts for the build notes, code quality, code review plan and report, design,
 verification, requirements, and user guide collections.

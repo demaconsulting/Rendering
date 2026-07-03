@@ -2,7 +2,7 @@
 
 ### Purpose
 
-ReviewMark (`demaconsulting.reviewmark`) enforces formal file review across the repository. It reads the
+ReviewMark (`DemaConsulting.ReviewMark`) enforces formal file review across the repository. It reads the
 `.reviewmark.yaml` configuration and the review-evidence store to determine which files require review,
 group them into named review-sets, produce a review plan and review report, and — in enforcement mode —
 fail the build when a reviewed file has changed since its last review. It provides the review-currency

@@ -2,7 +2,7 @@
 
 ### Purpose
 
-VersionMark (`demaconsulting.versionmark`) captures and publishes the versions of the tools used across
+VersionMark (`DemaConsulting.VersionMark`) captures and publishes the versions of the tools used across
 the build pipeline. It records the version of each dotnet tool (and supporting programs such as `git`,
 `node`, and `npm`) per CI job and publishes a consolidated tool-versions Markdown document included in
 the release artifacts, providing a reproducible record of the toolchain that produced each build.

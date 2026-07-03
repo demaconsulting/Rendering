@@ -2,7 +2,7 @@
 
 ### Purpose
 
-BuildMark (`demaconsulting.buildmark`) generates a build-notes document for each release of the
+BuildMark (`DemaConsulting.BuildMark`) generates a build-notes document for each release of the
 Rendering libraries. It queries the GitHub API to capture workflow run details, version tags, commit
 history, and issue/pull-request activity, and renders them as a Markdown build-notes document that is
 compiled into the release artifacts. It provides the repository's automated release-notes evidence

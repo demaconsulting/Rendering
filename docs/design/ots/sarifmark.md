@@ -2,7 +2,7 @@
 
 ### Purpose
 
-SarifMark (`demaconsulting.sarifmark`) converts the SARIF output produced by CodeQL code scanning into a
+SarifMark (`DemaConsulting.SarifMark`) converts the SARIF output produced by CodeQL code scanning into a
 human-readable Markdown quality report that is compiled into the release artifacts. In enforcement mode
 it also gates the build on detected issues, letting CI fail when static analysis reports code-quality
 violations.
