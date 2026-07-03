@@ -107,6 +107,12 @@ failure.
   `ComponentPacker_Apply_Waypoints_TranslatedWithComponent`, `ComponentPacker_Apply_EmptyGraph_IsNoOp`,
   `ComponentPacker_Apply_SingleComponent_ParallelAndSelfEdges_ProducesAlignedWaypoints`, and
   `ComponentPacker_Apply_MultiComponent_ParallelAndSelfEdges_MergesAlignedWaypoints`.
+- **Component packing propagates back-edge approach**
+  (`Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach`):
+  `ComponentPacker_Apply_MultiComponent_PropagatesBackEdgeEntryApproach` builds two disconnected
+  triangle components, each with a short cycle producing a long back edge, and confirms the routed
+  back-edge corridor reflects the parent graph's configured `BackEdgeEntryApproach` in every packed
+  component instead of always reverting to the class default.
 - **Shared state** (`Rendering-Layout-LayeredPipeline-SharedState`):
   `LayeredGraph_Constructor_ValidInput_StoresNodesEdgesDirectionAndCount`,
   `LayeredGraph_Constructor_NullNodes_ThrowsArgumentNullException`, and
@@ -167,6 +173,8 @@ failure.
   ComponentPacker_Apply_Waypoints_TranslatedWithComponent, ComponentPacker_Apply_EmptyGraph_IsNoOp,
   ComponentPacker_Apply_SingleComponent_ParallelAndSelfEdges_ProducesAlignedWaypoints,
   ComponentPacker_Apply_MultiComponent_ParallelAndSelfEdges_MergesAlignedWaypoints
+- **`Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach`**:
+  ComponentPacker_Apply_MultiComponent_PropagatesBackEdgeEntryApproach
 - **`Rendering-Layout-LayeredPipeline-SharedState`**:
   LayeredGraph_Constructor_ValidInput_StoresNodesEdgesDirectionAndCount,
   LayeredGraph_Constructor_NullNodes_ThrowsArgumentNullException,

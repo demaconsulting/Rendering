@@ -75,7 +75,10 @@ The default stage sequence added by `AddDefaultStages` runs in this order:
 `ComponentPacker` is an optional composite stage added explicitly by callers that lay out potentially
 disconnected graphs. It splits the graph into connected components, runs an inner stage sequence on
 each, and packs the results without overlap in a deterministic order, translating each component's
-boxes and waypoints together.
+boxes and waypoints together. Each component is laid out through a freshly constructed child
+`LayeredGraph`, which copies the parent graph's `BackEdgeEntryApproach` so a caller-customized
+reversed-edge clearance is honored consistently whether the input graph is packed into one component
+or several.
 
 #### Layered Pipeline Dependencies
 
@@ -115,5 +118,6 @@ public layout result contract.
 | Rendering-Layout-LayeredPipeline-BackEdgeApproach | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-LongEdgeJoining | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-ComponentPacking | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-SharedState | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-InputValidation | Layered pipeline behavior described above |

@@ -75,6 +75,7 @@ sections:
           - Rendering-Layout-LayeredPipeline-BackEdgeApproach
           - Rendering-Layout-LayeredPipeline-LongEdgeJoining
           - Rendering-Layout-LayeredPipeline-ComponentPacking
+          - Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach
           - Rendering-Layout-LayeredPipeline-SharedState
           - Rendering-Layout-LayeredPipeline-InputValidation
         tests:
