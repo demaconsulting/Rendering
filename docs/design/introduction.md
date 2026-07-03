@@ -138,16 +138,18 @@ OTS Software Items
 ├── ReqStream    — requirements traceability and enforcement
 ├── ReviewMark   — file-review plan, report, and enforcement
 ├── SarifMark    — CodeQL SARIF-to-Markdown conversion
+├── SkiaSharp    — raster graphics library (bitmap drawing and PNG/JPEG/WEBP encoding)
 ├── SonarMark    — SonarCloud quality-report generation
 ├── VersionMark  — tool-version capture and publishing
 ├── WeasyPrint   — HTML-to-PDF (PDF/A) conversion
 └── xUnit        — unit-testing framework
 ```
 
-The OTS software items are compliance, build, and documentation tooling consumed while building,
-verifying, and documenting the Rendering libraries; they are not linked into the delivered packages.
-Their integration design is described in the OTS Integration Design section and the per-item documents
-under `docs/design/ots/`.
+Most OTS software items are compliance, build, and documentation tooling consumed while building,
+verifying, and documenting the Rendering libraries, and are not linked into the delivered packages.
+SkiaSharp is the one exception: it is a runtime library linked into the delivered
+`DemaConsulting.Rendering.Skia` package. Their integration design is described in the OTS
+Integration Design section and the per-item documents under `docs/design/ots/`.
 
 Package dependencies form an acyclic graph: `Abstractions` and `Layout` depend on the
 `Rendering` model; `Svg` and `Skia` depend on the model and `Abstractions`; the model depends

@@ -54,9 +54,9 @@ Unlike the other Rendering systems, this system carries a genuine third-party ru
 
 - **SkiaSharp** — the 2D graphics library (MIT license) that provides the bitmap, canvas, and image
   encoders used for all raster drawing and encoding. The matching platform-specific SkiaSharp native
-  asset packages supply the native Skia binaries for Windows, Linux, and macOS. (SkiaSharp is not among
-  the repository's documented OTS build tools, so no OTS integration design document cross-reference is
-  available for it.)
+  asset packages supply the native Skia binaries for Windows, Linux, and macOS. SkiaSharp is
+  documented as an OTS software item — see "SkiaSharp Integration Design" under `docs/design/ots/`
+  for its integration pattern.
 
 The system also embeds a Noto Sans font (SIL Open Font License 1.1) as a resource so text is drawn from
 a bundled font rather than an installed system font. The build-time-only NuGet references (SBOM,

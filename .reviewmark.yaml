@@ -77,6 +77,7 @@ reviews:
       - "docs/reqstream/rendering/platform-requirements.yaml"
       - "docs/design/introduction.md"
       - "docs/design/rendering/**/*.md"
+      - "docs/design/ots.md"
     context:
       - "docs/reqstream/rendering.yaml"
 
@@ -85,6 +86,7 @@ reviews:
     paths:
       - "docs/verification/introduction.md"
       - "docs/verification/rendering/**/*.md"
+      - "docs/verification/ots.md"
     context:
       - "docs/reqstream/rendering.yaml"
 
@@ -154,6 +156,7 @@ reviews:
     paths:
       - "docs/design/introduction.md"
       - "docs/design/rendering-abstractions/**/*.md"
+      - "docs/design/ots.md"
     context:
       - "docs/reqstream/rendering-abstractions.yaml"
 
@@ -162,6 +165,7 @@ reviews:
     paths:
       - "docs/verification/introduction.md"
       - "docs/verification/rendering-abstractions/**/*.md"
+      - "docs/verification/ots.md"
     context:
       - "docs/reqstream/rendering-abstractions.yaml"
 
@@ -270,6 +274,7 @@ reviews:
     paths:
       - "docs/design/introduction.md"
       - "docs/design/rendering-layout/**/*.md"
+      - "docs/design/ots.md"
     context:
       - "docs/reqstream/rendering-layout.yaml"
 
@@ -278,6 +283,7 @@ reviews:
     paths:
       - "docs/verification/introduction.md"
       - "docs/verification/rendering-layout/**/*.md"
+      - "docs/verification/ots.md"
     context:
       - "docs/reqstream/rendering-layout.yaml"
 
@@ -465,6 +471,7 @@ reviews:
     paths:
       - "docs/design/introduction.md"
       - "docs/design/rendering-svg/**/*.md"
+      - "docs/design/ots.md"
     context:
       - "docs/reqstream/rendering-svg.yaml"
 
@@ -473,6 +480,7 @@ reviews:
     paths:
       - "docs/verification/introduction.md"
       - "docs/verification/rendering-svg/**/*.md"
+      - "docs/verification/ots.md"
     context:
       - "docs/reqstream/rendering-svg.yaml"
 
@@ -517,6 +525,7 @@ reviews:
     paths:
       - "docs/design/introduction.md"
       - "docs/design/rendering-skia/**/*.md"
+      - "docs/design/ots.md"
     context:
       - "docs/reqstream/rendering-skia.yaml"
 
@@ -525,6 +534,7 @@ reviews:
     paths:
       - "docs/verification/introduction.md"
       - "docs/verification/rendering-skia/**/*.md"
+      - "docs/verification/ots.md"
     context:
       - "docs/reqstream/rendering-skia.yaml"
 
