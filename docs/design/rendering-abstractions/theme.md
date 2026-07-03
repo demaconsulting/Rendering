@@ -26,7 +26,7 @@ enclosing end marker.
 ### Theme Error Handling
 
 `Theme` is a `sealed record` whose values are supplied through its primary constructor; the compiler
-enforces that every property is initialised at construction time and no runtime validation is
+enforces that every property is initialized at construction time and no runtime validation is
 performed by the type itself. `ConnectorApproachZone(double)` and the `BackgroundColor` accessor are
 pure arithmetic and indexed reads over the record's own state, so they cannot fail for a
 well-formed `Theme`. Callers that supply their own themes are expected to populate
