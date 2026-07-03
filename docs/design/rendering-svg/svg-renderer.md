@@ -206,6 +206,10 @@ Any consumer of the rendering library that selects vector output constructs an `
 | Rendering-Svg-SvgRenderer-RenderLineMidpointLabel | `ConnectorLabelPlacer` plus `RenderLineLabel` |
 | Rendering-Svg-SvgRenderer-RenderNodeKinds | `RenderPort` writes the port rectangle |
 | Rendering-Svg-SvgRenderer-RenderBadge | `RenderBadge` writes filled-circle badges |
+| Rendering-Svg-SvgRenderer-BadgeBullseye | `RenderBadge` writes bullseye badges as concentric circles |
+| Rendering-Svg-SvgRenderer-BadgeDiamond | `RenderBadge` writes diamond badges as polygons |
+| Rendering-Svg-SvgRenderer-BadgeHorizontalBar | `RenderBadge` writes horizontal-bar badges as lines |
+| Rendering-Svg-SvgRenderer-BadgeVerticalBar | `RenderBadge` writes vertical-bar badges as lines |
 | Rendering-Svg-SvgRenderer-RenderBand | `RenderBand` writes the band rectangle |
 | Rendering-Svg-SvgRenderer-RenderLifeline | `RenderLifeline` writes the header and stem |
 | Rendering-Svg-SvgRenderer-RenderActivation | `RenderActivation` writes the activation rectangle |
@@ -218,3 +222,7 @@ Any consumer of the rendering library that selects vector output constructs an `
 | Rendering-Svg-SvgRenderer-DiamondEndMarkers | `WriteEndMarkerDefs` reads diamond `NotationMetrics` |
 | Rendering-Svg-SvgRenderer-DiamondEndMarkerReference | `RenderLine` writes the hollow-diamond marker reference |
 | Rendering-Svg-SvgRenderer-CrossbarEndMarkers | `RenderLine` writes the crossbar marker reference |
+| Rendering-Svg-SvgRenderer-EndMarkerFilledArrow | `RenderLine` writes the filled-arrow marker reference |
+| Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond | `RenderLine` writes the filled-diamond marker reference |
+| Rendering-Svg-SvgRenderer-EndMarkerCircle | `RenderLine` writes the circle marker reference |
+| Rendering-Svg-SvgRenderer-EndMarkerBar | `RenderLine` writes the bar marker reference |

@@ -112,6 +112,38 @@ public sealed class SvgEndMarkerTests
         Assert.Contains("marker-end=\"url(#line-end-open-chevron)\"", svg, StringComparison.Ordinal);
     }
 
+    /// <summary>A filled-arrow line references the filled-arrow marker via <c>marker-end</c>.</summary>
+    [Fact]
+    public void SvgRenderer_Render_SingleLine_WithFilledArrow_ProducesFilledArrowMarker()
+    {
+        var svg = RenderLine(EndMarkerStyle.None, EndMarkerStyle.FilledArrow);
+        Assert.Contains("marker-end=\"url(#line-end-filled-arrow)\"", svg, StringComparison.Ordinal);
+    }
+
+    /// <summary>A filled-diamond line references the filled-diamond marker via <c>marker-start</c>.</summary>
+    [Fact]
+    public void SvgRenderer_Render_SingleLine_WithFilledDiamond_ProducesFilledDiamondMarker()
+    {
+        var svg = RenderLine(EndMarkerStyle.FilledDiamond, EndMarkerStyle.None);
+        Assert.Contains("marker-start=\"url(#line-end-filled-diamond)\"", svg, StringComparison.Ordinal);
+    }
+
+    /// <summary>A circle-ended line references the circle marker via <c>marker-end</c>.</summary>
+    [Fact]
+    public void SvgRenderer_Render_SingleLine_WithCircleEnd_ProducesCircleMarker()
+    {
+        var svg = RenderLine(EndMarkerStyle.None, EndMarkerStyle.Circle);
+        Assert.Contains("marker-end=\"url(#line-end-circle)\"", svg, StringComparison.Ordinal);
+    }
+
+    /// <summary>A bar-ended line references the bar marker via <c>marker-end</c>.</summary>
+    [Fact]
+    public void SvgRenderer_Render_SingleLine_WithBarEnd_ProducesBarMarker()
+    {
+        var svg = RenderLine(EndMarkerStyle.None, EndMarkerStyle.Bar);
+        Assert.Contains("marker-end=\"url(#line-end-bar)\"", svg, StringComparison.Ordinal);
+    }
+
     private static string Num(double value) =>
         Math.Round(value, 6).ToString(System.Globalization.CultureInfo.InvariantCulture);
 }

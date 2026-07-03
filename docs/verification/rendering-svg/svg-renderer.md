@@ -112,6 +112,10 @@ does not assert the exact placed coordinates or collision-avoidance behavior.
 
 Tests `SvgRenderer_Render_SinglePort_ProducesRect`,
 `SvgRenderer_Render_SingleBadge_FilledCircle_ProducesCircle`,
+`SvgRenderer_Render_SingleBadge_Bullseye_ProducesConcentricCircles`,
+`SvgRenderer_Render_SingleBadge_Diamond_ProducesPolygon`,
+`SvgRenderer_Render_SingleBadge_HorizontalBar_ProducesLine`,
+`SvgRenderer_Render_SingleBadge_VerticalBar_ProducesLine`,
 `SvgRenderer_Render_SingleBand_ProducesRect`,
 `SvgRenderer_Render_SingleLifeline_ProducesRectAndLine`,
 `SvgRenderer_Render_SingleActivation_ProducesRect`, and
@@ -119,7 +123,11 @@ Tests `SvgRenderer_Render_SinglePort_ProducesRect`,
 lifelines, activations, and grids emit their expected SVG element types.
 
 **Covers**: `Rendering-Svg-SvgRenderer-RenderNodeKinds`,
-`Rendering-Svg-SvgRenderer-RenderBadge`, `Rendering-Svg-SvgRenderer-RenderBand`,
+`Rendering-Svg-SvgRenderer-RenderBadge`,
+`Rendering-Svg-SvgRenderer-BadgeBullseye`,
+`Rendering-Svg-SvgRenderer-BadgeDiamond`,
+`Rendering-Svg-SvgRenderer-BadgeHorizontalBar`,
+`Rendering-Svg-SvgRenderer-BadgeVerticalBar`, `Rendering-Svg-SvgRenderer-RenderBand`,
 `Rendering-Svg-SvgRenderer-RenderLifeline`, `Rendering-Svg-SvgRenderer-RenderActivation`,
 `Rendering-Svg-SvgRenderer-RenderGrid`.
 
@@ -143,6 +151,12 @@ dimensions and points match `NotationMetrics` and that the rendered SVG contains
 Test `SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker` asserts that
 the rendered SVG contains the `line-end-hollow-triangle-crossbar` id.
 
+Tests `SvgRenderer_Render_SingleLine_WithFilledArrow_ProducesFilledArrowMarker`,
+`SvgRenderer_Render_SingleLine_WithFilledDiamond_ProducesFilledDiamondMarker`,
+`SvgRenderer_Render_SingleLine_WithCircleEnd_ProducesCircleMarker`, and
+`SvgRenderer_Render_SingleLine_WithBarEnd_ProducesBarMarker` assert that the connector path carries
+the marker reference for the filled-arrow, filled-diamond, circle, and bar end-marker variants.
+
 The diamond and crossbar assertions now check that the connector path element carries the marker
 reference itself — `marker-start="url(#line-end-hollow-diamond)"` for the source end and
 `marker-end="url(#line-end-hollow-triangle-crossbar)"` for the target end — rather than only that the
@@ -156,7 +170,11 @@ marker id appears somewhere in the document. This prevents a false pass if the m
 `Rendering-Svg-SvgRenderer-TriangleEndMarkerMetrics`,
 `Rendering-Svg-SvgRenderer-DiamondEndMarkers`,
 `Rendering-Svg-SvgRenderer-DiamondEndMarkerReference`,
-`Rendering-Svg-SvgRenderer-CrossbarEndMarkers`.
+`Rendering-Svg-SvgRenderer-CrossbarEndMarkers`,
+`Rendering-Svg-SvgRenderer-EndMarkerFilledArrow`,
+`Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond`,
+`Rendering-Svg-SvgRenderer-EndMarkerCircle`,
+`Rendering-Svg-SvgRenderer-EndMarkerBar`.
 
 ### Requirements Coverage
 
@@ -192,6 +210,14 @@ marker id appears somewhere in the document. This prevents a false pass if the m
 - **`Rendering-Svg-SvgRenderer-RenderNodeKinds`**: `SvgRenderer_Render_SinglePort_ProducesRect`
 - **`Rendering-Svg-SvgRenderer-RenderBadge`**:
   `SvgRenderer_Render_SingleBadge_FilledCircle_ProducesCircle`
+- **`Rendering-Svg-SvgRenderer-BadgeBullseye`**:
+  `SvgRenderer_Render_SingleBadge_Bullseye_ProducesConcentricCircles`
+- **`Rendering-Svg-SvgRenderer-BadgeDiamond`**:
+  `SvgRenderer_Render_SingleBadge_Diamond_ProducesPolygon`
+- **`Rendering-Svg-SvgRenderer-BadgeHorizontalBar`**:
+  `SvgRenderer_Render_SingleBadge_HorizontalBar_ProducesLine`
+- **`Rendering-Svg-SvgRenderer-BadgeVerticalBar`**:
+  `SvgRenderer_Render_SingleBadge_VerticalBar_ProducesLine`
 - **`Rendering-Svg-SvgRenderer-RenderBand`**: `SvgRenderer_Render_SingleBand_ProducesRect`
 - **`Rendering-Svg-SvgRenderer-RenderLifeline`**:
   `SvgRenderer_Render_SingleLifeline_ProducesRectAndLine`
@@ -213,3 +239,11 @@ marker id appears somewhere in the document. This prevents a false pass if the m
   `SvgRenderer_Render_SingleLine_WithDiamondArrowhead_ProducesDiamondMarker`
 - **`Rendering-Svg-SvgRenderer-CrossbarEndMarkers`**:
   `SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker`
+- **`Rendering-Svg-SvgRenderer-EndMarkerFilledArrow`**:
+  `SvgRenderer_Render_SingleLine_WithFilledArrow_ProducesFilledArrowMarker`
+- **`Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond`**:
+  `SvgRenderer_Render_SingleLine_WithFilledDiamond_ProducesFilledDiamondMarker`
+- **`Rendering-Svg-SvgRenderer-EndMarkerCircle`**:
+  `SvgRenderer_Render_SingleLine_WithCircleEnd_ProducesCircleMarker`
+- **`Rendering-Svg-SvgRenderer-EndMarkerBar`**:
+  `SvgRenderer_Render_SingleLine_WithBarEnd_ProducesBarMarker`
