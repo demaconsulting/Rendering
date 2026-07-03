@@ -58,7 +58,10 @@ The default stage sequence added by `AddDefaultStages` runs in this order:
 5. **BrandesKopfPlacer.** Assigns every augmented node absolute coordinates, with layer columns
    ordered left to right and symmetric forks centered between their targets.
 6. **PortDistributor.** Distributes connector ports along each box face and assigns each sub-edge a
-   source-side and target-side port that lies within the corresponding node face.
+   source-side and target-side port that lies within the corresponding node face. The clearance inset
+   is capped at half the face extent so a box too small to hold the full clearance on both edges
+   degrades gracefully (ports collapse toward the centre) rather than inverting the clamp range; a
+   box at least twice the clearance tall is unaffected, keeping its geometry byte-identical.
 7. **LayeredCorridorRouter.** Assigns routing slots per corridor and emits orthogonal bend points, adding
    no bend points for a straight sub-edge. It reads `BackEdgeEntryApproach` to reserve a minimum
    final approach for a reversed edge; at the default this clamp is a no-op, keeping forward geometry

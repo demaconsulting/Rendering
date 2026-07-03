@@ -214,4 +214,44 @@ public class LayeredLayoutAlgorithmTests
         Assert.True(boxes[0].X < boxes[1].X);
         Assert.True(boxes[1].X < boxes[2].X);
     }
+
+    /// <summary>
+    ///     Proves that a chain of nodes whose cross-extent is smaller than the port clearance band lays
+    ///     out without throwing in every flow direction. Regression guard for the inverted-clamp crash
+    ///     in the port distributor: under <see cref="LayoutFlowDirection.Down"/>/<see cref="LayoutFlowDirection.Up"/>
+    ///     the port face is sized by the node <em>width</em> (axis swap), so narrow boxes (10/20/30 wide)
+    ///     previously produced a <c>min &gt; max</c> range in <c>Math.Clamp</c> and threw an opaque
+    ///     <see cref="ArgumentException"/> from deep in the pipeline.
+    /// </summary>
+    /// <param name="direction">The flow direction under test.</param>
+    [Theory]
+    [InlineData(LayoutFlowDirection.Right)]
+    [InlineData(LayoutFlowDirection.Left)]
+    [InlineData(LayoutFlowDirection.Down)]
+    [InlineData(LayoutFlowDirection.Up)]
+    public void Apply_SmallNodeChain_PlacesWithoutThrowingInEveryDirection(LayoutFlowDirection direction)
+    {
+        // Arrange: a chain of nodes far narrower than the port-clearance band (10/20/30 wide, 40 tall).
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 10, 40);
+        var b = graph.AddNode("b", 20, 40);
+        var c = graph.AddNode("c", 30, 40);
+        graph.AddEdge("ab", a, b);
+        graph.AddEdge("bc", b, c);
+
+        var options = LayoutOptions.ForAlgorithm("layered");
+        options.Set(CoreOptions.Direction, direction);
+
+        // Act: laying out must not throw regardless of direction.
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        // Assert: a valid placed tree with one box per node and one connector per edge.
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(3, boxes.Count);
+        Assert.Equal(2, lines.Count);
+        Assert.True(tree.Width > 0);
+        Assert.True(tree.Height > 0);
+        Assert.All(lines, line => Assert.True(line.Waypoints.Count >= 2));
+    }
 }

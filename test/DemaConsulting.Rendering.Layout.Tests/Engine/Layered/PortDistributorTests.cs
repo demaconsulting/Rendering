@@ -49,6 +49,32 @@ public sealed class PortDistributorTests
         Assert.All(graph.AugPortYTgt, y => Assert.True(double.IsFinite(y)));
     }
 
+    /// <summary>
+    ///     A node whose face is smaller than twice the connector clearance still yields ports that lie
+    ///     within the node face, without throwing. Regression guard for the inverted-clamp crash: a
+    ///     10-tall face cannot hold the full clearance inset on both edges, which previously drove
+    ///     <c>Math.Clamp</c> with <c>min &gt; max</c>.
+    /// </summary>
+    [Fact]
+    public void PortDistributor_Apply_SmallFace_PortsLieWithinNodeFacesWithoutThrowing()
+    {
+        // Arrange / Act: distribute ports for a fan-out from a face far shorter than the clearance band.
+        var nodes = new List<LayerNode> { new(60, 10), new(60, 10), new(60, 10) };
+        var graph = BuildPortedGraph(nodes, new List<LayerEdge> { new(0, 1), new(0, 2) });
+
+        // Assert: every recorded port is finite and sits within its owning node's face.
+        Assert.Equal(graph.AugEdges.Count, graph.AugPortYSrc.Length);
+        Assert.All(graph.AugPortYSrc, y => Assert.True(double.IsFinite(y)));
+        Assert.All(graph.AugPortYTgt, y => Assert.True(double.IsFinite(y)));
+        for (var ei = 0; ei < graph.AugEdges.Count; ei++)
+        {
+            var src = graph.AugEdges[ei].Source;
+            var tgt = graph.AugEdges[ei].Target;
+            Assert.InRange(graph.AugPortYSrc[ei], graph.AugY[src], graph.AugY[src] + nodes[src].Height);
+            Assert.InRange(graph.AugPortYTgt[ei], graph.AugY[tgt], graph.AugY[tgt] + nodes[tgt].Height);
+        }
+    }
+
     /// <summary>Runs the stages up to and including port distribution and returns the graph.</summary>
     /// <param name="nodes">Input nodes.</param>
     /// <param name="edges">Input edges.</param>
