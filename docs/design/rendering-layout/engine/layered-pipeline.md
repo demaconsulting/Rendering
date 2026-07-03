@@ -77,12 +77,24 @@ disconnected graphs. It splits the graph into connected components, runs an inne
 each, and packs the results without overlap in a deterministic order, translating each component's
 boxes and waypoints together.
 
+#### Layered Pipeline Dependencies
+
+All pipeline types are internal and consume only the geometric value types of the Layout system
+(`Point2D`, `Rect`) plus the internal `LayerNode`, `LayerEdge`, `AugNode`, and `AugEdge` records.
+No stage depends on the semantic `LayoutGraph` model, any OTS runtime component, or any Shared
+Package.
+
+#### Layered Pipeline Callers
+
+The pipeline is assembled and run directly by `InterconnectionLayoutEngine`, and the public
+`LayeredLayoutAlgorithm` consumes it transitively through that engine when the layered algorithm is
+selected.
+
 #### Layered Pipeline Interactions
 
-All types are internal and consume only the geometric value types of the Layout system (`Point2D`,
-`Rect`) plus the internal `LayerNode`, `LayerEdge`, `AugNode`, and `AugEdge` records; no stage
-references any semantic model. The pipeline is assembled and run by `InterconnectionLayoutEngine`
-and, transitively, by the public `LayeredLayoutAlgorithm`.
+The stage sequence collaborates only through the shared `LayeredGraph` state, with
+`InterconnectionLayoutEngine` adapting the final rectangles, dimensions, and waypoints to the
+public layout result contract.
 
 #### Requirements Traceability
 
