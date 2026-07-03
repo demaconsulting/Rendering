@@ -28,9 +28,10 @@ resulting `ArgumentNullException` to the caller. All other input shapes are trea
 rather than errors: a line whose `MidpointLabel` is `null` is omitted from the result, a line whose
 `Waypoints` collection is empty is likewise omitted, and a line with a single waypoint yields the
 degenerate midpoint of that waypoint. The overlap-avoidance search is bounded — after exhausting the
-segment fallback and a fixed number of perpendicular nudges the label is placed at its preferred
-midpoint even if it still overlaps another label. The method has no side effects on its inputs and
-performs no logging.
+segment fallback and a fixed number of perpendicular nudges, the label is dropped just beneath every
+already-placed label, guaranteeing no overlap even when the bounded nudges above are exhausted (for
+example where many connectors cross at a single point). The method has no side effects on its inputs
+and performs no logging.
 
 ### Connector Label Placer Dependencies
 
