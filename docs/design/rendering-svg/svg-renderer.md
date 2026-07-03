@@ -1,15 +1,15 @@
-# SvgRenderer Unit Design
+## SvgRenderer Unit Design
 
 Part of the Rendering.Svg system.
 
-## SvgRenderer Overview
+### SvgRenderer Overview
 
 `SvgRenderer` implements the `IRenderer` interface to produce SVG 1.1 diagram output from a
 `LayoutTree` intermediate representation. Each call to `Render` builds a complete SVG document in a
 `StringBuilder` and writes it to the supplied stream in UTF-8 encoding. The renderer is pure and
 stateless; no fields are mutated between calls, so a single instance may be reused concurrently.
 
-## SvgRenderer Data Model
+### SvgRenderer Data Model
 
 `SvgRenderer` has no instance state. All inputs are supplied through `Render` parameters.
 
@@ -17,14 +17,14 @@ stateless; no fields are mutated between calls, so a single instance may be reus
 - `RenderOptions` — read-only input; `Theme` for visual parameters and `Scale` for sizing.
 - `Stream output` — write-only output; receives UTF-8 SVG bytes; caller owns lifetime.
 
-## Font Family
+### Font Family
 
 All text elements use `font-family="Noto Sans, sans-serif"`. The `Noto Sans` family is specified
 first so that browsers and renderers with Noto Sans installed use it; `sans-serif` is the CSS generic
 fallback. Naming Noto Sans first keeps the SVG output visually aligned with the PNG renderer, which
 embeds the same font for pixel-identical rasterization.
 
-## Font Weight and Style Per Node Type
+### Font Weight and Style Per Node Type
 
 Each node type uses a fixed font weight and style as SVG attributes:
 
@@ -42,7 +42,7 @@ Each node type uses a fixed font weight and style as SVG attributes:
 | `LayoutGrid` header cells | `bold` | (default) |
 | `LayoutGrid` body cells | (default) | (default) |
 
-## LayoutLabel Font Styling Fields
+### LayoutLabel Font Styling Fields
 
 `LayoutLabel` carries three explicit font styling fields:
 
@@ -53,7 +53,7 @@ Each node type uses a fixed font weight and style as SVG attributes:
 - `FontSize` (double) — font size in logical pixels, used as `font-size` instead of the theme body
   size.
 
-## Text Length Shrink-to-Fit
+### Text Length Shrink-to-Fit
 
 `LayoutBox` labels and `LayoutLabel` nodes are constrained to their available width only when the text
 would otherwise overflow it. `FitTextLength` estimates each label's natural width (character count
@@ -67,7 +67,7 @@ When the text already fits, or the available width is non-positive, no `textLeng
 attribute is emitted, so short labels render at their natural width and are never stretched to fill
 the box.
 
-## Key Methods
+### Key Methods
 
 **`Render(LayoutTree layout, RenderOptions options, Stream output)`**
 
@@ -159,24 +159,24 @@ Each typed method writes the SVG elements appropriate to its node kind: an 8x8 `
 `<rect>` border for activations; and per-cell `<rect>` plus `<text>` elements for grids. Fills come
 from `theme.DepthFillColors`, and header cells add `font-weight="bold"`.
 
-## Error Handling
+### Error Handling
 
 `Render` throws `ArgumentNullException` when `layout`, `options`, or `output` is null. No other
 exceptions are expected under normal operation. XML special characters in labels are escaped via
 `EscapeXml` to prevent malformed SVG output.
 
-## Dependencies
+### Dependencies
 
 - `DemaConsulting.Rendering` — provides `LayoutTree` and all nine `LayoutNode` subtypes.
 - `DemaConsulting.Rendering.Abstractions` — provides `IRenderer`, `RenderOptions`, `Theme`, `Themes`,
   `NotationMetrics`, `BoxMetrics`, `MarkerVertex`, and `ConnectorLabelPlacer`.
 
-## Callers
+### Callers
 
 Any consumer of the rendering library that selects vector output constructs an `SvgRenderer` and calls
 `IRenderer.Render` with a placed `LayoutTree` and `RenderOptions`.
 
-## Requirements Traceability
+### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

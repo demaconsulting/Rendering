@@ -1,15 +1,15 @@
-# Engine Subsystem Design
+### Engine Subsystem Design
 
 Part of the Rendering Layout system.
 
-## Engine Subsystem Overview
+#### Engine Subsystem Overview
 
 The Engine subsystem holds the reusable geometric components. Each is independent of any semantic model
 and operates purely on sizes, edges, anchors, and rectangles. The `Rect` value type they consume is the
 public axis-aligned rectangle in logical pixels defined by the `DemaConsulting.Rendering` model and
 returned by the placement engines.
 
-## Engine Units
+#### Engine Units
 
 ```text
 Engine (Subsystem)
@@ -31,7 +31,7 @@ Engine (Subsystem)
 This subsystem design intentionally does not restate unit internals; those details live in the unit
 design documents listed above.
 
-## Requirements Traceability
+#### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

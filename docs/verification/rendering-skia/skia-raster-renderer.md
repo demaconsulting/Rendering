@@ -1,4 +1,4 @@
-# SkiaRasterRenderer Unit Verification
+## SkiaRasterRenderer Unit Verification
 
 Part of the Rendering.Skia Verification.
 
@@ -9,9 +9,9 @@ verification strategy, test environment, and acceptance criteria are described i
 system verification document; the test project is
 `DemaConsulting.Rendering.Skia.Tests` (`PngRendererPortedTests.cs`, `PngEndMarkerTests.cs`).
 
-## SkiaRasterRenderer Unit Scenarios
+### SkiaRasterRenderer Unit Scenarios
 
-### Draws all layout-tree node kinds
+#### Draws all layout-tree node kinds
 
 Tests `PngRenderer_Render_SingleBox_ProducesNonEmptyOutput`, `PngRenderer_Render_BackgroundIsThemeBackground`,
 `PngRenderer_Render_SingleLine_PixelOnLineIsStrokeColor`,
@@ -32,7 +32,7 @@ whose background is not white, proves the fill is genuinely theme-driven rather 
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree`.
 
-### Theme colours drive fills
+#### Theme colours drive fills
 
 Tests `PngRenderer_Render_SingleBox_FillColorMatchesTheme`,
 `PngRenderer_Render_SingleBox_DepthOneUsesSecondColor`, and
@@ -41,7 +41,7 @@ pixels equal the theme depth-palette colour selected by nesting depth.
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-ThemeColours`.
 
-### End markers match notation metrics
+#### End markers match notation metrics
 
 Tests `FilledArrow_AlongLength_MatchesNotationMetrics`, `FilledArrow_BaseWidth_MatchesNotationMetrics`,
 `OpenChevron_HasFewerInkPixelsThanClosedTriangle`, and
@@ -51,14 +51,14 @@ distinguishable output.
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-EndMarkers`.
 
-### Empty tree renders as a valid image
+#### Empty tree renders as a valid image
 
 Test `PngRenderer_Render_EmptyTree_WritesPngSignature` renders an empty layout tree and asserts that a
 valid image with the PNG signature is produced, proving the minimum one by one pixel bitmap path.
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-EmptyTree`.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree`**:
   PngRenderer_Render_SingleBox_ProducesNonEmptyOutput, PngRenderer_Render_BackgroundIsThemeBackground,

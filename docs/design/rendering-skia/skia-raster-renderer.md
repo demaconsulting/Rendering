@@ -1,15 +1,15 @@
-# SkiaRasterRenderer Unit Design
+## SkiaRasterRenderer Unit Design
 
 Part of the Rendering.Skia system.
 
-## SkiaRasterRenderer Overview
+### SkiaRasterRenderer Overview
 
 `SkiaRasterRenderer` is the abstract `IRenderer` implementation that provides the common SkiaSharp
 rasterization path for every raster format. Concrete renderers supply the encoded image format, quality,
 media type, and file extensions; the base class owns argument validation, bitmap allocation, canvas
 initialization, node drawing, connector-label finalization, and stream encoding.
 
-## SkiaRasterRenderer Data Model
+### SkiaRasterRenderer Data Model
 
 | Member | Type | Description |
 | --- | --- | --- |
@@ -19,7 +19,7 @@ initialization, node drawing, connector-label finalization, and stream encoding.
 | `DefaultExtension` | `abstract string` | The primary output file extension. |
 | `FileExtensions` | `abstract IReadOnlyList<string>` | Every file extension the concrete renderer produces. |
 
-## SkiaRasterRenderer Methods
+### SkiaRasterRenderer Methods
 
 - **`Render(LayoutTree, RenderOptions, Stream)`** - validates its arguments, allocates an `SKBitmap`
   sized from `LayoutTree.Width`/`LayoutTree.Height` scaled by `RenderOptions.Scale` (minimum one by one
@@ -32,7 +32,7 @@ initialization, node drawing, connector-label finalization, and stream encoding.
   the SVG renderer. Hollow marker interiors and midpoint-label backplates use `Theme.BackgroundColor`
   so they occlude connector strokes with the same background used for the bitmap.
 
-## SkiaRasterRenderer Design Constraints
+### SkiaRasterRenderer Design Constraints
 
 - The rasterizer shall enforce a minimum bitmap size of one by one pixels before allocating the
   `SKBitmap`.
@@ -44,14 +44,14 @@ initialization, node drawing, connector-label finalization, and stream encoding.
 - The output stream remains owned by the caller; the renderer writes encoded bytes but does not close
   or flush the stream.
 
-## SkiaRasterRenderer Interactions
+### SkiaRasterRenderer Interactions
 
 `SkiaRasterRenderer` consumes model nodes from the Rendering system and `RenderOptions`, `Theme`,
 `NotationMetrics`, `BoxMetrics`, and `ConnectorLabelPlacer` from the Rendering.Abstractions system. It
 is inherited by `PngRenderer`, `JpegRenderer`, and `WebpRenderer`, which provide only format-selection
 members.
 
-## Requirements Traceability
+### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

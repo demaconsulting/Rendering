@@ -1,4 +1,4 @@
-# SvgRenderer Unit Verification
+## SvgRenderer Unit Verification
 
 Part of the Rendering.Svg Verification.
 
@@ -9,9 +9,9 @@ strategy, test environment, and acceptance criteria are described in the
 system verification document; the test project is
 `DemaConsulting.Rendering.Svg.Tests`.
 
-## SvgRenderer Unit Scenarios
+### SvgRenderer Unit Scenarios
 
-### Renderer contract and metadata
+#### Renderer contract and metadata
 
 Test `SvgRenderer_Render_SingleBox_ProducesSvgDocument` renders a single box, asserts that SVG markup
 is produced, and checks `MediaType` is `image/svg+xml` and `DefaultExtension` is `.svg`.
@@ -19,7 +19,7 @@ is produced, and checks `MediaType` is `image/svg+xml` and `DefaultExtension` is
 **Covers**: `Rendering-Svg-SvgRenderer-ImplementsIRenderer`,
 `Rendering-Svg-SvgRenderer-MediaType`, `Rendering-Svg-SvgRenderer-DefaultExtension`.
 
-### SVG document root and empty tree
+#### SVG document root and empty tree
 
 Test `SvgRenderer_Render_EmptyTree_ProducesSvgDocument` renders an empty `LayoutTree`, asserts the
 output stream is non-empty, and checks that the decoded text contains `<svg` and `</svg>`.
@@ -27,7 +27,7 @@ output stream is non-empty, and checks that the decoded text contains `<svg` and
 **Covers**: `Rendering-Svg-SvgRenderer-RenderDocument`,
 `Rendering-Svg-SvgRenderer-RenderEmptyTree`.
 
-### Box rectangle, rounded corners, and compartments
+#### Box rectangle, rounded corners, and compartments
 
 Tests `SvgRenderer_Render_SingleBox_ProducesRectElement`,
 `SvgRenderer_Render_BoxRoundedRectangle_ProducesRxAttribute`, and
@@ -38,7 +38,7 @@ element, an `rx` rounded-corner attribute, and compartment divider/text content 
 `Rendering-Svg-SvgRenderer-RenderBoxRoundedCorners`,
 `Rendering-Svg-SvgRenderer-RenderBoxCompartments`.
 
-### Label text, styling, and escaping
+#### Label text, styling, and escaping
 
 Tests `SvgRenderer_Render_SingleLabel_ProducesTextElement`,
 `SvgRenderer_Render_LabelWithBold_ProducesBoldAttribute`,
@@ -51,7 +51,7 @@ well-formed XML.
 `Rendering-Svg-SvgRenderer-RenderLabelBold`, `Rendering-Svg-SvgRenderer-RenderLabelItalic`,
 `Rendering-Svg-SvgRenderer-RenderLabelEscaping`.
 
-### Connector path, corners, dash pattern, and label
+#### Connector path, corners, dash pattern, and label
 
 Tests `SvgRenderer_Render_SingleLine_ProducesPathElement`,
 `SvgRenderer_Render_SingleLine_WithCornerRadius_ProducesArcInPath`,
@@ -68,7 +68,7 @@ does not assert the exact placed coordinates or collision-avoidance behavior.
 `Rendering-Svg-SvgRenderer-RenderLineDashed`,
 `Rendering-Svg-SvgRenderer-RenderLineMidpointLabel`.
 
-### Additional node kinds
+#### Additional node kinds
 
 Tests `SvgRenderer_Render_SinglePort_ProducesRect`,
 `SvgRenderer_Render_SingleBadge_FilledCircle_ProducesCircle`,
@@ -83,7 +83,7 @@ lifelines, activations, and grids emit their expected SVG element types.
 `Rendering-Svg-SvgRenderer-RenderLifeline`, `Rendering-Svg-SvgRenderer-RenderActivation`,
 `Rendering-Svg-SvgRenderer-RenderGrid`.
 
-### Connector end markers
+#### Connector end markers
 
 Tests `OpenChevron_IsDefinedAsPolyline` and `OpenChevronLine_ReferencesOpenChevronMarker` assert that
 the open-chevron marker definition contains `<polyline>` and no `<polygon>`, and that an open-chevron
@@ -118,7 +118,7 @@ marker id appears somewhere in the document. This prevents a false pass if the m
 `Rendering-Svg-SvgRenderer-DiamondEndMarkerReference`,
 `Rendering-Svg-SvgRenderer-CrossbarEndMarkers`.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Svg-SvgRenderer-ImplementsIRenderer`**:
   `SvgRenderer_Render_SingleBox_ProducesSvgDocument`

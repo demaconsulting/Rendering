@@ -1,14 +1,14 @@
-# JpegRenderer Unit Design
+## JpegRenderer Unit Design
 
 Part of the Rendering.Skia system.
 
-## JpegRenderer Overview
+### JpegRenderer Overview
 
 `JpegRenderer` is the concrete raster renderer for lossy JPEG output. It derives from
 `SkiaRasterRenderer` and supplies only the JPEG format-selection metadata and lossy encoding quality;
 all drawing behaviour comes from the shared rasterizer.
 
-## JpegRenderer Data Model
+### JpegRenderer Data Model
 
 | Member | Value |
 | --- | --- |
@@ -18,13 +18,13 @@ all drawing behaviour comes from the shared rasterizer.
 | `DefaultExtension` | `.jpg` |
 | `FileExtensions` | `.jpg`, `.jpeg` |
 
-## JpegRenderer Interactions
+### JpegRenderer Interactions
 
 A `RendererRegistry` can resolve `JpegRenderer` by the `image/jpeg` media type or by either advertised
 file extension. Because JPEG has no transparency channel, it relies on the inherited rasterizer's theme
 background initialization before encoding.
 
-## Requirements Traceability
+### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

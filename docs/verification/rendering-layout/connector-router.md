@@ -1,10 +1,10 @@
-# ConnectorRouter Unit Verification
+## ConnectorRouter Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the connector-router unit requirements to named test scenarios.
 
-## ConnectorRouter Unit Scenarios
+### ConnectorRouter Unit Scenarios
 
 - **Anchors face each other** (`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`):
   `Route_TargetToTheRight_AnchorsFaceEachOther` and `Route_TargetBelow_AnchorsFaceEachOther` confirm
@@ -25,7 +25,7 @@ This document maps the connector-router unit requirements to named test scenario
   `Route_NullConnections_Throws`, `Route_NullOptions_Throws`, and `Route_NullConnection_Throws` confirm
   null arguments are rejected with an argument-null error.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`**:
   Route_TargetToTheRight_AnchorsFaceEachOther, Route_TargetBelow_AnchorsFaceEachOther

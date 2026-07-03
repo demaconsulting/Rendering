@@ -1,8 +1,8 @@
-# Layered Pipeline Unit Design
+### Layered Pipeline Unit Design
 
 Part of the Rendering Layout system.
 
-## Layered Pipeline Overview
+#### Layered Pipeline Overview
 
 The layered pipeline is a reusable, composable layered-layout engine that reproduces ELK's layered
 (Sugiyama-style) algorithm. It replaces a single monolithic placement method with an ordered
@@ -12,7 +12,7 @@ time. It was produced by a behavior-preserving extraction: for every input it pr
 same rectangles, totals, layer assignments, and connector waypoints as the previous implementation,
 verified byte for byte by the pipeline-equivalence tests.
 
-## Layered Pipeline Data Model
+#### Layered Pipeline Data Model
 
 `LayeredGraph` is the mutable shared state threaded through every stage. Construction takes the input
 `LayerNode` list, the `LayerEdge` list, and a `LayoutDirection`, rejecting null nodes or edges with
@@ -32,7 +32,7 @@ previous monolithic engine so the pipeline reproduces its output exactly. The `L
 selects Right, Down, Left, or Up flow; `HierarchyHandling` selects Flat (supported) or Recursive
 (reserved).
 
-## Layered Pipeline Assembly
+#### Layered Pipeline Assembly
 
 A pipeline is assembled through the fluent `LayeredLayoutPipeline.PipelineBuilder` returned by
 `Builder()`. The builder exposes `Direction`, `Hierarchy`, `AddStage`, `AddDefaultStages`, and
@@ -41,7 +41,7 @@ A pipeline is assembled through the fluent `LayeredLayoutPipeline.PipelineBuilde
 `AxisTransform.NormalizeInputAxes` to normalize the input node axes for the requested direction, then
 applies every stage in order. `Run` rejects a null graph with `ArgumentNullException`.
 
-## Layered Pipeline Stages
+#### Layered Pipeline Stages
 
 The default stage sequence added by `AddDefaultStages` runs in this order:
 
@@ -77,14 +77,14 @@ disconnected graphs. It splits the graph into connected components, runs an inne
 each, and packs the results without overlap in a deterministic order, translating each component's
 boxes and waypoints together.
 
-## Layered Pipeline Interactions
+#### Layered Pipeline Interactions
 
 All types are internal and consume only the geometric value types of the Layout system (`Point2D`,
 `Rect`) plus the internal `LayerNode`, `LayerEdge`, `AugNode`, and `AugEdge` records; no stage
 references any semantic model. The pipeline is assembled and run by `InterconnectionLayoutEngine`
 and, transitively, by the public `LayeredLayoutAlgorithm`.
 
-## Requirements Traceability
+#### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

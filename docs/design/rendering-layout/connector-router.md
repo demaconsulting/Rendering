@@ -1,8 +1,8 @@
-# ConnectorRouter Unit Design
+## ConnectorRouter Unit Design
 
 Part of the Rendering Layout system.
 
-## ConnectorRouter Purpose
+### ConnectorRouter Purpose
 
 `ConnectorRouter` is the public routing-orchestration entry point for connecting boxes that some
 caller has already placed. Given the placed boxes and a list of connections, it produces one routed
@@ -12,7 +12,7 @@ delegating the actual path to the router selected by the `EdgeRouting` style. It
 routes connectors among boxes whose positions are already fixed (for example a containment or
 free-form placement produced outside the layered pipeline).
 
-## ConnectorRouter Data Model
+### ConnectorRouter Data Model
 
 The unit comprises three public types plus the `EdgeRouting` option:
 
@@ -30,7 +30,7 @@ It mirrors ELK's `elk.edgeRouting` and today carries the single value `Orthogona
 exposed on the open property system as `CoreOptions.EdgeRouting` (id `rendering.edgerouting`, default
 `Orthogonal`), so routing can be selected per scope alongside `CoreOptions.Algorithm`.
 
-## ConnectorRouter Methods
+### ConnectorRouter Methods
 
 `Route(boxes, connection, options)` rejects null arguments (including a null `From` or `To`) with
 `ArgumentNullException`, then:
@@ -51,13 +51,13 @@ exposed on the open property system as `CoreOptions.EdgeRouting` (id `rendering.
 The batch overload applies the single-connection routine to each connection and returns one line per
 connection in input order.
 
-## ConnectorRouter Error Handling
+### ConnectorRouter Error Handling
 
 Null `boxes`, `connections`, `connection`, `options`, or a connection's `From`/`To` throw
 `ArgumentNullException`. An `EdgeRouting` value with no shipped router throws `NotSupportedException`;
 this is unreachable today because `Orthogonal` is the only enum value, but guards future additions.
 
-## ConnectorRouter Interactions
+### ConnectorRouter Interactions
 
 `ConnectorRouter` consumes the `LayoutBox`, `LayoutLine`, `Point2D`, `Rect`, `PortSide`,
 `EndMarkerStyle`, `LineStyle`, and `EdgeRouting` model types and the internal `OrthogonalEdgeRouter`
@@ -65,7 +65,7 @@ engine. It produces `LayoutLine` nodes that a caller drops into a `LayoutTree` a
 `LayoutBox` nodes for a renderer to draw. It is independent of the layered pipeline and can be used on
 any set of placed boxes.
 
-## Requirements Traceability
+### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

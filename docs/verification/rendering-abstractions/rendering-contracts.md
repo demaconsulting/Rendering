@@ -1,4 +1,4 @@
-# Rendering Contracts Unit Verification
+## Rendering Contracts Unit Verification
 
 Part of the Rendering Abstractions Verification.
 
@@ -10,14 +10,14 @@ system verification document; the primary test project is
 `DemaConsulting.Rendering.Abstractions.Tests` (`RegistryTests.cs`). Concrete renderer extension
 coverage also appears in `DemaConsulting.Rendering.Skia.Tests` (`SkiaFormatRendererTests.cs`).
 
-## Rendering Contracts Unit Scenarios
+### Rendering Contracts Unit Scenarios
 
 The contract interfaces carry no behavior of their own; their identity members are verified through
 the fake implementations registered in the registry tests. `FakeAlgorithm` implements
 `ILayoutAlgorithm` (returning `Id` "fake") and `FakeRenderer` implements `IRenderer` (returning
 `MediaType` "text/plain", `DefaultExtension` ".txt", and `FileExtensions` ".txt" and ".text").
 
-### Algorithm contract identity is exercised
+#### Algorithm contract identity is exercised
 
 Test `LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm` registers a `FakeAlgorithm`,
 resolves it, and reads the resolved algorithm's `Id`, asserting it is "fake" and thereby exercising
@@ -25,7 +25,7 @@ resolves it, and reads the resolved algorithm's `Id`, asserting it is "fake" and
 
 **Covers**: `Rendering-Abstractions-Contracts-Algorithm`.
 
-### Renderer contract identity is exercised
+#### Renderer contract identity is exercised
 
 Test `RendererRegistry_RegisterThenResolve_ReturnsRenderer` registers a `FakeRenderer`, resolves it,
 and reads the resolved renderer's `MediaType`, asserting it is "text/plain" and thereby exercising
@@ -37,7 +37,7 @@ the extension-advertising part of the `IRenderer` contract.
 
 **Covers**: `Rendering-Abstractions-Contracts-Renderer`.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Abstractions-Contracts-Algorithm`**: LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
 - **`Rendering-Abstractions-Contracts-Renderer`**: RendererRegistry_RegisterThenResolve_ReturnsRenderer,

@@ -1,10 +1,10 @@
-# InterconnectionLayoutEngine Unit Verification
+### InterconnectionLayoutEngine Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the InterconnectionLayoutEngine unit requirements to named test scenarios.
 
-## InterconnectionLayoutEngine Unit Scenarios
+#### InterconnectionLayoutEngine Unit Scenarios
 
 - **Layering** (`Rendering-Layout-InterconnectionEngine-Layering`):
   `Place_LinearChain_MonotonicLayerAssignment` asserts monotonic layer indices along a chain, and
@@ -28,7 +28,7 @@ This document maps the InterconnectionLayoutEngine unit requirements to named te
   `Place_WorkstationTopology_CorrectLayersAndNoOverlap` assert fixed, reproducible geometry for fixed
   input.
 
-## Requirements Coverage
+#### Requirements Coverage
 
 - **`Rendering-Layout-InterconnectionEngine-Layering`**:
   Place_LinearChain_MonotonicLayerAssignment, Place_WorkstationTopology_CorrectLayersAndNoOverlap

@@ -1,8 +1,8 @@
-# Registries Unit Design
+## Registries Unit Design
 
 Part of the Rendering Abstractions system.
 
-## Registries Overview
+### Registries Overview
 
 The Registries unit provides two service-provider lookups. `LayoutAlgorithmRegistry` keys algorithms
 by their `Id`; `RendererRegistry` keys renderers by their `MediaType` and by every advertised
@@ -10,13 +10,13 @@ by their `Id`; `RendererRegistry` keys renderers by their `MediaType` and by eve
 resolve one at run time by algorithm identifier, output media type, or output file extension. Neither
 registry is thread-safe for concurrent registration.
 
-## Registries Data Model
+### Registries Data Model
 
 - `LayoutAlgorithmRegistry` (sealed class) — `Ids`, `Register`, `Contains`, `TryResolve`, `Resolve`.
 - `RendererRegistry` (sealed class) — `MediaTypes`, `FileExtensions`, `Register`, `Contains`,
   `ContainsExtension`, `TryResolve`, `TryResolveByExtension`, `Resolve`, and `ResolveByExtension`.
 
-## Registries Key Methods
+### Registries Key Methods
 
 `LayoutAlgorithmRegistry Register(ILayoutAlgorithm algorithm)` — stores the algorithm keyed by its
 `Id`, replacing any previous algorithm with the same identifier, and returns the registry for fluent
@@ -35,7 +35,7 @@ adding an optional leading dot when needed, and lower-casing it for lookup. It r
 registered for that extension or throws `KeyNotFoundException`; `TryResolveByExtension` performs the
 same lookup without throwing.
 
-## Registries Design Constraints
+### Registries Design Constraints
 
 - `Resolve` shall raise `KeyNotFoundException` when the requested identifier or media type is not
   registered, so a configuration mistake surfaces immediately rather than as a later null-reference
@@ -45,14 +45,14 @@ same lookup without throwing.
 - `RendererRegistry` shall index every advertised renderer extension, and extension lookup shall ignore
   case and tolerate an omitted leading dot so file-driven callers can pass user-supplied suffixes.
 
-## Registries Interactions
+### Registries Interactions
 
 The registries hold `ILayoutAlgorithm` and `IRenderer` instances from the Rendering Contracts unit. A
 caller resolves an algorithm using the identifier from `CoreOptions.Algorithm` and resolves a renderer
 using either the desired output media type or an output filename extension such as `.svg`, `.png`, or
 `webp`.
 
-## Requirements Traceability
+### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

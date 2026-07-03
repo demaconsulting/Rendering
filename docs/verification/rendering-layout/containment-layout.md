@@ -1,10 +1,10 @@
-# ContainmentLayout Unit Verification
+## ContainmentLayout Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the containment-layout unit requirements to named test scenarios.
 
-## ContainmentLayout Scenarios
+### ContainmentLayout Scenarios
 
 - **Order preserved** (`Rendering-Layout-ContainmentLayout-Order`):
   `Pack_ItemsFitInRow_PreservesOrderLeftToRight` confirms the packed children keep their input order,
@@ -32,7 +32,7 @@ This document maps the containment-layout unit requirements to named test scenar
   `Pack_NullOptions_Throws`, and `Pack_NullChildElement_Throws` confirm null arguments are rejected with
   an argument-null error.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Layout-ContainmentLayout-Order`**:
   Pack_ItemsFitInRow_PreservesOrderLeftToRight

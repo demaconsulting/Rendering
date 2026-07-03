@@ -1,10 +1,10 @@
-# ContainmentPacker Unit Verification
+### ContainmentPacker Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the ContainmentPacker unit requirements to named test scenarios.
 
-## ContainmentPacker Unit Scenarios
+#### ContainmentPacker Unit Scenarios
 
 - **Single row** (`Rendering-Layout-ContainmentPacker-SingleRow`): `Pack_ItemsFitInRow_ShareSameRow`
   asserts items that fit the width budget share one row, left to right.
@@ -24,7 +24,7 @@ This document maps the ContainmentPacker unit requirements to named test scenari
   `Pack_SingleItem_PositionsAtPaddingOrigin` confirms a lone item lands at the padding origin with
   the region sized to wrap it.
 
-## Requirements Coverage
+#### Requirements Coverage
 
 - **`Rendering-Layout-ContainmentPacker-SingleRow`**:
   Pack_ItemsFitInRow_ShareSameRow

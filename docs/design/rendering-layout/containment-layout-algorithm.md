@@ -1,8 +1,8 @@
-# ContainmentLayoutAlgorithm Unit Design
+## ContainmentLayoutAlgorithm Unit Design
 
 Part of the Rendering Layout system.
 
-## ContainmentLayoutAlgorithm Purpose
+### ContainmentLayoutAlgorithm Purpose
 
 `ContainmentLayoutAlgorithm` is a second public `ILayoutAlgorithm` implementation alongside
 `LayeredLayoutAlgorithm`. Where the layered algorithm arranges nodes by their connectivity into
@@ -13,7 +13,7 @@ the `ConnectorRouter` orchestration — rather than the layered pipeline, and su
 group as peers inside a container rather than flowing along a directed spine. It is additive: adding it
 changes no existing output and leaves the layered algorithm untouched.
 
-## ContainmentLayoutAlgorithm Data Model
+### ContainmentLayoutAlgorithm Data Model
 
 The class is stateless and sealed. It exposes the `AlgorithmId` constant (`"containment"`) and returns
 it from the `Id` property, the stable identifier under which the algorithm is selected and registered.
@@ -24,7 +24,7 @@ single behavior is `Apply(LayoutGraph graph, LayoutOptions options)`, which retu
 carrying the packed region size and a flat list of `LayoutNode` items (`LayoutBox` per top-level node
 followed by `LayoutLine` per routed edge).
 
-## ContainmentLayoutAlgorithm Methods
+### ContainmentLayoutAlgorithm Methods
 
 `Apply(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, then:
 
@@ -50,20 +50,20 @@ followed by `LayoutLine` per routed edge).
 An empty graph yields an empty `LayoutTree` with a positive-size canvas, because the packer returns a
 padding-only region for no children and no connections are routed.
 
-## ContainmentLayoutAlgorithm Error Handling
+### ContainmentLayoutAlgorithm Error Handling
 
 Null `graph` or `options` throw `ArgumentNullException`. Edges with an out-of-graph endpoint are
 skipped rather than treated as errors. All other behavior is inherited from the composed
 `ContainmentLayout` and `ConnectorRouter` units.
 
-## ContainmentLayoutAlgorithm Interactions
+### ContainmentLayoutAlgorithm Interactions
 
 `ContainmentLayoutAlgorithm` depends on the `ILayoutAlgorithm`, `LayoutGraph`, `LayoutTree`,
 `CoreOptions`, and related model types, and composes the public `ContainmentLayout` and
 `ConnectorRouter` units of this same system. It is resolvable by renderers and callers through the
 layout registry under the `"containment"` identifier, selected via `CoreOptions.Algorithm`.
 
-## Requirements Traceability
+### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

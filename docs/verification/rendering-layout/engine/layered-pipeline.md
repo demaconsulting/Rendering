@@ -1,4 +1,4 @@
-# Layered Pipeline Unit Verification
+### Layered Pipeline Unit Verification
 
 Part of the Rendering Layout Verification.
 
@@ -81,7 +81,7 @@ nothing is mocked.
   `LayeredLayoutPipeline_AddStage_NullStage_ThrowsArgumentNullException` and
   `LayeredLayoutPipeline_Run_NullGraph_ThrowsArgumentNullException`.
 
-## Requirements Coverage
+#### Requirements Coverage
 
 - **`Rendering-Layout-LayeredPipeline-StagedPipeline`**:
   LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing,

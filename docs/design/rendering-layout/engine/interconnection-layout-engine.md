@@ -1,8 +1,8 @@
-# InterconnectionLayoutEngine Unit Design
+### InterconnectionLayoutEngine Unit Design
 
 Part of the Rendering Layout system.
 
-## InterconnectionLayoutEngine Purpose
+#### InterconnectionLayoutEngine Purpose
 
 `InterconnectionLayoutEngine` places directed graphs and routes all connector lines using a full
 Sugiyama-style pipeline. It is a thin facade that assembles and runs the reusable
@@ -12,7 +12,7 @@ are the stable internal contract; for the default Right direction the facade pro
 identical geometry to the previous monolithic implementation, proven by an equivalence test against a
 legacy oracle.
 
-## InterconnectionLayoutEngine Data Model
+#### InterconnectionLayoutEngine Data Model
 
 `InterconnectionLayoutEngine` is a static class with no instance state. Input is an
 `IReadOnlyList<LayerNode>` (width and height per node) and an `IReadOnlyList<LayerEdge>` (directed
@@ -21,7 +21,7 @@ order, the bounding-box totals, a `NodeLayers` list of longest-path layer indice
 `ConnectorWaypoints` list of orthogonal waypoints, and the `AcyclicEdges` set that is index-aligned
 with `ConnectorWaypoints`.
 
-## InterconnectionLayoutEngine Methods
+#### InterconnectionLayoutEngine Methods
 
 `Place(nodes, edges, direction)` builds a `LayeredGraph` from the inputs, assembles a
 `LayeredLayoutPipeline` with the default stages for the requested `direction` (defaulting to Right),
@@ -39,20 +39,20 @@ coordinates, then assigns them to `TotalWidth`/`TotalHeight` per direction: for 
 along-axis is the width and for Down/Up it is the height. The Right path is unchanged and remains
 byte-identical.
 
-## InterconnectionLayoutEngine Error Handling
+#### InterconnectionLayoutEngine Error Handling
 
 Null `nodes` or `edges` arguments throw `ArgumentNullException`. An empty `nodes` list returns a
 minimal-size `LayerResult` with empty lists without performing any computation. Out-of-range edge
 indices and self-loops are ignored by the pipeline stages.
 
-## InterconnectionLayoutEngine Interactions
+#### InterconnectionLayoutEngine Interactions
 
 `InterconnectionLayoutEngine` depends on `LayeredLayoutPipeline` and `LayeredGraph` (the staged
 pipeline it assembles and runs), the `Rect` value type, and the `Point2D` point type used for
 waypoints. It is called by the public `LayeredLayoutAlgorithm` and by the interconnection view
 strategy to obtain a placement result.
 
-## Requirements Traceability
+#### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

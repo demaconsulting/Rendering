@@ -1,10 +1,10 @@
-# EdgeRouting Option Unit Verification
+## EdgeRouting Option Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the edge-routing-option behavior requirements to named test scenarios.
 
-## EdgeRouting Option Unit Scenarios
+### EdgeRouting Option Unit Scenarios
 
 - **Per-scope selection** (`Rendering-Layout-EdgeRouting-Selection`):
   `CoreOptions_EdgeRouting_DefaultsToOrthogonal` and `CoreOptions_EdgeRouting_HasStableId` confirm the
@@ -16,7 +16,7 @@ This document maps the edge-routing-option behavior requirements to named test s
   `ConnectorRouteOptions_Defaults_AreOrthogonalWithTwelvePixelClearance` confirms the default style is
   orthogonal, the default clearance is twelve logical pixels, and the clearance is caller-overridable.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Layout-EdgeRouting-Selection`**:
   CoreOptions_EdgeRouting_DefaultsToOrthogonal, CoreOptions_EdgeRouting_HasStableId,

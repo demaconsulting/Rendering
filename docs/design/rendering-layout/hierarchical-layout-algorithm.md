@@ -1,8 +1,8 @@
-# HierarchicalLayoutAlgorithm Unit Design
+## HierarchicalLayoutAlgorithm Unit Design
 
 Part of the Rendering Layout system.
 
-## HierarchicalLayoutAlgorithm Purpose
+### HierarchicalLayoutAlgorithm Purpose
 
 `HierarchicalLayoutAlgorithm` is a third public `ILayoutAlgorithm` implementation: the recursive
 hierarchical layout engine, analogous to ELK's `RecursiveGraphLayoutEngine`. Where the layered and
@@ -13,7 +13,7 @@ selects a bundled *leaf* algorithm per scope and delegates the actual placement 
 container and composes the results. It is additive: it changes no existing output and is honored only
 when a caller selects it by name.
 
-## HierarchicalLayoutAlgorithm Data Model
+### HierarchicalLayoutAlgorithm Data Model
 
 The class is sealed and stateless with respect to any single layout. It exposes the `AlgorithmId`
 constant (`"hierarchical"`) and returns it from `Id`. Two private constants govern container framing:
@@ -27,7 +27,7 @@ caller-supplied registry (rejecting null). The engine treats a scope that explic
 `"hierarchical"` identifier as selecting the default leaf algorithm, so recursion always terminates in a
 bundled leaf algorithm.
 
-## HierarchicalLayoutAlgorithm Methods
+### HierarchicalLayoutAlgorithm Methods
 
 `Apply(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, resolves the
 root scope's algorithm (the graph's explicit `CoreOptions.Algorithm` override if present, otherwise the
@@ -61,7 +61,7 @@ algoId, options)` performs:
 7. **Assembly.** The engine returns a `LayoutTree` with the leaf algorithm's canvas size for this level
    and the composed boxes followed by the leaf-routed lines and the cross-container lines.
 
-## HierarchicalLayoutAlgorithm Design Constraints
+### HierarchicalLayoutAlgorithm Design Constraints
 
 - The flat-graph equivalence guarantee is load-bearing: the fast path must delegate directly to the
   leaf algorithm and must not clone the graph or transform the tree, so selecting the engine never
@@ -72,14 +72,14 @@ algoId, options)` performs:
   container is laid out in isolation and sized to fit its children. The `CoreOptions.HierarchyHandling`
   option records this selection; only the separate-children mode is honored today.
 
-## HierarchicalLayoutAlgorithm Error Handling
+### HierarchicalLayoutAlgorithm Error Handling
 
 Null `graph`, `options`, or (injecting constructor) `registry` throw `ArgumentNullException`. A scope
 that selects an algorithm identifier absent from the registry surfaces the registry's
 `KeyNotFoundException`. Edges whose endpoints are not under the current scope are skipped rather than
 treated as errors.
 
-## HierarchicalLayoutAlgorithm Interactions
+### HierarchicalLayoutAlgorithm Interactions
 
 `HierarchicalLayoutAlgorithm` depends on the `ILayoutAlgorithm`, `LayoutAlgorithmRegistry`,
 `LayoutGraph`, `LayoutGraphNode`, `LayoutTree`, `CoreOptions`, and related model types, and composes
@@ -88,7 +88,7 @@ the public `ConnectorRouter` unit for cross-container routing and the bundled le
 renderers and callers through the layout registry under the `"hierarchical"` identifier, selected via
 `CoreOptions.Algorithm`.
 
-## Requirements Traceability
+### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

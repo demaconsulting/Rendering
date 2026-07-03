@@ -1,8 +1,8 @@
-# Layout Tree Unit Design
+## Layout Tree Unit Design
 
 Part of the Rendering Model system.
 
-## Layout Tree Overview
+### Layout Tree Overview
 
 The Layout Tree unit is the placed, renderer-agnostic representation of one view. A `LayoutTree`
 carries the canvas dimensions and a flat list of top-level `LayoutNode` instances. `LayoutNode` is an
@@ -10,7 +10,7 @@ abstract record acting as the root of a discriminated union; renderers switch on
 and skip unknown subtypes for forward compatibility. All coordinates are absolute, with the origin at
 the top-left, so a renderer can draw each element directly without resolving nested offsets.
 
-## Layout Tree Data Model
+### Layout Tree Data Model
 
 - `LayoutTree` (sealed record) — `Width`, `Height`, the top-level `Nodes` list, and layout-quality
   `Warnings`.
@@ -41,7 +41,7 @@ The unit also defines the notation enumerations `BoxShape`, `PortSide`, `EndMark
 they exist so every node record and every layout algorithm expresses coordinates and bounds with one
 consistent, allocation-light vocabulary.
 
-## Layout Tree Design Constraints
+### Layout Tree Design Constraints
 
 - All node coordinates shall be absolute in logical pixels with the origin at the top-left; the model
   shall not apply any coordinate transform.
@@ -52,13 +52,13 @@ consistent, allocation-light vocabulary.
 - All node records shall be immutable, so a placed tree can be shared and rendered repeatedly without
   defensive copying.
 
-## Layout Tree Interactions
+### Layout Tree Interactions
 
 The Layout Tree is produced by a layout algorithm (see the *Rendering Abstractions* design,
 `ILayoutAlgorithm`) and consumed by a renderer (`IRenderer`). Within the tree, `LayoutBox` and
 `LayoutBand` hold nested `Children`, so renderers walk the node hierarchy recursively.
 
-## Requirements Traceability
+### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

@@ -1,8 +1,8 @@
-# Options Unit Design
+## Options Unit Design
 
 Part of the Rendering Model system.
 
-## Options Overview
+### Options Overview
 
 The Options unit is the open, ELK-inspired configuration system. Configuration values are keyed by
 `LayoutProperty<T>` constants rather than by fixed fields, so new options are introduced by declaring
@@ -10,7 +10,7 @@ new keys without changing any method signature. Any object that needs to carry c
 implements `IPropertyHolder`; the concrete `PropertyHolder` provides a dictionary-backed store keyed
 by each property's identifier.
 
-## Options Data Model
+### Options Data Model
 
 - `LayoutProperty<T>` (sealed class) — `Id` and `DefaultValue`.
 - `IPropertyHolder` (interface) — `Get`, `TryGet`, `Set`, `Contains`.
@@ -24,7 +24,7 @@ by each property's identifier.
   children. Under `SeparateChildren` each container is laid out in its own coordinate space and sized
   to fit its children. An `IncludeChildren` (cross-boundary) mode is a planned future additive value.
 
-## Options Key Methods
+### Options Key Methods
 
 `TValue Get<TValue>(LayoutProperty<TValue> property)` — returns the stored value for a property, or
 the property's `DefaultValue` when it has not been set. Throws `ArgumentNullException` when the
@@ -42,20 +42,20 @@ explicitly set on this holder.
 `LayoutOptions.ForAlgorithm(string algorithmId)` — creates a `LayoutOptions` pre-set with
 `CoreOptions.Algorithm`.
 
-## Options Design Constraints
+### Options Design Constraints
 
 - `PropertyHolder` shall store values keyed by `LayoutProperty<T>.Id`, so an option that no algorithm
   yet honors is carried harmlessly and simply ignored by algorithms that do not read it.
 - `CoreOptions` keys marked advisory shall default harmlessly until an algorithm implements them, so
   that adding a key is a purely additive change.
 
-## Options Interactions
+### Options Interactions
 
 `LayoutGraph`, `LayoutGraphNode`, and `LayoutGraphEdge` (in the Layout Graph unit) all derive from
 `PropertyHolder`, so configuration can be attached to the whole graph or to a single element.
 `LayoutOptions` is passed to a layout algorithm alongside a `LayoutGraph`.
 
-## Requirements Traceability
+### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

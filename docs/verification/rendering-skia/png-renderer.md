@@ -1,4 +1,4 @@
-# PngRenderer Unit Verification
+## PngRenderer Unit Verification
 
 Part of the Rendering.Skia Verification.
 
@@ -10,9 +10,9 @@ system verification document; the test project is
 `DemaConsulting.Rendering.Skia.Tests` (`PngRendererTests.cs`, `PngRendererPortedTests.cs`,
 `SkiaFormatRendererTests.cs`).
 
-## PngRenderer Unit Scenarios
+### PngRenderer Unit Scenarios
 
-### PNG output has the expected signature and metadata
+#### PNG output has the expected signature and metadata
 
 Tests `Render_SingleBox_ProducesPngSignature`, `PngRenderer_Render_EmptyTree_WritesPngSignature`, and
 `PngRenderer_FileExtensions_ContainsDefault` render sample layouts and assert that output begins with
@@ -21,7 +21,7 @@ is included in its advertised extensions.
 
 **Covers**: `Rendering-Skia-PngRenderer-EmitsPng`.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Skia-PngRenderer-EmitsPng`**: Render_SingleBox_ProducesPngSignature,
   PngRenderer_Render_EmptyTree_WritesPngSignature, PngRenderer_FileExtensions_ContainsDefault

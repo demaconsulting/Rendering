@@ -1,4 +1,4 @@
-# Notation Metrics Unit Verification
+## Notation Metrics Unit Verification
 
 Part of the Rendering Abstractions Verification.
 
@@ -9,9 +9,9 @@ verification strategy, test environment, and acceptance criteria are described i
 system verification document; the test project is
 `DemaConsulting.Rendering.Abstractions.Tests` (`NotationMetricsTests.cs`).
 
-## Notation Metrics Unit Scenarios
+### Notation Metrics Unit Scenarios
 
-### Triangle marker geometry is canonical
+#### Triangle marker geometry is canonical
 
 Tests `TriangleFamily_HasCanonicalValues`, `TriangleVertices_ReproduceSvgBoxPoints`, and
 `TriangleVertices_Apex_OvershootsEndpoint` assert the triangle-family constants (10x7, refX 9), map
@@ -20,7 +20,7 @@ endpoint by the documented amount.
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-TriangleGeometry`.
 
-### Diamond marker geometry is canonical
+#### Diamond marker geometry is canonical
 
 Tests `Diamond_HasCanonicalValues`, `DiamondVertices_ReproduceSvgBoxPoints`, and
 `DiamondVertices_FarPoint_LandsOnEndpoint` assert the diamond constants (14x8, refX 13), map the
@@ -29,21 +29,21 @@ on the line endpoint.
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-DiamondGeometry`.
 
-### Circle and bar geometry is canonical
+#### Circle and bar geometry is canonical
 
 Test `CircleAndBar_HaveCanonicalValues` asserts the circle (radius 4, box 10, centre 5, refX 9) and
 bar (4x12, half-along 2, half 6) constants match the historical markers.
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-CircleBarGeometry`.
 
-### Crossbar is a derived fraction
+#### Crossbar is a derived fraction
 
 Test `Crossbar_IsDerivedFraction` asserts the crossbar fraction is 0.7 and the derived position is 7.0
 (0.7 x the marker length).
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-Crossbar`.
 
-### Along-line length matches the marker box
+#### Along-line length matches the marker box
 
 Test `AlongLineLength_MatchesMarkerBox` reads `AlongLineLength` for each `EndMarkerStyle` and asserts
 each reports its documented length (0 for None, 10 for the triangle family and circle, 14 for
@@ -51,7 +51,7 @@ diamonds, 4 for bar).
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-AlongLineLength`.
 
-### Box-decoration proportions are documented
+#### Box-decoration proportions are documented
 
 Tests `Port_SizeIsTwiceHalfSize`, `FolderTab_HasDocumentedConstants`,
 `NoteFold_HasDocumentedConstants`, `RoundedRectRadius_IsThemeRadiusTimesFactor`,
@@ -60,7 +60,7 @@ folder-tab, note-fold, rounded-rectangle corner, badge, and label-background con
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-BoxDecorations`.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Abstractions-NotationMetrics-TriangleGeometry`**: TriangleFamily_HasCanonicalValues,
   TriangleVertices_ReproduceSvgBoxPoints, TriangleVertices_Apex_OvershootsEndpoint

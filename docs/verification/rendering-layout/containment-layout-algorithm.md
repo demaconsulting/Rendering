@@ -1,10 +1,10 @@
-# ContainmentLayoutAlgorithm Unit Verification
+## ContainmentLayoutAlgorithm Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the containment-layout-algorithm unit requirements to named test scenarios.
 
-## ContainmentLayoutAlgorithm Scenarios
+### ContainmentLayoutAlgorithm Scenarios
 
 - **Identity** (`Rendering-Layout-ContainmentAlgorithm-Identity`): `Id_IsContainment` asserts the
   algorithm reports the stable `"containment"` identifier.
@@ -26,7 +26,7 @@ This document maps the containment-layout-algorithm unit requirements to named t
 - **Validation** (`Rendering-Layout-ContainmentAlgorithm-Validation`): `Apply_NullGraph_Throws` and
   `Apply_NullOptions_Throws` confirm null arguments are rejected with an argument-null error.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Layout-ContainmentAlgorithm-Identity`**:
   Id_IsContainment

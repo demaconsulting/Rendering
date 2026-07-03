@@ -1,10 +1,10 @@
-# OrthogonalEdgeRouter Unit Verification
+### OrthogonalEdgeRouter Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the OrthogonalEdgeRouter unit requirements to named test scenarios.
 
-## OrthogonalEdgeRouter Unit Scenarios
+#### OrthogonalEdgeRouter Unit Scenarios
 
 - **Orthogonal path** (`Rendering-Layout-OrthogonalEdgeRouter-Orthogonal`):
   `Route_NoObstacles_ProducesOrthogonalPath` asserts consecutive waypoints share an X or Y
@@ -28,7 +28,7 @@ This document maps the OrthogonalEdgeRouter unit requirements to named test scen
   `RouteWithStatus_HighwayBand_PrefersBandedDetour` confirms the router prefers a discounted band
   over an equal-length alternative.
 
-## Requirements Coverage
+#### Requirements Coverage
 
 - **`Rendering-Layout-OrthogonalEdgeRouter-Orthogonal`**:
   Route_NoObstacles_ProducesOrthogonalPath, Route_AlignedEndpoints_ProducesStraightLine

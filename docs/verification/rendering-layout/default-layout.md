@@ -1,10 +1,10 @@
-# DefaultLayout Unit Verification
+## DefaultLayout Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the default-layout unit requirements to named test scenarios.
 
-## DefaultLayout Scenarios
+### DefaultLayout Scenarios
 
 - **Bundled algorithms** (`Rendering-Layout-DefaultRegistry-BundledAlgorithms`):
   `CreateDefaultRegistry_ResolvesLayeredAlgorithm`, `CreateDefaultRegistry_ResolvesContainmentAlgorithm`,
@@ -36,7 +36,7 @@ This document maps the default-layout unit requirements to named test scenarios.
   `Layout_NullOptions_Throws`, and `Layout_NullRegistry_Throws` confirm null arguments are rejected with
   an argument-null error.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Layout-DefaultRegistry-BundledAlgorithms`**:
   CreateDefaultRegistry_ResolvesLayeredAlgorithm, CreateDefaultRegistry_ResolvesContainmentAlgorithm,

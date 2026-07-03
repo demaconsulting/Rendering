@@ -1,10 +1,10 @@
-# HierarchicalLayoutAlgorithm Unit Verification
+## HierarchicalLayoutAlgorithm Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the hierarchical-layout-algorithm unit requirements to named test scenarios.
 
-## HierarchicalLayoutAlgorithm Scenarios
+### HierarchicalLayoutAlgorithm Scenarios
 
 - **Identity** (`Rendering-Layout-HierarchicalLayout-Identity`): `Id_IsHierarchical` asserts the engine
   reports the stable `"hierarchical"` identifier.
@@ -38,7 +38,7 @@ This document maps the hierarchical-layout-algorithm unit requirements to named 
   `Apply_NullOptions_Throws`, and `Constructor_NullRegistry_Throws` confirm a null graph, null options,
   and null registry are each rejected with an argument-null error.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Layout-HierarchicalLayout-Identity`**:
   Id_IsHierarchical

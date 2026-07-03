@@ -1,4 +1,4 @@
-# LayeredLayoutAlgorithm Unit Verification
+## LayeredLayoutAlgorithm Unit Verification
 
 Part of the Rendering Layout Verification.
 
@@ -22,7 +22,7 @@ This document maps the layered-layout-algorithm unit requirements to named test 
   a null graph argument is rejected with an argument-null error, and `Apply_NullOptions_Throws`
   confirms a null options argument is likewise rejected with an argument-null error.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Layout-LayeredAlgorithm-Identity`**:
   Id_IsLayered

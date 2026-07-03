@@ -1,4 +1,4 @@
-# Layout Graph Unit Verification
+## Layout Graph Unit Verification
 
 Part of the Rendering Model Verification.
 
@@ -9,30 +9,30 @@ strategy, test environment, and acceptance criteria are described in the
 system verification document; the test project is `DemaConsulting.Rendering.Tests`
 (`LayoutGraphTests.cs`).
 
-## Layout Graph Unit Scenarios
+### Layout Graph Unit Scenarios
 
-### AddNode appends and returns the node
+#### AddNode appends and returns the node
 
 Test `AddNode_AppendsNodeAndReturnsIt` calls `AddNode` on a fresh graph and asserts that the graph
 contains one node and that the returned node carries the requested id, width, and height.
 
 **Covers**: `Rendering-Model-LayoutGraph-AddNode`.
 
-### AddEdge appends an edge with endpoints
+#### AddEdge appends an edge with endpoints
 
 Test `AddEdge_AppendsEdgeWithEndpoints` adds two nodes and an edge referencing them, then asserts that
 the graph contains one edge whose `Source` and `Target` are the same node instances supplied.
 
 **Covers**: `Rendering-Model-LayoutGraph-AddEdge`.
 
-### Node carries per-element properties
+#### Node carries per-element properties
 
 Test `Node_CarriesPerElementProperties` sets the `CoreOptions.Direction` property on a node and reads
 it back, asserting that the read returns the value set on that node.
 
 **Covers**: `Rendering-Model-LayoutGraph-PerElementProperties`.
 
-### Container node holds nested children and a leaf reports none
+#### Container node holds nested children and a leaf reports none
 
 Tests `LayoutGraphNode_Children_ContainerNode_HoldsChildNodesAndEdges` and
 `LayoutGraphNode_HasChildren_LeafNode_ReturnsFalse` populate a node's `Children` subgraph with two
@@ -43,7 +43,7 @@ a leaf allocates no child subgraph.
 
 **Covers**: `Rendering-Model-LayoutGraph-ContainerNodes`.
 
-### Identifiers are scoped per container
+#### Identifiers are scoped per container
 
 Tests `LayoutGraph_AddNode_ChildScope_AllowsIdReuseAcrossScopes` and
 `LayoutGraph_AddNode_ChildScope_DuplicateId_ThrowsArgumentException` add a node named `x` inside two
@@ -55,7 +55,7 @@ confirming edge identifiers are scoped per container just as node identifiers ar
 
 **Covers**: `Rendering-Model-LayoutGraph-ScopedIdentifiers`.
 
-### Cross-container edge references a descendant node
+#### Cross-container edge references a descendant node
 
 Test `LayoutGraphEdge_CrossContainer_ReferencingDescendant_ConstructibleAtRoot` adds, at the root
 graph, an edge between a root-level leaf node and a node nested inside a container, then asserts the
@@ -67,7 +67,7 @@ edge is expressible at the lowest common ancestor, including the sibling-contain
 
 **Covers**: `Rendering-Model-LayoutGraph-CrossContainerEdge`.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Model-LayoutGraph-AddNode`**: AddNode_AppendsNodeAndReturnsIt
 - **`Rendering-Model-LayoutGraph-AddEdge`**: AddEdge_AppendsEdgeWithEndpoints
