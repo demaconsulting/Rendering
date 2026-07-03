@@ -2,3 +2,18 @@
 # CodeQL configuration for Rendering
 
 name: "Rendering CodeQL Config"
+
+# Globally ignore build output and generated files. For compiled languages this only
+# filters reporting and does not reliably suppress alerts in generated sources, so it is
+# paired with the query-filters below.
+paths-ignore:
+  - "**/obj/**"
+  - "**/bin/**"
+
+# Query filters to disable specific queries for certain paths.
+query-filters:
+  # Suppress the ternary suggestion in the SDK-generated xUnit entry point under obj/,
+  # which is generated code that cannot be modified.
+  - exclude:
+      id: cs/missed-ternary-operator
+    paths: ["**/obj/**/*.cs"]

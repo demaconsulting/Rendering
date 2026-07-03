@@ -31,12 +31,9 @@ internal sealed class CycleBreaker : ILayoutStage
             adjacency[i] = [];
         }
 
-        foreach (var e in edges)
+        foreach (var e in edges.Where(e => e.Source != e.Target))
         {
-            if (e.Source != e.Target)
-            {
-                adjacency[e.Source].Add(e.Target);
-            }
+            adjacency[e.Source].Add(e.Target);
         }
 
         var visited = new bool[n];
@@ -84,7 +81,12 @@ internal sealed class CycleBreaker : ILayoutStage
                 continue;
             }
 
+            // S4158: backEdges is populated inside the Dfs local function above; the analyzer's
+            // symbolic execution cannot track the mutation across the nested call and wrongly treats
+            // the set as empty here (same limitation as the S4143 suppression earlier in this method).
+#pragma warning disable S4158
             var isBack = backEdges.Contains((e.Source, e.Target));
+#pragma warning restore S4158
             var (from, to) = isBack
                 ? (e.Target, e.Source)
                 : (e.Source, e.Target);

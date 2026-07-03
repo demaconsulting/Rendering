@@ -156,7 +156,7 @@ public sealed class ContainmentLayoutTests
         var nested = Box(10, 10, "inner");
         var compartments = new[] { new LayoutCompartment("attributes", ["speed: Real"]) };
         var original = new LayoutBox(
-            999, 999, 90, 50, "Engine", 3, BoxShape.Folder, compartments, new[] { (LayoutNode)nested }, "part def");
+            999, 999, 90, 50, "Engine", 3, BoxShape.Folder, compartments, new[] { nested }, "part def");
 
         // Act
         var result = ContainmentLayout.Pack(new[] { original }, new ContainmentOptions(MaxContentWidth: 200, Padding: 12));

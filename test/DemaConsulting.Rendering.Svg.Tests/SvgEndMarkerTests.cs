@@ -2,6 +2,7 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
+using System.Text;
 using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Abstractions;
 using DemaConsulting.Rendering.Svg;
@@ -29,7 +30,8 @@ public sealed class SvgEndMarkerTests
         using var output = new MemoryStream();
         renderer.Render(layout, options, output);
         output.Position = 0;
-        return new StreamReader(output).ReadToEnd();
+        using var reader = new StreamReader(output, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
+        return reader.ReadToEnd();
     }
 
     /// <summary>The open-chevron marker is defined as an OPEN <c>&lt;polyline&gt;</c>, not a closed polygon.</summary>

@@ -2,6 +2,7 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
+using System.Text;
 using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Abstractions;
 using DemaConsulting.Rendering.Svg;
@@ -32,7 +33,7 @@ public sealed class SvgRendererPortedTests
         // Assert: output is non-empty and contains the SVG root element
         Assert.True(output.Length > 0);
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<svg", svgText, StringComparison.Ordinal);
         Assert.Contains("</svg>", svgText, StringComparison.Ordinal);
     }
@@ -56,7 +57,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert: output contains a rect element
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<rect", svgText, StringComparison.Ordinal);
     }
 
@@ -79,7 +80,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert: output contains a text element
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<text", svgText, StringComparison.Ordinal);
         Assert.Contains("Hello World", svgText, StringComparison.Ordinal);
     }
@@ -108,7 +109,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert: output contains a path element
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<path", svgText, StringComparison.Ordinal);
     }
 
@@ -137,7 +138,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert: arc command is present in path data
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains(" A ", svgText, StringComparison.Ordinal);
     }
 
@@ -165,7 +166,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("stroke-dasharray", svgText, StringComparison.Ordinal);
     }
 
@@ -193,7 +194,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("marker-end", svgText, StringComparison.Ordinal);
     }
 
@@ -222,7 +223,7 @@ public sealed class SvgRendererPortedTests
         // Assert: the connector path references the hollow-diamond marker on its source end
         // (not merely that the marker id appears in <defs>).
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("marker-start=\"url(#line-end-hollow-diamond)\"", svgText, StringComparison.Ordinal);
     }
 
@@ -247,7 +248,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert: divider line and compartment row text are both present
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<line", svgText, StringComparison.Ordinal);
         Assert.Contains("+ radius : Real", svgText, StringComparison.Ordinal);
     }
@@ -271,7 +272,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("rx=\"", svgText, StringComparison.Ordinal);
     }
 
@@ -294,7 +295,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<rect", svgText, StringComparison.Ordinal);
     }
 
@@ -317,7 +318,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<circle", svgText, StringComparison.Ordinal);
     }
 
@@ -340,7 +341,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<rect", svgText, StringComparison.Ordinal);
     }
 
@@ -364,7 +365,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<rect", svgText, StringComparison.Ordinal);
         Assert.Contains("<line", svgText, StringComparison.Ordinal);
     }
@@ -388,7 +389,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<rect", svgText, StringComparison.Ordinal);
     }
 
@@ -413,7 +414,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<rect", svgText, StringComparison.Ordinal);
     }
 
@@ -436,7 +437,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("font-weight=\"bold\"", svgText, StringComparison.Ordinal);
     }
 
@@ -459,7 +460,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("font-style=\"italic\"", svgText, StringComparison.Ordinal);
     }
 
@@ -487,7 +488,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("<text", svgText, StringComparison.Ordinal);
         Assert.Contains("uses", svgText, StringComparison.Ordinal);
     }
@@ -518,7 +519,7 @@ public sealed class SvgRendererPortedTests
         // Assert: the connector path references the hollow-triangle-crossbar marker on its target end
         // (not merely that the marker id appears in <defs>).
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         Assert.Contains("marker-end=\"url(#line-end-hollow-triangle-crossbar)\"", svgText, StringComparison.Ordinal);
     }
 
@@ -544,7 +545,7 @@ public sealed class SvgRendererPortedTests
 
         // Assert: the output parses as well-formed XML and the reserved characters are escaped.
         output.Position = 0;
-        var svgText = new StreamReader(output).ReadToEnd();
+        var svgText = ReadAllText(output);
         var document = System.Xml.Linq.XDocument.Parse(svgText); // throws if the SVG is not well-formed
         Assert.Contains("&lt;", svgText, StringComparison.Ordinal);
         Assert.Contains("&gt;", svgText, StringComparison.Ordinal);
@@ -557,5 +558,14 @@ public sealed class SvgRendererPortedTests
             .Select(e => e.Value)
             .ToList();
         Assert.Contains(textValues, v => v.Contains(special, StringComparison.Ordinal));
+    }
+
+    /// <summary>Reads the whole stream as UTF-8 text, disposing the reader while leaving the stream open.</summary>
+    /// <param name="stream">The stream to read from its current position.</param>
+    /// <returns>The decoded text.</returns>
+    private static string ReadAllText(Stream stream)
+    {
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
+        return reader.ReadToEnd();
     }
 }
