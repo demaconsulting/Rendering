@@ -1,10 +1,39 @@
-# DefaultLayout Unit Verification
+## DefaultLayout Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the default-layout unit requirements to named test scenarios.
 
-## DefaultLayout Scenarios
+### Verification Approach
+
+`LayoutAlgorithms` (registry factory) and `LayoutEngine` (facade) are stateless static units, so
+verification is by direct xUnit unit tests. The tests use the real bundled algorithms
+(`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`, `HierarchicalLayoutAlgorithm`) rather than
+mocks so that resolution, flat-graph equivalence, and nested composition are all observed on the
+production code paths. A subset of tests deep-compares the facade's `LayoutTree` output with the
+leaf algorithm applied directly to guarantee byte-identical behavior for existing callers.
+
+### Test Environment
+
+- **Framework**: xUnit v3 running on the .NET SDK.
+- **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Projects**: `test/DemaConsulting.Rendering.Layout.Tests/LayoutAlgorithmsTests.cs` and
+  `test/DemaConsulting.Rendering.Layout.Tests/LayoutEngineTests.cs`.
+- **Dependencies**: no external services, files, or network access; every test constructs its own
+  in-memory `LayoutGraph` and `LayoutOptions` instances.
+- **Isolation**: each test creates fresh inputs and (where applicable) its own registry via
+  `LayoutAlgorithms.CreateDefaultRegistry()`, which returns an independent instance per call.
+
+### Acceptance Criteria
+
+A verification run passes when every named scenario below asserts without unexpected exception, and
+the referenced tests cover each `Rendering-Layout-DefaultRegistry-*` and
+`Rendering-Layout-LayoutEngine-*` requirement. Any drift in the bundled algorithm set, in the
+default algorithm identifier (`"hierarchical"`), in the resolution precedence (graph over options
+over default), in the flat-graph equivalence guarantee, in nested composition, or in the argument-
+null validation behavior constitutes a failure.
+
+### Test Scenarios
 
 - **Bundled algorithms** (`Rendering-Layout-DefaultRegistry-BundledAlgorithms`):
   `CreateDefaultRegistry_ResolvesLayeredAlgorithm`, `CreateDefaultRegistry_ResolvesContainmentAlgorithm`,
@@ -36,7 +65,7 @@ This document maps the default-layout unit requirements to named test scenarios.
   `Layout_NullOptions_Throws`, and `Layout_NullRegistry_Throws` confirm null arguments are rejected with
   an argument-null error.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Layout-DefaultRegistry-BundledAlgorithms`**:
   CreateDefaultRegistry_ResolvesLayeredAlgorithm, CreateDefaultRegistry_ResolvesContainmentAlgorithm,

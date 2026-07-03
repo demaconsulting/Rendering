@@ -1,8 +1,34 @@
-# LayeredLayoutAlgorithm Unit Verification
+## LayeredLayoutAlgorithm Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the layered-layout-algorithm unit requirements to named test scenarios.
+
+### Verification Approach
+
+`LayeredLayoutAlgorithm` is verified by direct xUnit unit tests that call `Apply(graph, options)` on
+synthetic `LayoutGraph` inputs. The tests exercise the real ELK-style layered pipeline end-to-end
+(no stage is mocked) so identity, placement, routing, and direction handling are all observed on
+production code paths.
+
+### Test Environment
+
+- **Framework**: xUnit v3 running on the .NET SDK.
+- **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs`.
+- **Dependencies**: no external services, files, or network access; every test constructs its own
+  in-memory `LayoutGraph` and `LayoutOptions` instances.
+- **Isolation**: each test builds its own inputs; the algorithm is stateless between calls.
+
+### Acceptance Criteria
+
+A verification run passes when every named scenario below asserts without unexpected exception, and
+the referenced tests cover each `Rendering-Layout-LayeredAlgorithm-*` requirement. Any drift in the
+stable identifier (`"layered"`), in the one-box-per-node / one-line-per-edge placement contract, in
+empty-graph handling, in flow-direction honoring, or in the argument-null validation behavior
+constitutes a failure.
+
+### Test Scenarios
 
 - **Identity** (`Rendering-Layout-LayeredAlgorithm-Identity`): `Id_IsLayered` asserts the algorithm
   reports the stable `"layered"` identifier.
@@ -22,7 +48,7 @@ This document maps the layered-layout-algorithm unit requirements to named test 
   a null graph argument is rejected with an argument-null error, and `Apply_NullOptions_Throws`
   confirms a null options argument is likewise rejected with an argument-null error.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Layout-LayeredAlgorithm-Identity`**:
   Id_IsLayered

@@ -1,8 +1,8 @@
-# ContainmentLayout Unit Design
+## ContainmentLayout Unit Design
 
 Part of the Rendering Layout system.
 
-## ContainmentLayout Purpose
+### ContainmentLayout Purpose
 
 `ContainmentLayout` is the public, model-speaking containment building block: it packs a set of
 already-sized `LayoutBox` children into a single container region, arranging them into rows within a
@@ -13,7 +13,7 @@ layout (for example the members of a package or the contents of a folder). It is
 primitive; multi-level folder/canvas assembly is composed from it by higher layers rather than provided
 here.
 
-## ContainmentLayout Data Model
+### ContainmentLayout Data Model
 
 The unit comprises the public static class plus two records:
 
@@ -26,7 +26,7 @@ The unit comprises the public static class plus two records:
   coordinates, in input order.
 - `ContainmentLayout` — a stateless static class exposing `Pack(children, options)`.
 
-## ContainmentLayout Methods
+### ContainmentLayout Methods
 
 `Pack(children, options)` rejects null arguments — a null `children` list, null `options`, or any null
 child element — with `ArgumentNullException`, then:
@@ -46,13 +46,13 @@ within the reported region (which includes the outer padding on every side), pla
 the content width alone on its own row while widening the region to contain it, and returns a
 padding-only region for an empty input.
 
-## ContainmentLayout Error Handling
+### ContainmentLayout Error Handling
 
 Null `children`, `options`, or a null child element throw `ArgumentNullException`. Packing behavior for
 degenerate sizes (zero or negative dimensions) follows the underlying `ContainmentPacker`; the public
 operation adds no further validation beyond null rejection.
 
-## ContainmentLayout Interactions
+### ContainmentLayout Interactions
 
 `ContainmentLayout` consumes the `LayoutBox` model type and the internal `ContainmentPacker`,
 `PackItem`, `PackedRect`, and `PackResult` engine types, which remain internal to the Layout system —
@@ -60,7 +60,7 @@ the public API speaks only `LayoutBox`. It produces `LayoutBox` children that a 
 container box (offsetting by the container's placement) and drops into a `LayoutTree` for a renderer to
 draw. It is independent of the layered pipeline and can be used on any set of sized boxes.
 
-## Requirements Traceability
+### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

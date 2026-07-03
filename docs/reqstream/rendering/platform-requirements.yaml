@@ -11,7 +11,7 @@
 # library builds and executes end to end on that platform/runtime, not merely that a single type loads.
 
 sections:
-  - title: Platform Support
+  - title: Platform Support Requirements
     requirements:
       - id: Rendering-Platform-Windows
         title: The rendering library shall build and run on Windows platforms.

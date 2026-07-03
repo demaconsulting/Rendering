@@ -9,7 +9,7 @@
 #   in rendering.yaml.
 
 sections:
-  - title: Layout Tree Unit Requirements
+  - title: Layout Tree Requirements
     requirements:
       - id: Rendering-Model-LayoutTree-Canvas
         title: >-

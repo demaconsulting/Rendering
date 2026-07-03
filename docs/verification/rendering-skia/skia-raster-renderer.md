@@ -1,17 +1,52 @@
-# SkiaRasterRenderer Unit Verification
+## SkiaRasterRenderer Unit Verification
 
 Part of the Rendering.Skia Verification.
 
 This document describes the verification design for the `SkiaRasterRenderer` unit of the
 `DemaConsulting.Rendering.Skia` system. It maps every SkiaRasterRenderer unit requirement to at least
-one named test scenario so a reviewer can confirm coverage without reading the test code. The
-verification strategy, test environment, and acceptance criteria are described in the
-system verification document; the test project is
-`DemaConsulting.Rendering.Skia.Tests` (`PngRendererPortedTests.cs`, `PngEndMarkerTests.cs`).
+one named test scenario so a reviewer can confirm coverage without reading the test code.
 
-## SkiaRasterRenderer Unit Scenarios
+### SkiaRasterRenderer Verification Approach
 
-### Draws all layout-tree node kinds
+Because `SkiaRasterRenderer` is `abstract`, it is exercised indirectly through its concrete
+`PngRenderer` subclass in `DemaConsulting.Rendering.Skia.Tests` (`PngRendererPortedTests.cs` and
+`PngEndMarkerTests.cs`). Each test renders a small placed `LayoutTree` into a `MemoryStream` and
+either decodes the resulting PNG to inspect specific pixel colours or asserts on geometric
+properties of the encoded output. Using PNG as the transport is deliberate: PNG is lossless so
+individual pixels can be compared to theme colours without lossy-encoding error. No dependencies
+are mocked; `RenderOptions`, `Theme`, `NotationMetrics`, `BoxMetrics`, and `ConnectorLabelPlacer`
+are supplied as real instances (typically from `Themes.Light` / `Themes.Dark`).
+
+Coverage is organized around four concerns:
+
+1. Drawing of every supported `LayoutTree` node kind (boxes, lines, ports, badges, lifelines,
+   activations, bands, labels, deeply nested boxes).
+2. Theme-driven fill selection from `Theme.DepthFillColors` and `Theme.BackgroundColor`.
+3. Connector end-marker geometry derived from `NotationMetrics`.
+4. Robust handling of the degenerate empty-tree case (minimum one-by-one bitmap).
+
+### SkiaRasterRenderer Test Environment
+
+- **Framework**: xUnit v3.
+- **Target frameworks**: `net8.0`, `net9.0`, `net10.0`.
+- **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline (see
+  _Rendering.Skia Verification_ for the system-level environment).
+- **External services / files**: none. Rendering is deterministic and writes to a `MemoryStream`;
+  pixel inspection uses `SKBitmap.Decode` on the in-memory PNG bytes.
+- **Native assets**: the SkiaSharp platform-specific native asset packages provided by
+  `DemaConsulting.Rendering.Skia`'s NuGet references must be available at test time; no other
+  setup beyond `dotnet restore` is required.
+
+### SkiaRasterRenderer Acceptance Criteria
+
+A verification run passes when every scenario below executes without an unexpected exception,
+each inspected pixel or geometric measurement equals its expected theme colour or notation-metric
+value, and the encoded byte stream is a valid PNG. Any wrong pixel colour, wrong marker geometry,
+stack overflow, or unexpected exception constitutes a failure.
+
+### SkiaRasterRenderer Unit Scenarios
+
+#### Draws all layout-tree node kinds
 
 Tests `PngRenderer_Render_SingleBox_ProducesNonEmptyOutput`, `PngRenderer_Render_BackgroundIsThemeBackground`,
 `PngRenderer_Render_SingleLine_PixelOnLineIsStrokeColor`,
@@ -32,7 +67,7 @@ whose background is not white, proves the fill is genuinely theme-driven rather 
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree`.
 
-### Theme colours drive fills
+#### Theme colours drive fills
 
 Tests `PngRenderer_Render_SingleBox_FillColorMatchesTheme`,
 `PngRenderer_Render_SingleBox_DepthOneUsesSecondColor`, and
@@ -41,7 +76,7 @@ pixels equal the theme depth-palette colour selected by nesting depth.
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-ThemeColours`.
 
-### End markers match notation metrics
+#### End markers match notation metrics
 
 Tests `FilledArrow_AlongLength_MatchesNotationMetrics`, `FilledArrow_BaseWidth_MatchesNotationMetrics`,
 `OpenChevron_HasFewerInkPixelsThanClosedTriangle`, and
@@ -51,14 +86,14 @@ distinguishable output.
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-EndMarkers`.
 
-### Empty tree renders as a valid image
+#### Empty tree renders as a valid image
 
 Test `PngRenderer_Render_EmptyTree_WritesPngSignature` renders an empty layout tree and asserts that a
 valid image with the PNG signature is produced, proving the minimum one by one pixel bitmap path.
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-EmptyTree`.
 
-## Requirements Coverage
+### Requirements Coverage
 
 - **`Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree`**:
   PngRenderer_Render_SingleBox_ProducesNonEmptyOutput, PngRenderer_Render_BackgroundIsThemeBackground,

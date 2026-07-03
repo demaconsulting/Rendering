@@ -7,7 +7,7 @@
 #   rendering-abstractions.yaml.
 
 sections:
-  - title: Theme Unit Requirements
+  - title: Theme Requirements
     requirements:
       - id: Rendering-Abstractions-Theme-ApproachZone
         title: >-

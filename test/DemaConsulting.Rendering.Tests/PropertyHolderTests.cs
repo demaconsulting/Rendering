@@ -173,4 +173,100 @@ public class PropertyHolderTests
         // Act / Assert: a null property argument is rejected
         Assert.Throws<ArgumentNullException>(() => holder.Contains<int>(null!));
     }
+
+    /// <summary>
+    ///     Proves that overlaying an empty holder onto a populated parent returns the parent's values
+    ///     unchanged, so a scope with no overrides of its own fully inherits its parent's snapshot.
+    /// </summary>
+    [Fact]
+    public void OverlayOnto_EmptyHolderOntoPopulatedParent_ReturnsParentValuesUnchanged()
+    {
+        // Arrange: a populated parent and an empty overlaying holder
+        var parent = new PropertyHolder();
+        parent.Set(Count, 42);
+        parent.Set(Name, "parent-name");
+        var holder = new PropertyHolder();
+
+        // Act: overlay the empty holder onto the populated parent
+        var effective = holder.OverlayOnto(parent);
+
+        // Assert: the parent's values pass through unchanged
+        Assert.Equal(42, effective.Get(Count));
+        Assert.Equal("parent-name", effective.Get(Name));
+    }
+
+    /// <summary>
+    ///     Proves that the overlaying holder's own explicit value wins over the parent's value for the
+    ///     same property, the core precedence rule behind nearest-ancestor-override cascading.
+    /// </summary>
+    [Fact]
+    public void OverlayOnto_HolderOverridesProperty_HolderValueWins()
+    {
+        // Arrange: a parent with a value, and an overlaying holder that overrides it
+        var parent = new PropertyHolder();
+        parent.Set(Count, 1);
+        var holder = new PropertyHolder();
+        holder.Set(Count, 99);
+
+        // Act: overlay the holder onto the parent
+        var effective = holder.OverlayOnto(parent);
+
+        // Assert: the overlaying holder's own value takes precedence
+        Assert.Equal(99, effective.Get(Count));
+    }
+
+    /// <summary>
+    ///     Proves that a value present only on the parent (and not overridden by the overlaying holder)
+    ///     passes through into the effective snapshot.
+    /// </summary>
+    [Fact]
+    public void OverlayOnto_ValueOnlyOnParent_PassesThrough()
+    {
+        // Arrange: a parent with a value the overlaying holder never sets
+        var parent = new PropertyHolder();
+        parent.Set(Name, "only-on-parent");
+        var holder = new PropertyHolder();
+        holder.Set(Count, 5);
+
+        // Act: overlay the holder onto the parent
+        var effective = holder.OverlayOnto(parent);
+
+        // Assert: both the parent-only and holder-only values are present in the merged snapshot
+        Assert.Equal("only-on-parent", effective.Get(Name));
+        Assert.Equal(5, effective.Get(Count));
+    }
+
+    /// <summary>
+    ///     Proves that OverlayOnto is fully generic: it merges an arbitrary custom property that is not
+    ///     part of CoreOptions, without any per-property code.
+    /// </summary>
+    [Fact]
+    public void OverlayOnto_CustomPropertyNotInCoreOptions_IsMerged()
+    {
+        // Arrange: a custom property unknown to CoreOptions, overridden by the overlaying holder
+        var custom = new LayoutProperty<double>("custom.arbitrary.property", 0.0);
+        var parent = new PropertyHolder();
+        parent.Set(custom, 1.5);
+        var holder = new PropertyHolder();
+        holder.Set(custom, 2.5);
+
+        // Act: overlay the holder onto the parent
+        var effective = holder.OverlayOnto(parent);
+
+        // Assert: the overlaying holder's value for the arbitrary property wins
+        Assert.Equal(2.5, effective.Get(custom));
+    }
+
+    /// <summary>
+    ///     Proves that OverlayOnto rejects a null parent.
+    /// </summary>
+    [Fact]
+    public void OverlayOnto_NullParent_ThrowsArgumentNullException()
+    {
+        // Arrange: create an empty holder
+        var holder = new PropertyHolder();
+
+        // Act / Assert: a null parent argument is rejected
+        Assert.Throws<ArgumentNullException>(() => holder.OverlayOnto(null!));
+    }
 }

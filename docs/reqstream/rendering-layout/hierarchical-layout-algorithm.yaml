@@ -6,7 +6,7 @@
 # - This file is part of the split Rendering.Layout requirements set.
 
 sections:
-  - title: HierarchicalLayoutAlgorithm Unit Requirements
+  - title: HierarchicalLayoutAlgorithm Requirements
     requirements:
       - id: Rendering-Layout-HierarchicalLayout-Identity
         title: >-
@@ -73,6 +73,37 @@ sections:
           it around the sibling containers between its endpoints keeps the connector unambiguous.
         tests:
           - Apply_CrossContainerEdge_RoutesAroundInterveningContainer
+
+      - id: Rendering-Layout-HierarchicalLayout-CascadesOptions
+        title: >-
+          HierarchicalLayoutAlgorithm shall resolve every CoreOptions property (Algorithm, Direction,
+          EdgeRouting, HierarchyHandling, NodeSpacing, LayerSpacing) for a scope by walking to the
+          nearest ancestor scope with an explicit override, falling back to the property's own default
+          only when no scope in the chain declares one.
+        justification: |
+          A leaf algorithm reads a CoreOptions property from the options it is given, in preference to
+          the shared root options. Without a generalized per-scope cascade, a caller-supplied override on
+          a nested container would be silently dropped and the container would fall back to the parent
+          options' value (or the property default) instead — as previously happened for every property
+          except Algorithm. Generalizing the mechanism (via PropertyHolder.OverlayOnto) fixes this for
+          all six properties at once rather than one at a time.
+        tests:
+          - Apply_ContainerWithDirectionOverride_HonorsNestedDirection
+          - Apply_ThreeLevelDirectionCascade_InheritsThroughUnsetMiddleLevel
+          - Apply_ThreeLevelDirectionCascade_MidLevelOverrideTakesPrecedence
+          - Apply_ThreeLevelEdgeRoutingCascade_ReachesEveryLeafAlgorithmCall
+
+      - id: Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting
+        title: >-
+          HierarchicalLayoutAlgorithm shall route a cross-container edge using the owning scope's
+          cascaded EdgeRouting value, honoring an explicit override set on that scope's own graph.
+        justification: |
+          Previously RouteCrossContainerEdges read CoreOptions.EdgeRouting directly from the root
+          options, ignoring any override set on the owning scope's own graph — a genuine,
+          previously-undocumented defect with zero observable effect until fixed, since the cascaded
+          effective snapshot now reaches this method instead.
+        tests:
+          - Apply_CrossContainerEdge_HonorsScopeEdgeRoutingOverride
 
       - id: Rendering-Layout-HierarchicalLayout-ValidatesGraph
         title: >-

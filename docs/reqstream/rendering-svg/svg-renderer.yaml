@@ -8,7 +8,7 @@
 #   in rendering-svg.yaml.
 
 sections:
-  - title: SvgRenderer Unit Requirements
+  - title: SvgRenderer Requirements
     requirements:
       - id: Rendering-Svg-SvgRenderer-ImplementsIRenderer
         title: >-
@@ -157,6 +157,39 @@ sections:
         tests:
           - SvgRenderer_Render_SingleBadge_FilledCircle_ProducesCircle
 
+      - id: Rendering-Svg-SvgRenderer-BadgeBullseye
+        title: >-
+          SvgRenderer shall render bullseye badge nodes as concentric circle elements.
+        justification: |
+          Bullseye badges are notation icons whose outer ring and inner disc must remain visible in
+          the SVG output.
+        tests:
+          - SvgRenderer_Render_SingleBadge_Bullseye_ProducesConcentricCircles
+
+      - id: Rendering-Svg-SvgRenderer-BadgeDiamond
+        title: >-
+          SvgRenderer shall render diamond badge nodes as polygon elements.
+        justification: |
+          Diamond badges are notation icons that must appear as diamond-shaped SVG polygons.
+        tests:
+          - SvgRenderer_Render_SingleBadge_Diamond_ProducesPolygon
+
+      - id: Rendering-Svg-SvgRenderer-BadgeHorizontalBar
+        title: >-
+          SvgRenderer shall render horizontal-bar badge nodes as line elements.
+        justification: |
+          Horizontal-bar badges are notation icons that must appear as short horizontal SVG lines.
+        tests:
+          - SvgRenderer_Render_SingleBadge_HorizontalBar_ProducesLine
+
+      - id: Rendering-Svg-SvgRenderer-BadgeVerticalBar
+        title: >-
+          SvgRenderer shall render vertical-bar badge nodes as line elements.
+        justification: |
+          Vertical-bar badges are notation icons that must appear as short vertical SVG lines.
+        tests:
+          - SvgRenderer_Render_SingleBadge_VerticalBar_ProducesLine
+
       - id: Rendering-Svg-SvgRenderer-RenderBand
         title: >-
           SvgRenderer shall render band nodes as rect elements.
@@ -259,3 +292,41 @@ sections:
           The crossbar marker id identifies the connector-end decoration used for crossbar line ends.
         tests:
           - SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkerFilledArrow
+        title: >-
+          SvgRenderer shall reference the filled-arrow connector end marker for filled-arrow line
+          ends.
+        justification: |
+          Filled-arrow markers express a distinct directed connector style and must remain attached
+          to the rendered line.
+        tests:
+          - SvgRenderer_Render_SingleLine_WithFilledArrow_ProducesFilledArrowMarker
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond
+        title: >-
+          SvgRenderer shall reference the filled-diamond connector end marker for filled-diamond
+          line ends.
+        justification: |
+          Filled-diamond markers express a distinct connector-end vocabulary and must remain attached
+          to the rendered line.
+        tests:
+          - SvgRenderer_Render_SingleLine_WithFilledDiamond_ProducesFilledDiamondMarker
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkerCircle
+        title: >-
+          SvgRenderer shall reference the circle connector end marker for circle line ends.
+        justification: |
+          Circle markers express a distinct connector-end vocabulary and must remain attached to the
+          rendered line.
+        tests:
+          - SvgRenderer_Render_SingleLine_WithCircleEnd_ProducesCircleMarker
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkerBar
+        title: >-
+          SvgRenderer shall reference the bar connector end marker for bar line ends.
+        justification: |
+          Bar markers express a distinct connector-end vocabulary and must remain attached to the
+          rendered line.
+        tests:
+          - SvgRenderer_Render_SingleLine_WithBarEnd_ProducesBarMarker

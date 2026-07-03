@@ -7,7 +7,7 @@
 #   rendering-abstractions.yaml.
 
 sections:
-  - title: Box Metrics Unit Requirements
+  - title: Box Metrics Requirements
     requirements:
       - id: Rendering-Abstractions-BoxMetrics-FolderTabHeight
         title: >-
@@ -30,3 +30,15 @@ sections:
           - BoxMetrics_TitleAreaHeight_NoLabelNoKeyword_IsZero
           - BoxMetrics_TitleAreaHeight_LabelOnly_ReservesTitleLine
           - BoxMetrics_TitleAreaHeight_LabelAndKeyword_ReservesBothLines
+
+      - id: Rendering-Abstractions-BoxMetrics-RejectNullTheme
+        title: >-
+          The box metrics shall reject a null theme argument with an ArgumentNullException rather
+          than allow an unhandled NullReferenceException.
+        justification: |
+          Failing fast with a documented exception type gives callers a clear, actionable contract
+          instead of an undocumented NullReferenceException, matching the null-argument contract
+          used by the sibling NotationMetrics unit.
+        tests:
+          - BoxMetrics_FolderTabHeight_NullTheme_ThrowsArgumentNullException
+          - BoxMetrics_TitleAreaHeight_NullTheme_ThrowsArgumentNullException

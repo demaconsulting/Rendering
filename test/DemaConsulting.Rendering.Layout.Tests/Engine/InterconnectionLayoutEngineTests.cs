@@ -14,6 +14,36 @@ namespace DemaConsulting.Rendering.Layout.Tests.Engine;
 public sealed class InterconnectionLayoutEngineTests
 {
     /// <summary>
+    ///     A null node list is rejected before the layered pipeline is assembled so callers get a
+    ///     clear argument-contract failure rather than a deeper routing exception.
+    /// </summary>
+    [Fact]
+    public void Place_NullNodes_ThrowsArgumentNullException()
+    {
+        // Arrange
+        IReadOnlyList<LayerNode> nodes = null!;
+        var edges = new List<LayerEdge>();
+
+        // Act / Assert
+        Assert.Throws<ArgumentNullException>(() => InterconnectionLayoutEngine.Place(nodes, edges));
+    }
+
+    /// <summary>
+    ///     A null edge list is rejected before any layering or routing work starts so the entry-point
+    ///     contract stays explicit and deterministic.
+    /// </summary>
+    [Fact]
+    public void Place_NullEdges_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var nodes = new List<LayerNode> { new(60, 40) };
+        IReadOnlyList<LayerEdge> edges = null!;
+
+        // Act / Assert
+        Assert.Throws<ArgumentNullException>(() => InterconnectionLayoutEngine.Place(nodes, edges));
+    }
+
+    /// <summary>
     ///     A simple directed chain A(0)→B(1)→C(2) produces three monotonically increasing
     ///     layer indices: 0, 1, 2. Longest-path layering assigns each node to the length
     ///     of the longest path from any source.
@@ -47,6 +77,39 @@ public sealed class InterconnectionLayoutEngineTests
 
         Assert.Single(result.ConnectorWaypoints);
         Assert.Equal(2, result.ConnectorWaypoints[0].Count);
+    }
+
+    /// <summary>
+    ///     A simple 3-cycle is broken into an acyclic edge set by reversing exactly one back edge, and
+    ///     the returned waypoint list stays index-aligned with that retained edge set.
+    /// </summary>
+    [Fact]
+    public void Place_CyclicGraph_ReversesBackEdgeAndProducesWaypoint()
+    {
+        // Arrange: a 3-cycle requires one retained edge to be reversed to become acyclic.
+        var nodes = new List<LayerNode> { new(60, 40), new(60, 40), new(60, 40) };
+        var edges = new List<LayerEdge> { new(0, 1), new(1, 2), new(2, 0) };
+        var originalEdges = edges.ToHashSet();
+
+        // Act
+        var result = InterconnectionLayoutEngine.Place(nodes, edges);
+
+        // Assert: the retained acyclic edge set stays index-aligned with the waypoint list.
+        Assert.Equal(result.AcyclicEdges.Count, result.ConnectorWaypoints.Count);
+        Assert.Equal(3, result.AcyclicEdges.Count);
+
+        var reversedEntry = result.AcyclicEdges
+            .Select((edge, index) => new { edge, index })
+            .Single(entry =>
+                !originalEdges.Contains(entry.edge) &&
+                originalEdges.Any(original =>
+                    original.Source == entry.edge.Target &&
+                    original.Target == entry.edge.Source));
+
+        Assert.True(reversedEntry.index >= 0);
+        Assert.True(
+            result.ConnectorWaypoints[reversedEntry.index].Count >= 2,
+            "Expected the reversed retained edge to have a routed waypoint list.");
     }
 
     /// <summary>
@@ -187,6 +250,62 @@ public sealed class InterconnectionLayoutEngineTests
         // The downward flow stacks the chain's boxes in strictly increasing Y.
         Assert.True(down.Rects[0].Y < down.Rects[1].Y);
         Assert.True(down.Rects[1].Y < down.Rects[2].Y);
+    }
+
+    /// <summary>
+    ///     Omitting the optional direction argument preserves the established rightward default so
+    ///     existing callers see identical geometry to an explicit <see cref="LayoutDirection.Right"/>.
+    /// </summary>
+    [Fact]
+    public void Place_DefaultDirection_MatchesRightFlow()
+    {
+        // Arrange
+        var nodes = new List<LayerNode> { new(80, 40), new(80, 40), new(80, 40) };
+        var edges = new List<LayerEdge> { new(0, 1), new(1, 2) };
+
+        // Act
+        var @default = InterconnectionLayoutEngine.Place(nodes, edges);
+        var right = InterconnectionLayoutEngine.Place(nodes, edges, LayoutDirection.Right);
+
+        // Assert
+        Assert.Equal(right.TotalWidth, @default.TotalWidth);
+        Assert.Equal(right.TotalHeight, @default.TotalHeight);
+        Assert.Equal(right.NodeLayers, @default.NodeLayers);
+        Assert.Equal(right.Rects, @default.Rects);
+        Assert.Equal(right.AcyclicEdges, @default.AcyclicEdges);
+        Assert.Equal(right.ConnectorWaypoints.Count, @default.ConnectorWaypoints.Count);
+        for (var i = 0; i < right.ConnectorWaypoints.Count; i++)
+        {
+            Assert.Equal(right.ConnectorWaypoints[i], @default.ConnectorWaypoints[i]);
+        }
+    }
+
+    /// <summary>
+    ///     Re-running the engine with identical input produces identical rects, totals, retained
+    ///     acyclic edges, layer indices, and connector waypoints.
+    /// </summary>
+    [Fact]
+    public void Place_RepeatedInvocation_ProducesIdenticalGeometry()
+    {
+        // Arrange
+        var nodes = new List<LayerNode> { new(80, 40), new(80, 40), new(80, 40), new(80, 40) };
+        var edges = new List<LayerEdge> { new(0, 1), new(0, 2), new(1, 3), new(2, 3), new(0, 3) };
+
+        // Act
+        var first = InterconnectionLayoutEngine.Place(nodes, edges);
+        var second = InterconnectionLayoutEngine.Place(nodes, edges);
+
+        // Assert
+        Assert.Equal(first.TotalWidth, second.TotalWidth);
+        Assert.Equal(first.TotalHeight, second.TotalHeight);
+        Assert.Equal(first.NodeLayers, second.NodeLayers);
+        Assert.Equal(first.Rects, second.Rects);
+        Assert.Equal(first.AcyclicEdges, second.AcyclicEdges);
+        Assert.Equal(first.ConnectorWaypoints.Count, second.ConnectorWaypoints.Count);
+        for (var i = 0; i < first.ConnectorWaypoints.Count; i++)
+        {
+            Assert.Equal(first.ConnectorWaypoints[i], second.ConnectorWaypoints[i]);
+        }
     }
 
     private static bool Overlaps(Rect a, Rect b) =>

@@ -1,21 +1,21 @@
-# OrthogonalEdgeRouter Unit Design
+### OrthogonalEdgeRouter Unit Design
 
 Part of the Rendering Layout system.
 
-## OrthogonalEdgeRouter Purpose
+#### OrthogonalEdgeRouter Purpose
 
 `OrthogonalEdgeRouter` routes a single orthogonal connector between a source anchor and a target anchor,
 steering around obstacle rectangles and keeping a requested clearance. It is the engine through
 which all single-connector routing quality flows.
 
-## OrthogonalEdgeRouter Data Model
+#### OrthogonalEdgeRouter Data Model
 
 `OrthogonalEdgeRouter` is a static class with no instance state. Inputs are the source and target `Point2D`
 anchors, a list of obstacle `Rect`, a clearance distance, optional source and target `PortSide`
 values, and an optional list of `CostBand` records. The result is a `RouteResult` record carrying
 the ordered `Waypoints` and a `Crossed` flag.
 
-## OrthogonalEdgeRouter Methods
+#### OrthogonalEdgeRouter Methods
 
 `RouteWithStatus(source, target, obstacles, clearance, sourceSide?, targetSide?, costBands?)`
 computes the route and reports whether it had to cross an obstacle. The algorithm is:
@@ -40,19 +40,43 @@ segment's length is scaled by the cheapest band covering its midpoint, so a disc
 attracts wires into shared corridors while a null band list leaves cost neutral. The thin `Route`
 wrapper returns only the `Waypoints` for callers that do not need the crossing status.
 
-## OrthogonalEdgeRouter Error Handling
+#### OrthogonalEdgeRouter Error Handling
 
 Null `source`, `target`, or `obstacles` arguments throw `ArgumentNullException`. Degenerate geometry
 never throws: when no clean route exists the router returns a crossing route with `Crossed = true`
 rather than failing, leaving the decision to surface a warning to the caller.
 
-## OrthogonalEdgeRouter Interactions
+#### OrthogonalEdgeRouter Dependencies
+
+`OrthogonalEdgeRouter` depends on the following items:
+
+- **Rendering model** (`DemaConsulting.Rendering`) — the `Point2D` value type for anchors, the
+  `Rect` value type for obstacles, the `PortSide` enumeration for perpendicular stub direction, and
+  the `CostBand` record for corridor cost biasing.
+- **.NET base class library** — no other runtime dependency.
+
+No OTS runtime component or shared package is consumed.
+
+#### OrthogonalEdgeRouter Callers
+
+`OrthogonalEdgeRouter` is a leaf engine invoked wherever a single connector must be routed
+orthogonally through an obstacle field:
+
+- **ConnectorRouter** — dispatches to `RouteWithStatus` for every connection routed under the
+  `EdgeRouting.Orthogonal` style. See _ConnectorRouter Unit Design_.
+- **LayeredPipeline** (`OrthogonalRouter` stage) — routes individual layered-pipeline edges through
+  the same engine so pipeline routes and free-form routes share one implementation. See _Layered
+  Pipeline Unit Design_.
+
+The `Crossed` flag returned by `RouteWithStatus` feeds each caller's layout-warning handling.
+
+#### OrthogonalEdgeRouter Interactions
 
 `OrthogonalEdgeRouter` depends only on the `Point2D` and `Rect` geometric value types and the `PortSide`
 enumeration for perpendicular-stub direction. It is a leaf engine invoked directly by callers that
 route individual connectors; the `Crossed` flag feeds their layout-warning handling.
 
-## Requirements Traceability
+#### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

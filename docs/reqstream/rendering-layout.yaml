@@ -16,7 +16,7 @@
 #   engine/*.yaml and {unit-name}.yaml.
 
 sections:
-  - title: Rendering.Layout System Requirements
+  - title: Rendering.Layout Requirements
     requirements:
       - id: Rendering-Layout-Algorithm
         title: >-
@@ -75,6 +75,7 @@ sections:
           - Rendering-Layout-LayeredPipeline-BackEdgeApproach
           - Rendering-Layout-LayeredPipeline-LongEdgeJoining
           - Rendering-Layout-LayeredPipeline-ComponentPacking
+          - Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach
           - Rendering-Layout-LayeredPipeline-SharedState
           - Rendering-Layout-LayeredPipeline-InputValidation
         tests:
@@ -146,6 +147,7 @@ sections:
           - Rendering-Layout-ContainmentAlgorithm-EmptyGraph
           - Rendering-Layout-ContainmentAlgorithm-SkipsOutOfGraphEdges
           - Rendering-Layout-ContainmentAlgorithm-Validation
+          - Rendering-Layout-ContainmentAlgorithm-HonorsScopeEdgeRouting
         tests:
           - Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas
           - Id_IsContainment
@@ -167,6 +169,8 @@ sections:
           - Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm
           - Rendering-Layout-HierarchicalLayout-HierarchyHandling
           - Rendering-Layout-HierarchicalLayout-CrossContainerEdge
+          - Rendering-Layout-HierarchicalLayout-CascadesOptions
+          - Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting
           - Rendering-Layout-HierarchicalLayout-ValidatesGraph
           - Rendering-Layout-HierarchicalLayout-ValidatesOptions
           - Rendering-Layout-HierarchicalLayout-ValidatesRegistry

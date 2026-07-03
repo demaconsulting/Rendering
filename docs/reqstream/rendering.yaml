@@ -25,7 +25,7 @@
 #     - LayoutGraphEdge.LineStyle  - optional input-edge stroke-style hint
 
 sections:
-  - title: Rendering Model System Requirements
+  - title: Rendering Model Requirements
     requirements:
       - id: Rendering-Model-LayoutTree
         title: >-
@@ -66,6 +66,7 @@ sections:
           - Rendering-Model-Options-StoreAndRetrieve
           - Rendering-Model-Options-Contains
           - Rendering-Model-Options-TryGet
+          - Rendering-Model-Options-Cascade
         tests:
           - Get_UnsetProperty_ReturnsDefault
           - Get_AfterSet_ReturnsStoredValue

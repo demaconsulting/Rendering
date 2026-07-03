@@ -12,10 +12,10 @@ namespace DemaConsulting.Rendering.Abstractions;
 /// to ensure consistent output across all platforms.
 /// </remarks>
 /// <param name="DepthFillColors">
-/// Hex colour strings indexed by nesting depth. Wraps if depth exceeds count.
+/// Hex color strings indexed by nesting depth. Wraps if depth exceeds count.
 /// Example: <c>["#FFFFFF", "#EEF4FF", "#D6E8FF"]</c>.
 /// </param>
-/// <param name="StrokeColor">Hex colour used for all borders and lines.</param>
+/// <param name="StrokeColor">Hex color used for all borders and lines.</param>
 /// <param name="StrokeWidth">Width of borders and lines in logical pixels.</param>
 /// <param name="LineCornerRadius">Corner radius for orthogonal-line elbows. 0 = sharp; &gt;0 = rounded.</param>
 /// <param name="FontSizeTitle">Font size for title / heading text.</param>

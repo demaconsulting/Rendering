@@ -8,7 +8,8 @@ namespace DemaConsulting.Rendering.Skia;
 
 /// <summary>
 /// Renders a <see cref="LayoutTree"/> to a JPEG image using SkiaSharp. JPEG is a lossy format with
-/// no transparency; the renderer draws on the opaque white background shared by all raster renderers.
+/// no transparency; the renderer draws on the opaque theme background color shared by all raster
+/// renderers.
 /// </summary>
 public sealed class JpegRenderer : SkiaRasterRenderer
 {

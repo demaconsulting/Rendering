@@ -106,6 +106,21 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
+    ///     Renders the mixed-direction nested diagram, proving a container's own
+    ///     <see cref="CoreOptions.Direction"/> override is honored independently of the outer graph's
+    ///     flow direction: the outer flow runs rightward while the nested container runs downward.
+    /// </summary>
+    [Fact]
+    public void Gallery_MixedDirectionNested_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.MixedDirectionNestedSvg,
+            GalleryDiagrams.MixedDirectionNested(),
+            new LayoutOptions(),
+            Themes.Dark);
+    }
+
+    /// <summary>
     ///     Renders the representative diagram with the light theme to PNG, giving it a solid light
     ///     background.
     /// </summary>

@@ -27,11 +27,14 @@ public class SkiaFormatRendererTests
     [Fact]
     public void JpegRenderer_Render_ProducesJpegSignature()
     {
+        // Arrange
         var renderer = new JpegRenderer();
         using var stream = new MemoryStream();
 
+        // Act
         renderer.Render(SampleTree(), new RenderOptions(Themes.Light), stream);
 
+        // Assert
         var bytes = stream.ToArray();
         Assert.True(bytes.Length > 3);
 
@@ -51,11 +54,14 @@ public class SkiaFormatRendererTests
     [Fact]
     public void WebpRenderer_Render_ProducesWebpContainerHeader()
     {
+        // Arrange
         var renderer = new WebpRenderer();
         using var stream = new MemoryStream();
 
+        // Act
         renderer.Render(SampleTree(), new RenderOptions(Themes.Light), stream);
 
+        // Assert
         var bytes = stream.ToArray();
         Assert.True(bytes.Length > 12);
 
@@ -64,6 +70,7 @@ public class SkiaFormatRendererTests
         Assert.Equal("WEBP", Encoding.ASCII.GetString(bytes, 8, 4));
         Assert.Equal("image/webp", renderer.MediaType);
         Assert.Equal(".webp", renderer.DefaultExtension);
+        Assert.Contains(".webp", renderer.FileExtensions);
     }
 
     /// <summary>
@@ -72,8 +79,10 @@ public class SkiaFormatRendererTests
     [Fact]
     public void PngRenderer_FileExtensions_ContainsDefault()
     {
+        // Arrange
         var renderer = new PngRenderer();
 
+        // Act / Assert
         Assert.Contains(renderer.DefaultExtension, renderer.FileExtensions);
         Assert.Equal(".png", renderer.DefaultExtension);
     }

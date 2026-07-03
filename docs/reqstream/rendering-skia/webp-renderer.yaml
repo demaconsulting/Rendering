@@ -8,7 +8,7 @@
 #   declared in rendering-skia.yaml.
 
 sections:
-  - title: WebpRenderer Unit Requirements
+  - title: WebpRenderer Requirements
     requirements:
       - id: Rendering-Skia-WebpRenderer-EmitsWebp
         title: >-

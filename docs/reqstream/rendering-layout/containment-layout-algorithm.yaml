@@ -6,7 +6,7 @@
 # - This file is part of the split Rendering.Layout requirements set.
 
 sections:
-  - title: ContainmentLayoutAlgorithm Unit Requirements
+  - title: ContainmentLayoutAlgorithm Requirements
     requirements:
       - id: Rendering-Layout-ContainmentAlgorithm-Identity
         title: >-
@@ -78,3 +78,15 @@ sections:
         tests:
           - Apply_NullGraph_Throws
           - Apply_NullOptions_Throws
+
+      - id: Rendering-Layout-ContainmentAlgorithm-HonorsScopeEdgeRouting
+        title: >-
+          ContainmentLayoutAlgorithm shall honor an explicit CoreOptions.EdgeRouting override set on the
+          input graph itself, in preference to the value on the supplied options.
+        justification: |
+          Same class of previously-silent defect as the hierarchical engine's cross-container case: this
+          algorithm is directly callable, so an override carried on its own graph (rather than the
+          options it happens to be invoked with) must be honored independently, mirroring
+          LayeredLayoutAlgorithm's graph-then-options-then-default resolution of CoreOptions.Direction.
+        tests:
+          - Apply_EdgeRoutingOverrideOnGraphScope_IsHonored

@@ -195,6 +195,37 @@ options.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
 downward flow swaps each node's width and height before layering so layer spacing follows node height.
 As with the algorithm, a declaration on the graph takes precedence over one on the options.
 
+## Option cascading
+
+Every well-known option cascades: it can be set at the free-standing `LayoutOptions`, at a
+`LayoutGraph` (a node's or the whole graph's own scope), or at a container node's `Children` graph, and
+each scope's own explicit value wins over its parent's, falling back to the option's declared default
+only when no scope in the chain sets it. This is nearest-ancestor-wins resolution, not first-set-wins:
+a deeper, more specific override always takes precedence over one set higher in the tree.
+
+```csharp
+var options = new LayoutOptions();
+options.Set(CoreOptions.Direction, LayoutFlowDirection.Right);   // root default: flow rightward
+
+var graph = new LayoutGraph();
+var pipeline = graph.AddNode("pipeline", 10, 10);
+
+// A container's own children graph may override an option for everything nested inside it...
+pipeline.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+var validate = pipeline.Children.AddNode("validate", 80, 40);
+var nested = pipeline.Children.AddNode("nested", 10, 10);   // sets nothing: inherits Down from pipeline
+
+// ...and a deeper scope's own override still wins over an inherited ancestor value.
+nested.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Right);
+```
+
+Here `validate`'s siblings inherit `pipeline.Children`'s `Down` override (the nearest ancestor that set
+one), while `nested`'s own children flow `Right` again, because `nested.Children`'s own explicit
+override is nearer than `pipeline.Children`'s. `HierarchicalLayoutAlgorithm` builds this per-scope
+resolution automatically for every nested container using `PropertyHolder.OverlayOnto`; algorithms
+invoked directly on a single flat graph resolve the same way against whatever `LayoutOptions` they are
+given.
+
 ## Routing connectors among placed boxes
 
 When you have already positioned some boxes yourself — for example a free-form or containment layout

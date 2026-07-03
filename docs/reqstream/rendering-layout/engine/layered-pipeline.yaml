@@ -6,7 +6,7 @@
 # - This file is part of the split Rendering.Layout requirements set.
 
 sections:
-  - title: Layered Pipeline Unit Requirements
+  - title: Layered Pipeline Requirements
     requirements:
       - id: Rendering-Layout-LayeredPipeline-StagedPipeline
         title: >-
@@ -194,6 +194,17 @@ sections:
           - ComponentPacker_Apply_EmptyGraph_IsNoOp
           - ComponentPacker_Apply_SingleComponent_ParallelAndSelfEdges_ProducesAlignedWaypoints
           - ComponentPacker_Apply_MultiComponent_ParallelAndSelfEdges_MergesAlignedWaypoints
+
+      - id: Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach
+        title: >-
+          The component-packing stage shall propagate the parent graph's configured back-edge entry
+          approach to every packed child component's graph.
+        justification: |
+          Each packed component is laid out through a freshly constructed child LayeredGraph; without
+          copying the parent's BackEdgeEntryApproach, a caller-customized reversed-edge clearance would
+          silently revert to the class default for any multi-component (disconnected) graph.
+        tests:
+          - ComponentPacker_Apply_MultiComponent_PropagatesBackEdgeEntryApproach
 
       - id: Rendering-Layout-LayeredPipeline-SharedState
         title: >-

@@ -1,0 +1,65 @@
+---
+# SkiaSharp OTS Software Requirements
+#
+# Requirements for the SkiaSharp raster-graphics library functionality.
+#
+# Unlike the DemaConsulting tool OTS items (BuildMark, ReviewMark, ...) which are verified by their
+# own self-validation TRX, and like xUnit, SkiaSharp is a runtime library rather than build/compliance
+# tooling: its OTS requirements are satisfied by this repository's own renderer tests, which xUnit
+# discovers, executes, and records into the TRX result files that ReqStream traces. The linked tests
+# below are a stable, representative sample spanning bitmap drawing, text rendering, and image
+# encoding.
+
+sections:
+  - title: OTS Software Requirements
+    sections:
+      - title: SkiaSharp Requirements
+        requirements:
+          - id: Rendering-OTS-SkiaSharp-Rasterize
+            title: SkiaSharp shall draw shapes and lines onto a bitmap canvas.
+            justification: |
+              SkiaSharp's SKBitmap and SKCanvas provide the in-memory raster surface, and SKPaint
+              provides filled/stroked shape drawing, that SkiaRasterRenderer uses to draw layout
+              boxes and connector lines. Passing tests that sample drawn pixels confirm these
+              primitives operate correctly.
+            tags: [ots]
+            tests:
+              - Render_SingleBox_ProducesPngSignature
+              - PngRenderer_Render_SingleLine_PixelOnLineIsStrokeColor
+          - id: Rendering-OTS-SkiaSharp-Text
+            title: SkiaSharp shall render text using loaded typefaces.
+            justification: |
+              SkiaSharp's SKTypeface loads the embedded Noto Sans font resources, and SKPaint's
+              text APIs draw node titles and labels with them. A passing test that renders a label
+              containing special characters confirms typeface loading and text drawing operate
+              correctly.
+            tags: [ots]
+            tests:
+              - PngRenderer_Render_LabelWithXmlSpecialCharacters_ProducesValidPng
+          - id: Rendering-OTS-SkiaSharp-EncodePng
+            title: SkiaSharp shall encode a drawn bitmap into the PNG image format.
+            justification: |
+              SkiaSharp's PNG encoder converts the drawn SKBitmap into a PNG container for
+              PngRenderer. A passing test that checks the PNG signature bytes confirms the
+              encoder produces valid output.
+            tags: [ots]
+            tests:
+              - Render_SingleBox_ProducesPngSignature
+          - id: Rendering-OTS-SkiaSharp-EncodeJpeg
+            title: SkiaSharp shall encode a drawn bitmap into the JPEG image format.
+            justification: |
+              SkiaSharp's JPEG encoder converts the drawn SKBitmap into a JPEG container for
+              JpegRenderer. A passing test that checks the JPEG signature bytes confirms the
+              encoder produces valid output.
+            tags: [ots]
+            tests:
+              - JpegRenderer_Render_ProducesJpegSignature
+          - id: Rendering-OTS-SkiaSharp-EncodeWebp
+            title: SkiaSharp shall encode a drawn bitmap into the WEBP image format.
+            justification: |
+              SkiaSharp's WEBP encoder converts the drawn SKBitmap into a WEBP container for
+              WebpRenderer. A passing test that checks the WEBP container header confirms the
+              encoder produces valid output.
+            tags: [ots]
+            tests:
+              - WebpRenderer_Render_ProducesWebpContainerHeader

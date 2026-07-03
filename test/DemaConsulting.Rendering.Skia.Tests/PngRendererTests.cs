@@ -18,6 +18,7 @@ public class PngRendererTests
     [Fact]
     public void Render_SingleBox_ProducesPngSignature()
     {
+        // Arrange
         var tree = new LayoutTree(100, 60, new LayoutNode[]
         {
             new LayoutBox(10, 10, 80, 40, "Box", 0, BoxShape.Rectangle, [], []),
@@ -25,8 +26,10 @@ public class PngRendererTests
         var renderer = new PngRenderer();
         using var stream = new MemoryStream();
 
+        // Act
         renderer.Render(tree, new RenderOptions(Themes.Light), stream);
 
+        // Assert
         var bytes = stream.ToArray();
         Assert.True(bytes.Length > 8);
 

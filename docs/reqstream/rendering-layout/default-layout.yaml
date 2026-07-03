@@ -6,7 +6,7 @@
 # - This file is part of the split Rendering.Layout requirements set.
 
 sections:
-  - title: DefaultLayout Unit Requirements
+  - title: DefaultLayout Requirements
     requirements:
       - id: Rendering-Layout-DefaultRegistry-BundledAlgorithms
         title: >-

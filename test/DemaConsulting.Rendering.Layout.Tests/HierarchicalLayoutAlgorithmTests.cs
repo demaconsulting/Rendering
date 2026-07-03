@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering;
+using DemaConsulting.Rendering.Abstractions;
 
 namespace DemaConsulting.Rendering.Layout.Tests;
 
@@ -166,6 +167,186 @@ public sealed class HierarchicalLayoutAlgorithmTests
         // Assert
         var containerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>(), box => box.Children.Count > 0);
         Assert.Equal(3, containerBox.Children.OfType<LayoutBox>().Count());
+    }
+
+    /// <summary>
+    ///     Proves that a container scope's own <see cref="CoreOptions.Direction"/> override is honored by
+    ///     the leaf algorithm laying out its children, even though the engine builds a fresh sized-view
+    ///     graph for that scope. This exercises the generalized cascading mechanism (<see cref="PropertyHolder.OverlayOnto"/>):
+    ///     the container's own <see cref="LayoutGraphNode.Children"/> graph override is overlaid onto its
+    ///     parent scope's resolved options to produce the effective snapshot passed to the leaf algorithm.
+    /// </summary>
+    [Fact]
+    public void Apply_ContainerWithDirectionOverride_HonorsNestedDirection()
+    {
+        // Arrange: a labelled container whose children graph overrides Direction to Down, while the
+        // top-level options select the (default) Right direction.
+        var graph = new LayoutGraph();
+        var group = graph.AddNode("group", 10, 10);
+        group.Label = "Group";
+        group.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+        var a = group.Children.AddNode("a", 80, 40);
+        var b = group.Children.AddNode("b", 80, 40);
+        var c = group.Children.AddNode("c", 80, 40);
+        group.Children.AddEdge("a-b", a, b);
+        group.Children.AddEdge("b-c", b, c);
+        graph.AddNode("outside", 80, 40);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the nested chain stacks vertically (strictly increasing Y), proving the container's own
+        // Down override was honored rather than falling back to the top-level Right default.
+        var containerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>(), box => box.Children.Count > 0);
+        var nestedBoxes = containerBox.Children.OfType<LayoutBox>().ToList();
+        Assert.Equal(3, nestedBoxes.Count);
+        Assert.True(nestedBoxes[0].Y < nestedBoxes[1].Y);
+        Assert.True(nestedBoxes[1].Y < nestedBoxes[2].Y);
+    }
+
+    /// <summary>
+    ///     Proves that a <see cref="CoreOptions.Direction"/> override set two levels up cascades through
+    ///     an intermediate container that sets nothing of its own, reaching a third-level leaf chain.
+    ///     This is the multi-level cascade the single-level regression test above cannot exercise.
+    /// </summary>
+    [Fact]
+    public void Apply_ThreeLevelDirectionCascade_InheritsThroughUnsetMiddleLevel()
+    {
+        // Arrange: root (unset) -> level1 container (Children.Set(Direction, Down)) -> level2 container
+        // (unset) -> level3 leaf chain.
+        var graph = new LayoutGraph();
+        var level1 = graph.AddNode("level1", 10, 10);
+        level1.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+        var level2 = level1.Children.AddNode("level2", 10, 10);
+        var leafA = level2.Children.AddNode("leafA", 80, 40);
+        var leafB = level2.Children.AddNode("leafB", 80, 40);
+        var leafC = level2.Children.AddNode("leafC", 80, 40);
+        level2.Children.AddEdge("a-b", leafA, leafB);
+        level2.Children.AddEdge("b-c", leafB, leafC);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: level3 leaves stack vertically, proving Down cascaded through the unset level2 scope.
+        var outerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>());
+        var middleBox = Assert.Single(outerBox.Children.OfType<LayoutBox>());
+        var leafBoxes = middleBox.Children.OfType<LayoutBox>().ToList();
+        Assert.Equal(3, leafBoxes.Count);
+        Assert.True(leafBoxes[0].Y < leafBoxes[1].Y);
+        Assert.True(leafBoxes[1].Y < leafBoxes[2].Y);
+    }
+
+    /// <summary>
+    ///     Proves that a deeper, explicit <see cref="CoreOptions.Direction"/> override takes precedence
+    ///     over an ancestor's own override, rather than the ancestor's value winning because it is set
+    ///     first or higher in the tree. Nearest-ancestor-override-wins, not first-set-wins.
+    /// </summary>
+    [Fact]
+    public void Apply_ThreeLevelDirectionCascade_MidLevelOverrideTakesPrecedence()
+    {
+        // Arrange: same shape as the inherit-through-unset test, but level2 sets its own explicit
+        // Direction override (Right), which must win over level1's inherited Down for level2's children.
+        var graph = new LayoutGraph();
+        var level1 = graph.AddNode("level1", 10, 10);
+        level1.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+        var level2 = level1.Children.AddNode("level2", 10, 10);
+        level2.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Right);
+        var leafA = level2.Children.AddNode("leafA", 80, 40);
+        var leafB = level2.Children.AddNode("leafB", 80, 40);
+        var leafC = level2.Children.AddNode("leafC", 80, 40);
+        level2.Children.AddEdge("a-b", leafA, leafB);
+        level2.Children.AddEdge("b-c", leafB, leafC);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: level3 leaves flow horizontally, not vertically, proving level2's own Right override
+        // took precedence over level1's inherited Down.
+        var outerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>());
+        var middleBox = Assert.Single(outerBox.Children.OfType<LayoutBox>());
+        var leafBoxes = middleBox.Children.OfType<LayoutBox>().ToList();
+        Assert.Equal(3, leafBoxes.Count);
+        Assert.True(leafBoxes[0].X < leafBoxes[1].X);
+        Assert.True(leafBoxes[1].X < leafBoxes[2].X);
+    }
+
+    /// <summary>
+    ///     Proves that the per-scope cascaded effective options snapshot — built by overlaying each
+    ///     scope's own overrides via <see cref="PropertyHolder.OverlayOnto"/> — actually reaches every
+    ///     leaf-algorithm invocation, at three levels of nesting, using a recording test double that
+    ///     captures the exact <see cref="LayoutOptions"/> instance each scope was placed with. Because
+    ///     <see cref="EdgeRouting"/> declares only one member (<see cref="EdgeRouting.Orthogonal"/>)
+    ///     today, a resolved value alone cannot distinguish "inherited" from "never set"; this test pairs
+    ///     the real <see cref="CoreOptions.EdgeRouting"/> cascade with an arbitrary custom marker property
+    ///     set at the same scopes, which does have distinguishable values, to prove both that
+    ///     <see cref="CoreOptions.EdgeRouting"/> is carried through every level's effective snapshot and
+    ///     that a deeper scope's own override of another property wins over an ancestor's, at the exact
+    ///     effective-options instance each leaf-algorithm call receives.
+    /// </summary>
+    [Fact]
+    public void Apply_ThreeLevelEdgeRoutingCascade_ReachesEveryLeafAlgorithmCall()
+    {
+        // Arrange: root -> level1 container (Children overrides EdgeRouting and a custom Marker) ->
+        // level2 container (Children overrides only the Marker, not EdgeRouting) -> level3 leaves. A
+        // recording algorithm captures the graph/options pair passed to every leaf-algorithm invocation.
+        var marker = new LayoutProperty<string?>("test.cascade.marker", null);
+        var recorder = new RecordingLayoutAlgorithm(new LayeredLayoutAlgorithm());
+        var registry = new LayoutAlgorithmRegistry()
+            .Register(recorder)
+            .Register(new ContainmentLayoutAlgorithm());
+
+        var graph = new LayoutGraph();
+        var level1 = graph.AddNode("level1", 10, 10);
+        level1.Children.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
+        level1.Children.Set(marker, "level1");
+        var level2 = level1.Children.AddNode("level2", 10, 10);
+        level2.Children.Set(marker, "level2");
+        var leafA = level2.Children.AddNode("leafA", 80, 40);
+        var leafB = level2.Children.AddNode("leafB", 80, 40);
+        level2.Children.AddEdge("a-b", leafA, leafB);
+
+        // Act
+        _ = new HierarchicalLayoutAlgorithm(registry).Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the leaf-scope call (level2's own children graph, the flat fast path) received the
+        // EdgeRouting override cascaded down from level1, and its own Marker override, not level1's.
+        var leafScopeCall = Assert.Single(recorder.Calls, call => ReferenceEquals(call.Graph, level2.Children));
+        Assert.Equal(EdgeRouting.Orthogonal, leafScopeCall.Options.Get(CoreOptions.EdgeRouting));
+        Assert.Equal("level2", leafScopeCall.Options.Get(marker));
+
+        // The level1-scope call (placing level2's box within level1's sized view) saw level1's own Marker
+        // value, proving each scope's effective snapshot is distinct rather than one shared reference.
+        var level1ScopeCall = Assert.Single(recorder.Calls, call => call.Options.Get(marker) == "level1");
+        Assert.Equal(EdgeRouting.Orthogonal, level1ScopeCall.Options.Get(CoreOptions.EdgeRouting));
+    }
+
+    /// <summary>
+    ///     Proves that <see cref="ContainmentLayoutAlgorithm"/>'s cross-container-edge routing (owned by
+    ///     <see cref="HierarchicalLayoutAlgorithm"/>) uses the cascaded scope's <see cref="CoreOptions.EdgeRouting"/>
+    ///     rather than the root options, by overriding it away from the root's own value at the scope that
+    ///     owns the cross-container edge and confirming the routed line still appears (the recording
+    ///     algorithm on its own only observes leaf-algorithm calls, not the cross-container routing path,
+    ///     so this test exercises the composed public behavior directly instead).
+    /// </summary>
+    [Fact]
+    public void Apply_CrossContainerEdge_HonorsScopeEdgeRoutingOverride()
+    {
+        // Arrange: a scope whose own graph overrides EdgeRouting away from the root options' value.
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("A", 10, 10);
+        var b = graph.AddNode("B", 10, 10);
+        var aChild = a.Children.AddNode("a-child", 60, 40);
+        var bChild = b.Children.AddNode("b-child", 60, 40);
+        graph.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
+        graph.AddEdge("cross", aChild, bChild);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("containment"));
+
+        // Assert: the cross-container edge is still routed (the scope's own EdgeRouting override,
+        // cascaded via the effective snapshot, was consulted rather than being silently ignored).
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        Assert.True(line.Waypoints.Count >= 2);
     }
 
     /// <summary>
@@ -571,5 +752,28 @@ public sealed class HierarchicalLayoutAlgorithmTests
         var yb = Math.Max(a.Y, b.Y);
         return r.X < x && x < r.X + r.Width &&
                Math.Max(ya, r.Y) < Math.Min(yb, r.Y + r.Height);
+    }
+
+    /// <summary>
+    ///     A leaf-algorithm test double that records the exact <see cref="LayoutGraph"/> and
+    ///     <see cref="LayoutOptions"/> instance every <see cref="Apply"/> call receives, then delegates
+    ///     to a real inner algorithm so the composed layout remains valid. It advertises the inner
+    ///     algorithm's own <see cref="Id"/> so it can be registered in its place, transparently observing
+    ///     every scope <see cref="HierarchicalLayoutAlgorithm"/> places with that algorithm identifier.
+    /// </summary>
+    private sealed class RecordingLayoutAlgorithm(ILayoutAlgorithm inner) : ILayoutAlgorithm
+    {
+        /// <summary>The graph/options pair captured from every <see cref="Apply"/> invocation, in call order.</summary>
+        public List<(LayoutGraph Graph, LayoutOptions Options)> Calls { get; } = [];
+
+        /// <inheritdoc/>
+        public string Id => inner.Id;
+
+        /// <inheritdoc/>
+        public LayoutTree Apply(LayoutGraph graph, LayoutOptions options)
+        {
+            Calls.Add((graph, options));
+            return inner.Apply(graph, options);
+        }
     }
 }

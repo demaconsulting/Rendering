@@ -8,7 +8,7 @@
 #   in rendering.yaml.
 
 sections:
-  - title: Layout Graph Unit Requirements
+  - title: Layout Graph Requirements
     requirements:
       - id: Rendering-Model-LayoutGraph-AddNode
         title: >-

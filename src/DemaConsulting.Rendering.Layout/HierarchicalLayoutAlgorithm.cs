@@ -23,12 +23,20 @@ namespace DemaConsulting.Rendering.Layout;
 ///     each container box's interior and attached as the box's <see cref="LayoutBox.Children"/>.
 ///     </para>
 ///     <para>
-///     The leaf algorithm is chosen <em>per scope</em> through <see cref="CoreOptions.Algorithm"/>: the
-///     root scope inherits the algorithm from the supplied <see cref="LayoutOptions"/> (default
-///     <c>layered</c>), and any container node may override it by setting
-///     <see cref="CoreOptions.Algorithm"/> on itself; unset containers inherit their parent scope's
-///     algorithm. This lets, for example, a <c>containment</c>-packed root hold a <c>layered</c>
-///     container without either level knowing about the other.
+///     Every <see cref="CoreOptions"/> property — <see cref="CoreOptions.Algorithm"/>,
+///     <see cref="CoreOptions.Direction"/>, <see cref="CoreOptions.EdgeRouting"/>,
+///     <see cref="CoreOptions.HierarchyHandling"/>, <see cref="CoreOptions.NodeSpacing"/>, and
+///     <see cref="CoreOptions.LayerSpacing"/> — cascades per scope through the same generalized
+///     mechanism, built on <see cref="PropertyHolder.OverlayOnto"/>: each scope's own explicit
+///     overrides are overlaid onto its parent scope's already-resolved effective options, so an
+///     unset scope inherits its nearest ancestor's value and any scope may override it for itself and
+///     its descendants. Two established, independently-tested conventions decide where a container's
+///     own overrides live: <see cref="CoreOptions.Algorithm"/> is set on the container <em>node</em>
+///     itself (for example <c>group.Set(CoreOptions.Algorithm, "layered")</c>), while every other
+///     property is set on the container's <see cref="LayoutGraphNode.Children"/> graph (for example
+///     <c>group.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Down)</c>). This lets, for
+///     example, a <c>containment</c>-packed root hold a <c>layered</c> container flowing in its own
+///     direction without either level knowing about the other.
 ///     </para>
 ///     <para>
 ///     Hierarchy is handled in <see cref="HierarchyHandling.SeparateChildren"/> mode: each container is
@@ -50,6 +58,15 @@ namespace DemaConsulting.Rendering.Layout;
 ///     carrying their effective size, in-scope edges only) and lays that out, leaving the caller's graph
 ///     untouched. The engine is stateless and its <see cref="Apply"/> is safe to call concurrently on
 ///     distinct graphs.
+///     </para>
+///     <para>
+///     <strong>Leaf-algorithm contract.</strong> This engine builds each scope's cascaded effective
+///     <see cref="LayoutOptions"/> snapshot once and passes it to the selected leaf algorithm; it is
+///     the leaf algorithm's own responsibility to resolve a property from that snapshot as the
+///     ultimate source of a cascaded value (optionally preferring its own graph's override first, as
+///     <see cref="LayeredLayoutAlgorithm"/> and <see cref="ContainmentLayoutAlgorithm"/> do). A leaf
+///     algorithm that reads only its input graph and ignores the supplied options would silently break
+///     cascading for that algorithm.
 ///     </para>
 /// </remarks>
 /// <example>
@@ -159,10 +176,10 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(options);
 
-        // The root scope inherits the algorithm from the options (its own default is "layered"), unless
-        // the graph itself carries an explicit CoreOptions.Algorithm override.
-        var algoId = ResolveScopeAlgorithm(graph, options.Get(CoreOptions.Algorithm));
-        return LayoutScope(graph, algoId, options);
+        // The root scope's own explicit overrides (set directly on the graph) win over the supplied
+        // options, giving the root the same "own overrides win" treatment every nested scope receives.
+        var effective = graph.OverlayOnto(options);
+        return LayoutScope(graph, effective);
     }
 
     /// <summary>
@@ -170,12 +187,14 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     /// containers first and composing their sub-layouts into this level's coordinate space.
     /// </summary>
     /// <param name="graph">The container scope to place (the root graph or a node's child subgraph).</param>
-    /// <param name="algoId">Identifier of the leaf algorithm to place this scope with.</param>
-    /// <param name="options">The shared options carried into every leaf-algorithm invocation.</param>
+    /// <param name="effective">
+    /// This scope's cascaded effective options: the parent scope's resolved snapshot overlaid by this
+    /// scope's own explicit overrides, per <see cref="PropertyHolder.OverlayOnto"/>.
+    /// </param>
     /// <returns>The placed sub-tree for this scope, in local coordinates rooted at the origin.</returns>
-    private LayoutTree LayoutScope(LayoutGraph graph, string algoId, LayoutOptions options)
+    private LayoutTree LayoutScope(LayoutGraph graph, LayoutOptions effective)
     {
-        var algo = _registry.Resolve(algoId);
+        var algo = _registry.Resolve(ResolveLeafAlgorithmId(effective));
 
         // Flat fast path: when no direct node is a container, delegate straight to the leaf algorithm so
         // the result is byte-for-byte identical to invoking that algorithm directly. This preserves the
@@ -184,26 +203,26 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
         if (!anyContainer)
         {
-            return algo.Apply(graph, options);
+            return algo.Apply(graph, effective);
         }
 
         // Hierarchical path (SeparateChildren): recurse into each container child, size it to fit, place
         // this level over a sized view, compose the sub-layouts, and route cross-container edges.
         var subLayouts = new Dictionary<LayoutGraphNode, LayoutTree>();
         var effectiveSize = new Dictionary<LayoutGraphNode, (double Width, double Height)>();
-        LayoutContainerChildren(graph, algoId, options, subLayouts, effectiveSize);
+        LayoutContainerChildren(graph, effective, subLayouts, effectiveSize);
 
         var (view, _) = BuildSizedView(graph, effectiveSize);
 
         // Place this level with the resolved leaf algorithm over the sized view. The leaf algorithm
         // emits one box per node in Nodes order, so placed boxes align with graph.Nodes by index.
-        var placed = algo.Apply(view, options);
+        var placed = algo.Apply(view, effective);
         var placedBoxes = placed.Nodes.OfType<LayoutBox>().ToList();
         var placedLines = placed.Nodes.OfType<LayoutLine>().ToList();
 
         var (composed, indexOf) = ComposeBoxes(graph, placedBoxes, subLayouts);
 
-        var crossLines = RouteCrossContainerEdges(graph, composed, indexOf, options);
+        var crossLines = RouteCrossContainerEdges(graph, composed, indexOf, effective);
 
         // Assemble: composed boxes, then the leaf algorithm's routed lines, then the cross-container
         // lines. The canvas dimensions are the leaf algorithm's for this (sized) level.
@@ -219,14 +238,12 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     /// recording both the resulting sub-layout and the container's effective (child-fitting) size.
     /// </summary>
     /// <param name="graph">The scope whose container children are laid out.</param>
-    /// <param name="algoId">The algorithm inherited by children that do not override it.</param>
-    /// <param name="options">The shared options carried into each recursive layout.</param>
+    /// <param name="parentEffective">This scope's own already-resolved cascaded effective options.</param>
     /// <param name="subLayouts">Receives each container's placed sub-tree in local coordinates.</param>
     /// <param name="effectiveSize">Receives each container's size enclosing its children plus padding/title.</param>
     private void LayoutContainerChildren(
         LayoutGraph graph,
-        string algoId,
-        LayoutOptions options,
+        LayoutOptions parentEffective,
         Dictionary<LayoutGraphNode, LayoutTree> subLayouts,
         Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize)
     {
@@ -237,9 +254,16 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
                 continue;
             }
 
-            // A container inherits this scope's algorithm unless it overrides CoreOptions.Algorithm.
-            var childAlgoId = ResolveScopeAlgorithm(node, algoId);
-            var sub = LayoutScope(node.Children, childAlgoId, options);
+            // Preserve both established, independently-tested conventions: CoreOptions.Algorithm
+            // overrides live on the container node itself, while every other CoreOptions property
+            // (Direction, EdgeRouting, and so on) lives on the node's Children graph. Overlaying in this
+            // order lets either layer's own overrides win over the parent's resolved snapshot, and lets
+            // the Children graph's overrides win over the node's own (though the two never collide, since
+            // Algorithm is only ever set on the node and every other property only ever on Children).
+            var nodeEffective = node.OverlayOnto(parentEffective);
+            var childEffective = node.Children.OverlayOnto(nodeEffective);
+
+            var sub = LayoutScope(node.Children, childEffective);
             subLayouts[node] = sub;
 
             // Size the container to enclose its sub-layout plus a padding inset on every side and, when
@@ -253,8 +277,11 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
     /// <summary>
     /// Builds an internal, side-effect-free sized view of <paramref name="graph"/>: the same nodes in
-    /// the same order (container nodes carrying their effective size, leaves their own size) and only
-    /// the edges whose endpoints are both direct members of this scope.
+    /// the same order (container nodes carrying their effective size, leaves their own size), only
+    /// the edges whose endpoints are both direct members of this scope. The scope's own cascaded
+    /// options are carried separately as the caller's <c>effective</c> snapshot rather than propagated
+    /// onto this view, since every leaf algorithm resolves such properties from the options it is
+    /// invoked with.
     /// </summary>
     /// <param name="graph">The caller's scope, which is never mutated.</param>
     /// <param name="effectiveSize">Effective sizes for the container nodes of this scope.</param>
@@ -264,6 +291,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
         Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize)
     {
         var view = new LayoutGraph();
+
         var viewOf = new Dictionary<LayoutGraphNode, LayoutGraphNode>(graph.Nodes.Count);
         foreach (var node in graph.Nodes)
         {
@@ -345,13 +373,13 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     /// <param name="graph">The scope whose edges are examined for cross-container routing.</param>
     /// <param name="composed">The composed top-level boxes of this scope, aligned with its nodes by index.</param>
     /// <param name="indexOf">Map from each direct-member node to its positional index in <paramref name="composed"/>.</param>
-    /// <param name="options">Options supplying the per-scope <see cref="CoreOptions.EdgeRouting"/> style.</param>
+    /// <param name="effective">This scope's cascaded effective options, supplying <see cref="CoreOptions.EdgeRouting"/>.</param>
     /// <returns>One routed line per cross-container edge owned by this scope.</returns>
     private static List<LayoutLine> RouteCrossContainerEdges(
         LayoutGraph graph,
         LayoutBox[] composed,
         Dictionary<LayoutGraphNode, int> indexOf,
-        LayoutOptions options)
+        LayoutOptions effective)
     {
         // Map every descendant node to the direct member of this scope that contains it, so an edge that
         // references a deeply nested endpoint can be anchored to the top-level box that owns it.
@@ -361,7 +389,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
             MapDescendants(direct, direct, descendantToDirect);
         }
 
-        var routeOptions = new ConnectorRouteOptions(options.Get(CoreOptions.EdgeRouting));
+        var routeOptions = new ConnectorRouteOptions(effective.Get(CoreOptions.EdgeRouting));
         var boxesForRouting = (IReadOnlyList<LayoutBox>)composed;
         var crossLines = new List<LayoutLine>();
         foreach (var edge in graph.Edges)
@@ -399,19 +427,21 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     }
 
     /// <summary>
-    /// Resolves the layout algorithm for a scope: the scope's explicit <see cref="CoreOptions.Algorithm"/>
-    /// override when present, otherwise the <paramref name="inherited"/> algorithm from the parent scope.
+    /// Resolves the leaf-algorithm identifier a scope is placed with from its already-cascaded effective
+    /// options.
     /// </summary>
-    /// <param name="scope">The graph or node whose algorithm override is consulted.</param>
-    /// <param name="inherited">The algorithm inherited when the scope carries no override.</param>
+    /// <param name="effective">
+    /// This scope's cascaded effective options, produced by overlaying the scope's own explicit
+    /// <see cref="CoreOptions.Algorithm"/> override (if any) onto its parent's resolved snapshot.
+    /// </param>
     /// <returns>
-    /// The leaf-algorithm identifier to place the scope with. When the scope resolves to this engine's own
+    /// The leaf-algorithm identifier to place the scope with. When it resolves to this engine's own
     /// <see cref="AlgorithmId"/> (which is not a leaf), the <see cref="DefaultLeafAlgorithmId"/> is
     /// substituted so recursion terminates in a registered leaf instead of failing to resolve.
     /// </returns>
-    private static string ResolveScopeAlgorithm(PropertyHolder scope, string inherited)
+    private static string ResolveLeafAlgorithmId(LayoutOptions effective)
     {
-        var resolved = scope.TryGet(CoreOptions.Algorithm, out var value) ? value : inherited;
+        var resolved = effective.Get(CoreOptions.Algorithm);
         return resolved == AlgorithmId ? DefaultLeafAlgorithmId : resolved;
     }
 

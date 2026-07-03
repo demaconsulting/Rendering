@@ -323,6 +323,100 @@ public sealed class SvgRendererPortedTests
     }
 
     /// <summary>
+    ///     Render a LayoutBadge with Bullseye shape produces SVG output containing two circle
+    ///     elements, confirming that the bullseye ring is rendered as concentric circles.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_Render_SingleBadge_Bullseye_ProducesConcentricCircles()
+    {
+        // Arrange: a bullseye badge
+        var renderer = new SvgRenderer();
+        var badge = new LayoutBadge(50, 50, 12, BadgeShape.Bullseye, "I");
+        var layout = new LayoutTree(200, 100, [badge]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert
+        output.Position = 0;
+        var body = BodyAfterDefs(ReadAllText(output));
+        Assert.True(
+            body.Split("<circle", StringSplitOptions.None).Length - 1 >= 2,
+            "Expected the bullseye badge to render two circle elements.");
+    }
+
+    /// <summary>
+    ///     Render a LayoutBadge with Diamond shape produces SVG output containing a polygon element,
+    ///     confirming that the badge renders as a diamond outline.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_Render_SingleBadge_Diamond_ProducesPolygon()
+    {
+        // Arrange: a diamond badge
+        var renderer = new SvgRenderer();
+        var badge = new LayoutBadge(50, 50, 12, BadgeShape.Diamond, "I");
+        var layout = new LayoutTree(200, 100, [badge]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert
+        output.Position = 0;
+        var body = BodyAfterDefs(ReadAllText(output));
+        Assert.Contains("<polygon", body, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     Render a LayoutBadge with HorizontalBar shape produces SVG output containing a line
+    ///     element, confirming that the badge renders as a horizontal bar.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_Render_SingleBadge_HorizontalBar_ProducesLine()
+    {
+        // Arrange: a horizontal-bar badge
+        var renderer = new SvgRenderer();
+        var badge = new LayoutBadge(50, 50, 12, BadgeShape.HorizontalBar, "I");
+        var layout = new LayoutTree(200, 100, [badge]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert
+        output.Position = 0;
+        var body = BodyAfterDefs(ReadAllText(output));
+        Assert.Contains("<line", body, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     Render a LayoutBadge with VerticalBar shape produces SVG output containing a line
+    ///     element, confirming that the badge renders as a vertical bar.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_Render_SingleBadge_VerticalBar_ProducesLine()
+    {
+        // Arrange: a vertical-bar badge
+        var renderer = new SvgRenderer();
+        var badge = new LayoutBadge(50, 50, 12, BadgeShape.VerticalBar, "I");
+        var layout = new LayoutTree(200, 100, [badge]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert
+        output.Position = 0;
+        var body = BodyAfterDefs(ReadAllText(output));
+        Assert.Contains("<line", body, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     ///     Render a LayoutBand produces SVG output containing a rect element,
     ///     confirming that swim-lane bands are rendered as rectangles.
     /// </summary>
@@ -567,5 +661,18 @@ public sealed class SvgRendererPortedTests
     {
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
         return reader.ReadToEnd();
+    }
+
+    /// <summary>
+    ///     Returns the SVG body content that follows the shared <c>&lt;defs&gt;</c> marker-definitions
+    ///     block, so element-shape assertions (circle/polygon/line, etc.) verify the actual badge
+    ///     rendering rather than incidentally matching the same element types used by end markers.
+    /// </summary>
+    /// <param name="svgText">The full rendered SVG document text.</param>
+    /// <returns>The substring of <paramref name="svgText"/> after the closing <c>&lt;/defs&gt;</c> tag.</returns>
+    private static string BodyAfterDefs(string svgText)
+    {
+        var index = svgText.IndexOf("</defs>", StringComparison.Ordinal);
+        return index < 0 ? svgText : svgText[(index + "</defs>".Length)..];
     }
 }

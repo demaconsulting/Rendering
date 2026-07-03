@@ -1,10 +1,34 @@
-# ContainmentPacker Unit Verification
+### ContainmentPacker Unit Verification
 
 Part of the Rendering Layout Verification.
 
 This document maps the ContainmentPacker unit requirements to named test scenarios.
 
-## ContainmentPacker Unit Scenarios
+#### Verification Approach
+
+`ContainmentPacker` is a stateless static engine, so verification is by direct xUnit unit tests
+that call `Pack` on synthetic size lists. No mocks are used; the tests observe the real shelf-
+packing algorithm end-to-end so single-row placement, wrapping, non-overlap, oversized-item
+handling, and the reported region are all measured on production output.
+
+#### Test Environment
+
+- **Framework**: xUnit v3 running on the .NET SDK.
+- **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/Engine/ContainmentPackerTests.cs`.
+- **Dependencies**: no external services, files, or network access; every test constructs its own
+  in-memory item size list.
+- **Isolation**: each test builds its own inputs; the engine holds no state between calls.
+
+#### Acceptance Criteria
+
+A verification run passes when every named scenario below asserts without unexpected exception, and
+the referenced tests cover each `Rendering-Layout-ContainmentPacker-*` requirement. Any overlap
+between packed rectangles, rectangle placed outside the reported region, wrong wrapping for
+overflowing items, wrong solitary placement for oversized items, incorrect empty-input region, or
+wrong single-item origin constitutes a failure.
+
+#### Test Scenarios
 
 - **Single row** (`Rendering-Layout-ContainmentPacker-SingleRow`): `Pack_ItemsFitInRow_ShareSameRow`
   asserts items that fit the width budget share one row, left to right.
@@ -24,7 +48,7 @@ This document maps the ContainmentPacker unit requirements to named test scenari
   `Pack_SingleItem_PositionsAtPaddingOrigin` confirms a lone item lands at the padding origin with
   the region sized to wrap it.
 
-## Requirements Coverage
+#### Requirements Coverage
 
 - **`Rendering-Layout-ContainmentPacker-SingleRow`**:
   Pack_ItemsFitInRow_ShareSameRow

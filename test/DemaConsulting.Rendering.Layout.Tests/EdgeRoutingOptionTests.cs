@@ -19,7 +19,7 @@ public sealed class EdgeRoutingOptionTests
     ///     <see cref="EdgeRouting.Orthogonal"/>, the only shipped routing style.
     /// </summary>
     [Fact]
-    public void CoreOptions_EdgeRouting_DefaultsToOrthogonal()
+    public void CoreOptions_EdgeRouting_DefaultValue_IsOrthogonal()
     {
         // Assert: the well-known key advertises the orthogonal default
         Assert.Equal(EdgeRouting.Orthogonal, CoreOptions.EdgeRouting.DefaultValue);
@@ -30,7 +30,7 @@ public sealed class EdgeRoutingOptionTests
     ///     <c>rendering.edgerouting</c>.
     /// </summary>
     [Fact]
-    public void CoreOptions_EdgeRouting_HasStableId()
+    public void CoreOptions_EdgeRouting_Id_IsStableDottedIdentifier()
     {
         // Assert: the stable dotted id mirrors elk.edgeRouting
         Assert.Equal("rendering.edgerouting", CoreOptions.EdgeRouting.Id);
@@ -41,7 +41,7 @@ public sealed class EdgeRoutingOptionTests
     ///     the key on any <see cref="IPropertyHolder"/> and read back, exactly like the algorithm key.
     /// </summary>
     [Fact]
-    public void CoreOptions_EdgeRouting_SelectablePerScope()
+    public void CoreOptions_EdgeRouting_SetThenGet_RoundTripsValue()
     {
         // Arrange: a free-standing options holder
         var options = new LayoutOptions();
@@ -59,7 +59,7 @@ public sealed class EdgeRoutingOptionTests
     ///     select a style still route orthogonally.
     /// </summary>
     [Fact]
-    public void CoreOptions_EdgeRouting_UnsetReturnsDefault()
+    public void CoreOptions_EdgeRouting_UnsetHolder_ReturnsOrthogonalDefault()
     {
         // Arrange: an options holder with no routing selection
         var options = new LayoutOptions();
@@ -74,7 +74,7 @@ public sealed class EdgeRoutingOptionTests
     ///     clearance, and callers can override the clearance.
     /// </summary>
     [Fact]
-    public void ConnectorRouteOptions_Defaults_AreOrthogonalWithTwelvePixelClearance()
+    public void ConnectorRouteOptions_Constructor_Defaults_AreOrthogonalWithTwelvePixelClearance()
     {
         // Act: construct with defaults, then with an explicit clearance override
         var defaults = new ConnectorRouteOptions();

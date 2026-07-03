@@ -13,7 +13,7 @@ linked documents below; this file maps only the Rendering.Layout system requirem
 - DefaultLayout Unit Verification
 - LayeredLayoutAlgorithm Unit Verification
 
-## Verification Strategy
+## Verification Approach
 
 Rendering.Layout is verified through deterministic in-process xUnit tests over synthetic layout graphs
 and geometry inputs. System coverage is established by representative scenarios for each public system
@@ -38,7 +38,7 @@ linked subsystem and unit verification documents passes without unexpected excep
 waypoint, layer assignment, algorithm identity, registry resolution, containment region, or unsupported
 input behavior constitutes a failure.
 
-## System Requirements Coverage
+## Test Scenarios
 
 The system requirements are satisfied through subsystem and unit scenarios documented in the linked
 verification files; representative system-level coverage is:

@@ -6,7 +6,7 @@
 # - This file is part of the split Rendering.Layout requirements set.
 
 sections:
-  - title: ConnectorRouter Unit Requirements
+  - title: ConnectorRouter Requirements
     requirements:
       - id: Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther
         title: >-

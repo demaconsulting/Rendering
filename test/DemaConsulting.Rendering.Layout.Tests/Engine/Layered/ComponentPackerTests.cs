@@ -255,6 +255,68 @@ public sealed class ComponentPackerTests
         AssertEndpointsOnBoxes(graph, routed[(2, 3)], 2, 3, eps);
     }
 
+    /// <summary>
+    ///     Two disconnected components, each containing a short back-edge cycle, propagate the parent
+    ///     graph's <see cref="LayeredGraph.BackEdgeEntryApproach"/> to every packed child component.
+    ///     Regression test: previously <c>LayoutComponent</c> built each child <see cref="LayeredGraph"/>
+    ///     without copying the parent's <c>BackEdgeEntryApproach</c>, so a caller-configured clearance
+    ///     silently reverted to the class default for any multi-component (packed) graph.
+    /// </summary>
+    [Fact]
+    public void ComponentPacker_Apply_MultiComponent_PropagatesBackEdgeEntryApproach()
+    {
+        // Arrange: two 3-node triangle components, each with a cycle (0->1, 1->2, 2->0) so CycleBreaker
+        // reverses the closing edge into a long back edge (skipping a layer via a dummy node), whose
+        // routed corridor width is governed by BackEdgeEntryApproach.
+        static LayeredGraph Build(double backEdgeEntryApproach)
+        {
+            var nodes = new List<LayerNode>
+            {
+                new(NodeWidth, NodeHeight), new(NodeWidth, NodeHeight), new(NodeWidth, NodeHeight),
+                new(NodeWidth, NodeHeight), new(NodeWidth, NodeHeight), new(NodeWidth, NodeHeight),
+            };
+            var edges = new List<LayerEdge> { new(0, 1), new(1, 2), new(2, 0), new(3, 4), new(4, 5), new(5, 3) };
+            return new LayeredGraph(nodes, edges, LayoutDirection.Right) { BackEdgeEntryApproach = backEdgeEntryApproach };
+        }
+
+        var small = Build(LayeredLayoutMetrics.ConnectorClearance);
+        var large = Build(LayeredLayoutMetrics.ConnectorClearance * 10.0);
+
+        // Act.
+        ComponentPacker.WithDefaultStages().Apply(small);
+        ComponentPacker.WithDefaultStages().Apply(large);
+
+        // Assert: each reversed (back) edge's first routed bend point is pushed further out under the
+        // larger BackEdgeEntryApproach, proving each packed child component honored the parent graph's
+        // configured clearance instead of always reverting to the LayeredGraph default.
+        Assert.True(MaxBackEdgeBendX(large) > MaxBackEdgeBendX(small));
+    }
+
+    /// <summary>Finds the furthest first-bend-point X coordinate among a graph's reversed (back) edges.</summary>
+    /// <param name="graph">The laid-out graph.</param>
+    /// <returns>The maximum X coordinate of the first bend point across all reversed edges.</returns>
+    private static double MaxBackEdgeBendX(LayeredGraph graph)
+    {
+        var best = double.NegativeInfinity;
+        for (var i = 0; i < graph.AcyclicReversed.Length; i++)
+        {
+            if (!graph.AcyclicReversed[i])
+            {
+                continue;
+            }
+
+            var waypoints = graph.Waypoints[i];
+            if (waypoints.Count < 2)
+            {
+                continue;
+            }
+
+            best = Math.Max(best, waypoints[1].X);
+        }
+
+        return best;
+    }
+
     /// <summary>Builds a <c>(source, target)</c> to polyline lookup over a graph's acyclic edge set.</summary>
     /// <param name="graph">The laid-out graph.</param>
     /// <returns>A dictionary keyed by each acyclic edge's endpoints.</returns>

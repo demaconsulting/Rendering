@@ -1,8 +1,18 @@
-# Layout Tree Unit Design
+## Layout Tree Unit Design
 
 Part of the Rendering Model system.
 
-## Layout Tree Overview
+### Layout Tree Purpose
+
+The Layout Tree unit's single responsibility is to define the placed, renderer-agnostic intermediate
+representation that a layout algorithm produces and a renderer draws: the `LayoutTree` container, the
+`LayoutNode` discriminated-union hierarchy of concrete node records (`LayoutBox`, `LayoutPort`,
+`LayoutLine`, `LayoutLabel`, `LayoutBadge`, `LayoutBand`, `LayoutLifeline`, `LayoutActivation`,
+`LayoutGrid`, and their sub-records), the shared geometry value types (`Point2D`, `Rect`), and the
+notation enumerations used across the tree. The unit performs no layout and no rendering; it is a
+pure, immutable data vocabulary.
+
+### Layout Tree Overview
 
 The Layout Tree unit is the placed, renderer-agnostic representation of one view. A `LayoutTree`
 carries the canvas dimensions and a flat list of top-level `LayoutNode` instances. `LayoutNode` is an
@@ -10,7 +20,7 @@ abstract record acting as the root of a discriminated union; renderers switch on
 and skip unknown subtypes for forward compatibility. All coordinates are absolute, with the origin at
 the top-left, so a renderer can draw each element directly without resolving nested offsets.
 
-## Layout Tree Data Model
+### Layout Tree Data Model
 
 - `LayoutTree` (sealed record) — `Width`, `Height`, the top-level `Nodes` list, and layout-quality
   `Warnings`.
@@ -41,7 +51,21 @@ The unit also defines the notation enumerations `BoxShape`, `PortSide`, `EndMark
 they exist so every node record and every layout algorithm expresses coordinates and bounds with one
 consistent, allocation-light vocabulary.
 
-## Layout Tree Design Constraints
+### Layout Tree Key Methods
+
+N/A - the Layout Tree types are immutable data records with no behavioral methods. Each record type
+exposes only its declared fields through record-generated property getters and value-based equality;
+there are no operations to document beyond construction (all fields are supplied through the
+positional or init-only constructor and returned unchanged).
+
+### Layout Tree Error Handling
+
+N/A - the Layout Tree types are passive immutable records that do no I/O, allocate no unmanaged
+resources, and expose no operational methods. There are no runtime error paths to detect or propagate;
+argument validation (for example, non-null identifiers on graph elements) is the responsibility of the
+Layout Graph unit, not this unit.
+
+### Layout Tree Design Constraints
 
 - All node coordinates shall be absolute in logical pixels with the origin at the top-left; the model
   shall not apply any coordinate transform.
@@ -52,13 +76,31 @@ consistent, allocation-light vocabulary.
 - All node records shall be immutable, so a placed tree can be shared and rendered repeatedly without
   defensive copying.
 
-## Layout Tree Interactions
+### Layout Tree Interactions
 
 The Layout Tree is produced by a layout algorithm (see the *Rendering Abstractions* design,
 `ILayoutAlgorithm`) and consumed by a renderer (`IRenderer`). Within the tree, `LayoutBox` and
 `LayoutBand` hold nested `Children`, so renderers walk the node hierarchy recursively.
 
-## Requirements Traceability
+### Layout Tree Dependencies
+
+The unit depends only on the .NET base class library. It has no project references, no OTS runtime
+component, and no Shared Package dependency; within the Rendering model, it is a peer of the Options
+and Layout Graph units and depends on neither at the code level (though `LayoutGraphEdge` in the
+Layout Graph unit consumes the `EndMarkerStyle` and `LineStyle` enumerations declared here as part of
+the shared notation vocabulary).
+
+### Layout Tree Callers
+
+The unit is written by layout algorithms in `DemaConsulting.Rendering.Layout` — the `layered`,
+`containment`, and `hierarchical` algorithms and the orthogonal edge router — and read by renderers
+in `DemaConsulting.Rendering.Svg` and `DemaConsulting.Rendering.Skia` (`SvgRenderer`, `PngRenderer`,
+`JpegRenderer`, `WebpRenderer`). The `ILayoutAlgorithm` and `IRenderer` contracts in
+`DemaConsulting.Rendering.Abstractions` reference `LayoutTree` and its geometry types as their
+produced and consumed values. Application code typically does not construct a `LayoutTree` directly;
+it obtains one from a layout algorithm and passes it to a renderer.
+
+### Requirements Traceability
 
 | Requirement ID | Satisfied by |
 | --- | --- |

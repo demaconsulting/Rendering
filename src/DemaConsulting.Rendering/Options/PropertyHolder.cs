@@ -60,4 +60,40 @@ public class PropertyHolder : IPropertyHolder
         ArgumentNullException.ThrowIfNull(property);
         return _values.ContainsKey(property.Id);
     }
+
+    /// <summary>
+    /// Builds a new <see cref="LayoutOptions"/> snapshot that merges <paramref name="parent"/>'s
+    /// explicitly-set values with this holder's own, with this holder's own values taking precedence.
+    /// This is the generic cascading primitive behind option inheritance: a caller resolving a nested
+    /// scope's effective options overlays each level's own overrides onto its parent's already-resolved
+    /// snapshot, nearest-ancestor-wins, without needing to know which properties exist. Because the
+    /// merge copies raw, boxed values by key rather than reading through <see cref="LayoutProperty{T}"/>
+    /// accessors, it works for any current or future property — including ones this holder or its
+    /// caller has never heard of — with no per-property code.
+    /// </summary>
+    /// <param name="parent">
+    /// The base holder whose explicitly-set values are used wherever this holder has not set its own.
+    /// </param>
+    /// <returns>
+    /// A new <see cref="LayoutOptions"/> containing <paramref name="parent"/>'s values overlaid by this
+    /// holder's own values.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="parent"/> is <see langword="null"/>.</exception>
+    public LayoutOptions OverlayOnto(PropertyHolder parent)
+    {
+        ArgumentNullException.ThrowIfNull(parent);
+
+        var effective = new LayoutOptions();
+        foreach (var kvp in parent._values)
+        {
+            effective._values[kvp.Key] = kvp.Value;
+        }
+
+        foreach (var kvp in _values)
+        {
+            effective._values[kvp.Key] = kvp.Value;
+        }
+
+        return effective;
+    }
 }

@@ -13,7 +13,7 @@ per-requirement scenarios live in the unit documents:
 - Box Metrics Unit Verification
 - Connector Label Placer Unit Verification
 
-## Verification Strategy
+## Verification Approach
 
 The abstractions system is verified through in-process unit tests. The contract interfaces
 (`ILayoutAlgorithm`, `IRenderer`) are exercised through minimal fake implementations that the registry
@@ -38,22 +38,30 @@ A verification run passes when every scenario in this system document and in the
 passes without error or unexpected exception. Any wrong returned value, wrong geometry, or unexpected
 exception constitutes a failure.
 
-## System Requirements Coverage
+## Test Scenarios
 
 The system requirements are satisfied through the unit scenarios documented in the per-unit
 verification files; the representative system-level scenarios are:
 
-- **`Rendering-Abstractions-Extensibility`**:
+- **`Rendering-Abstractions-Extensibility-Contracts`**:
+  LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm,
+  RendererRegistry_RegisterThenResolve_ReturnsRenderer (see
+  Rendering Contracts Unit Verification and
+  Registries Unit Verification)
+- **`Rendering-Abstractions-Extensibility-Registries`**:
   LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm,
   RendererRegistry_RegisterThenResolve_ReturnsRenderer,
   RendererRegistry_ResolveByExtension_MatchesAdvertisedExtensions (see
   Rendering Contracts Unit Verification and
   Registries Unit Verification)
-- **`Rendering-Abstractions-Theming`**: ConnectorApproachZone_SumsStubBendAndClearance,
-  Themes_HaveExpectedConnectorGeometry (see Theme Unit Verification)
-- **`Rendering-Abstractions-SharedGeometry`**: TriangleFamily_HasCanonicalValues,
-  BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding,
-  Place_SingleLine_UsesLongestSegmentMidpoint (see
-  Notation Metrics Unit Verification,
-  Box Metrics Unit Verification, and
-  Connector Label Placer Unit Verification)
+- **`Rendering-Abstractions-Theming-Model`**: Themes_HaveExpectedConnectorGeometry (see
+  Theme Unit Verification)
+- **`Rendering-Abstractions-Theming-ApproachGeometry`**:
+  ConnectorApproachZone_SumsStubBendAndClearance (see Theme Unit Verification)
+- **`Rendering-Abstractions-SharedGeometry-Notation`**: TriangleFamily_HasCanonicalValues (see
+  Notation Metrics Unit Verification)
+- **`Rendering-Abstractions-SharedGeometry-Box`**:
+  BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding (see
+  Box Metrics Unit Verification)
+- **`Rendering-Abstractions-SharedGeometry-ConnectorLabel`**:
+  Place_SingleLine_UsesLongestSegmentMidpoint (see Connector Label Placer Unit Verification)

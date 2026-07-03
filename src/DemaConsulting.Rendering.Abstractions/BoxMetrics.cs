@@ -19,8 +19,12 @@ public static class BoxMetrics
     /// </summary>
     /// <param name="theme">Theme providing font and padding metrics.</param>
     /// <returns>The tab height in logical pixels.</returns>
-    public static double FolderTabHeight(Theme theme) =>
-        theme.FontSizeBody + 2.0 * theme.LabelPadding;
+    /// <exception cref="ArgumentNullException"><paramref name="theme"/> is <see langword="null"/>.</exception>
+    public static double FolderTabHeight(Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(theme);
+        return theme.FontSizeBody + 2.0 * theme.LabelPadding;
+    }
 
     /// <summary>
     /// Computes the height of the title area of a box: the vertical space reserved at the top
@@ -30,8 +34,11 @@ public static class BoxMetrics
     /// <param name="hasLabel">Whether the box has a name label.</param>
     /// <param name="hasKeyword">Whether the box has a keyword line above the name.</param>
     /// <returns>The title-area height in logical pixels.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="theme"/> is <see langword="null"/>.</exception>
     public static double TitleAreaHeight(Theme theme, bool hasLabel, bool hasKeyword)
     {
+        ArgumentNullException.ThrowIfNull(theme);
+
         if (!hasLabel && !hasKeyword)
         {
             return 0.0;
