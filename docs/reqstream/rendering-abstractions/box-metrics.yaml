@@ -7,7 +7,7 @@
 #   rendering-abstractions.yaml.
 
 sections:
-  - title: Box Metrics Unit Requirements
+  - title: Box Metrics Requirements
     requirements:
       - id: Rendering-Abstractions-BoxMetrics-FolderTabHeight
         title: >-

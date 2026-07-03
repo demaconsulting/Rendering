@@ -9,7 +9,7 @@
 #   declared in rendering.yaml.
 
 sections:
-  - title: Options Unit Requirements
+  - title: Options Requirements
     requirements:
       - id: Rendering-Model-Options-Default
         title: >-

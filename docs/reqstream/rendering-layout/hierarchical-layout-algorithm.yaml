@@ -6,7 +6,7 @@
 # - This file is part of the split Rendering.Layout requirements set.
 
 sections:
-  - title: HierarchicalLayoutAlgorithm Unit Requirements
+  - title: HierarchicalLayoutAlgorithm Requirements
     requirements:
       - id: Rendering-Layout-HierarchicalLayout-Identity
         title: >-

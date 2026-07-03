@@ -7,7 +7,7 @@
 #   rendering-abstractions.yaml.
 
 sections:
-  - title: Registries Unit Requirements
+  - title: Registries Requirements
     requirements:
       - id: Rendering-Abstractions-Registries-ResolveAlgorithm
         title: >-

@@ -6,7 +6,7 @@
 # - This file is part of the split Rendering.Layout requirements set.
 
 sections:
-  - title: Layered Pipeline Unit Requirements
+  - title: Layered Pipeline Requirements
     requirements:
       - id: Rendering-Layout-LayeredPipeline-StagedPipeline
         title: >-

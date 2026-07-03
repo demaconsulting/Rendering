@@ -6,7 +6,7 @@
 # - This file is part of the split Rendering.Layout requirements set.
 
 sections:
-  - title: EdgeRouting Option Unit Requirements
+  - title: EdgeRouting Option Requirements
     requirements:
       - id: Rendering-Layout-EdgeRouting-Selection
         title: >-

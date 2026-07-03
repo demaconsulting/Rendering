@@ -16,7 +16,7 @@
 #   engine/*.yaml and {unit-name}.yaml.
 
 sections:
-  - title: Rendering.Layout System Requirements
+  - title: Rendering.Layout Requirements
     requirements:
       - id: Rendering-Layout-Algorithm
         title: >-

@@ -8,7 +8,7 @@
 #   declared in rendering-skia.yaml.
 
 sections:
-  - title: JpegRenderer Unit Requirements
+  - title: JpegRenderer Requirements
     requirements:
       - id: Rendering-Skia-JpegRenderer-EmitsJpeg
         title: >-

@@ -8,7 +8,7 @@
 #   declared in rendering-skia.yaml.
 
 sections:
-  - title: SkiaRasterRenderer Unit Requirements
+  - title: SkiaRasterRenderer Requirements
     requirements:
       - id: Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree
         title: >-

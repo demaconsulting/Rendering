@@ -7,7 +7,7 @@
 #   rendering-abstractions.yaml.
 
 sections:
-  - title: Notation Metrics Unit Requirements
+  - title: Notation Metrics Requirements
     requirements:
       - id: Rendering-Abstractions-NotationMetrics-TriangleGeometry
         title: >-

@@ -8,7 +8,7 @@
 #   rendering-abstractions.yaml.
 
 sections:
-  - title: Rendering Contracts Unit Requirements
+  - title: Rendering Contracts Requirements
     requirements:
       - id: Rendering-Abstractions-Contracts-Algorithm
         title: >-

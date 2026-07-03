@@ -6,7 +6,7 @@
 # - This file is part of the split Rendering.Layout requirements set.
 
 sections:
-  - title: ContainmentPacker Unit Requirements
+  - title: ContainmentPacker Requirements
     requirements:
       - id: Rendering-Layout-ContainmentPacker-SingleRow
         title: >-

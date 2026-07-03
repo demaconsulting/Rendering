@@ -6,7 +6,7 @@
 # - This file is part of the split Rendering.Layout requirements set.
 
 sections:
-  - title: ContainmentLayoutAlgorithm Unit Requirements
+  - title: ContainmentLayoutAlgorithm Requirements
     requirements:
       - id: Rendering-Layout-ContainmentAlgorithm-Identity
         title: >-

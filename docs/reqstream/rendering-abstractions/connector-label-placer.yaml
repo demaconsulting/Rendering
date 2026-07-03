@@ -8,7 +8,7 @@
 #   rendering-abstractions.yaml.
 
 sections:
-  - title: Connector Label Placer Unit Requirements
+  - title: Connector Label Placer Requirements
     requirements:
       - id: Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled
         title: >-

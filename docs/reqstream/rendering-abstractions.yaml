@@ -15,7 +15,7 @@
 #     - connector-label-placer.yaml   (connector midpoint-label placement)
 
 sections:
-  - title: Rendering Abstractions System Requirements
+  - title: Rendering Abstractions Requirements
     requirements:
       - id: Rendering-Abstractions-Extensibility
         title: >-

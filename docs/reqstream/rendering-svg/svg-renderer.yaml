@@ -8,7 +8,7 @@
 #   in rendering-svg.yaml.
 
 sections:
-  - title: SvgRenderer Unit Requirements
+  - title: SvgRenderer Requirements
     requirements:
       - id: Rendering-Svg-SvgRenderer-ImplementsIRenderer
         title: >-
