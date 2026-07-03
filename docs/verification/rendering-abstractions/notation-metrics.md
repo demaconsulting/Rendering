@@ -109,6 +109,13 @@ Test `RoundedRectRadius_IsThemeRadiusTimesFactor` asserts the rounded-rectangle 
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-RoundedRectCorner`.
 
+#### Null theme is rejected
+
+Test `RoundedRectRadius_NullTheme_ThrowsArgumentNullException` asserts a null `theme` argument is
+rejected with an `ArgumentNullException`.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-RejectNullTheme`.
+
 #### Badge proportions are documented
 
 Test `BadgeFractions_HaveDocumentedValues` asserts the badge fraction constants.
@@ -136,5 +143,6 @@ Test `LabelBackground_ExtentMatchesInset` asserts the label-background extent de
 - **`Rendering-Abstractions-NotationMetrics-FolderTab`**: FolderTab_HasDocumentedConstants
 - **`Rendering-Abstractions-NotationMetrics-NoteFold`**: NoteFold_HasDocumentedConstants
 - **`Rendering-Abstractions-NotationMetrics-RoundedRectCorner`**: RoundedRectRadius_IsThemeRadiusTimesFactor
+- **`Rendering-Abstractions-NotationMetrics-RejectNullTheme`**: RoundedRectRadius_NullTheme_ThrowsArgumentNullException
 - **`Rendering-Abstractions-NotationMetrics-Badge`**: BadgeFractions_HaveDocumentedValues
 - **`Rendering-Abstractions-NotationMetrics-LabelBackground`**: LabelBackground_ExtentMatchesInset

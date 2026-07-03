@@ -92,5 +92,6 @@ reserve a clean approach using `AlongLineLength`.
 | Rendering-Abstractions-NotationMetrics-FolderTab | `NotationMetrics` folder-tab constants |
 | Rendering-Abstractions-NotationMetrics-NoteFold | `NotationMetrics` note-fold constants |
 | Rendering-Abstractions-NotationMetrics-RoundedRectCorner | `NotationMetrics.RoundedRectRadius` |
+| Rendering-Abstractions-NotationMetrics-RejectNullTheme | `NotationMetrics.RoundedRectRadius` null-theme guard |
 | Rendering-Abstractions-NotationMetrics-Badge | `NotationMetrics` badge constants |
 | Rendering-Abstractions-NotationMetrics-LabelBackground | `NotationMetrics` label-background constants |

@@ -153,6 +153,14 @@ public sealed class NotationMetricsTests
         Assert.Equal(theme.LineCornerRadius * 2.0, NotationMetrics.RoundedRectRadius(theme));
     }
 
+    /// <summary>A null theme is rejected with an argument-null error, as documented.</summary>
+    [Fact]
+    public void RoundedRectRadius_NullTheme_ThrowsArgumentNullException()
+    {
+        // Act & Assert: a null theme is rejected with an argument-null error.
+        Assert.Throws<ArgumentNullException>(() => NotationMetrics.RoundedRectRadius(null!));
+    }
+
     /// <summary>The label-background extent is symmetric about the documented inset.</summary>
     [Fact]
     public void LabelBackground_ExtentMatchesInset()

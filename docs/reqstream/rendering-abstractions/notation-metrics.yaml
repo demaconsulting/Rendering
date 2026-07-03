@@ -119,6 +119,17 @@ sections:
         tests:
           - RoundedRectRadius_IsThemeRadiusTimesFactor
 
+      - id: Rendering-Abstractions-NotationMetrics-RejectNullTheme
+        title: >-
+          NotationMetrics.RoundedRectRadius shall reject a null theme argument with an argument-null
+          error.
+        justification: |
+          RoundedRectRadius derives its result from the theme's corner radius; failing fast on a null
+          theme prevents a downstream null-reference failure and surfaces the caller's error at the
+          public boundary, matching the convention used by the other geometry-helper classes.
+        tests:
+          - RoundedRectRadius_NullTheme_ThrowsArgumentNullException
+
       - id: Rendering-Abstractions-NotationMetrics-Badge
         title: >-
           The notation metrics shall define the badge decoration proportions used to draw box

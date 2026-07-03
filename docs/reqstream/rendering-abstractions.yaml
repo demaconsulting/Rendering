@@ -73,6 +73,7 @@ sections:
           - Rendering-Abstractions-NotationMetrics-FolderTab
           - Rendering-Abstractions-NotationMetrics-NoteFold
           - Rendering-Abstractions-NotationMetrics-RoundedRectCorner
+          - Rendering-Abstractions-NotationMetrics-RejectNullTheme
           - Rendering-Abstractions-NotationMetrics-Badge
           - Rendering-Abstractions-NotationMetrics-LabelBackground
           - Rendering-Abstractions-BoxMetrics-FolderTabHeight
