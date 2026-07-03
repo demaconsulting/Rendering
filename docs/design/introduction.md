@@ -162,10 +162,10 @@ decomposed into a slim system-level file plus one file per unit (and per subsyst
 exists, such as the Layout `engine/` subsystem), so a system-level review excludes unit detail and
 each unit review carries only its own slice:
 
-- Requirements: `docs/reqstream/{system}/{system}.yaml` (system-level) plus
+- Requirements: `docs/reqstream/{system}.yaml` (system-level) plus
   `docs/reqstream/{system}/[{subsystem}/]{unit}.yaml` per unit (kebab-case)
-- Design docs: `docs/design/{system}/{system}.md` plus `docs/design/{system}/[{subsystem}/]{unit}.md`
-- Verification design: `docs/verification/{system}/{system}.md` plus
+- Design docs: `docs/design/{system}.md` plus `docs/design/{system}/[{subsystem}/]{unit}.md`
+- Verification design: `docs/verification/{system}.md` plus
   `docs/verification/{system}/[{subsystem}/]{unit}.md`
 - Source code: `src/{System}/.../{Item}.cs` (PascalCase for C#)
 - Tests: `test/{System}.Tests/.../{Item}Tests.cs` (PascalCase for C#)

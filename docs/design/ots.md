@@ -9,7 +9,7 @@ package.
 
 ## OTS Items
 
-The repository integrates eleven OTS items:
+The repository integrates twelve OTS items:
 
 ```text
 OTS Software Items
@@ -19,8 +19,9 @@ OTS Software Items
 ├── ReqStream    — requirements traceability and enforcement
 ├── ReviewMark   — file-review plan, report, and enforcement
 ├── SarifMark    — CodeQL SARIF-to-Markdown conversion
-├── SkiaSharp    — raster graphics library (bitmap drawing and PNG/JPEG/WEBP encoding)
-├── SonarMark    — SonarCloud quality-report generation
+├── SkiaSharp          — raster graphics library (bitmap drawing and PNG/JPEG/WEBP encoding)
+├── SonarScanner for .NET — SonarCloud static-analysis scanner wrapper
+├── SonarMark          — SonarCloud quality-report generation
 ├── VersionMark  — tool-version capture and publishing
 ├── WeasyPrint   — HTML-to-PDF (PDF/A) conversion
 └── xUnit        — unit-testing framework
@@ -33,11 +34,12 @@ Features Used, and Integration Pattern. This document covers the shared integrat
 
 The OTS items fall into three consumption models:
 
-- **.NET local tools** — BuildMark, FileAssert, Pandoc, ReqStream, ReviewMark, SarifMark, SonarMark,
-  VersionMark, and WeasyPrint are installed as local .NET tools through the `.config/dotnet-tools.json`
-  manifest and restored with `dotnet tool restore`. They are invoked as `dotnet {tool}` commands from
-  the CI workflows (`.github/workflows/build.yaml` and `release.yaml`) and, for the linting subset,
-  from `lint.ps1`. The Pandoc and WeasyPrint tools are DemaConsulting distributions
+- **.NET local tools** — BuildMark, FileAssert, Pandoc, ReqStream, ReviewMark, SarifMark,
+  SonarScanner for .NET, SonarMark, VersionMark, and WeasyPrint are installed as local .NET tools
+  through the `.config/dotnet-tools.json` manifest and restored with `dotnet tool restore`. They are
+  invoked as `dotnet {tool}` commands from the CI workflows (`.github/workflows/build.yaml` and
+  `release.yaml`) and, for the linting subset, from `lint.ps1`. The Pandoc and WeasyPrint tools are
+  DemaConsulting distributions
   (`DemaConsulting.PandocTool`, `DemaConsulting.WeasyPrintTool`) that package the underlying converters
   as .NET tools.
 - **Test framework** — xUnit is referenced as a NuGet test-framework dependency by the test projects
