@@ -56,12 +56,28 @@ Null `graph` or `options` throw `ArgumentNullException`. Edges with an out-of-gr
 skipped rather than treated as errors. All other behavior is inherited from the composed
 `ContainmentLayout` and `ConnectorRouter` units.
 
+### ContainmentLayoutAlgorithm Dependencies
+
+- `DemaConsulting.Rendering.Abstractions` — `ILayoutAlgorithm` defines the service-provider contract
+  this public algorithm implements.
+- `DemaConsulting.Rendering` — `LayoutGraph`, `LayoutTree`, `LayoutBox`, `LayoutLine`, and the graph
+  node and edge model types carry the input graph and returned placed layout.
+- `CoreOptions` and `LayoutOptions` (Rendering model system) — supply the selected edge-routing style
+  and the algorithm-selection option that chooses this unit.
+- `ContainmentLayout` (same system) — packs the top-level boxes into rows within the derived width
+  budget.
+- `ConnectorRouter` (same system) — routes the top-level connections around the packed boxes.
+
+### ContainmentLayoutAlgorithm Callers
+
+Renderers and other consumers do not construct routing geometry directly; they resolve this unit
+through the layout registry under the `"containment"` identifier and select it through
+`CoreOptions.Algorithm` when a reading-order containment layout is requested.
+
 ### ContainmentLayoutAlgorithm Interactions
 
-`ContainmentLayoutAlgorithm` depends on the `ILayoutAlgorithm`, `LayoutGraph`, `LayoutTree`,
-`CoreOptions`, and related model types, and composes the public `ContainmentLayout` and
-`ConnectorRouter` units of this same system. It is resolvable by renderers and callers through the
-layout registry under the `"containment"` identifier, selected via `CoreOptions.Algorithm`.
+`ContainmentLayoutAlgorithm` composes `ContainmentLayout` for packing and `ConnectorRouter` for edge
+routing, adapting their combined output to the public `ILayoutAlgorithm` contract.
 
 ### Requirements Traceability
 
