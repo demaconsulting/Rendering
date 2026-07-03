@@ -50,6 +50,11 @@ behavior constitutes a failure.
   node is skipped rather than routed.
 - **Validation** (`Rendering-Layout-ContainmentAlgorithm-Validation`): `Apply_NullGraph_Throws` and
   `Apply_NullOptions_Throws` confirm null arguments are rejected with an argument-null error.
+- **Honors scope edge routing** (`Rendering-Layout-ContainmentAlgorithm-HonorsScopeEdgeRouting`):
+  `Apply_EdgeRoutingOverrideOnGraphScope_IsHonored` confirms an explicit `CoreOptions.EdgeRouting`
+  override carried on the graph itself is honored (routing still succeeds) even when the supplied
+  options declares no routing style, mirroring `LayeredLayoutAlgorithm`'s graph-then-options resolution
+  of `CoreOptions.Direction`.
 
 ### Requirements Coverage
 
@@ -67,3 +72,5 @@ behavior constitutes a failure.
   Apply_EdgeReferencingOutOfGraphNode_IsSkipped
 - **`Rendering-Layout-ContainmentAlgorithm-Validation`**:
   Apply_NullGraph_Throws, Apply_NullOptions_Throws
+- **`Rendering-Layout-ContainmentAlgorithm-HonorsScopeEdgeRouting`**:
+  Apply_EdgeRoutingOverrideOnGraphScope_IsHonored

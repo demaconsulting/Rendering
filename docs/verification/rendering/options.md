@@ -63,9 +63,24 @@ and asserts that it returns false and yields the declared default through its ou
 
 **Covers**: `Rendering-Model-Options-TryGet`.
 
+#### Overlaying cascades explicit values with correct precedence
+
+Tests `OverlayOnto_EmptyHolderOntoPopulatedParent_ReturnsParentValuesUnchanged`,
+`OverlayOnto_HolderOverridesProperty_HolderValueWins`, `OverlayOnto_ValueOnlyOnParent_PassesThrough`,
+`OverlayOnto_CustomPropertyNotInCoreOptions_IsMerged`, and
+`OverlayOnto_NullParent_ThrowsArgumentNullException` construct a parent and an overlaying holder with
+various combinations of explicitly-set values (including a property outside `CoreOptions`, proving the
+merge is generic) and assert that the overlaying holder's own values win, the parent's other values
+pass through unchanged, and a null parent is rejected.
+
+**Covers**: `Rendering-Model-Options-Cascade`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-Options-Default`**: Get_UnsetProperty_ReturnsDefault
 - **`Rendering-Model-Options-StoreAndRetrieve`**: Get_AfterSet_ReturnsStoredValue
 - **`Rendering-Model-Options-Contains`**: Contains_ReflectsExplicitSet
 - **`Rendering-Model-Options-TryGet`**: TryGet_UnsetProperty_ReturnsFalseAndDefault
+- **`Rendering-Model-Options-Cascade`**: OverlayOnto_EmptyHolderOntoPopulatedParent_ReturnsParentValuesUnchanged,
+  OverlayOnto_HolderOverridesProperty_HolderValueWins, OverlayOnto_ValueOnlyOnParent_PassesThrough,
+  OverlayOnto_CustomPropertyNotInCoreOptions_IsMerged, OverlayOnto_NullParent_ThrowsArgumentNullException

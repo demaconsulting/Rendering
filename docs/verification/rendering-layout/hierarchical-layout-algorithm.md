@@ -62,11 +62,24 @@ input node sizes also constitutes a failure.
   `Apply_CrossContainerEdge_RoutesAroundInterveningContainer` confirms an edge between children of
   different sibling containers is routed at the owning scope and no routed segment passes through the
   intervening container's interior.
-- **Propagates direction** (`Rendering-Layout-HierarchicalLayout-PropagatesDirection`):
+- **Propagates direction** (`Rendering-Layout-HierarchicalLayout-CascadesOptions`):
   `Apply_ContainerWithDirectionOverride_HonorsNestedDirection` sets `CoreOptions.Direction` on a
   container's own children graph (while the top-level options select the default direction) and
-  confirms the nested chain is laid out with the container's own override — stacking vertically —
-  proving the sized view carries the scope's direction override to the leaf algorithm.
+  confirms the nested chain is laid out with the container's own override — stacking vertically.
+  `Apply_ThreeLevelDirectionCascade_InheritsThroughUnsetMiddleLevel` confirms a direction override set
+  two levels up cascades through an intermediate container that sets nothing of its own, reaching a
+  third-level leaf chain. `Apply_ThreeLevelDirectionCascade_MidLevelOverrideTakesPrecedence` confirms a
+  deeper, explicit override wins over an inherited ancestor value rather than the ancestor's value
+  winning because it was set first or higher in the tree.
+  `Apply_ThreeLevelEdgeRoutingCascade_ReachesEveryLeafAlgorithmCall` uses a recording leaf-algorithm
+  test double to confirm the cascaded effective options snapshot — including `CoreOptions.EdgeRouting`
+  and an arbitrary custom marker property proving generality — actually reaches every leaf-algorithm
+  invocation across three levels of nesting, with the deepest scope's own override winning over an
+  inherited ancestor value.
+- **Honors scope edge routing** (`Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting`):
+  `Apply_CrossContainerEdge_HonorsScopeEdgeRoutingOverride` confirms a cross-container edge is routed
+  using the owning scope's own cascaded `CoreOptions.EdgeRouting` override rather than the root
+  options.
 - **Validation** (`Rendering-Layout-HierarchicalLayout-ValidatesGraph`,
   `Rendering-Layout-HierarchicalLayout-ValidatesOptions`,
   `Rendering-Layout-HierarchicalLayout-ValidatesRegistry`): `Apply_NullGraph_Throws`,
@@ -87,8 +100,13 @@ input node sizes also constitutes a failure.
   Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely, Apply_CompoundGraph_DoesNotMutateInputNodeSizes
 - **`Rendering-Layout-HierarchicalLayout-CrossContainerEdge`**:
   Apply_CrossContainerEdge_RoutesAroundInterveningContainer
-- **`Rendering-Layout-HierarchicalLayout-PropagatesDirection`**:
-  Apply_ContainerWithDirectionOverride_HonorsNestedDirection
+- **`Rendering-Layout-HierarchicalLayout-CascadesOptions`**:
+  Apply_ContainerWithDirectionOverride_HonorsNestedDirection,
+  Apply_ThreeLevelDirectionCascade_InheritsThroughUnsetMiddleLevel,
+  Apply_ThreeLevelDirectionCascade_MidLevelOverrideTakesPrecedence,
+  Apply_ThreeLevelEdgeRoutingCascade_ReachesEveryLeafAlgorithmCall
+- **`Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting`**:
+  Apply_CrossContainerEdge_HonorsScopeEdgeRoutingOverride
 - **`Rendering-Layout-HierarchicalLayout-ValidatesGraph`**:
   Apply_NullGraph_Throws
 - **`Rendering-Layout-HierarchicalLayout-ValidatesOptions`**:

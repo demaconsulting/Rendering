@@ -43,7 +43,12 @@ followed by `LayoutLine` per routed edge).
    represents each endpoint. Edges referencing a node outside the graph's top-level nodes are skipped,
    mirroring the layered algorithm's handling of out-of-graph endpoints.
 5. **Routing.** Routes the connections around the packed boxes via `ConnectorRouter.Route`, selecting
-   the routing style from `CoreOptions.EdgeRouting` on the supplied options (default `Orthogonal`).
+   the routing style with `ResolveEdgeRouting`: the graph's own explicit `CoreOptions.EdgeRouting`
+   override takes precedence, then the supplied options' value, falling back to the property's default
+   (`Orthogonal`) only when neither declares one — mirroring `LayeredLayoutAlgorithm.ResolveDirection`'s
+   graph-then-options-then-default resolution of `CoreOptions.Direction`. This lets a graph-level
+   override be honored whether the algorithm is invoked directly or as a scope's leaf algorithm inside
+   `HierarchicalLayoutAlgorithm` (which passes each scope's already-cascaded effective options).
 6. **Assembly.** Returns a `LayoutTree` with the region `Width`/`Height` and the packed boxes followed
    by the routed lines.
 
@@ -90,3 +95,4 @@ routing, adapting their combined output to the public `ILayoutAlgorithm` contrac
 | Rendering-Layout-ContainmentAlgorithm-EmptyGraph | ContainmentLayoutAlgorithm behavior described above |
 | Rendering-Layout-ContainmentAlgorithm-SkipsOutOfGraphEdges | ContainmentLayoutAlgorithm behavior described above |
 | Rendering-Layout-ContainmentAlgorithm-Validation | ContainmentLayoutAlgorithm behavior described above |
+| Rendering-Layout-ContainmentAlgorithm-HonorsScopeEdgeRouting | ContainmentLayoutAlgorithm behavior described above |

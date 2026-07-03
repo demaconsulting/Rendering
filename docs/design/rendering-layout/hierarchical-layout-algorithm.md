@@ -29,28 +29,31 @@ bundled leaf algorithm.
 
 ### HierarchicalLayoutAlgorithm Methods
 
-`Apply(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, resolves the
-root scope's algorithm (the graph's explicit `CoreOptions.Algorithm` override if present, otherwise the
-options' algorithm — default `"layered"`), and calls the recursive `LayoutScope`. `LayoutScope(graph,
-algoId, options)` performs:
+`Apply(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, builds the
+root scope's cascaded effective options (`graph.OverlayOnto(options)` — the graph's own explicit
+overrides win over the supplied options, exactly like every nested scope), and calls the recursive
+`LayoutScope`. `LayoutScope(graph, effective)` performs:
 
 1. **Flat fast path (equivalence guarantee).** If no direct node of the scope is a container
-   (`HasChildren` is false for all), the engine delegates straight to the resolved leaf algorithm and
-   returns its `LayoutTree` unchanged — no cloning, no post-processing, no mutation. This guarantees a
-   flat graph is placed byte-for-byte identically to invoking the leaf algorithm directly.
-2. **Post-order recursion.** For each container child, the engine resolves the child's algorithm (the
-   node's `CoreOptions.Algorithm` override, else the inherited scope algorithm), recursively lays out
-   the child's subgraph, and records both the sub-layout and the container's effective size — the
-   sub-layout size grown by `ContainerPadding` on every side plus a title band when the container is
-   labelled.
+   (`HasChildren` is false for all), the engine delegates straight to the leaf algorithm resolved from
+   `effective` and returns its `LayoutTree` unchanged — no cloning, no post-processing, no mutation.
+   This guarantees a flat graph is placed byte-for-byte identically to invoking the leaf algorithm
+   directly.
+2. **Post-order recursion.** For each container child, the engine builds that child's own cascaded
+   effective options by overlaying, in order, the container node's own overrides (`CoreOptions.Algorithm`
+   lives here by convention) and then its `Children` graph's own overrides (every other `CoreOptions`
+   property lives here by convention) onto the parent scope's already-resolved `effective` snapshot, via
+   `PropertyHolder.OverlayOnto`. It then recursively lays out the child's subgraph with that snapshot and
+   records both the sub-layout and the container's effective size — the sub-layout size grown by
+   `ContainerPadding` on every side plus a title band when the container is labelled.
 3. **Sized view.** The engine builds an internal, side-effect-free *view* graph with the same nodes in
    the same order (container nodes carrying their effective size, leaves their own size, labels copied),
-   only the edges whose endpoints are both direct members of this scope, and the scope's own
-   `CoreOptions.Direction` override (when set) so it is honored by a leaf algorithm that reads direction
-   directly from the graph (e.g. `LayeredLayoutAlgorithm`) instead of falling back to the shared options.
-   The caller's input graph is never mutated.
-4. **Placement.** The resolved leaf algorithm places the sized view, emitting one box per node in input
-   order followed by routed lines for the in-scope edges.
+   only the edges whose endpoints are both direct members of this scope. Every `CoreOptions` property
+   this scope needs is already present in `effective`, so the view carries no options of its own — the
+   leaf algorithm resolves them from `effective`, not from the view graph. The caller's input graph is
+   never mutated.
+4. **Placement.** The resolved leaf algorithm places the sized view against `effective`, emitting one box
+   per node in input order followed by routed lines for the in-scope edges.
 5. **Composition.** Each container's placed box receives its recursively laid-out children, translated
    from their local origin to the box's padded (and title-offset) interior via a recursive `Translate`
    that shifts nested boxes and line waypoints (local-to-absolute translation, following the
@@ -58,10 +61,24 @@ algoId, options)` performs:
 6. **Cross-container (LCA) routing.** Edges whose endpoints resolve to different direct-member
    containers of this scope — mapped from any descendant endpoint up to its owning top-level box — are
    routed at this level with `ConnectorRouter.Route`, steering around the sibling boxes; the
-   `EdgeRouting` style is read from the options. Edges already routed by the leaf algorithm (both
-   endpoints direct) or belonging to a lower scope (both endpoints under one container) are skipped.
+   `EdgeRouting` style is read from this scope's own cascaded `effective` snapshot, so an override set
+   on the owning scope's graph is honored rather than falling back to the root options. Edges already
+   routed by the leaf algorithm (both endpoints direct) or belonging to a lower scope (both endpoints
+   under one container) are skipped.
 7. **Assembly.** The engine returns a `LayoutTree` with the leaf algorithm's canvas size for this level
    and the composed boxes followed by the leaf-routed lines and the cross-container lines.
+
+Every `CoreOptions` property (`Algorithm`, `Direction`, `EdgeRouting`, `HierarchyHandling`,
+`NodeSpacing`, `LayerSpacing`) cascades through this same generalized mechanism, built once on
+`PropertyHolder.OverlayOnto` rather than threaded per property: a scope with no override of its own
+inherits the nearest ancestor's resolved value, and any scope's own override wins for itself and every
+unset descendant. Two established conventions decide where a container's own override lives —
+`Algorithm` on the container node itself, every other property on the node's `Children` graph — and
+`LayoutContainerChildren` overlays both, in that order, onto the parent's snapshot so either (or both)
+take effect at their own layer. It is each leaf algorithm's own responsibility to resolve a property
+from the `effective` options it is invoked with (optionally preferring its own graph's override first,
+as `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm` do); a leaf algorithm that reads only its
+input graph and ignores the supplied options would silently break cascading for that algorithm.
 
 ### HierarchicalLayoutAlgorithm Design Constraints
 
@@ -90,7 +107,8 @@ treated as errors.
 - **Rendering model** (`DemaConsulting.Rendering`) — the `LayoutGraph`, `LayoutGraphNode`,
   `LayoutTree`, `LayoutBox`, `LayoutLine`, and `Point2D` types on the layout contract, plus
   `CoreOptions.Algorithm`, `CoreOptions.Direction`, `CoreOptions.EdgeRouting`, and
-  `CoreOptions.HierarchyHandling` for configuration.
+  `CoreOptions.HierarchyHandling` for configuration, and `PropertyHolder.OverlayOnto` for building each
+  scope's cascaded effective options snapshot.
 - **Layout units** — `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm` as bundled leaf
   algorithms registered in the default registry, and `ConnectorRouter` for LCA cross-container edge
   routing. See *ConnectorRouter Unit Design*.
@@ -130,7 +148,8 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-HierarchyHandling | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-CrossContainerEdge | HierarchicalLayoutAlgorithm behavior described above |
-| Rendering-Layout-HierarchicalLayout-PropagatesDirection | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-CascadesOptions | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-ValidatesGraph | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-ValidatesOptions | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-ValidatesRegistry | HierarchicalLayoutAlgorithm behavior described above |

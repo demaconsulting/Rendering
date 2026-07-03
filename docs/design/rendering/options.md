@@ -51,6 +51,17 @@ explicitly set on this holder.
 `LayoutOptions.ForAlgorithm(string algorithmId)` — creates a `LayoutOptions` pre-set with
 `CoreOptions.Algorithm`.
 
+`LayoutOptions OverlayOnto(PropertyHolder parent)` — the generic option-cascading primitive: builds a
+new `LayoutOptions` snapshot by copying `parent`'s explicitly-set values first, then this holder's own
+explicitly-set values on top, so this holder's own values win. Because the merge copies boxed values
+by key rather than going through each property's typed accessors, it works for any current or future
+`LayoutProperty<T>` — including ones neither side knows about — with no per-property code. This is the
+mechanism callers such as `HierarchicalLayoutAlgorithm` use to build each scope's cascaded effective
+options: a nested scope's own overrides are overlaid onto its parent scope's already-resolved
+snapshot, so a scope with no overrides of its own inherits the nearest ancestor's resolved value, and
+a scope's own explicit override wins for itself and every unset descendant. Throws
+`ArgumentNullException` when `parent` is null.
+
 ### Options Error Handling
 
 `Get`, `TryGet`, `Set`, and `Contains` all reject a null `LayoutProperty<T>` by throwing
@@ -88,6 +99,9 @@ passes it to a layout facade.
   yet honors is carried harmlessly and simply ignored by algorithms that do not read it.
 - `CoreOptions` keys marked advisory shall default harmlessly until an algorithm implements them, so
   that adding a key is a purely additive change.
+- `OverlayOnto` shall merge by raw key rather than by enumerating known `LayoutProperty<T>` constants,
+  so the cascading primitive remains correct for options this unit has never heard of (including
+  future, not-yet-declared properties).
 
 ### Options Interactions
 
@@ -103,3 +117,4 @@ passes it to a layout facade.
 | Rendering-Model-Options-StoreAndRetrieve | `PropertyHolder.Set` / `Get` |
 | Rendering-Model-Options-Contains | `PropertyHolder.Contains` |
 | Rendering-Model-Options-TryGet | `PropertyHolder.TryGet` |
+| Rendering-Model-Options-Cascade | `PropertyHolder.OverlayOnto` |

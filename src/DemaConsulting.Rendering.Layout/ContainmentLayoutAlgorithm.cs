@@ -148,7 +148,7 @@ public sealed class ContainmentLayoutAlgorithm : ILayoutAlgorithm
         }
 
         // Route the connections around the packed boxes using the per-scope routing style.
-        var routeOptions = new ConnectorRouteOptions(options.Get(CoreOptions.EdgeRouting));
+        var routeOptions = new ConnectorRouteOptions(ResolveEdgeRouting(graph, options));
         var routedLines = ConnectorRouter.Route(packedBoxes, connections, routeOptions);
 
         var nodes = new List<LayoutNode>(packedBoxes.Count + routedLines.Count);
@@ -156,6 +156,29 @@ public sealed class ContainmentLayoutAlgorithm : ILayoutAlgorithm
         nodes.AddRange(routedLines);
 
         return new LayoutTree(result.Width, result.Height, nodes);
+    }
+
+    /// <summary>
+    /// Resolves the edge-routing style for this layout: an explicit <see cref="CoreOptions.EdgeRouting"/>
+    /// on the graph takes precedence, then one on the options, falling back to the property default when
+    /// neither declares one. Mirrors <see cref="LayeredLayoutAlgorithm"/>'s graph-then-options-then-default
+    /// resolution for <see cref="CoreOptions.Direction"/>, so a graph-level override is honored whether
+    /// this algorithm is invoked directly or as a scope's leaf algorithm inside
+    /// <see cref="HierarchicalLayoutAlgorithm"/>.
+    /// </summary>
+    /// <param name="graph">The graph whose explicit edge-routing declaration takes precedence.</param>
+    /// <param name="options">The options consulted when the graph declares no edge-routing style.</param>
+    /// <returns>The edge-routing style to route connections with.</returns>
+    private static EdgeRouting ResolveEdgeRouting(LayoutGraph graph, LayoutOptions options)
+    {
+        if (graph.TryGet(CoreOptions.EdgeRouting, out var fromGraph))
+        {
+            return fromGraph;
+        }
+
+        return options.TryGet(CoreOptions.EdgeRouting, out var fromOptions)
+            ? fromOptions
+            : CoreOptions.EdgeRouting.DefaultValue;
     }
 
     /// <summary>

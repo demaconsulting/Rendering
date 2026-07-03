@@ -169,6 +169,42 @@ internal static class GalleryDiagrams
         return graph;
     }
 
+    /// <summary>
+    ///     A container node whose own child graph overrides the flow direction to Down, nested inside an
+    ///     outer graph that uses the default rightward direction. Direct edges connect the outer intake
+    ///     and archive leaves straight to the container itself (not to its nested descendants), so the
+    ///     root scope has real connectivity of its own and is genuinely laid out left-to-right, while the
+    ///     container's nested chain is laid out top-to-bottom. This demonstrates that a container's own
+    ///     <see cref="CoreOptions.Direction"/> override is honored independently of its parent's flow
+    ///     direction.
+    /// </summary>
+    /// <returns>A two-level compound graph mixing flow directions across nesting levels.</returns>
+    public static LayoutGraph MixedDirectionNested()
+    {
+        var graph = new LayoutGraph();
+
+        var intake = AddLabelled(graph, "intake", "Intake");
+
+        var pipeline = graph.AddNode("pipeline", 10, 10);
+        pipeline.Label = "Pipeline";
+        pipeline.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+        var validate = AddLabelled(pipeline.Children, "validate", "Validate");
+        var transform = AddLabelled(pipeline.Children, "transform", "Transform");
+        var publish = AddLabelled(pipeline.Children, "publish", "Publish");
+        Connect(pipeline.Children, "validate-transform", validate, transform);
+        Connect(pipeline.Children, "transform-publish", transform, publish);
+
+        var archive = AddLabelled(graph, "archive", "Archive");
+
+        // Direct root-level edges (both endpoints are direct members of the root scope, not nested
+        // descendants) so the outer scope has real connectivity and is genuinely laid out left-to-right,
+        // rather than falling back to disconnected-singleton packing.
+        Connect(graph, "intake-pipeline", intake, pipeline);
+        Connect(graph, "pipeline-archive", pipeline, archive);
+
+        return graph;
+    }
+
     /// <summary>Adds a labelled leaf node of the standard showcase size to the given graph.</summary>
     private static LayoutGraphNode AddLabelled(LayoutGraph graph, string id, string label)
     {

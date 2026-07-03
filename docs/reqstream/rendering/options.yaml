@@ -49,3 +49,22 @@ sections:
           still receiving a usable default in a single call.
         tests:
           - TryGet_UnsetProperty_ReturnsFalseAndDefault
+
+      - id: Rendering-Model-Options-Cascade
+        title: >-
+          Overlaying one property holder onto another shall yield a snapshot where the overlaying
+          holder's explicitly-set values take precedence and the base holder's other explicitly-set
+          values pass through unchanged, for any property including ones not known in advance.
+        justification: |
+          This is the generic primitive the whole per-scope option cascading model depends on: a caller
+          resolving a nested scope's effective options overlays each level's own overrides onto its
+          parent's already-resolved snapshot, nearest-ancestor-wins, without needing to know which
+          properties exist. Testing it once at the model level lets every current and future
+          scope-cascading consumer (for example HierarchicalLayoutAlgorithm) rely on it without a
+          bespoke test per property.
+        tests:
+          - OverlayOnto_EmptyHolderOntoPopulatedParent_ReturnsParentValuesUnchanged
+          - OverlayOnto_HolderOverridesProperty_HolderValueWins
+          - OverlayOnto_ValueOnlyOnParent_PassesThrough
+          - OverlayOnto_CustomPropertyNotInCoreOptions_IsMerged
+          - OverlayOnto_NullParent_ThrowsArgumentNullException

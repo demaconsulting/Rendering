@@ -37,6 +37,7 @@ internal static class GalleryCatalog
     public const string OrthogonalObstacleSvg = "orthogonal-obstacle.svg";
     public const string DirectionRightSvg = "direction-right.svg";
     public const string DirectionDownSvg = "direction-down.svg";
+    public const string MixedDirectionNestedSvg = "mixed-direction-nested.svg";
     public const string ThemeLightPng = "theme-light.png";
     public const string ThemeDarkPng = "theme-dark.png";
     public const string ThemePrintPng = "theme-print.png";
@@ -68,9 +69,10 @@ internal static class GalleryCatalog
         new GallerySection(
             "Flow direction",
             "The same directed graph laid out in two flow directions, selected with the direction "
-            + "option. A rightward flow arranges the layers left-to-right for block and pipeline "
-            + "diagrams; a downward flow arranges them top-to-bottom for action flows and state "
-            + "machines, swapping each node's width and height so layer spacing follows node height.",
+            + "option, plus a nested container overriding its own direction independently of its parent. "
+            + "A rightward flow arranges the layers left-to-right for block and pipeline diagrams; a "
+            + "downward flow arranges them top-to-bottom for action flows and state machines, swapping "
+            + "each node's width and height so layer spacing follows node height.",
             [
                 new GalleryImage(
                     DirectionRightSvg,
@@ -80,6 +82,11 @@ internal static class GalleryCatalog
                     DirectionDownSvg,
                     "The same directed flow laid out top to bottom",
                     "The downward direction: the same graph's layers progress top-to-bottom."),
+                new GalleryImage(
+                    MixedDirectionNestedSvg,
+                    "A nested container flowing downward inside an outer rightward flow",
+                    "A container's own direction override is honored independently of its parent: the "
+                    + "outer flow runs left-to-right while the nested container runs top-to-bottom."),
             ]),
         new GallerySection(
             "Edge routing",

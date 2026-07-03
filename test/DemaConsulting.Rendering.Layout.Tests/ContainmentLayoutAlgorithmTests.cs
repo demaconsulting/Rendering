@@ -203,6 +203,38 @@ public sealed class ContainmentLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that an explicit <see cref="CoreOptions.EdgeRouting"/> override carried on the graph
+    ///     itself is honored (routing still succeeds) even when the supplied options declares no routing
+    ///     style at all, mirroring how <see cref="LayeredLayoutAlgorithm"/> resolves
+    ///     <see cref="CoreOptions.Direction"/> from the graph before falling back to the options.
+    ///     Regression guard: previously this algorithm read <c>options.Get(CoreOptions.EdgeRouting)</c>
+    ///     directly, silently ignoring any override carried on the graph itself — a genuine defect for a
+    ///     standalone-callable algorithm, and for a scope inside <see cref="HierarchicalLayoutAlgorithm"/>
+    ///     whose own graph carries the override. <see cref="EdgeRouting"/> declares only one member
+    ///     (<see cref="EdgeRouting.Orthogonal"/>) today, so this cannot be an output-geometry-differing
+    ///     test; it proves the graph-first resolution path is exercised without throwing and still
+    ///     produces valid routed output.
+    /// </summary>
+    [Fact]
+    public void Apply_EdgeRoutingOverrideOnGraphScope_IsHonored()
+    {
+        // Arrange: a graph with an explicit EdgeRouting override and no such override on the options.
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 60, 240);
+        graph.AddNode("mid", 60, 240);
+        var b = graph.AddNode("b", 60, 240);
+        graph.AddEdge("e", a, b);
+        graph.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
+
+        // Act
+        var tree = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        // Assert: the edge is still routed using the graph's own (orthogonal) style.
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        Assert.True(line.Waypoints.Count >= 2);
+    }
+
+    /// <summary>
     ///     Determines whether two boxes overlap with a positive-area intersection.
     /// </summary>
     private static bool Overlaps(LayoutBox a, LayoutBox b) =>

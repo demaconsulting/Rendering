@@ -147,6 +147,7 @@ sections:
           - Rendering-Layout-ContainmentAlgorithm-EmptyGraph
           - Rendering-Layout-ContainmentAlgorithm-SkipsOutOfGraphEdges
           - Rendering-Layout-ContainmentAlgorithm-Validation
+          - Rendering-Layout-ContainmentAlgorithm-HonorsScopeEdgeRouting
         tests:
           - Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas
           - Id_IsContainment
@@ -168,7 +169,8 @@ sections:
           - Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm
           - Rendering-Layout-HierarchicalLayout-HierarchyHandling
           - Rendering-Layout-HierarchicalLayout-CrossContainerEdge
-          - Rendering-Layout-HierarchicalLayout-PropagatesDirection
+          - Rendering-Layout-HierarchicalLayout-CascadesOptions
+          - Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting
           - Rendering-Layout-HierarchicalLayout-ValidatesGraph
           - Rendering-Layout-HierarchicalLayout-ValidatesOptions
           - Rendering-Layout-HierarchicalLayout-ValidatesRegistry

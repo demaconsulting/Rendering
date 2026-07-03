@@ -66,6 +66,7 @@ sections:
           - Rendering-Model-Options-StoreAndRetrieve
           - Rendering-Model-Options-Contains
           - Rendering-Model-Options-TryGet
+          - Rendering-Model-Options-Cascade
         tests:
           - Get_UnsetProperty_ReturnsDefault
           - Get_AfterSet_ReturnsStoredValue
