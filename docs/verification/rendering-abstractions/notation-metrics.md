@@ -36,21 +36,32 @@ proportion, or in the vertex geometry constitutes a failure.
 
 #### Triangle marker geometry is canonical
 
-Tests `TriangleFamily_HasCanonicalValues`, `TriangleVertices_ReproduceSvgBoxPoints`, and
-`TriangleVertices_Apex_OvershootsEndpoint` assert the triangle-family constants (10x7, refX 9), map
-the shared vertices back to the SVG box points "0 0, 10 3.5, 0 7", and confirm the apex overshoots the
-endpoint by the documented amount.
+Tests `TriangleFamily_HasCanonicalValues` and `TriangleVertices_ReproduceSvgBoxPoints` assert the
+triangle-family constants (10x7, refX 9) and map the shared vertices back to the SVG box points
+"0 0, 10 3.5, 0 7".
 
-**Covers**: `Rendering-Abstractions-NotationMetrics-TriangleGeometry`.
+**Covers**: `Rendering-Abstractions-NotationMetrics-TriangleDimensions`.
+
+#### Triangle apex overshoots the endpoint
+
+Test `TriangleVertices_Apex_OvershootsEndpoint` confirms the apex overshoots the endpoint by the
+documented amount.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-TriangleApexOvershoot`.
 
 #### Diamond marker geometry is canonical
 
-Tests `Diamond_HasCanonicalValues`, `DiamondVertices_ReproduceSvgBoxPoints`, and
-`DiamondVertices_FarPoint_LandsOnEndpoint` assert the diamond constants (14x8, refX 13), map the
-shared vertices back to the SVG box points "1 4, 7 0, 13 4, 7 8", and confirm one vertex sits exactly
-on the line endpoint.
+Tests `Diamond_HasCanonicalValues` and `DiamondVertices_ReproduceSvgBoxPoints` assert the diamond
+constants (14x8, refX 13) and map the shared vertices back to the SVG box points "1 4, 7 0, 13 4, 7 8".
 
-**Covers**: `Rendering-Abstractions-NotationMetrics-DiamondGeometry`.
+**Covers**: `Rendering-Abstractions-NotationMetrics-DiamondDimensions`.
+
+#### Diamond far point lands on the endpoint
+
+Test `DiamondVertices_FarPoint_LandsOnEndpoint` confirms one vertex sits exactly on the line
+endpoint.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-DiamondFarPointOnEndpoint`.
 
 #### Circle and bar geometry is canonical
 
@@ -74,25 +85,56 @@ diamonds, 4 for bar).
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-AlongLineLength`.
 
-#### Box-decoration proportions are documented
+#### Port square proportion is documented
 
-Tests `Port_SizeIsTwiceHalfSize`, `FolderTab_HasDocumentedConstants`,
-`NoteFold_HasDocumentedConstants`, `RoundedRectRadius_IsThemeRadiusTimesFactor`,
-`BadgeFractions_HaveDocumentedValues`, and `LabelBackground_ExtentMatchesInset` assert the port square,
-folder-tab, note-fold, rounded-rectangle corner, badge, and label-background constants and derivations.
+Test `Port_SizeIsTwiceHalfSize` asserts the port square constant and its derivation.
 
-**Covers**: `Rendering-Abstractions-NotationMetrics-BoxDecorations`.
+**Covers**: `Rendering-Abstractions-NotationMetrics-PortSquare`.
+
+#### Folder-tab proportion is documented
+
+Test `FolderTab_HasDocumentedConstants` asserts the folder-tab constants.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-FolderTab`.
+
+#### Note-fold proportion is documented
+
+Test `NoteFold_HasDocumentedConstants` asserts the note-fold constants.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-NoteFold`.
+
+#### Rounded-rectangle corner proportion is documented
+
+Test `RoundedRectRadius_IsThemeRadiusTimesFactor` asserts the rounded-rectangle corner derivation.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-RoundedRectCorner`.
+
+#### Badge proportions are documented
+
+Test `BadgeFractions_HaveDocumentedValues` asserts the badge fraction constants.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-Badge`.
+
+#### Label-background proportion is documented
+
+Test `LabelBackground_ExtentMatchesInset` asserts the label-background extent derivation.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-LabelBackground`.
 
 ### Requirements Coverage
 
-- **`Rendering-Abstractions-NotationMetrics-TriangleGeometry`**: TriangleFamily_HasCanonicalValues,
-  TriangleVertices_ReproduceSvgBoxPoints, TriangleVertices_Apex_OvershootsEndpoint
-- **`Rendering-Abstractions-NotationMetrics-DiamondGeometry`**: Diamond_HasCanonicalValues,
-  DiamondVertices_ReproduceSvgBoxPoints, DiamondVertices_FarPoint_LandsOnEndpoint
+- **`Rendering-Abstractions-NotationMetrics-TriangleDimensions`**: TriangleFamily_HasCanonicalValues,
+  TriangleVertices_ReproduceSvgBoxPoints
+- **`Rendering-Abstractions-NotationMetrics-TriangleApexOvershoot`**: TriangleVertices_Apex_OvershootsEndpoint
+- **`Rendering-Abstractions-NotationMetrics-DiamondDimensions`**: Diamond_HasCanonicalValues,
+  DiamondVertices_ReproduceSvgBoxPoints
+- **`Rendering-Abstractions-NotationMetrics-DiamondFarPointOnEndpoint`**: DiamondVertices_FarPoint_LandsOnEndpoint
 - **`Rendering-Abstractions-NotationMetrics-CircleBarGeometry`**: CircleAndBar_HaveCanonicalValues
 - **`Rendering-Abstractions-NotationMetrics-Crossbar`**: Crossbar_IsDerivedFraction
 - **`Rendering-Abstractions-NotationMetrics-AlongLineLength`**: AlongLineLength_MatchesMarkerBox
-- **`Rendering-Abstractions-NotationMetrics-BoxDecorations`**: Port_SizeIsTwiceHalfSize,
-  FolderTab_HasDocumentedConstants, NoteFold_HasDocumentedConstants,
-  RoundedRectRadius_IsThemeRadiusTimesFactor, BadgeFractions_HaveDocumentedValues,
-  LabelBackground_ExtentMatchesInset
+- **`Rendering-Abstractions-NotationMetrics-PortSquare`**: Port_SizeIsTwiceHalfSize
+- **`Rendering-Abstractions-NotationMetrics-FolderTab`**: FolderTab_HasDocumentedConstants
+- **`Rendering-Abstractions-NotationMetrics-NoteFold`**: NoteFold_HasDocumentedConstants
+- **`Rendering-Abstractions-NotationMetrics-RoundedRectCorner`**: RoundedRectRadius_IsThemeRadiusTimesFactor
+- **`Rendering-Abstractions-NotationMetrics-Badge`**: BadgeFractions_HaveDocumentedValues
+- **`Rendering-Abstractions-NotationMetrics-LabelBackground`**: LabelBackground_ExtentMatchesInset

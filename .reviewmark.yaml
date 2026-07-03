@@ -85,6 +85,7 @@ reviews:
     title: Review that Rendering Model Verification is Consistent and Complete
     paths:
       - "docs/verification/introduction.md"
+      - "docs/verification/rendering.md"
       - "docs/verification/rendering/**/*.md"
       - "docs/verification/ots.md"
     context:
@@ -164,6 +165,7 @@ reviews:
     title: Review that Rendering Abstractions Verification is Consistent and Complete
     paths:
       - "docs/verification/introduction.md"
+      - "docs/verification/rendering-abstractions.md"
       - "docs/verification/rendering-abstractions/**/*.md"
       - "docs/verification/ots.md"
     context:
@@ -273,6 +275,7 @@ reviews:
     title: Review that Rendering Layout Design is Consistent and Complete
     paths:
       - "docs/design/introduction.md"
+      - "docs/design/rendering-layout.md"
       - "docs/design/rendering-layout/**/*.md"
       - "docs/design/ots.md"
     context:
@@ -282,6 +285,7 @@ reviews:
     title: Review that Rendering Layout Verification is Consistent and Complete
     paths:
       - "docs/verification/introduction.md"
+      - "docs/verification/rendering-layout.md"
       - "docs/verification/rendering-layout/**/*.md"
       - "docs/verification/ots.md"
     context:
@@ -479,6 +483,7 @@ reviews:
     title: Review that Rendering Svg Verification is Consistent and Complete
     paths:
       - "docs/verification/introduction.md"
+      - "docs/verification/rendering-svg.md"
       - "docs/verification/rendering-svg/**/*.md"
       - "docs/verification/ots.md"
     context:
@@ -524,6 +529,7 @@ reviews:
     title: Review that Rendering Skia Design is Consistent and Complete
     paths:
       - "docs/design/introduction.md"
+      - "docs/design/rendering-skia.md"
       - "docs/design/rendering-skia/**/*.md"
       - "docs/design/ots.md"
     context:

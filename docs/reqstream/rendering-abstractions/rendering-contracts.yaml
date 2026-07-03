@@ -10,25 +10,38 @@
 sections:
   - title: Rendering Contracts Requirements
     requirements:
-      - id: Rendering-Abstractions-Contracts-Algorithm
+      - id: Rendering-Abstractions-Contracts-AlgorithmIdentifier
         title: >-
-          A layout algorithm shall expose a stable identifier used to select it and shall produce a
-          placed layout tree from an unplaced input graph and its options.
+          A layout algorithm shall expose a stable identifier used to select it.
         justification: |
-          A stable identifier lets a caller request a specific algorithm by name, and a uniform
-          apply operation lets any diagram family be laid out through the same contract.
+          A stable identifier lets a caller request a specific algorithm by name.
         tests:
           - LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
 
-      - id: Rendering-Abstractions-Contracts-Renderer
+      - id: Rendering-Abstractions-Contracts-AlgorithmApply
+        title: >-
+          A layout algorithm shall produce a placed layout tree from an unplaced input graph and
+          its options.
+        justification: |
+          A uniform apply operation lets any diagram family be laid out through the same contract.
+        tests:
+          - LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
+
+      - id: Rendering-Abstractions-Contracts-RendererIdentity
         title: >-
           A renderer shall expose its media type, its default file extension, and the full set of
-          file extensions it produces, and shall write the rendered output for a layout tree to a
-          supplied stream.
+          file extensions it produces.
         justification: |
           Exposing the media type and the file extensions lets callers name and serve the output
-          correctly and resolve a renderer from an output filename, and writing to a caller-supplied
-          stream keeps the renderer free of filesystem concerns.
+          correctly and resolve a renderer from an output filename.
         tests:
           - RendererRegistry_RegisterThenResolve_ReturnsRenderer
           - PngRenderer_FileExtensions_ContainsDefault
+
+      - id: Rendering-Abstractions-Contracts-RendererWrite
+        title: >-
+          A renderer shall write the rendered output for a layout tree to a supplied stream.
+        justification: |
+          Writing to a caller-supplied stream keeps the renderer free of filesystem concerns.
+        tests:
+          - RendererRegistry_RegisterThenResolve_ReturnsRenderer

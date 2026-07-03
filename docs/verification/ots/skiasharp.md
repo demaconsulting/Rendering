@@ -28,7 +28,7 @@ the result as PNG.
 **Expected**: The output begins with the PNG signature bytes, confirming SkiaSharp's PNG encoder
 ran successfully.
 
-**Requirement coverage**: `Rendering-OTS-SkiaSharp-Rasterize`, `Rendering-OTS-SkiaSharp-Encode`.
+**Requirement coverage**: `Rendering-OTS-SkiaSharp-Rasterize`, `Rendering-OTS-SkiaSharp-EncodePng`.
 
 #### JpegRenderer_Render_ProducesJpegSignature
 
@@ -38,7 +38,7 @@ JPEG.
 **Expected**: The output begins with the JPEG signature bytes, confirming SkiaSharp's JPEG encoder
 ran successfully.
 
-**Requirement coverage**: `Rendering-OTS-SkiaSharp-Encode`.
+**Requirement coverage**: `Rendering-OTS-SkiaSharp-EncodeJpeg`.
 
 #### WebpRenderer_Render_ProducesWebpContainerHeader
 
@@ -48,7 +48,7 @@ WEBP.
 **Expected**: The output begins with the WEBP container header (`RIFF`/`WEBP`), confirming
 SkiaSharp's WEBP encoder ran successfully.
 
-**Requirement coverage**: `Rendering-OTS-SkiaSharp-Encode`.
+**Requirement coverage**: `Rendering-OTS-SkiaSharp-EncodeWebp`.
 
 #### PngRenderer_Render_SingleLine_PixelOnLineIsStrokeColor
 
@@ -74,5 +74,6 @@ rendering operate correctly regardless of label content.
 - **`Rendering-OTS-SkiaSharp-Rasterize`**: Render_SingleBox_ProducesPngSignature,
   PngRenderer_Render_SingleLine_PixelOnLineIsStrokeColor
 - **`Rendering-OTS-SkiaSharp-Text`**: PngRenderer_Render_LabelWithXmlSpecialCharacters_ProducesValidPng
-- **`Rendering-OTS-SkiaSharp-Encode`**: Render_SingleBox_ProducesPngSignature,
-  JpegRenderer_Render_ProducesJpegSignature, WebpRenderer_Render_ProducesWebpContainerHeader
+- **`Rendering-OTS-SkiaSharp-EncodePng`**: Render_SingleBox_ProducesPngSignature
+- **`Rendering-OTS-SkiaSharp-EncodeJpeg`**: JpegRenderer_Render_ProducesJpegSignature
+- **`Rendering-OTS-SkiaSharp-EncodeWebp`**: WebpRenderer_Render_ProducesWebpContainerHeader

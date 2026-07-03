@@ -67,15 +67,18 @@ public sealed class PngEndMarkerTests
     [Fact]
     public void OpenChevron_HasFewerInkPixelsThanClosedTriangle()
     {
+        // Arrange
         var options = new RenderOptions(Themes.Light);
         using var chevron = RenderToBitmap(HorizontalLineTo(EndMarkerStyle.OpenChevron), options);
         using var triangle = RenderToBitmap(HorizontalLineTo(EndMarkerStyle.HollowTriangle), options);
 
+        // Act
         // Marker zone: the back edge of the triangle marker sits near x=141 (refX 9 back from the
         // x=150 endpoint). Count ink strictly behind the shaft join so the base edge is isolated.
         var chevronInk = CountInk(chevron, 138, 42, 144, 58);
         var triangleInk = CountInk(triangle, 138, 42, 144, 58);
 
+        // Assert
         Assert.True(
             chevronInk < triangleInk,
             $"Expected open chevron ({chevronInk}) to have fewer base-edge ink pixels than closed triangle ({triangleInk}).");
@@ -90,9 +93,11 @@ public sealed class PngEndMarkerTests
     [Fact]
     public void FilledArrow_AlongLength_MatchesNotationMetrics()
     {
+        // Arrange
         var options = new RenderOptions(Themes.Light);
         using var bmp = RenderToBitmap(HorizontalLineTo(EndMarkerStyle.FilledArrow), options);
 
+        // Act
         // For each column near the endpoint, measure the vertical ink extent. The base column has the
         // greatest extent (full marker width); the tip is the furthest column carrying marker ink.
         var baseX = -1;
@@ -126,6 +131,7 @@ public sealed class PngEndMarkerTests
             tipX = x; // furthest column with any ink
         }
 
+        // Assert
         Assert.True(baseX >= 0, "Expected to locate the marker base column.");
         var alongLength = tipX - baseX;
 
@@ -140,9 +146,11 @@ public sealed class PngEndMarkerTests
     [Fact]
     public void FilledArrow_BaseWidth_MatchesNotationMetrics()
     {
+        // Arrange
         var options = new RenderOptions(Themes.Light);
         using var bmp = RenderToBitmap(HorizontalLineTo(EndMarkerStyle.FilledArrow), options);
 
+        // Act
         // Base column: refX (9) back from the x=150 endpoint => x≈141.
         var baseX = (int)Math.Round(150 - NotationMetrics.EndMarkerRefX);
         var minY = int.MaxValue;
@@ -156,6 +164,7 @@ public sealed class PngEndMarkerTests
             }
         }
 
+        // Assert
         Assert.True(maxY >= minY, "Expected ink at the marker base column.");
         var measuredWidth = maxY - minY + 1;
 

@@ -18,10 +18,10 @@ sections:
           can choose a style. An unset scope must fall back to the orthogonal default so existing
           callers route orthogonally without opting in.
         tests:
-          - CoreOptions_EdgeRouting_DefaultsToOrthogonal
-          - CoreOptions_EdgeRouting_HasStableId
-          - CoreOptions_EdgeRouting_SelectablePerScope
-          - CoreOptions_EdgeRouting_UnsetReturnsDefault
+          - CoreOptions_EdgeRouting_DefaultValue_IsOrthogonal
+          - CoreOptions_EdgeRouting_Id_IsStableDottedIdentifier
+          - CoreOptions_EdgeRouting_SetThenGet_RoundTripsValue
+          - CoreOptions_EdgeRouting_UnsetHolder_ReturnsOrthogonalDefault
 
       - id: Rendering-Layout-EdgeRouting-Defaults
         title: >-
@@ -32,4 +32,4 @@ sections:
           orthogonal routing with a fixed clearance provides that, while allowing the clearance to be
           overridden so a downstream adapter can reproduce a specific spacing.
         tests:
-          - ConnectorRouteOptions_Defaults_AreOrthogonalWithTwelvePixelClearance
+          - ConnectorRouteOptions_Constructor_Defaults_AreOrthogonalWithTwelvePixelClearance

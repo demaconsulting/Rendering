@@ -36,14 +36,30 @@ sections:
             tags: [ots]
             tests:
               - PngRenderer_Render_LabelWithXmlSpecialCharacters_ProducesValidPng
-          - id: Rendering-OTS-SkiaSharp-Encode
-            title: SkiaSharp shall encode a drawn bitmap into PNG, JPEG, and WEBP image formats.
+          - id: Rendering-OTS-SkiaSharp-EncodePng
+            title: SkiaSharp shall encode a drawn bitmap into the PNG image format.
             justification: |
-              SkiaSharp's image encoders convert the drawn SKBitmap into the target container
-              format for each concrete renderer. Passing tests that check each format's signature
-              bytes confirm the encoders produce valid output.
+              SkiaSharp's PNG encoder converts the drawn SKBitmap into a PNG container for
+              PngRenderer. A passing test that checks the PNG signature bytes confirms the
+              encoder produces valid output.
             tags: [ots]
             tests:
               - Render_SingleBox_ProducesPngSignature
+          - id: Rendering-OTS-SkiaSharp-EncodeJpeg
+            title: SkiaSharp shall encode a drawn bitmap into the JPEG image format.
+            justification: |
+              SkiaSharp's JPEG encoder converts the drawn SKBitmap into a JPEG container for
+              JpegRenderer. A passing test that checks the JPEG signature bytes confirms the
+              encoder produces valid output.
+            tags: [ots]
+            tests:
               - JpegRenderer_Render_ProducesJpegSignature
+          - id: Rendering-OTS-SkiaSharp-EncodeWebp
+            title: SkiaSharp shall encode a drawn bitmap into the WEBP image format.
+            justification: |
+              SkiaSharp's WEBP encoder converts the drawn SKBitmap into a WEBP container for
+              WebpRenderer. A passing test that checks the WEBP container header confirms the
+              encoder produces valid output.
+            tags: [ots]
+            tests:
               - WebpRenderer_Render_ProducesWebpContainerHeader

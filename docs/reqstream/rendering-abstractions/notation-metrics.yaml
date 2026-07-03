@@ -9,28 +9,46 @@
 sections:
   - title: Notation Metrics Requirements
     requirements:
-      - id: Rendering-Abstractions-NotationMetrics-TriangleGeometry
+      - id: Rendering-Abstractions-NotationMetrics-TriangleDimensions
         title: >-
           The notation metrics shall define the triangular end-marker geometry with the canonical
-          marker dimensions and an apex vertex that overshoots the line endpoint.
+          marker dimensions.
         justification: |
           The open chevron, hollow triangle, and filled arrow all share one triangle geometry;
           defining it once ensures every renderer draws these markers identically.
         tests:
           - TriangleFamily_HasCanonicalValues
           - TriangleVertices_ReproduceSvgBoxPoints
+
+      - id: Rendering-Abstractions-NotationMetrics-TriangleApexOvershoot
+        title: >-
+          The notation metrics shall define a triangular end-marker apex vertex that overshoots
+          the line endpoint.
+        justification: |
+          The apex must extend past the line endpoint so the drawn stroke does not leave a visible
+          gap under the marker; defining the overshoot once keeps every renderer's markers aligned.
+        tests:
           - TriangleVertices_Apex_OvershootsEndpoint
 
-      - id: Rendering-Abstractions-NotationMetrics-DiamondGeometry
+      - id: Rendering-Abstractions-NotationMetrics-DiamondDimensions
         title: >-
           The notation metrics shall define the diamond end-marker geometry with the canonical
-          dimensions and a far vertex that lands on the line endpoint.
+          dimensions.
         justification: |
-          The hollow and filled diamonds share one geometry whose far point must sit on the endpoint;
-          defining it once keeps the two renderers' diamonds identical and correctly anchored.
+          The hollow and filled diamonds share one geometry; defining it once keeps the two
+          renderers' diamonds identical.
         tests:
           - Diamond_HasCanonicalValues
           - DiamondVertices_ReproduceSvgBoxPoints
+
+      - id: Rendering-Abstractions-NotationMetrics-DiamondFarPointOnEndpoint
+        title: >-
+          The notation metrics shall define a diamond end-marker far vertex that lands on the
+          line endpoint.
+        justification: |
+          The far point must sit exactly on the endpoint so the diamond anchors precisely on the
+          line; defining this once keeps every renderer's diamonds correctly anchored.
+        tests:
           - DiamondVertices_FarPoint_LandsOnEndpoint
 
       - id: Rendering-Abstractions-NotationMetrics-CircleBarGeometry
@@ -61,17 +79,63 @@ sections:
         tests:
           - AlongLineLength_MatchesMarkerBox
 
-      - id: Rendering-Abstractions-NotationMetrics-BoxDecorations
+      - id: Rendering-Abstractions-NotationMetrics-PortSquare
         title: >-
-          The notation metrics shall define the port square, folder-tab, note-fold, rounded-rectangle
-          corner, badge, and label-background proportions used to draw box decorations.
+          The notation metrics shall define the port-square decoration proportion used to draw
+          box decorations.
         justification: |
-          These intrinsic, theme-independent proportions describe SysML box notation; defining each
-          once ensures the SVG and PNG renderers draw the same shapes at the same sizes.
+          This intrinsic, theme-independent proportion describes SysML port notation; defining it
+          once ensures the SVG and PNG renderers draw the same shape at the same size.
         tests:
           - Port_SizeIsTwiceHalfSize
+
+      - id: Rendering-Abstractions-NotationMetrics-FolderTab
+        title: >-
+          The notation metrics shall define the folder-tab decoration proportion used to draw
+          box decorations.
+        justification: |
+          This intrinsic, theme-independent proportion describes SysML folder-tab notation; defining
+          it once ensures the SVG and PNG renderers draw the same shape at the same size.
+        tests:
           - FolderTab_HasDocumentedConstants
+
+      - id: Rendering-Abstractions-NotationMetrics-NoteFold
+        title: >-
+          The notation metrics shall define the note-fold decoration proportion used to draw box
+          decorations.
+        justification: |
+          This intrinsic, theme-independent proportion describes SysML note-fold notation; defining
+          it once ensures the SVG and PNG renderers draw the same shape at the same size.
+        tests:
           - NoteFold_HasDocumentedConstants
+
+      - id: Rendering-Abstractions-NotationMetrics-RoundedRectCorner
+        title: >-
+          The notation metrics shall define the rounded-rectangle corner proportion used to draw
+          box decorations.
+        justification: |
+          This intrinsic, theme-independent proportion describes SysML rounded-rectangle notation;
+          defining it once ensures the SVG and PNG renderers draw the same shape at the same size.
+        tests:
           - RoundedRectRadius_IsThemeRadiusTimesFactor
+
+      - id: Rendering-Abstractions-NotationMetrics-Badge
+        title: >-
+          The notation metrics shall define the badge decoration proportions used to draw box
+          decorations.
+        justification: |
+          These intrinsic, theme-independent proportions describe SysML badge notation; defining
+          them once ensures the SVG and PNG renderers draw the same shapes at the same sizes.
+        tests:
           - BadgeFractions_HaveDocumentedValues
+
+      - id: Rendering-Abstractions-NotationMetrics-LabelBackground
+        title: >-
+          The notation metrics shall define the label-background proportion used to draw box
+          decorations.
+        justification: |
+          This intrinsic, theme-independent proportion describes the SysML label-background
+          notation; defining it once ensures the SVG and PNG renderers draw the same shape at the
+          same size.
+        tests:
           - LabelBackground_ExtentMatchesInset

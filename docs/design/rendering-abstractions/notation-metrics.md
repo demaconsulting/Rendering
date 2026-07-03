@@ -81,9 +81,16 @@ reserve a clean approach using `AlongLineLength`.
 
 | Requirement ID | Satisfied by |
 | --- | --- |
-| Rendering-Abstractions-NotationMetrics-TriangleGeometry | `NotationMetrics.TriangleVertices` and triangle constants |
-| Rendering-Abstractions-NotationMetrics-DiamondGeometry | `NotationMetrics.DiamondVertices` and diamond constants |
+| Rendering-Abstractions-NotationMetrics-TriangleDimensions | `NotationMetrics.TriangleVertices` and triangle values |
+| Rendering-Abstractions-NotationMetrics-TriangleApexOvershoot | `NotationMetrics.TriangleVertices` apex overshoot |
+| Rendering-Abstractions-NotationMetrics-DiamondDimensions | `NotationMetrics.DiamondVertices` and diamond constants |
+| Rendering-Abstractions-NotationMetrics-DiamondFarPointOnEndpoint | `NotationMetrics.DiamondVertices` far point |
 | Rendering-Abstractions-NotationMetrics-CircleBarGeometry | `NotationMetrics` circle and bar constants |
 | Rendering-Abstractions-NotationMetrics-Crossbar | `NotationMetrics.CrossbarX` |
 | Rendering-Abstractions-NotationMetrics-AlongLineLength | `NotationMetrics.AlongLineLength` |
-| Rendering-Abstractions-NotationMetrics-BoxDecorations | `NotationMetrics` decoration constants |
+| Rendering-Abstractions-NotationMetrics-PortSquare | `NotationMetrics` port square constants |
+| Rendering-Abstractions-NotationMetrics-FolderTab | `NotationMetrics` folder-tab constants |
+| Rendering-Abstractions-NotationMetrics-NoteFold | `NotationMetrics` note-fold constants |
+| Rendering-Abstractions-NotationMetrics-RoundedRectCorner | `NotationMetrics.RoundedRectRadius` |
+| Rendering-Abstractions-NotationMetrics-Badge | `NotationMetrics` badge constants |
+| Rendering-Abstractions-NotationMetrics-LabelBackground | `NotationMetrics` label-background constants |

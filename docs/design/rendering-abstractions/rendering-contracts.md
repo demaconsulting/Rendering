@@ -87,5 +87,7 @@ produces a `LayoutTree`. `IRenderer.Render` consumes that `LayoutTree` and a `Re
 
 | Requirement ID | Satisfied by |
 | --- | --- |
-| Rendering-Abstractions-Contracts-Algorithm | `ILayoutAlgorithm.Id` and `ILayoutAlgorithm.Apply` |
-| Rendering-Abstractions-Contracts-Renderer | `IRenderer` output contract members |
+| Rendering-Abstractions-Contracts-AlgorithmIdentifier | `ILayoutAlgorithm.Id` |
+| Rendering-Abstractions-Contracts-AlgorithmApply | `ILayoutAlgorithm.Apply` |
+| Rendering-Abstractions-Contracts-RendererIdentity | `IRenderer.MediaType`, `DefaultExtension`, `FileExtensions` |
+| Rendering-Abstractions-Contracts-RendererWrite | `IRenderer.Render` |

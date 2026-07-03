@@ -26,8 +26,10 @@ sections:
           introduced purely additively - a new implementation is written and registered, and no
           existing contract changes - so consumers resolve the implementation they need at run time.
         children:
-          - Rendering-Abstractions-Contracts-Algorithm
-          - Rendering-Abstractions-Contracts-Renderer
+          - Rendering-Abstractions-Contracts-AlgorithmIdentifier
+          - Rendering-Abstractions-Contracts-AlgorithmApply
+          - Rendering-Abstractions-Contracts-RendererIdentity
+          - Rendering-Abstractions-Contracts-RendererWrite
           - Rendering-Abstractions-Registries-ResolveAlgorithm
           - Rendering-Abstractions-Registries-ResolveRenderer
           - Rendering-Abstractions-Registries-ResolveRendererByExtension
@@ -60,12 +62,19 @@ sections:
           their markers, box title areas, and label placements match exactly and a geometry literal
           never has to be duplicated across the rendering path.
         children:
-          - Rendering-Abstractions-NotationMetrics-TriangleGeometry
-          - Rendering-Abstractions-NotationMetrics-DiamondGeometry
+          - Rendering-Abstractions-NotationMetrics-TriangleDimensions
+          - Rendering-Abstractions-NotationMetrics-TriangleApexOvershoot
+          - Rendering-Abstractions-NotationMetrics-DiamondDimensions
+          - Rendering-Abstractions-NotationMetrics-DiamondFarPointOnEndpoint
           - Rendering-Abstractions-NotationMetrics-CircleBarGeometry
           - Rendering-Abstractions-NotationMetrics-Crossbar
           - Rendering-Abstractions-NotationMetrics-AlongLineLength
-          - Rendering-Abstractions-NotationMetrics-BoxDecorations
+          - Rendering-Abstractions-NotationMetrics-PortSquare
+          - Rendering-Abstractions-NotationMetrics-FolderTab
+          - Rendering-Abstractions-NotationMetrics-NoteFold
+          - Rendering-Abstractions-NotationMetrics-RoundedRectCorner
+          - Rendering-Abstractions-NotationMetrics-Badge
+          - Rendering-Abstractions-NotationMetrics-LabelBackground
           - Rendering-Abstractions-BoxMetrics-FolderTabHeight
           - Rendering-Abstractions-BoxMetrics-TitleAreaHeight
           - Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled

@@ -33,19 +33,20 @@ defaults constitutes a failure.
 ### Test Scenarios
 
 - **Per-scope selection** (`Rendering-Layout-EdgeRouting-Selection`):
-  `CoreOptions_EdgeRouting_DefaultsToOrthogonal` and `CoreOptions_EdgeRouting_HasStableId` confirm the
+  `CoreOptions_EdgeRouting_DefaultValue_IsOrthogonal` and
+  `CoreOptions_EdgeRouting_Id_IsStableDottedIdentifier` confirm the
   `rendering.edgerouting` key defaults to `Orthogonal` and carries the ELK-flavored id;
-  `CoreOptions_EdgeRouting_SelectablePerScope` sets and reads the style back through the property
-  system, and `CoreOptions_EdgeRouting_UnsetReturnsDefault` confirms an unset scope falls back to the
-  orthogonal default.
+  `CoreOptions_EdgeRouting_SetThenGet_RoundTripsValue` sets and reads the style back through the property
+  system, and `CoreOptions_EdgeRouting_UnsetHolder_ReturnsOrthogonalDefault` confirms an unset scope falls
+  back to the orthogonal default.
 - **Route-option defaults** (`Rendering-Layout-EdgeRouting-Defaults`):
-  `ConnectorRouteOptions_Defaults_AreOrthogonalWithTwelvePixelClearance` confirms the default style is
+  `ConnectorRouteOptions_Constructor_Defaults_AreOrthogonalWithTwelvePixelClearance` confirms the default style is
   orthogonal, the default clearance is twelve logical pixels, and the clearance is caller-overridable.
 
 ### Requirements Coverage
 
 - **`Rendering-Layout-EdgeRouting-Selection`**:
-  CoreOptions_EdgeRouting_DefaultsToOrthogonal, CoreOptions_EdgeRouting_HasStableId,
-  CoreOptions_EdgeRouting_SelectablePerScope, CoreOptions_EdgeRouting_UnsetReturnsDefault
+  CoreOptions_EdgeRouting_DefaultValue_IsOrthogonal, CoreOptions_EdgeRouting_Id_IsStableDottedIdentifier,
+  CoreOptions_EdgeRouting_SetThenGet_RoundTripsValue, CoreOptions_EdgeRouting_UnsetHolder_ReturnsOrthogonalDefault
 - **`Rendering-Layout-EdgeRouting-Defaults`**:
-  ConnectorRouteOptions_Defaults_AreOrthogonalWithTwelvePixelClearance
+  ConnectorRouteOptions_Constructor_Defaults_AreOrthogonalWithTwelvePixelClearance
