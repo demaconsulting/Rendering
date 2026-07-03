@@ -43,17 +43,25 @@ exception constitutes a failure.
 The system requirements are satisfied through the unit scenarios documented in the per-unit
 verification files; the representative system-level scenarios are:
 
-- **`Rendering-Abstractions-Extensibility`**:
+- **`Rendering-Abstractions-Extensibility-Contracts`**:
+  LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm,
+  RendererRegistry_RegisterThenResolve_ReturnsRenderer (see
+  Rendering Contracts Unit Verification and
+  Registries Unit Verification)
+- **`Rendering-Abstractions-Extensibility-Registries`**:
   LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm,
   RendererRegistry_RegisterThenResolve_ReturnsRenderer,
   RendererRegistry_ResolveByExtension_MatchesAdvertisedExtensions (see
   Rendering Contracts Unit Verification and
   Registries Unit Verification)
-- **`Rendering-Abstractions-Theming`**: ConnectorApproachZone_SumsStubBendAndClearance,
-  Themes_HaveExpectedConnectorGeometry (see Theme Unit Verification)
-- **`Rendering-Abstractions-SharedGeometry`**: TriangleFamily_HasCanonicalValues,
-  BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding,
-  Place_SingleLine_UsesLongestSegmentMidpoint (see
-  Notation Metrics Unit Verification,
-  Box Metrics Unit Verification, and
-  Connector Label Placer Unit Verification)
+- **`Rendering-Abstractions-Theming-Model`**: Themes_HaveExpectedConnectorGeometry (see
+  Theme Unit Verification)
+- **`Rendering-Abstractions-Theming-ApproachGeometry`**:
+  ConnectorApproachZone_SumsStubBendAndClearance (see Theme Unit Verification)
+- **`Rendering-Abstractions-SharedGeometry-Notation`**: TriangleFamily_HasCanonicalValues (see
+  Notation Metrics Unit Verification)
+- **`Rendering-Abstractions-SharedGeometry-Box`**:
+  BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding (see
+  Box Metrics Unit Verification)
+- **`Rendering-Abstractions-SharedGeometry-ConnectorLabel`**:
+  Place_SingleLine_UsesLongestSegmentMidpoint (see Connector Label Placer Unit Verification)

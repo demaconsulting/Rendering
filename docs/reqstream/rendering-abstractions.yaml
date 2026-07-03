@@ -17,19 +17,31 @@
 sections:
   - title: Rendering Abstractions Requirements
     requirements:
-      - id: Rendering-Abstractions-Extensibility
+      - id: Rendering-Abstractions-Extensibility-Contracts
         title: >-
-          The abstractions system shall define the pluggable layout-algorithm and renderer contracts
-          and shall provide registries that select an implementation by identifier or media type.
+          The abstractions system shall define pluggable layout-algorithm and renderer contracts.
         justification: |
           An ELK-inspired provider model lets additional layout families and output formats be
-          introduced purely additively - a new implementation is written and registered, and no
-          existing contract changes - so consumers resolve the implementation they need at run time.
+          introduced purely additively - a new implementation is written against the stable
+          contracts, and no existing contract changes are required.
         children:
           - Rendering-Abstractions-Contracts-AlgorithmIdentifier
           - Rendering-Abstractions-Contracts-AlgorithmApply
           - Rendering-Abstractions-Contracts-RendererIdentity
           - Rendering-Abstractions-Contracts-RendererWrite
+        tests:
+          - LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
+          - RendererRegistry_RegisterThenResolve_ReturnsRenderer
+
+      - id: Rendering-Abstractions-Extensibility-Registries
+        title: >-
+          The abstractions system shall provide registries that select an implementation by
+          identifier or media type.
+        justification: |
+          Consumers resolve the implementation they need at run time, so the abstractions layer must
+          provide lookup services that map algorithm ids and renderer metadata to registered
+          implementations without changing the contracts.
+        children:
           - Rendering-Abstractions-Registries-ResolveAlgorithm
           - Rendering-Abstractions-Registries-ResolveRenderer
           - Rendering-Abstractions-Registries-ResolveRendererByExtension
@@ -38,29 +50,35 @@ sections:
           - LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
           - RendererRegistry_RegisterThenResolve_ReturnsRenderer
 
-      - id: Rendering-Abstractions-Theming
+      - id: Rendering-Abstractions-Theming-Model
         title: >-
-          The abstractions system shall define a visual theme model with built-in themes and derived
-          connector approach geometry.
+          The abstractions system shall define a visual theme model with built-in themes.
         justification: |
           Centralizing colors, fonts, and line metrics in a theme lets a single layout be rendered
-          in different visual styles, and deriving the connector approach zone from theme values
-          keeps the space reserved by layout consistent with the space drawn by renderers.
+          in different visual styles while keeping the built-in themes consistent and reusable.
         children:
-          - Rendering-Abstractions-Theme-ApproachZone
           - Rendering-Abstractions-Theme-BuiltInGeometry
         tests:
-          - ConnectorApproachZone_SumsStubBendAndClearance
           - Themes_HaveExpectedConnectorGeometry
 
-      - id: Rendering-Abstractions-SharedGeometry
+      - id: Rendering-Abstractions-Theming-ApproachGeometry
         title: >-
-          The abstractions system shall provide single-source notation, box, and connector-label
-          geometry so that every renderer draws identical decorations and reserves consistent space.
+          The abstractions system shall derive connector approach geometry from theme values.
         justification: |
-          When the SVG and PNG renderers and the layout strategies all read one source of geometry,
-          their markers, box title areas, and label placements match exactly and a geometry literal
-          never has to be duplicated across the rendering path.
+          Deriving the connector approach zone from theme values keeps the space reserved by layout
+          consistent with the space drawn by renderers.
+        children:
+          - Rendering-Abstractions-Theme-ApproachZone
+        tests:
+          - ConnectorApproachZone_SumsStubBendAndClearance
+
+      - id: Rendering-Abstractions-SharedGeometry-Notation
+        title: >-
+          The abstractions system shall provide single-source notation geometry so every renderer
+          draws identical connector decorations and badges.
+        justification: |
+          When every renderer reads one source of notation geometry, marker and badge dimensions
+          match exactly and notation literals never have to be duplicated across the rendering path.
         children:
           - Rendering-Abstractions-NotationMetrics-TriangleDimensions
           - Rendering-Abstractions-NotationMetrics-TriangleApexOvershoot
@@ -76,13 +94,33 @@ sections:
           - Rendering-Abstractions-NotationMetrics-RejectNullTheme
           - Rendering-Abstractions-NotationMetrics-Badge
           - Rendering-Abstractions-NotationMetrics-LabelBackground
+        tests:
+          - TriangleFamily_HasCanonicalValues
+
+      - id: Rendering-Abstractions-SharedGeometry-Box
+        title: >-
+          The abstractions system shall provide single-source box geometry so renderers reserve
+          consistent title-area and folder-tab space.
+        justification: |
+          Shared box geometry keeps title bars and folder tabs consistent across renderers and
+          prevents duplicated box-sizing literals.
+        children:
           - Rendering-Abstractions-BoxMetrics-FolderTabHeight
           - Rendering-Abstractions-BoxMetrics-TitleAreaHeight
           - Rendering-Abstractions-BoxMetrics-RejectNullTheme
+        tests:
+          - BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding
+
+      - id: Rendering-Abstractions-SharedGeometry-ConnectorLabel
+        title: >-
+          The abstractions system shall provide single-source connector-label geometry so renderers
+          place labels consistently on routed connectors.
+        justification: |
+          Shared connector-label geometry keeps label placement consistent across renderers and
+          prevents each renderer from re-implementing midpoint and overlap rules.
+        children:
           - Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled
           - Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment
           - Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap
         tests:
-          - TriangleFamily_HasCanonicalValues
-          - BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding
           - Place_SingleLine_UsesLongestSegmentMidpoint
