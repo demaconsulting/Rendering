@@ -155,7 +155,15 @@ public static class ConnectorLabelPlacer
         var top = centreY - halfHeight;
         var right = centreX + halfWidth;
         var bottom = centreY + halfHeight;
-        return placed.Any(r => left < r.Right && right > r.Left && top < r.Bottom && bottom > r.Top);
+        foreach (var r in placed)
+        {
+            if (left < r.Right && right > r.Left && top < r.Bottom && bottom > r.Top)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

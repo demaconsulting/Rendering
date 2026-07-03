@@ -58,8 +58,9 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
 
         // Sub-edges per corridor: one sub-edge per augEdge, keyed on source layer.
         var corridorEdgeCounts = new int[Math.Max(1, layerCount - 1)];
-        foreach (var l in augEdges.Select(ae => augNodes[ae.Source].Layer))
+        foreach (var ae in augEdges)
         {
+            var l = augNodes[ae.Source].Layer;
             if (l >= 0 && l < corridorEdgeCounts.Length)
             {
                 corridorEdgeCounts[l]++;
@@ -645,10 +646,15 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
         int matchNode,
         bool findByTarget)
     {
-        // Returns -1 when not found: block chains are always built along real edges, so this should not occur.
-        return edgeList.FirstOrDefault(
-            ei => (findByTarget ? augEdges[ei].Target : augEdges[ei].Source) == matchNode,
-            -1);
+        foreach (var ei in edgeList)
+        {
+            if ((findByTarget ? augEdges[ei].Target : augEdges[ei].Source) == matchNode)
+            {
+                return ei;
+            }
+        }
+
+        return -1; // Should not occur: block chains are always built along real edges.
     }
 
     /// <summary>

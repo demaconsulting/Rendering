@@ -433,10 +433,13 @@ internal static class OrthogonalEdgeRouter
             var y = ys[j1];
             var xa = Math.Min(xs[i1], xs[i2]);
             var xb = Math.Max(xs[i1], xs[i2]);
-            if (obstacles.Any(r => r.Y - clearance < y && y < r.Y + r.Height + clearance &&
-                    Math.Max(xa, r.X - clearance) < Math.Min(xb, r.X + r.Width + clearance)))
+            foreach (var r in obstacles)
             {
-                return true;
+                if (r.Y - clearance < y && y < r.Y + r.Height + clearance &&
+                    Math.Max(xa, r.X - clearance) < Math.Min(xb, r.X + r.Width + clearance))
+                {
+                    return true;
+                }
             }
         }
         else
@@ -445,10 +448,13 @@ internal static class OrthogonalEdgeRouter
             var x = xs[i1];
             var ya = Math.Min(ys[j1], ys[j2]);
             var yb = Math.Max(ys[j1], ys[j2]);
-            if (obstacles.Any(r => r.X - clearance < x && x < r.X + r.Width + clearance &&
-                    Math.Max(ya, r.Y - clearance) < Math.Min(yb, r.Y + r.Height + clearance)))
+            foreach (var r in obstacles)
             {
-                return true;
+                if (r.X - clearance < x && x < r.X + r.Width + clearance &&
+                    Math.Max(ya, r.Y - clearance) < Math.Min(yb, r.Y + r.Height + clearance))
+                {
+                    return true;
+                }
             }
         }
 
