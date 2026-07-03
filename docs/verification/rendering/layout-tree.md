@@ -4,10 +4,36 @@ Part of the Rendering Model Verification.
 
 This document describes the verification design for the layout-tree unit of the
 `DemaConsulting.Rendering` system. It maps every layout-tree unit requirement to at least one named
-test scenario so a reviewer can confirm coverage without reading the test code. The verification
-strategy, test environment, and acceptance criteria are described in the
-system verification document; the test project is `DemaConsulting.Rendering.Tests`
-(`LayoutTests.cs`).
+test scenario so a reviewer can confirm coverage without reading the test code.
+
+### Layout Tree Unit Verification Approach
+
+The Layout Tree unit is verified by direct in-process xUnit tests that construct each concrete
+`LayoutNode` record and the `LayoutTree`, `Point2D`, and `Rect` value types with explicit inputs and
+assert on the observable state. No mocking or stubbing is required: the types are immutable data
+records with no dependencies and no I/O, so the tests exercise the real records exactly as consumers
+do. Each test focuses on a single record type or geometry type and verifies that supplied
+constructor arguments are stored and returned unchanged, that heterogeneous children are retained in
+insertion order, and that the depth-not-color and absolute-coordinate invariants hold.
+
+### Layout Tree Unit Test Environment
+
+- **Framework**: xUnit v3, run through the standard `dotnet test` runner.
+- **Test project**: `DemaConsulting.Rendering.Tests`, source file `LayoutTests.cs`.
+- **Runtime**: any target framework built by the solution (`net8.0`, `net9.0`, or `net10.0`).
+- **Dependencies**: none beyond the standard test runner; no external services, network, filesystem,
+  or configuration is required.
+- **Isolation**: each test constructs its own record instances, so there is no shared mutable state
+  between tests and no ordering dependency.
+
+### Layout Tree Unit Acceptance Criteria
+
+Every named scenario listed below passes without error or unexpected exception (IEC 62304 §5.5.2). A
+failure is any stored value that does not match the constructor input, any nested child that is
+missing or reordered, any non-integer `Depth`, any coordinate that has been transformed away from the
+supplied absolute value, or any unexpected exception. The verification run is considered complete
+when every requirement listed in the Requirements Coverage section is mapped to at least one passing
+test.
 
 ### Layout Tree Unit Scenarios
 

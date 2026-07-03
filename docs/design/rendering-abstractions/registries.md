@@ -2,7 +2,7 @@
 
 Part of the Rendering Abstractions system.
 
-### Registries Overview
+### Registries Purpose
 
 The Registries unit provides two service-provider lookups. `LayoutAlgorithmRegistry` keys algorithms
 by their `Id`; `RendererRegistry` keys renderers by their `MediaType` and by every advertised
@@ -34,6 +34,42 @@ extension. Media types and extensions are compared case-insensitively.
 adding an optional leading dot when needed, and lower-casing it for lookup. It returns the renderer
 registered for that extension or throws `KeyNotFoundException`; `TryResolveByExtension` performs the
 same lookup without throwing.
+
+### Registries Error Handling
+
+Both registries validate their string and reference parameters with `ArgumentNullException.ThrowIfNull`
+and propagate the resulting `ArgumentNullException` to the caller. `Resolve(string)` and
+`ResolveByExtension(string)` throw `KeyNotFoundException` when no algorithm or renderer is registered
+under the requested id, media type, or (normalized) file extension; the message includes the
+requested key so a configuration mistake is immediately diagnosable. The non-throwing variants
+(`TryResolve`, `TryResolveByExtension`) return `false` and set the `out` parameter to `null` in the
+same missing-entry cases. No exceptions are caught internally: any exception raised by the underlying
+`Dictionary<string, T>` (for example from an invalid key type at registration time) surfaces to the
+caller unchanged. The registries are documented as not thread-safe for concurrent registration; the
+callers are responsible for building each registry on a single thread before publishing it.
+
+### Registries Dependencies
+
+- **Rendering Contracts Unit** (same system) — `ILayoutAlgorithm` and `IRenderer` are the value types
+  stored and returned by the two registries; `IRenderer.MediaType` and `IRenderer.FileExtensions`
+  supply the keys used by `RendererRegistry`.
+- **.NET base class library** — `System.Collections.Generic.Dictionary<TKey, TValue>` for the backing
+  storage and `System.Collections.ObjectModel.ReadOnlyCollection<string>` for the `Ids`, `MediaTypes`,
+  and `FileExtensions` snapshots.
+
+No OTS runtime component or Shared Package is consumed.
+
+### Registries Callers
+
+- **Rendering.Layout `DefaultLayout` unit** — builds a `LayoutAlgorithmRegistry` populated with the
+  layered, containment, and hierarchical algorithms and resolves the algorithm identified by
+  `CoreOptions.Algorithm` before invoking `ILayoutAlgorithm.Apply`.
+- **Rendering.Svg and Rendering.Skia systems** — register their `IRenderer` implementations in a
+  shared `RendererRegistry` so callers can resolve a renderer by media type (for example
+  `image/svg+xml`, `image/png`) or by an output file extension (`.svg`, `.png`, `.jpg`, `.webp`).
+- **End-user applications** that host the rendering pipeline resolve algorithms and renderers by
+  identifier or extension when translating CLI arguments or filename hints into concrete
+  implementations.
 
 ### Registries Design Constraints
 

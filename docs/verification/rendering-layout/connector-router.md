@@ -4,7 +4,32 @@ Part of the Rendering Layout Verification.
 
 This document maps the connector-router unit requirements to named test scenarios.
 
-### ConnectorRouter Unit Scenarios
+### Verification Approach
+
+`ConnectorRouter` is a stateless static class, so verification is by direct xUnit unit tests that
+call `ConnectorRouter.Route` on synthetic `LayoutBox` inputs. No mocks or fakes are used: the tests
+exercise the real anchor-selection, obstacle-set construction, and dispatch code paths, letting the
+integration with the internal `OrthogonalEdgeRouter` engine run end-to-end so anchor geometry,
+obstacle avoidance, and produced `LayoutLine` styling are all observed on real outputs.
+
+### Test Environment
+
+- **Framework**: xUnit v3 running on the .NET SDK.
+- **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ConnectorRouterTests.cs`.
+- **Dependencies**: no external services, files, or network access; every test constructs its own
+  in-memory `LayoutBox` list and `Connection` records.
+- **Isolation**: each test builds its own inputs; the class under test holds no static state, so
+  tests are order-independent.
+
+### Acceptance Criteria
+
+A verification run passes when every named scenario below asserts without unexpected exception, and
+the referenced tests cover each `Rendering-Layout-ConnectorRouter-*` requirement. Any wrong anchor
+face, waypoint that enters a non-endpoint obstacle interior, incorrect line styling passthrough,
+out-of-order batch result, or non-argument-null exception for invalid input constitutes a failure.
+
+### Test Scenarios
 
 - **Anchors face each other** (`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`):
   `Route_TargetToTheRight_AnchorsFaceEachOther` and `Route_TargetBelow_AnchorsFaceEachOther` confirm

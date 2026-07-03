@@ -9,7 +9,29 @@ verification strategy, test environment, and acceptance criteria are described i
 system verification document; the test project is
 `DemaConsulting.Rendering.Abstractions.Tests` (`BoxMetricsTests.cs`).
 
-### Box Metrics Unit Scenarios
+### Verification Approach
+
+The box-metrics unit is verified with in-process xUnit unit tests that call
+`BoxMetrics.FolderTabHeight` and `BoxMetrics.TitleAreaHeight` directly, passing one of the built-in
+`Themes` as the theme input. No mocking is used because the helpers are pure static functions of a
+`Theme` and a pair of booleans. The tests cover the folder-tab formula and every combination of the
+`hasLabel` and `hasKeyword` inputs relevant to the title-area formula, including the empty-title
+zero case and the label-plus-keyword additive case.
+
+### Test Environment
+
+- **Framework**: xUnit v3 running under the .NET SDK on `net8.0`, `net9.0`, and `net10.0`.
+- **Execution**: `dotnet test` invoked by `build.ps1` and by the CI pipeline.
+- **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`BoxMetricsTests.cs`).
+- **External dependencies**: none.
+
+### Acceptance Criteria
+
+The unit is considered verified when every scenario listed below passes. Each test must return the
+documented height in logical pixels; any wrong arithmetic result, unexpected exception, or missing
+coverage of the reserved-space formulas constitutes a failure.
+
+### Test Scenarios
 
 #### Folder-tab height derives from theme
 

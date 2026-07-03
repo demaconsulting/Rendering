@@ -2,6 +2,15 @@
 
 Part of the Rendering Model system.
 
+### Options Purpose
+
+The Options unit's single responsibility is to define the open, ELK-inspired property system that
+carries configuration end-to-end through the rendering pipeline: it declares typed property keys
+(`LayoutProperty<T>`), the contract for any object that stores them (`IPropertyHolder`), a default
+dictionary-backed store (`PropertyHolder`), a free-standing options bag (`LayoutOptions`), and the
+well-known key catalogue (`CoreOptions`). It does not perform layout or rendering; it only defines and
+holds configuration values.
+
 ### Options Overview
 
 The Options unit is the open, ELK-inspired configuration system. Configuration values are keyed by
@@ -41,6 +50,37 @@ explicitly set on this holder.
 
 `LayoutOptions.ForAlgorithm(string algorithmId)` — creates a `LayoutOptions` pre-set with
 `CoreOptions.Algorithm`.
+
+### Options Error Handling
+
+`Get`, `TryGet`, `Set`, and `Contains` all reject a null `LayoutProperty<T>` by throwing
+`ArgumentNullException`, so a caller cannot silently corrupt the store with a value that has no key. The
+`LayoutProperty<T>` constructor rejects a null or empty `id` with `ArgumentException`, and
+`LayoutOptions.ForAlgorithm(string)` rejects a null or empty `algorithmId` on the same terms. Reading
+a property that has never been set is not an error: the store returns the property's declared
+`DefaultValue` (through `Get`) or the default plus a `false` result (through `TryGet`). Unknown or
+not-yet-honored keys carried on a holder are not detected here — they are ignored by whichever
+algorithm or renderer chooses not to read them, which is a deliberate design property, not an error
+path.
+
+### Options Dependencies
+
+The unit depends only on the .NET base class library (`System.Collections.Generic.Dictionary<TKey,
+TValue>`). It has no project references, no OTS runtime component, and no Shared Package dependency;
+the `Polyfill` build-time package is a private asset that only backfills newer BCL surface on older
+target frameworks. Within the Rendering model, Options is a peer of the Layout Tree and Layout Graph
+units and depends on neither.
+
+### Options Callers
+
+Within the Rendering model, the Layout Graph unit's `LayoutGraph`, `LayoutGraphNode`, and
+`LayoutGraphEdge` all derive from `PropertyHolder`, so every graph element carries options through
+this unit. Outside the model, layout algorithms in `DemaConsulting.Rendering.Layout` and renderers in
+`DemaConsulting.Rendering.Svg` and `DemaConsulting.Rendering.Skia` read `LayoutOptions` and
+`CoreOptions` keys to configure their behavior; the shared abstractions in
+`DemaConsulting.Rendering.Abstractions` also consume `LayoutOptions` as the configuration parameter of
+`ILayoutAlgorithm.Apply`. Application code builds a `LayoutOptions` (often via `ForAlgorithm`) and
+passes it to a layout facade.
 
 ### Options Design Constraints
 

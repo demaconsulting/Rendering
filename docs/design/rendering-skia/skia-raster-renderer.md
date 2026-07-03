@@ -2,6 +2,14 @@
 
 Part of the Rendering.Skia system.
 
+### SkiaRasterRenderer Purpose
+
+`SkiaRasterRenderer` has a single responsibility: rasterize a placed `LayoutTree` onto a SkiaSharp
+bitmap and encode that bitmap to a caller-supplied `Stream` in whatever image format the derived
+renderer selects. It centralizes every drawing decision (background fill, node drawing, connector
+end-markers, label backplates, typography) so that PNG, JPEG, and WEBP output share identical
+pixel-level behaviour and differ only in the final encode step.
+
 ### SkiaRasterRenderer Overview
 
 `SkiaRasterRenderer` is the abstract `IRenderer` implementation that provides the common SkiaSharp
@@ -50,6 +58,49 @@ initialization, node drawing, connector-label finalization, and stream encoding.
 `NotationMetrics`, `BoxMetrics`, and `ConnectorLabelPlacer` from the Rendering.Abstractions system. It
 is inherited by `PngRenderer`, `JpegRenderer`, and `WebpRenderer`, which provide only format-selection
 members.
+
+### SkiaRasterRenderer Error Handling
+
+- **Null arguments** — `Render(layout, options, output)` calls `ArgumentNullException.ThrowIfNull`
+  on each of its three arguments before doing any work, so a null `LayoutTree`, `RenderOptions`, or
+  output `Stream` results in a fast `ArgumentNullException` rather than a later `NullReferenceException`
+  or a partially written stream.
+- **Degenerate layout sizes** — non-positive layout widths or heights are clamped to a minimum of
+  one by one pixel before `SKBitmap` allocation so SkiaSharp does not raise an allocation error and
+  callers always receive a valid encoded image (including for an empty tree).
+- **SkiaSharp exceptions** — errors surfaced by the underlying SkiaSharp APIs (for example bitmap
+  allocation failure, encoder errors) are not caught. They propagate unchanged to the caller so
+  they are visible in test output and diagnostics; the renderer records no logs of its own.
+- **Output stream errors** — exceptions from `SKData.SaveTo(output)` (for example a disposed or
+  read-only stream) propagate to the caller. The renderer never closes, flushes, or otherwise
+  mutates the caller-owned `Stream`, so failures leave the stream in whatever state SkiaSharp's
+  partial write produced; disposal remains the caller's responsibility.
+- **Resource cleanup on failure** — every SkiaSharp object (`SKBitmap`, `SKCanvas`, `SKImage`,
+  `SKData`, `SKPaint`, `SKPath`, `SKPathEffect`) is created with a `using` declaration so its
+  unmanaged handle is released even when an exception is thrown mid-render.
+
+### SkiaRasterRenderer Dependencies
+
+- **`DemaConsulting.Rendering`** — consumes `LayoutTree`, `LayoutNode`, `LayoutBox`, `LayoutLine`,
+  `LayoutLabel`, `LayoutPort`, and the other layout-node records.
+- **`DemaConsulting.Rendering.Abstractions`** — consumes the `IRenderer` contract it implements as
+  well as `RenderOptions`, `Theme`, `NotationMetrics`, `BoxMetrics`, and `ConnectorLabelPlacer`
+  for drawing geometry and typography.
+- **SkiaSharp (OTS)** — uses `SKBitmap`, `SKCanvas`, `SKImage`, `SKData`, `SKPaint`, `SKPath`,
+  `SKPathEffect`, `SKTypeface`, `SKColor`, and `SKEncodedImageFormat` for allocation, drawing, and
+  encoding; see "SkiaSharp Integration Design" under `docs/design/ots/` for lifecycle and
+  disposal details.
+- **Embedded Noto Sans typefaces** — the regular, bold, italic, and bold-italic Noto Sans font
+  resources embedded in the assembly are loaded once as `SKTypeface` instances at startup.
+
+### SkiaRasterRenderer Callers
+
+- **`PngRenderer`, `JpegRenderer`, `WebpRenderer`** — the three concrete raster renderers each
+  derive from `SkiaRasterRenderer` and rely on its `Render` implementation; they contribute only
+  format metadata overrides.
+- **`RendererRegistry` / consumers of `IRenderer`** — external callers do not use
+  `SkiaRasterRenderer` directly (it is `abstract`); they resolve one of the concrete renderers by
+  media type or file extension and invoke `Render` through the `IRenderer` contract.
 
 ### Requirements Traceability
 

@@ -9,6 +9,46 @@ strategy, test environment, and acceptance criteria are described in the
 system verification document; the test project is
 `DemaConsulting.Rendering.Svg.Tests`.
 
+### Verification Approach
+
+Unit verification uses xUnit v3 tests in `DemaConsulting.Rendering.Svg.Tests` that construct
+concrete `LayoutTree`, `RenderOptions`, and `MemoryStream` instances and invoke
+`SvgRenderer.Render` directly. Because `SvgRenderer` is pure and stateless, no mocking or
+stubbing is used: the real `Themes.Light` theme, the real `NotationMetrics` and
+`ConnectorLabelPlacer` helpers from `DemaConsulting.Rendering.Abstractions`, and the real
+`LayoutTree` and `LayoutNode` records from `DemaConsulting.Rendering` are exercised end-to-end.
+Each test decodes the emitted UTF-8 bytes and asserts on the SVG text, element presence,
+attribute values, well-formed XML, and geometric parity with `NotationMetrics`.
+
+### Test Environment
+
+- **Framework**: xUnit v3 on the .NET SDK, run against the `net8.0`, `net9.0`, and `net10.0`
+  target frameworks.
+- **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Dependencies**: none — no external services, databases, files, or network access are used;
+  tests write to in-memory `MemoryStream` instances only.
+- **Isolation**: each test constructs its own `SvgRenderer`, layout tree, render options, and
+  output stream, so tests are independent and order-agnostic.
+
+### Acceptance Criteria
+
+A unit verification run passes when every named scenario listed below completes without
+unexpected exception and every assertion holds. A failure is any missing SVG root element,
+wrong renderer metadata (`MediaType`, `DefaultExtension`), wrong emitted SVG element or
+attribute, malformed XML escaping, or marker geometry that does not match `NotationMetrics`.
+Requirements coverage is enforced by the mapping in the _Requirements Coverage_ section below:
+every `Rendering-Svg-SvgRenderer-*` requirement must map to at least one named scenario, and
+every mapped scenario must exist in `DemaConsulting.Rendering.Svg.Tests` and pass.
+
+### Test Scenarios
+
+The named scenarios that satisfy each unit requirement are enumerated below under
+_SvgRenderer Unit Scenarios_, grouped by rendering concern (renderer contract and metadata,
+SVG document root and empty tree, box rectangle and compartments, label text and styling and
+escaping, connector path and corners and dash pattern and label, additional node kinds, and
+connector end markers). Every `Rendering-Svg-SvgRenderer-*` requirement is traced to at least
+one named scenario in the _Requirements Coverage_ table at the end of this document.
+
 ### SvgRenderer Unit Scenarios
 
 #### Renderer contract and metadata

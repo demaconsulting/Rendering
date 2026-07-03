@@ -8,6 +8,40 @@ The pipeline stages are exercised individually, and the assembled pipeline is ch
 equivalence with the legacy oracle. Dependencies are real (each stage operates on a `LayeredGraph`);
 nothing is mocked.
 
+#### Verification Approach
+
+The `LayeredPipeline` unit — the ELK-style staged Sugiyama pipeline over a `LayeredGraph` — is
+verified by direct xUnit unit tests at three levels: (1) each stage is exercised in isolation on a
+`LayeredGraph` (cycle breaker, layer assigner, long-edge splitter, crossing minimizer,
+Brandes-Köpf placer, port distributor, orthogonal router, long-edge joiner, component packer,
+axis transform); (2) the assembled `LayeredLayoutPipeline` is byte-compared to a legacy oracle on
+random and named topologies; and (3) input-validation tests confirm null/unsupported inputs are
+rejected. No stage is mocked — real `LayeredGraph` instances flow through every check.
+
+#### Test Environment
+
+- **Framework**: xUnit v3 running on the .NET SDK.
+- **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Projects**: `test/DemaConsulting.Rendering.Layout.Tests/Engine/Layered/` (per-stage tests) and
+  the pipeline-level tests in the same test project.
+- **Dependencies**: no external services, files, or network access. Random-graph and named-topology
+  tests use deterministic seeds so byte-identity checks are reproducible. The legacy oracle is a
+  reference implementation compiled into the test project.
+- **Isolation**: each test builds its own `LayeredGraph`; the pipeline and stages are stateless
+  between calls.
+
+#### Acceptance Criteria
+
+A verification run passes when every named scenario below asserts without unexpected exception, and
+the referenced tests cover each `Rendering-Layout-LayeredPipeline-*` requirement. Any drift in
+per-stage geometry, in byte-identity with the legacy oracle on the random and named topologies,
+in supported hierarchy handling (recursive input must throw), in flow directions, in orthogonal
+waypoint shape, in back-edge approach behavior, in component packing determinism, in shared
+`LayeredGraph` state validation, or in `LayeredLayoutPipeline` input validation constitutes a
+failure.
+
+#### Test Scenarios
+
 - **Staged pipeline** (`Rendering-Layout-LayeredPipeline-StagedPipeline`):
   `LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing` runs the full
   default sequence and confirms waypoints are populated; `Pipeline_MatchesLegacyOracle_OnRandomGraphs`

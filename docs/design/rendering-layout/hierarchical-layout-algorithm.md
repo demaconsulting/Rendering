@@ -79,6 +79,36 @@ that selects an algorithm identifier absent from the registry surfaces the regis
 `KeyNotFoundException`. Edges whose endpoints are not under the current scope are skipped rather than
 treated as errors.
 
+### HierarchicalLayoutAlgorithm Dependencies
+
+`HierarchicalLayoutAlgorithm` depends on the following items:
+
+- **Rendering.Abstractions** (`ILayoutAlgorithm`, `LayoutAlgorithmRegistry`) — implements the layout
+  contract and resolves the per-scope leaf algorithm from the injected registry.
+- **Rendering model** (`DemaConsulting.Rendering`) — the `LayoutGraph`, `LayoutGraphNode`,
+  `LayoutTree`, `LayoutBox`, `LayoutLine`, and `Point2D` types on the layout contract, plus
+  `CoreOptions.Algorithm`, `CoreOptions.EdgeRouting`, and `CoreOptions.HierarchyHandling` for
+  configuration.
+- **Layout units** — `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm` as bundled leaf
+  algorithms registered in the default registry, and `ConnectorRouter` for LCA cross-container edge
+  routing. See *ConnectorRouter Unit Design*.
+
+No OTS runtime component or shared package is consumed.
+
+### HierarchicalLayoutAlgorithm Callers
+
+`HierarchicalLayoutAlgorithm` is invoked through the `ILayoutAlgorithm` contract, so callers reach
+it by algorithm identifier rather than by direct type reference:
+
+- **DefaultLayout** (`LayoutEngine.Layout`) — resolves this algorithm from the bundled default
+  registry under the `"hierarchical"` identifier and defaults to it when no algorithm is declared on
+  the graph or options. See *DefaultLayout Unit Design*.
+- **External application code** — any caller that registers `HierarchicalLayoutAlgorithm` in its own
+  `LayoutAlgorithmRegistry` (or uses `LayoutAlgorithms.CreateDefaultRegistry()`) and selects it via
+  `CoreOptions.Algorithm = "hierarchical"` on the graph or standalone `LayoutOptions`.
+- **Renderer host code** — indirectly via `LayoutEngine.Layout` when driving nested/compound
+  diagrams from graph to rendered output.
+
 ### HierarchicalLayoutAlgorithm Interactions
 
 `HierarchicalLayoutAlgorithm` depends on the `ILayoutAlgorithm`, `LayoutAlgorithmRegistry`,

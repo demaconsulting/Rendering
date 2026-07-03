@@ -4,7 +4,32 @@ Part of the Rendering Layout Verification.
 
 This document maps the containment-layout-algorithm unit requirements to named test scenarios.
 
-### ContainmentLayoutAlgorithm Scenarios
+### Verification Approach
+
+`ContainmentLayoutAlgorithm` is verified by direct xUnit unit tests that call `Apply(graph,
+options)` on synthetic `LayoutGraph` inputs. The tests use the real `ContainmentPacker` and
+`ConnectorRouter` collaborators (no mocks) so identity, packing, routing (including obstacle
+avoidance), and validation are all observed on production code paths.
+
+### Test Environment
+
+- **Framework**: xUnit v3 running on the .NET SDK.
+- **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs`.
+- **Dependencies**: no external services, files, or network access; every test constructs its own
+  in-memory `LayoutGraph` and `LayoutOptions` instances.
+- **Isolation**: each test builds its own inputs; the algorithm is stateless between calls.
+
+### Acceptance Criteria
+
+A verification run passes when every named scenario below asserts without unexpected exception, and
+the referenced tests cover each `Rendering-Layout-ContainmentAlgorithm-*` requirement. Any drift in
+the stable identifier (`"containment"`), in the one-box-per-node placement contract, in
+edge-per-input-edge routing with styling passthrough, in obstacle avoidance for intervening boxes,
+in empty-graph handling, in skipping of out-of-graph edges, or in the argument-null validation
+behavior constitutes a failure.
+
+### Test Scenarios
 
 - **Identity** (`Rendering-Layout-ContainmentAlgorithm-Identity`): `Id_IsContainment` asserts the
   algorithm reports the stable `"containment"` identifier.

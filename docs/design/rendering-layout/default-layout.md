@@ -60,6 +60,38 @@ Null `graph`, `options`, or (three-argument overload) `registry` throw `Argument
 declared algorithm identifier absent from the resolving registry surfaces the registry's
 `KeyNotFoundException`.
 
+### DefaultLayout Dependencies
+
+`LayoutAlgorithms` and `LayoutEngine` depend on the following items:
+
+- **Rendering.Abstractions** (`LayoutAlgorithmRegistry`, `ILayoutAlgorithm`) — the registry type
+  populated by `CreateDefaultRegistry` and the algorithm contract resolved and invoked by
+  `LayoutEngine.Layout`.
+- **Rendering model** (`DemaConsulting.Rendering`) — the `LayoutGraph`, `LayoutOptions`, and
+  `LayoutTree` types on the public `Layout` signature, plus `CoreOptions.Algorithm` used for
+  algorithm-identifier resolution.
+- **Layout units** (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`,
+  `HierarchicalLayoutAlgorithm`) — the three bundled algorithms registered by the default registry.
+  See the respective Unit Design documents.
+
+No OTS runtime component or shared package is consumed.
+
+### DefaultLayout Callers
+
+`LayoutAlgorithms` and `LayoutEngine` are consumed by:
+
+- **External application code** — the primary caller. Applications invoke `LayoutEngine.Layout(graph,
+  options)` (or the three-argument overload with a custom registry) as the batteries-included happy
+  path for going from `LayoutGraph` to placed `LayoutTree` with a single call.
+- **Renderer host code** (for example downstream of `SvgRenderer` / `PngRenderer`) — callers that
+  pair `LayoutEngine.Layout(...)` with an `IRenderer` to go from graph to rendered output in two
+  calls.
+- **Test host code** — the `LayoutAlgorithms.CreateDefaultRegistry()` factory is also consumed
+  directly by tests that need a pre-populated, independently mutable registry.
+
+No other Rendering.Layout unit calls into DefaultLayout; the dependency direction is always
+application → `LayoutEngine` → bundled algorithms.
+
 ### DefaultLayout Interactions
 
 `LayoutAlgorithms` depends on `LayoutAlgorithmRegistry` and the three bundled algorithm units.

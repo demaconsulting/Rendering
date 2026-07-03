@@ -2,7 +2,7 @@
 
 Part of the Rendering Abstractions system.
 
-### Connector Label Placer Overview
+### Connector Label Placer Purpose
 
 The Connector Label Placer unit computes non-overlapping screen positions for connector midpoint
 labels. Each labelled line prefers the midpoint of its longest segment; when two labels would collide,
@@ -20,6 +20,33 @@ deterministic, and both renderers share this logic so their label layouts match.
 fontSize)` — returns a chosen label centre for every line that has a `MidpointLabel`. Lines without a
 label, and lines with no waypoints, are omitted. The method estimates each label box from `fontSize`,
 places the label at the longest clear segment midpoint, and nudges perpendicular to avoid overlap.
+
+### Connector Label Placer Error Handling
+
+`Place` validates its `lines` argument with `ArgumentNullException.ThrowIfNull` and propagates the
+resulting `ArgumentNullException` to the caller. All other input shapes are treated as normal cases
+rather than errors: a line whose `MidpointLabel` is `null` is omitted from the result, a line whose
+`Waypoints` collection is empty is likewise omitted, and a line with a single waypoint yields the
+degenerate midpoint of that waypoint. The overlap-avoidance search is bounded — after exhausting the
+segment fallback and a fixed number of perpendicular nudges the label is placed at its preferred
+midpoint even if it still overlaps another label. The method has no side effects on its inputs and
+performs no logging.
+
+### Connector Label Placer Dependencies
+
+- **Rendering Model system (`DemaConsulting.Rendering`)** — reads `LayoutLine.MidpointLabel` and
+  `LayoutLine.Waypoints` from the layout tree types.
+- **.NET base class library** — `System.Collections.Generic.IEnumerable<T>`,
+  `IReadOnlyDictionary<TKey, TValue>`, and standard geometry arithmetic. No third-party runtime
+  packages are consumed.
+
+### Connector Label Placer Callers
+
+- **Rendering.Svg `SvgRenderer` unit** — calls `Place` once per render pass to compute the label
+  positions for the connector labels it writes as `<text>` elements.
+- **Rendering.Skia raster renderers (`SkiaRasterRenderer`, `PngRenderer`, `JpegRenderer`,
+  `WebpRenderer`)** — call `Place` for the same purpose so that the SVG and raster outputs agree on
+  label positions.
 
 ### Connector Label Placer Design Constraints
 

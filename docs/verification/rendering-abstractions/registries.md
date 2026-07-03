@@ -9,7 +9,31 @@ verification strategy, test environment, and acceptance criteria are described i
 system verification document; the test project is
 `DemaConsulting.Rendering.Abstractions.Tests` (`RegistryTests.cs`).
 
-### Registries Unit Scenarios
+### Verification Approach
+
+The registries unit is verified with in-process xUnit unit tests that exercise
+`LayoutAlgorithmRegistry` and `RendererRegistry` directly, without mocks or stubs of the
+`Dictionary`-based backing storage. Two minimal test-local fakes provide the interface
+implementations under test: `FakeAlgorithm` implements `ILayoutAlgorithm` with a fixed `Id` and a
+no-op `Apply`; `FakeRenderer` implements `IRenderer` with a fixed `MediaType`, `DefaultExtension`,
+and `FileExtensions` and a no-op `Render`. All registry instances are created inside each test so
+no state leaks between tests, and the `KeyNotFoundException` behaviour is verified with
+`Assert.Throws`.
+
+### Test Environment
+
+- **Framework**: xUnit v3 running under the .NET SDK on `net8.0`, `net9.0`, and `net10.0`.
+- **Execution**: `dotnet test` invoked by `build.ps1` and by the CI pipeline.
+- **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`RegistryTests.cs`).
+- **External dependencies**: none; no network, filesystem, or external service is required.
+
+### Acceptance Criteria
+
+The unit is considered verified when every scenario listed below passes. Each named test must
+return the documented value or throw the documented exception; any wrong lookup result,
+unexpected exception, or missing coverage of a listed requirement constitutes a failure.
+
+### Test Scenarios
 
 #### Algorithm registers and resolves by id
 

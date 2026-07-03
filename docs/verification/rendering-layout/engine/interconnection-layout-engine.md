@@ -4,7 +4,32 @@ Part of the Rendering Layout Verification.
 
 This document maps the InterconnectionLayoutEngine unit requirements to named test scenarios.
 
-#### InterconnectionLayoutEngine Unit Scenarios
+#### Verification Approach
+
+`InterconnectionLayoutEngine` is verified by direct xUnit unit tests that call `Place(graph,
+options)` on synthetic `LayoutGraph` inputs. The tests run the real underlying `LayeredPipeline`
+end-to-end (no stage is mocked) so layering, non-overlap, dummy-node handling, waypoint emission,
+direction handling, and determinism are all measured on production output.
+
+#### Test Environment
+
+- **Framework**: xUnit v3 running on the .NET SDK.
+- **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/Engine/InterconnectionLayoutEngineTests.cs`.
+- **Dependencies**: no external services, files, or network access; every test constructs its own
+  in-memory `LayoutGraph` and options.
+- **Isolation**: each test builds its own inputs; the engine and pipeline are stateless between
+  calls.
+
+#### Acceptance Criteria
+
+A verification run passes when every named scenario below asserts without unexpected exception, and
+the referenced tests cover each `Rendering-Layout-InterconnectionEngine-*` requirement. Any drift
+in monotonic layer indices along a chain, overlapping placed rectangles, dummy nodes leaking into
+the returned rectangle list, missing or non-orthogonal edge waypoints, direction handling
+transposing incorrectly, or non-deterministic geometry for identical input constitutes a failure.
+
+#### Test Scenarios
 
 - **Layering** (`Rendering-Layout-InterconnectionEngine-Layering`):
   `Place_LinearChain_MonotonicLayerAssignment` asserts monotonic layer indices along a chain, and

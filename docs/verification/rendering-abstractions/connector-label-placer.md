@@ -9,7 +9,28 @@ The verification strategy, test environment, and acceptance criteria are describ
 system verification document; the test project is
 `DemaConsulting.Rendering.Abstractions.Tests` (`ConnectorLabelPlacerTests.cs`).
 
-### Connector Label Placer Unit Scenarios
+### Verification Approach
+
+The connector-label-placer unit is verified with in-process xUnit unit tests that call
+`ConnectorLabelPlacer.Place` directly with hand-constructed `LayoutLine` inputs. No mocking or
+stubbing is required because the class is a pure, static function of its inputs. The tests
+construct `LayoutLine` instances with explicit `MidpointLabel` values and `Waypoints` sequences to
+cover the omit-unlabelled, longest-segment-midpoint, and collision-avoidance requirements.
+
+### Test Environment
+
+- **Framework**: xUnit v3 running under the .NET SDK on `net8.0`, `net9.0`, and `net10.0`.
+- **Execution**: `dotnet test` invoked by `build.ps1` and by the CI pipeline.
+- **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`ConnectorLabelPlacerTests.cs`).
+- **External dependencies**: none; the tests use only in-memory geometry inputs.
+
+### Acceptance Criteria
+
+The unit is considered verified when every scenario listed below passes. Each test must produce the
+documented label position (or omit the line from the result); any wrong coordinate, wrong number of
+entries in the returned dictionary, or unexpected exception constitutes a failure.
+
+### Test Scenarios
 
 #### Unlabelled line is omitted
 

@@ -57,6 +57,31 @@ Null `boxes`, `connections`, `connection`, `options`, or a connection's `From`/`
 `ArgumentNullException`. An `EdgeRouting` value with no shipped router throws `NotSupportedException`;
 this is unreachable today because `Orthogonal` is the only enum value, but guards future additions.
 
+### ConnectorRouter Dependencies
+
+`ConnectorRouter` depends on the following items:
+
+- **Rendering model** (`DemaConsulting.Rendering`) — the `LayoutBox`, `LayoutLine`, `Point2D`, `Rect`,
+  `PortSide`, `EndMarkerStyle`, `LineStyle`, and `EdgeRouting` value types used to describe placed
+  boxes and produced route lines.
+- **Engine subsystem** (`OrthogonalEdgeRouter` unit) — the internal orthogonal path-finding engine
+  invoked by `RouteWithStatus` for the `EdgeRouting.Orthogonal` style. See _OrthogonalEdgeRouter Unit
+  Design_.
+
+No OTS runtime component or shared package is consumed.
+
+### ConnectorRouter Callers
+
+`ConnectorRouter` is used by units that have already placed boxes and need to draw connectors among
+them:
+
+- **HierarchicalLayoutAlgorithm** — calls `ConnectorRouter.Route` at each hierarchical scope to route
+  cross-container edges around sibling containers after the leaf algorithms have placed the
+  containers themselves. See _HierarchicalLayoutAlgorithm Unit Design_.
+- **External application code** — any caller that supplies its own placed `LayoutBox` list (for
+  example from a containment or free-form placement produced outside the layered pipeline) and needs
+  routed `LayoutLine` connectors to drop into a `LayoutTree`.
+
 ### ConnectorRouter Interactions
 
 `ConnectorRouter` consumes the `LayoutBox`, `LayoutLine`, `Point2D`, `Rect`, `PortSide`,

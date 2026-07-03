@@ -2,6 +2,14 @@
 
 Part of the Rendering.Svg system.
 
+### Purpose
+
+`SvgRenderer` has a single responsibility: translate a placed `LayoutTree` into a self-contained
+SVG 1.1 document written as UTF-8 bytes to a caller-supplied `Stream`. It realizes the
+`IRenderer` contract from `DemaConsulting.Rendering.Abstractions` for the vector output path.
+It does not perform layout, mutate the model, choose a theme, own the output stream, or persist
+the emitted bytes; those responsibilities remain with the caller and with upstream systems.
+
 ### SvgRenderer Overview
 
 `SvgRenderer` implements the `IRenderer` interface to produce SVG 1.1 diagram output from a

@@ -2,7 +2,7 @@
 
 Part of the Rendering Abstractions system.
 
-### Notation Metrics Overview
+### Notation Metrics Purpose
 
 The Notation Metrics unit is the single home for all intrinsic, theme-independent notation geometry
 shared by the SVG and PNG renderers: end-marker (arrowhead) shapes and sizes, the port square,
@@ -32,6 +32,36 @@ units, shared by the hollow and filled diamonds. The far point lands exactly on 
 
 `double RoundedRectRadius(Theme theme)` — returns the theme corner radius scaled by
 `RoundedRectCornerFactor`.
+
+### Notation Metrics Error Handling
+
+The constants and static helpers on `NotationMetrics` are pure functions. `RoundedRectRadius(Theme)`
+validates its `theme` argument with `ArgumentNullException.ThrowIfNull` and propagates the resulting
+`ArgumentNullException` to the caller. `AlongLineLength(EndMarkerStyle)` returns `0.0` for
+`EndMarkerStyle.None` and for any other value returns the documented marker box length; it does not
+throw for out-of-range enum values, treating them the same as `None`. The `TriangleVertices` and
+`DiamondVertices` helpers take no arguments, cannot fail, and return the same immutable
+`IReadOnlyList<MarkerVertex>` on every call. `MarkerVertex` is a readonly record struct with two
+`double` fields and has no failure modes. No logging is performed.
+
+### Notation Metrics Dependencies
+
+- **Theme Unit** (same system) — `RoundedRectRadius(Theme)` reads `Theme.LineCornerRadius`; no other
+  helper on `NotationMetrics` depends on `Theme`.
+- **Rendering Model system (`DemaConsulting.Rendering`)** — the `EndMarkerStyle` enum is defined in
+  the rendering model and is the parameter type for `AlongLineLength`.
+- **.NET base class library** — `System.Collections.Generic.IReadOnlyList<T>` for the vertex lists.
+  No third-party runtime packages are consumed.
+
+### Notation Metrics Callers
+
+- **Rendering.Svg `SvgRenderer` unit** — reads the marker constants and calls the vertex helpers to
+  emit the `<marker>` elements and box decorations.
+- **Rendering.Skia renderers** — read the same constants and helpers to draw identical decorations on
+  the raster surface.
+- **Rendering.Layout edge routers (`OrthogonalEdgeRouter`, `InterconnectionLayoutEngine`)** — call
+  `AlongLineLength(EndMarkerStyle)` to reserve clean approach length for the end marker before the
+  final endpoint.
 
 ### Notation Metrics Design Constraints
 

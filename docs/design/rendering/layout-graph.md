@@ -2,6 +2,15 @@
 
 Part of the Rendering Model system.
 
+### Layout Graph Purpose
+
+The Layout Graph unit's single responsibility is to define the unplaced input model that a layout
+algorithm consumes: a `LayoutGraph` container of `LayoutGraphNode` boxes and `LayoutGraphEdge`
+connections, each derived from `PropertyHolder` so that graph-wide, node-level, and edge-level
+options may be attached anywhere on the input. It supports hierarchical (compound) nesting through a
+node's lazily-allocated `Children` graph. The unit performs no layout and no rendering; it is only
+the input vocabulary passed to `ILayoutAlgorithm.Apply`.
+
 ### Layout Graph Overview
 
 The Layout Graph unit is the unplaced input to a layout algorithm: a set of sized `LayoutGraphNode`
@@ -54,6 +63,19 @@ guarantees.
 child without forcing the lazy allocation, so consumers can distinguish a container from a leaf and
 skip empty containers.
 
+### Layout Graph Error Handling
+
+Invalid inputs are rejected at their entry point rather than deferred to layout time. The
+`LayoutGraphNode` and `LayoutGraphEdge` constructors call `ArgumentException.ThrowIfNullOrEmpty(id)`
+so that a null or empty identifier throws `ArgumentException` (or `ArgumentNullException` for null),
+and `LayoutGraphEdge` additionally calls `ArgumentNullException.ThrowIfNull` on its `source` and
+`target`. `LayoutGraph.AddNode` and `LayoutGraph.AddEdge` throw `ArgumentException` when the supplied
+identifier is already used within that container scope (the same identifier may be reused in a
+different `Children` scope). All exceptions propagate to the caller unchanged; the unit performs no
+recovery and no logging. Cross-container endpoint references are not validated — the model
+deliberately permits them so that a hierarchical layout engine can resolve cross-container edges in
+the appropriate ancestor container.
+
 ### Layout Graph Design Constraints
 
 - `AddNode` and `AddEdge` shall preserve caller insertion order in `Nodes` and `Edges`, so that a
@@ -74,6 +96,25 @@ skip empty containers.
   the descendant nodes directly; the model shall not add membership validation that would forbid such
   cross-scope references. A hierarchical layout engine resolves the routing in the owning container's
   coordinate space.
+
+### Layout Graph Dependencies
+
+The unit depends on the Options unit within the Rendering model (`LayoutGraph`, `LayoutGraphNode`,
+and `LayoutGraphEdge` all derive from `PropertyHolder`, and each element carries `LayoutProperty<T>`
+overrides). It also consumes the shared notation enumerations `EndMarkerStyle` and `LineStyle`
+declared by the Layout Tree unit, on `LayoutGraphEdge`. Outside the Rendering model, the unit has no
+project references, no OTS runtime component, and no Shared Package dependency; it uses only the
+.NET base class library.
+
+### Layout Graph Callers
+
+Application code constructs a `LayoutGraph` and populates it through `AddNode`, `AddEdge`, and (for
+compound diagrams) the recursive `LayoutGraphNode.Children` graph. The populated graph is passed to
+`ILayoutAlgorithm.Apply` in `DemaConsulting.Rendering.Abstractions`, which is implemented by the
+`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`, and `HierarchicalLayoutAlgorithm` in
+`DemaConsulting.Rendering.Layout`. The bundled `LayeredLayoutAlgorithm` consumes only the top-level
+`Nodes` and `Edges`; the recursive `Children` structure is consumed by the hierarchical layout
+engine.
 
 ### Layout Graph Interactions
 

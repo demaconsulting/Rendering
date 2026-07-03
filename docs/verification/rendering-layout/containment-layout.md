@@ -4,7 +4,32 @@ Part of the Rendering Layout Verification.
 
 This document maps the containment-layout unit requirements to named test scenarios.
 
-### ContainmentLayout Scenarios
+### Verification Approach
+
+`ContainmentLayout` (the public containment packing entry point) is verified by direct xUnit unit
+tests that call `Pack(children, options)` on synthetic child lists. No mocks are used; the tests
+exercise the real packing algorithm and its underlying `ContainmentPacker` engine end-to-end so
+ordering, wrapping, region sizing, and field preservation are all observed on production output.
+
+### Test Environment
+
+- **Framework**: xUnit v3 running on the .NET SDK.
+- **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutTests.cs`.
+- **Dependencies**: no external services, files, or network access; every test constructs its own
+  in-memory child list and `ContainmentOptions` instance.
+- **Isolation**: each test builds its own inputs; the unit is stateless between calls.
+
+### Acceptance Criteria
+
+A verification run passes when every named scenario below asserts without unexpected exception, and
+the referenced tests cover each `Rendering-Layout-ContainmentLayout-*` requirement. Any overlap
+between packed children, child positioned outside the reported region, wrong wrapping behavior for
+overflowing or oversized children, lost non-position field (label, depth, shape, compartments,
+nested children, keyword), drift in default gaps or padding, or non-argument-null exception for
+invalid input constitutes a failure.
+
+### Test Scenarios
 
 - **Order preserved** (`Rendering-Layout-ContainmentLayout-Order`):
   `Pack_ItemsFitInRow_PreservesOrderLeftToRight` confirms the packed children keep their input order,

@@ -9,7 +9,30 @@ verification strategy, test environment, and acceptance criteria are described i
 system verification document; the test project is
 `DemaConsulting.Rendering.Abstractions.Tests` (`NotationMetricsTests.cs`).
 
-### Notation Metrics Unit Scenarios
+### Verification Approach
+
+The notation-metrics unit is verified with in-process xUnit unit tests that read the public
+constants and call the static helpers on `NotationMetrics` and the `MarkerVertex` record struct
+directly. No mocking, dependency injection, or filesystem access is used. Where a helper takes a
+`Theme` argument (`RoundedRectRadius(Theme)`), the tests pass one of the built-in `Themes` so the
+inputs are deterministic. The tests both assert the canonical constant values (for example the
+triangle 10x7 box) and reproduce the historical SVG marker points to prove the shared vertices
+match the values shipped previously.
+
+### Test Environment
+
+- **Framework**: xUnit v3 running under the .NET SDK on `net8.0`, `net9.0`, and `net10.0`.
+- **Execution**: `dotnet test` invoked by `build.ps1` and by the CI pipeline.
+- **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`NotationMetricsTests.cs`).
+- **External dependencies**: none.
+
+### Acceptance Criteria
+
+The unit is considered verified when every scenario listed below passes. Each test must return the
+documented constant, derived value, or vertex list; any drift in a canonical value, in a derived
+proportion, or in the vertex geometry constitutes a failure.
+
+### Test Scenarios
 
 #### Triangle marker geometry is canonical
 

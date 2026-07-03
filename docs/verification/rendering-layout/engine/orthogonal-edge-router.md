@@ -4,7 +4,32 @@ Part of the Rendering Layout Verification.
 
 This document maps the OrthogonalEdgeRouter unit requirements to named test scenarios.
 
-#### OrthogonalEdgeRouter Unit Scenarios
+#### Verification Approach
+
+`OrthogonalEdgeRouter` is a stateless static engine, so verification is by direct xUnit unit tests
+that call `Route` and `RouteWithStatus` on synthetic anchor / obstacle inputs. No mocks are used;
+the tests observe the real grid construction, A\*-style search, clearance-retry ladder, and cost-
+band biasing so orthogonality, obstacle avoidance, clearance, perpendicular ends, and crossing
+status are all measured on production output.
+
+#### Test Environment
+
+- **Framework**: xUnit v3 running on the .NET SDK.
+- **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/Engine/OrthogonalEdgeRouterTests.cs`.
+- **Dependencies**: no external services, files, or network access; every test constructs its own
+  in-memory `Point2D` anchors and `Rect` obstacle lists.
+- **Isolation**: each test builds its own inputs; the engine holds no state between calls.
+
+#### Acceptance Criteria
+
+A verification run passes when every named scenario below asserts without unexpected exception, and
+the referenced tests cover each `Rendering-Layout-OrthogonalEdgeRouter-*` requirement. Any drift in
+the orthogonality of returned waypoints, entry of a segment into an obstacle interior when a clean
+route exists, failure to keep the requested clearance, non-perpendicular exit or entry at a
+supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a failure.
+
+#### Test Scenarios
 
 - **Orthogonal path** (`Rendering-Layout-OrthogonalEdgeRouter-Orthogonal`):
   `Route_NoObstacles_ProducesOrthogonalPath` asserts consecutive waypoints share an X or Y

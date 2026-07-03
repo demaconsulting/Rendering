@@ -46,6 +46,30 @@ Null `source`, `target`, or `obstacles` arguments throw `ArgumentNullException`.
 never throws: when no clean route exists the router returns a crossing route with `Crossed = true`
 rather than failing, leaving the decision to surface a warning to the caller.
 
+#### OrthogonalEdgeRouter Dependencies
+
+`OrthogonalEdgeRouter` depends on the following items:
+
+- **Rendering model** (`DemaConsulting.Rendering`) — the `Point2D` value type for anchors, the
+  `Rect` value type for obstacles, the `PortSide` enumeration for perpendicular stub direction, and
+  the `CostBand` record for corridor cost biasing.
+- **.NET base class library** — no other runtime dependency.
+
+No OTS runtime component or shared package is consumed.
+
+#### OrthogonalEdgeRouter Callers
+
+`OrthogonalEdgeRouter` is a leaf engine invoked wherever a single connector must be routed
+orthogonally through an obstacle field:
+
+- **ConnectorRouter** — dispatches to `RouteWithStatus` for every connection routed under the
+  `EdgeRouting.Orthogonal` style. See _ConnectorRouter Unit Design_.
+- **LayeredPipeline** (`OrthogonalRouter` stage) — routes individual layered-pipeline edges through
+  the same engine so pipeline routes and free-form routes share one implementation. See _Layered
+  Pipeline Unit Design_.
+
+The `Crossed` flag returned by `RouteWithStatus` feeds each caller's layout-warning handling.
+
 #### OrthogonalEdgeRouter Interactions
 
 `OrthogonalEdgeRouter` depends only on the `Point2D` and `Rect` geometric value types and the `PortSide`

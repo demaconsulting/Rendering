@@ -4,7 +4,37 @@ Part of the Rendering Layout Verification.
 
 This document maps the hierarchical-layout-algorithm unit requirements to named test scenarios.
 
-### HierarchicalLayoutAlgorithm Scenarios
+### Verification Approach
+
+`HierarchicalLayoutAlgorithm` is verified by direct xUnit unit tests that call `Apply(graph,
+options)` on synthetic flat and nested `LayoutGraph` inputs. The tests use the real bundled leaf
+algorithms (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`) rather than mocks, so
+per-scope resolution, container sizing, cross-container routing through `ConnectorRouter`, and the
+flat-graph equivalence fast path are all observed on production code paths. A subset of tests
+deep-compares the algorithm's `LayoutTree` output against the leaf algorithm applied directly on
+hundreds of pseudo-random flat graphs to prove byte-identical behavior.
+
+### Test Environment
+
+- **Framework**: xUnit v3 running on the .NET SDK.
+- **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs`.
+- **Dependencies**: no external services, files, or network access; every test constructs its own
+  in-memory `LayoutGraph` and `LayoutOptions` instances. Deterministic pseudo-random graphs use
+  fixed seeds so the equivalence suite is reproducible.
+- **Isolation**: each test builds its own inputs; the algorithm and its default registry are
+  stateless between calls.
+
+### Acceptance Criteria
+
+A verification run passes when every named scenario below asserts without unexpected exception, and
+the referenced tests cover each `Rendering-Layout-HierarchicalLayout-*` requirement. Any drift in
+the stable identifier (`"hierarchical"`), in the flat-graph byte-equivalence guarantee, in
+container sizing (padding, title band), in per-scope algorithm resolution, in cross-container
+LCA edge routing, or in the argument-null validation behavior constitutes a failure. Mutation of
+input node sizes also constitutes a failure.
+
+### Test Scenarios
 
 - **Identity** (`Rendering-Layout-HierarchicalLayout-Identity`): `Id_IsHierarchical` asserts the engine
   reports the stable `"hierarchical"` identifier.
