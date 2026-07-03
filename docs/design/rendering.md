@@ -1,20 +1,14 @@
 # Rendering Model Design
 
-## Overview
+## Architecture
 
-`DemaConsulting.Rendering` is the SysML-agnostic rendering model. It defines the data types that
-flow through the rendering pipeline but contains no layout algorithm and no renderer. It provides
-three things: the placed `LayoutTree` intermediate representation that a renderer draws, the open
-(ELK-inspired) property-based option system that carries configuration, and the unplaced
-`LayoutGraph` input that a layout algorithm consumes. The package has no runtime dependencies beyond
-the .NET base class library, and its types are immutable records or small mutable holders.
+`DemaConsulting.Rendering` is the SysML-agnostic rendering model. It defines the data types that flow
+through the rendering pipeline but contains no layout algorithm and no renderer. It provides three
+things: the placed `LayoutTree` intermediate representation that a renderer draws, the open
+(ELK-inspired) property-based option system that carries configuration, and the unplaced `LayoutGraph`
+input that a layout algorithm consumes.
 
-A layout algorithm consumes a `LayoutGraph` plus a `LayoutOptions` and produces a placed
-`LayoutTree`; a renderer then draws that tree. This document describes the model that sits at both
-ends of that flow. The algorithm and renderer contracts themselves live in the
-*Rendering Abstractions* system.
-
-## Software Structure
+The system is composed of three units:
 
 ```text
 DemaConsulting.Rendering (System)
@@ -24,46 +18,71 @@ DemaConsulting.Rendering (System)
 ```
 
 - **Layout Tree** — the placed intermediate representation: `LayoutTree` and the `LayoutNode`
-  discriminated-union hierarchy of concrete node records, plus the shared `Point2D` / `Rect`
-  geometry value types. Detailed in Layout Tree Unit Design.
+  discriminated-union hierarchy of concrete node records, plus the shared `Point2D` / `Rect` geometry
+  value types. Detailed in Layout Tree Unit Design.
 - **Options** — the open configuration system: `LayoutProperty<T>`, `IPropertyHolder`,
   `PropertyHolder`, `LayoutOptions`, `CoreOptions`, `LayoutFlowDirection`, and `HierarchyHandling`.
   Detailed in Options Unit Design.
 - **Layout Graph** — the unplaced input model: `LayoutGraph`, `LayoutGraphNode`, `LayoutGraphEdge`.
   Detailed in Layout Graph Unit Design.
 
-## System Interactions
-
-A `LayoutGraph` plus a `LayoutOptions` is the input consumed by an `ILayoutAlgorithm` (defined in the
-*Rendering Abstractions* system); the algorithm produces a placed `LayoutTree`, which an `IRenderer`
-then draws to a concrete output format. The Options unit's `PropertyHolder` is the base type for the
+The units collaborate through the Options unit's `PropertyHolder`, which is the base type for the
 Layout Graph elements, so configuration flows from the input model into the algorithms uniformly. The
-model itself performs no layout and no rendering; it defines only the shared vocabulary at both ends
-of the pipeline.
+model performs no layout and no rendering; it defines only the shared vocabulary at both ends of the
+pipeline. A layout algorithm (defined in the *Rendering Abstractions* system) consumes a `LayoutGraph`
+plus a `LayoutOptions` and produces a placed `LayoutTree`; a renderer then draws that tree.
 
-## Requirements Traceability
+## External Interfaces
 
-| Requirement ID | Satisfied by |
-| --- | --- |
-| Rendering-Model-LayoutTree | The `LayoutTree` and `LayoutNode` hierarchy (see Layout Tree Unit Design) |
-| Rendering-Model-Configuration | The `IPropertyHolder` / `LayoutProperty<T>` option system (see Options Unit Design) |
-| Rendering-Model-InputGraph | The `LayoutGraph` input model (see Layout Graph Unit Design) |
+The model exposes its contract as public .NET types rather than service interfaces:
 
-## Model Scope Exclusions
+- **`LayoutGraph` (with `LayoutGraphNode`, `LayoutGraphEdge`)** — outbound to layout algorithms; the
+  unplaced input a caller builds and an `ILayoutAlgorithm` consumes. In-memory object model.
+- **`LayoutOptions` / `IPropertyHolder` / `LayoutProperty<T>` / `CoreOptions`** — outbound to both
+  algorithms and renderers; typed property keys carried on any property holder. Unknown properties
+  are ignored, so callers may set options that a given algorithm or renderer does not honor.
+- **`LayoutTree` (with the `LayoutNode` hierarchy, `Point2D`, `Rect`)** — outbound to renderers; the
+  placed representation an `IRenderer` draws. Immutable records with absolute coordinates.
 
-The following public members are optional presentation or diagnostic metadata that the model carries
-through unchanged. The
-model's only obligation is to store and return them unchanged; they carry no algorithmic behavior of
-their own, and the rendered behavior they influence is specified and verified in the renderer systems
-(`DemaConsulting.Rendering.Svg` / `DemaConsulting.Rendering.Skia`), not in the model. They are
-therefore intentionally excluded from the Rendering-Model requirement set and are not given
-individual functional requirements or verification scenarios:
+All interfaces are in-process .NET APIs; there are no network, file, or wire-format contracts.
 
-| Member | Kind | Rationale |
-| --- | --- | --- |
-| `LayoutBox.Keyword` | presentation | Optional SysML keyword drawn above the box label; renderer pass-through. |
-| `LayoutTree.Warnings` | diagnostic | Non-fatal layout-quality diagnostics; advisory only. |
-| `LayoutGraphNode.Label` | input-graph presentation | Optional display text carried to the renderer. |
-| `LayoutGraphEdge.Label` | input-graph presentation | Optional midpoint display text carried to the renderer. |
-| `LayoutGraphEdge.TargetEnd` | input-graph presentation | Optional end-marker style hint carried to the renderer. |
-| `LayoutGraphEdge.LineStyle` | input-graph presentation | Optional stroke-style hint carried to the renderer. |
+## Dependencies
+
+The model has no project references and no runtime NuGet package dependencies beyond the .NET base
+class library. Build-time-only packages (SBOM generation, SourceLink, API documentation, and
+`Polyfill` for newer BCL surface on older target frameworks) are private build assets and are not part
+of the delivered runtime surface. No OTS runtime component or Shared Package is consumed.
+
+## Risk Control Measures
+
+N/A - general-purpose rendering libraries carry no safety-related risk controls requiring
+architectural segregation (IEC 62304 §5.3.3).
+
+## Data Flow
+
+The model sits at both ends of the rendering pipeline:
+
+```text
+LayoutGraph + LayoutOptions        (Rendering: unplaced input + open configuration)
+        │
+        ▼  ILayoutAlgorithm        (Rendering.Abstractions: layout SPI)
+    LayoutTree                     (Rendering: placed boxes and routed connectors)
+        │
+        ▼  IRenderer               (Rendering.Abstractions: render SPI)
+    SVG / PNG / JPEG / WEBP output
+```
+
+Input flows in as a `LayoutGraph` and a `LayoutOptions`; a layout algorithm reads the graph and its
+properties and emits a placed `LayoutTree`; a renderer reads that tree and writes a concrete output
+format. The model itself only defines and carries these values; it neither transforms nor emits them.
+
+## Design Constraints
+
+- **Target frameworks**: `net8.0`, `net9.0`, and `net10.0`.
+- **Determinism and immutability**: the placed types are immutable records or small mutable holders;
+  stored values are returned unchanged so layout and rendering are reproducible.
+- **Absolute coordinates**: `LayoutTree` node geometry uses absolute coordinates, not color- or
+  depth-relative encodings, so any renderer can draw the tree without re-deriving placement.
+- **Zero runtime dependencies**: the model depends only on the .NET base class library, keeping it a
+  neutral shared vocabulary that every upstream and downstream package can reference without pulling
+  in additional runtime components.
