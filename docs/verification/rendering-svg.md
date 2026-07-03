@@ -4,7 +4,7 @@ This document describes the system-level verification design for the `DemaConsul
 system and links to the per-unit verification document for its single unit. Detailed per-requirement
 scenarios live in SvgRenderer Unit Verification.
 
-## Verification Strategy
+## Verification Approach
 
 The SVG system is verified through in-process xUnit tests that render placed `LayoutTree` inputs and
 assert on the emitted SVG markup. The system-level smoke scenario exercises the public `IRenderer.Render`
@@ -30,7 +30,7 @@ SvgRenderer Unit Verification pass without unexpected exception. Any missing SVG
 wrong renderer metadata, wrong emitted element or attribute, malformed XML escaping, or marker geometry
 that does not match `NotationMetrics` constitutes a failure.
 
-## System Requirements Coverage
+## Test Scenarios
 
 The system requirement is satisfied through the SvgRenderer unit scenarios; the representative
 system-level scenario is:

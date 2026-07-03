@@ -10,7 +10,7 @@ scenarios live in the unit documents:
 - Options Unit Verification
 - Layout Graph Unit Verification
 
-## Verification Strategy
+## Verification Approach
 
 The rendering model is a pure data-and-configuration library with no I/O, so it is verified entirely
 through in-process unit tests that construct the model types and assert on their observable state.
@@ -34,7 +34,7 @@ A verification run passes when every scenario in this system document and in the
 passes without error or unexpected exception. Any wrong stored value, wrong type, or unexpected
 exception constitutes a failure.
 
-## System Requirements Coverage
+## Test Scenarios
 
 The system requirements are satisfied through the unit scenarios documented in the per-unit
 verification files; the representative system-level scenarios are:

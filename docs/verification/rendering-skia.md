@@ -11,7 +11,7 @@ unit documents:
 - JpegRenderer Unit Verification
 - WebpRenderer Unit Verification
 
-## Verification Strategy
+## Verification Approach
 
 The Skia renderers are verified by unit tests that render small layout trees and assert on the produced
 bytes. Format is checked by the encoded file signature (PNG signature, JPEG Start-Of-Image marker, WEBP
@@ -35,7 +35,7 @@ A verification run passes when every scenario in this system document and in the
 passes without error or unexpected exception. Any wrong encoded signature, media type, file extension,
 pixel colour, marker geometry, or unexpected exception constitutes a failure.
 
-## System Requirements Coverage
+## Test Scenarios
 
 The system requirement is satisfied through the unit scenarios documented in the per-unit verification
 files; the representative system-level scenarios are:

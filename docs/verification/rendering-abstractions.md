@@ -13,7 +13,7 @@ per-requirement scenarios live in the unit documents:
 - Box Metrics Unit Verification
 - Connector Label Placer Unit Verification
 
-## Verification Strategy
+## Verification Approach
 
 The abstractions system is verified through in-process unit tests. The contract interfaces
 (`ILayoutAlgorithm`, `IRenderer`) are exercised through minimal fake implementations that the registry
@@ -38,7 +38,7 @@ A verification run passes when every scenario in this system document and in the
 passes without error or unexpected exception. Any wrong returned value, wrong geometry, or unexpected
 exception constitutes a failure.
 
-## System Requirements Coverage
+## Test Scenarios
 
 The system requirements are satisfied through the unit scenarios documented in the per-unit
 verification files; the representative system-level scenarios are:
