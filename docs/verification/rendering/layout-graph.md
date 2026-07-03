@@ -4,12 +4,34 @@ Part of the Rendering Model Verification.
 
 This document describes the verification design for the layout-graph unit of the
 `DemaConsulting.Rendering` system. It maps every layout-graph unit requirement to at least one named
-test scenario so a reviewer can confirm coverage without reading the test code. The verification
-strategy, test environment, and acceptance criteria are described in the
-system verification document; the test project is `DemaConsulting.Rendering.Tests`
-(`LayoutGraphTests.cs`).
+test scenario so a reviewer can confirm coverage without reading the test code. The test project is
+`DemaConsulting.Rendering.Tests` (`LayoutGraphTests.cs`).
 
-### Layout Graph Unit Scenarios
+### Verification Approach
+
+`LayoutGraph` is verified by direct in-process xUnit unit tests against the real `LayoutGraph`,
+`LayoutGraphNode`, and `LayoutGraphEdge` types. The unit is a pure in-memory model, so no mocking or
+test doubles are required: each scenario constructs a graph, performs the node/edge operation under
+test, and asserts on the returned objects, graph contents, per-container scoping behavior, or thrown
+exceptions.
+
+### Test Environment
+
+- **Framework**: xUnit v3 running on the .NET SDK.
+- **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
+- **Project**: `test/DemaConsulting.Rendering.Tests/LayoutGraphTests.cs`.
+- **Target frameworks**: .NET 8, .NET 9, and .NET 10.
+- **Dependencies**: no external services, files, or network access; every test uses only in-memory
+  graph objects.
+
+### Acceptance Criteria
+
+A verification run passes when every named scenario below executes without unexpected exception and
+the observed graph structure matches the requirement under test. Any wrong node or edge count, wrong
+per-container scoping behavior, wrong stored property value, or unexpected exception constitutes a
+failure.
+
+### Test Scenarios
 
 #### AddNode appends and returns the node
 
