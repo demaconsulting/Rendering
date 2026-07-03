@@ -14,11 +14,14 @@ system verification document; the test project is
 The registries unit is verified with in-process xUnit unit tests that exercise
 `LayoutAlgorithmRegistry` and `RendererRegistry` directly, without mocks or stubs of the
 `Dictionary`-based backing storage. Two minimal test-local fakes provide the interface
-implementations under test: `FakeAlgorithm` implements `ILayoutAlgorithm` with a fixed `Id` and a
-no-op `Apply`; `FakeRenderer` implements `IRenderer` with a fixed `MediaType`, `DefaultExtension`,
-and `FileExtensions` and a no-op `Render`. All registry instances are created inside each test so
-no state leaks between tests, and the `KeyNotFoundException` behaviour is verified with
-`Assert.Throws`.
+implementations under test: `FakeAlgorithm` implements `ILayoutAlgorithm` with a fixed `Id` and an
+`Apply` that returns a `LayoutTree` with fixed, distinguishable `PlacedWidth`/`PlacedHeight` values;
+`FakeRenderer` implements `IRenderer` with a fixed `MediaType`, `DefaultExtension`, and
+`FileExtensions` and a `Render` that writes a fixed, distinguishable `RenderedText` string to the
+output stream. Both fakes produce deterministic, checkable output specifically so the registry tests
+can assert that the resolved instance's `Apply`/`Render` was actually invoked, not merely that the
+registry resolved the correct type. All registry instances are created inside each test so no state
+leaks between tests, and the `KeyNotFoundException` behaviour is verified with `Assert.Throws`.
 
 ### Test Environment
 

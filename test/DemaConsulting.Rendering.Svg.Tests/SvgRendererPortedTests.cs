@@ -341,9 +341,9 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = ReadAllText(output);
+        var body = BodyAfterDefs(ReadAllText(output));
         Assert.True(
-            svgText.Split("<circle", StringSplitOptions.None).Length - 1 >= 2,
+            body.Split("<circle", StringSplitOptions.None).Length - 1 >= 2,
             "Expected the bullseye badge to render two circle elements.");
     }
 
@@ -366,8 +366,8 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = ReadAllText(output);
-        Assert.Contains("<polygon", svgText, StringComparison.Ordinal);
+        var body = BodyAfterDefs(ReadAllText(output));
+        Assert.Contains("<polygon", body, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -389,8 +389,8 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = ReadAllText(output);
-        Assert.Contains("<line", svgText, StringComparison.Ordinal);
+        var body = BodyAfterDefs(ReadAllText(output));
+        Assert.Contains("<line", body, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -412,8 +412,8 @@ public sealed class SvgRendererPortedTests
 
         // Assert
         output.Position = 0;
-        var svgText = ReadAllText(output);
-        Assert.Contains("<line", svgText, StringComparison.Ordinal);
+        var body = BodyAfterDefs(ReadAllText(output));
+        Assert.Contains("<line", body, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -661,5 +661,18 @@ public sealed class SvgRendererPortedTests
     {
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
         return reader.ReadToEnd();
+    }
+
+    /// <summary>
+    ///     Returns the SVG body content that follows the shared <c>&lt;defs&gt;</c> marker-definitions
+    ///     block, so element-shape assertions (circle/polygon/line, etc.) verify the actual badge
+    ///     rendering rather than incidentally matching the same element types used by end markers.
+    /// </summary>
+    /// <param name="svgText">The full rendered SVG document text.</param>
+    /// <returns>The substring of <paramref name="svgText"/> after the closing <c>&lt;/defs&gt;</c> tag.</returns>
+    private static string BodyAfterDefs(string svgText)
+    {
+        var index = svgText.IndexOf("</defs>", StringComparison.Ordinal);
+        return index < 0 ? svgText : svgText[(index + "</defs>".Length)..];
     }
 }
