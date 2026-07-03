@@ -22,15 +22,15 @@ padding plus, conditionally, a keyword line and a name line, each followed by a 
 
 ### Box Metrics Error Handling
 
-Both helpers are pure arithmetic over the fields of the supplied `Theme`. `FolderTabHeight(Theme)`
-and `TitleAreaHeight(Theme, bool, bool)` currently perform no explicit argument validation and, per
-the C# language contract, dereferencing a `null` theme parameter will raise a
-`NullReferenceException` at the point of the first property access. Callers are therefore expected
-to pass a non-null theme (the built-in `Themes.Light`, `Themes.Dark`, and `Themes.Print`, or a
-caller-constructed instance). The helpers do not catch or transform any exception raised by
-`Theme` property accessors, and no logging is performed. No other error paths exist: the helpers
-never throw for boundary combinations of `hasLabel` and `hasKeyword`, and the empty-title case
-(`hasLabel == false && hasKeyword == false`) is handled explicitly by returning `0.0`.
+Both helpers validate their `theme` argument with `ArgumentNullException.ThrowIfNull` and propagate
+the resulting `ArgumentNullException` to the caller — the same fail-fast contract used by the
+sibling `NotationMetrics` unit. Callers therefore receive a clear, documented exception (rather than
+an undocumented `NullReferenceException`) when a `null` theme is supplied. Beyond that guard, both
+helpers are pure arithmetic over the fields of the supplied `Theme`: they do not catch or transform
+any exception raised by `Theme` property accessors, and no logging is performed. No other error
+paths exist: the helpers never throw for boundary combinations of `hasLabel` and `hasKeyword`, and
+the empty-title case (`hasLabel == false && hasKeyword == false`) is handled explicitly by
+returning `0.0`.
 
 ### Box Metrics Dependencies
 
@@ -66,3 +66,4 @@ renderers (SVG and PNG systems) and by the box layout strategies (*Rendering Lay
 | --- | --- |
 | Rendering-Abstractions-BoxMetrics-FolderTabHeight | `BoxMetrics.FolderTabHeight` |
 | Rendering-Abstractions-BoxMetrics-TitleAreaHeight | `BoxMetrics.TitleAreaHeight` |
+| Rendering-Abstractions-BoxMetrics-RejectNullTheme | `FolderTabHeight`/`TitleAreaHeight` null-argument guard |

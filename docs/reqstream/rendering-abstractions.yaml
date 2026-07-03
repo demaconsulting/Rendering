@@ -77,6 +77,7 @@ sections:
           - Rendering-Abstractions-NotationMetrics-LabelBackground
           - Rendering-Abstractions-BoxMetrics-FolderTabHeight
           - Rendering-Abstractions-BoxMetrics-TitleAreaHeight
+          - Rendering-Abstractions-BoxMetrics-RejectNullTheme
           - Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled
           - Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment
           - Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap

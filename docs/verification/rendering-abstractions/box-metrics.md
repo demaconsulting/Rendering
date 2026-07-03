@@ -51,8 +51,18 @@ and that a keyword-and-name box reserves padding plus both lines.
 
 **Covers**: `Rendering-Abstractions-BoxMetrics-TitleAreaHeight`.
 
+#### Null theme is rejected
+
+Tests `BoxMetrics_FolderTabHeight_NullTheme_ThrowsArgumentNullException` and
+`BoxMetrics_TitleAreaHeight_NullTheme_ThrowsArgumentNullException` call each helper with a `null`
+theme and assert that an `ArgumentNullException` is thrown.
+
+**Covers**: `Rendering-Abstractions-BoxMetrics-RejectNullTheme`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-BoxMetrics-FolderTabHeight`**: BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding
 - **`Rendering-Abstractions-BoxMetrics-TitleAreaHeight`**: BoxMetrics_TitleAreaHeight_NoLabelNoKeyword_IsZero,
   BoxMetrics_TitleAreaHeight_LabelOnly_ReservesTitleLine, BoxMetrics_TitleAreaHeight_LabelAndKeyword_ReservesBothLines
+- **`Rendering-Abstractions-BoxMetrics-RejectNullTheme`**: BoxMetrics_FolderTabHeight_NullTheme_ThrowsArgumentNullException,
+  BoxMetrics_TitleAreaHeight_NullTheme_ThrowsArgumentNullException

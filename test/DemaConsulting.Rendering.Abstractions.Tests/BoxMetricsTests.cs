@@ -72,4 +72,32 @@ public sealed class BoxMetricsTests
             theme.LabelPadding + theme.FontSizeBody + theme.LabelPadding + theme.FontSizeTitle + theme.LabelPadding,
             height);
     }
+
+    /// <summary>A null theme is rejected with an <see cref="ArgumentNullException"/>.</summary>
+    [Fact]
+    public void BoxMetrics_FolderTabHeight_NullTheme_ThrowsArgumentNullException()
+    {
+        // Arrange
+        Theme? theme = null;
+
+        // Act
+        void Act() => BoxMetrics.FolderTabHeight(theme!);
+
+        // Assert
+        Assert.Throws<ArgumentNullException>(Act);
+    }
+
+    /// <summary>A null theme is rejected with an <see cref="ArgumentNullException"/>.</summary>
+    [Fact]
+    public void BoxMetrics_TitleAreaHeight_NullTheme_ThrowsArgumentNullException()
+    {
+        // Arrange
+        Theme? theme = null;
+
+        // Act
+        void Act() => BoxMetrics.TitleAreaHeight(theme!, hasLabel: true, hasKeyword: true);
+
+        // Assert
+        Assert.Throws<ArgumentNullException>(Act);
+    }
 }
