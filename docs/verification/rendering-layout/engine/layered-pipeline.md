@@ -49,8 +49,10 @@ nothing is mocked.
   `BrandesKopfPlacer_Apply_ColumnsAreLeftToRightInLayerOrder`, and
   `BrandesKopfPlacer_Apply_SymmetricFork_CentersSourceBetweenTargets`.
 - **Port distribution** (`Rendering-Layout-LayeredPipeline-PortDistribution`):
-  `PortDistributor_Apply_SingleEdge_PortsLieWithinNodeFaces` and
-  `PortDistributor_Apply_AssignsPortYForEverySubEdge`.
+  `PortDistributor_Apply_SingleEdge_PortsLieWithinNodeFaces`,
+  `PortDistributor_Apply_AssignsPortYForEverySubEdge`, and
+  `PortDistributor_Apply_SmallFace_PortsLieWithinNodeFacesWithoutThrowing` (a face smaller than the
+  clearance band degrades gracefully instead of throwing an inverted-clamp `ArgumentException`).
 - **Orthogonal routing** (`Rendering-Layout-LayeredPipeline-OrthogonalRouting`):
   `OrthogonalRouter_Apply_StraightEdge_ProducesNoBendPoints` and
   `OrthogonalRouter_Apply_EveryBendListIsEmptyOrVerticalSegment`.
@@ -113,7 +115,8 @@ nothing is mocked.
   BrandesKopfPlacer_Apply_ColumnsAreLeftToRightInLayerOrder,
   BrandesKopfPlacer_Apply_SymmetricFork_CentersSourceBetweenTargets
 - **`Rendering-Layout-LayeredPipeline-PortDistribution`**:
-  PortDistributor_Apply_SingleEdge_PortsLieWithinNodeFaces, PortDistributor_Apply_AssignsPortYForEverySubEdge
+  PortDistributor_Apply_SingleEdge_PortsLieWithinNodeFaces, PortDistributor_Apply_AssignsPortYForEverySubEdge,
+  PortDistributor_Apply_SmallFace_PortsLieWithinNodeFacesWithoutThrowing
 - **`Rendering-Layout-LayeredPipeline-OrthogonalRouting`**:
   OrthogonalRouter_Apply_StraightEdge_ProducesNoBendPoints,
   OrthogonalRouter_Apply_EveryBendListIsEmptyOrVerticalSegment

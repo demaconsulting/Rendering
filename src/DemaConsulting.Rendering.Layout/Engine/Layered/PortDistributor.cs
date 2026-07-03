@@ -102,12 +102,22 @@ internal sealed class PortDistributor : ILayoutStage
     /// Evenly distributes port Y positions along a node face, with
     /// <see cref="ConnectorClearance"/> inset from the top and bottom edges.
     /// </summary>
+    /// <remarks>
+    /// The requested inset is capped at half the node's cross-extent so a node too small to hold the
+    /// full <see cref="ConnectorClearance"/> on both faces degrades gracefully (ports collapse toward
+    /// the centre) rather than producing an inverted clamp range. This mirrors ELK, which distributes
+    /// ports within the available span and tolerates overlap for fixed-size nodes instead of failing
+    /// the layout. Nodes at least <c>2 &#215; ConnectorClearance</c> tall are unaffected (the cap is a
+    /// no-op), so realistic output is preserved exactly.
+    /// </remarks>
     private static void DistributePorts(
         IReadOnlyList<int> sortedEdgeIndices,
         double nodeTop,
         double nodeHeight,
         double[] portY)
     {
+        // Cap the inset so the [top + inset, top + height - inset] band never inverts for small nodes.
+        var inset = Math.Min(ConnectorClearance, nodeHeight / 2.0);
         var count = sortedEdgeIndices.Count;
         for (var k = 0; k < count; k++)
         {
@@ -118,14 +128,14 @@ internal sealed class PortDistributor : ILayoutStage
             }
             else
             {
-                var usable = nodeHeight - (2.0 * ConnectorClearance);
-                y = nodeTop + ConnectorClearance + (k * usable / (count - 1));
+                var usable = nodeHeight - (2.0 * inset);
+                y = nodeTop + inset + (k * usable / (count - 1));
             }
 
             portY[sortedEdgeIndices[k]] = Math.Clamp(
                 y,
-                nodeTop + ConnectorClearance,
-                nodeTop + nodeHeight - ConnectorClearance);
+                nodeTop + inset,
+                nodeTop + nodeHeight - inset);
         }
     }
 }
