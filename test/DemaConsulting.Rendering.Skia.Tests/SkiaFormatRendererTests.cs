@@ -70,6 +70,7 @@ public class SkiaFormatRendererTests
         Assert.Equal("WEBP", Encoding.ASCII.GetString(bytes, 8, 4));
         Assert.Equal("image/webp", renderer.MediaType);
         Assert.Equal(".webp", renderer.DefaultExtension);
+        Assert.Contains(".webp", renderer.FileExtensions);
     }
 
     /// <summary>

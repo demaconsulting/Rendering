@@ -539,6 +539,7 @@ reviews:
     title: Review that Rendering Skia Verification is Consistent and Complete
     paths:
       - "docs/verification/introduction.md"
+      - "docs/verification/rendering-skia.md"
       - "docs/verification/rendering-skia/**/*.md"
       - "docs/verification/ots.md"
     context:
