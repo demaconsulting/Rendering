@@ -668,3 +668,10 @@ reviews:
       - "docs/reqstream/ots/xunit.yaml"
       - "docs/design/ots/xunit.md"
       - "docs/verification/ots/xunit.md"
+
+  - id: OTS-SkiaSharp
+    title: Review that SkiaSharp Provides Required Functionality
+    paths:
+      - "docs/reqstream/ots/skiasharp.yaml"
+      - "docs/design/ots/skiasharp.md"
+      - "docs/verification/ots/skiasharp.md"

@@ -21,6 +21,7 @@ input-files:
   - docs/design/ots/versionmark.md
   - docs/design/ots/weasyprint.md
   - docs/design/ots/xunit.md
+  - docs/design/ots/skiasharp.md
 template: template.html
 table-of-contents: true
 number-sections: true
