@@ -128,6 +128,16 @@ public static class ConnectorRouter
     /// Thrown when <see cref="ConnectorRouteOptions.EdgeRouting"/> names a style that has no shipped
     /// router.
     /// </exception>
+    /// <remarks>
+    /// Prefer this overload over calling the single-connection <see cref="Route(IReadOnlyList{LayoutBox},Connection,ConnectorRouteOptions)"/>
+    /// once per connector whenever several connectors may land on the same box face (for example many
+    /// cross-package edges converging on one shared box). <see cref="FacingAnchors"/> picks each
+    /// connector's anchor independently from its own pair of boxes; when two boxes do not overlap on the
+    /// face's axis, that per-pair calculation can clamp to the same boundary point for every connector
+    /// sharing the face, making them visually collapse into one another. Routing as a batch lets this
+    /// method detect a face shared by more than one connector and spread their anchors evenly across it
+    /// (see <see cref="DistributeSharedFaceAnchors"/>) before any obstacle-avoiding path is computed.
+    /// </remarks>
     public static IReadOnlyList<LayoutLine> Route(
         IReadOnlyList<LayoutBox> boxes,
         IReadOnlyList<Connection> connections,
@@ -137,10 +147,24 @@ public static class ConnectorRouter
         ArgumentNullException.ThrowIfNull(connections);
         ArgumentNullException.ThrowIfNull(options);
 
-        var lines = new List<LayoutLine>(connections.Count);
-        foreach (var connection in connections)
+        var anchors = new FaceAnchors[connections.Count];
+        for (var i = 0; i < connections.Count; i++)
         {
-            lines.Add(Route(boxes, connection, options));
+            var connection = connections[i];
+            ArgumentNullException.ThrowIfNull(connection);
+            ArgumentNullException.ThrowIfNull(connection.From);
+            ArgumentNullException.ThrowIfNull(connection.To);
+
+            var (source, sourceSide, target, targetSide) = FacingAnchors(connection.From, connection.To);
+            anchors[i] = new FaceAnchors(source, sourceSide, target, targetSide);
+        }
+
+        DistributeSharedFaceAnchors(connections, anchors, options.Clearance);
+
+        var lines = new List<LayoutLine>(connections.Count);
+        for (var i = 0; i < connections.Count; i++)
+        {
+            lines.Add(RouteWithAnchors(boxes, connections[i], options, anchors[i]));
         }
 
         return lines;
@@ -165,6 +189,13 @@ public static class ConnectorRouter
     /// Thrown when <see cref="ConnectorRouteOptions.EdgeRouting"/> names a style that has no shipped
     /// router.
     /// </exception>
+    /// <remarks>
+    /// This overload considers only <paramref name="connection"/>'s own two boxes when picking anchors,
+    /// so it cannot spread anchors across a box face that also receives other connectors routed by
+    /// separate calls. When routing several connectors that may share a target (or source) box, prefer
+    /// the batch <see cref="Route(IReadOnlyList{LayoutBox},IReadOnlyList{Connection},ConnectorRouteOptions)"/>
+    /// overload instead.
+    /// </remarks>
     public static LayoutLine Route(
         IReadOnlyList<LayoutBox> boxes,
         Connection connection,
@@ -176,14 +207,27 @@ public static class ConnectorRouter
         ArgumentNullException.ThrowIfNull(connection.From);
         ArgumentNullException.ThrowIfNull(connection.To);
 
-        var from = connection.From;
-        var to = connection.To;
-
         // Pick anchors on the faces the two boxes actually present to each other, based on their
         // relative placement. Using the direction to the other box's centre misfires for wide boxes
         // (whose centre can sit far past the near endpoint), forcing the connector to wrap back across a
         // box; deriving the facing sides from the box rectangles avoids that.
-        var (source, sourceSide, target, targetSide) = FacingAnchors(from, to);
+        var (source, sourceSide, target, targetSide) = FacingAnchors(connection.From, connection.To);
+
+        return RouteWithAnchors(boxes, connection, options, new FaceAnchors(source, sourceSide, target, targetSide));
+    }
+
+    /// <summary>
+    /// Builds the obstacle set for <paramref name="connection"/> and routes it between the already
+    /// chosen <paramref name="anchors"/>.
+    /// </summary>
+    private static LayoutLine RouteWithAnchors(
+        IReadOnlyList<LayoutBox> boxes,
+        Connection connection,
+        ConnectorRouteOptions options,
+        FaceAnchors anchors)
+    {
+        var from = connection.From;
+        var to = connection.To;
 
         // The obstacle set is every box except this connection's own endpoints, matched by instance
         // identity. The connector must be free to leave and enter the boxes it joins.
@@ -198,7 +242,8 @@ public static class ConnectorRouter
             obstacles.Add(new Rect(box.X, box.Y, box.Width, box.Height));
         }
 
-        var waypoints = RouteWaypoints(options.EdgeRouting, source, target, obstacles, options.Clearance, sourceSide, targetSide);
+        var waypoints = RouteWaypoints(
+            options.EdgeRouting, anchors.Source, anchors.Target, obstacles, options.Clearance, anchors.SourceSide, anchors.TargetSide);
 
         return new LayoutLine(
             Waypoints: waypoints,
@@ -206,6 +251,132 @@ public static class ConnectorRouter
             TargetEnd: connection.TargetEnd,
             LineStyle: connection.LineStyle,
             MidpointLabel: connection.Label);
+    }
+
+    /// <summary>
+    /// The chosen source and target anchors and box sides for one connection, prior to obstacle-avoiding
+    /// path computation.
+    /// </summary>
+    private readonly record struct FaceAnchors(Point2D Source, PortSide SourceSide, Point2D Target, PortSide TargetSide);
+
+    /// <summary>
+    /// One connector's claim on a shared box face: which connection it belongs to, whether it is the
+    /// connection's source or target end, and the position (its counterpart box's centre on the face's
+    /// axis) used to order claims before spreading them evenly across the face.
+    /// </summary>
+    private readonly record struct FaceSlot(int ConnectionIndex, bool IsSource, double Counterpart);
+
+    /// <summary>
+    /// Redistributes anchors for any box face claimed by more than one connector in this batch, so
+    /// co-terminating connectors land at evenly spaced points along the face instead of each
+    /// independently clamping to the same boundary point (see <see cref="FacingAnchors"/>).
+    /// </summary>
+    /// <param name="connections">The connections being routed, in the same order as <paramref name="anchors"/>.</param>
+    /// <param name="anchors">
+    /// The naive per-connection anchors computed by <see cref="FacingAnchors"/>; updated in place for any
+    /// connector whose anchor is moved to share its face fairly with others.
+    /// </param>
+    /// <param name="clearance">Minimum inset kept between a redistributed anchor and the ends of the face.</param>
+    private static void DistributeSharedFaceAnchors(
+        IReadOnlyList<Connection> connections,
+        FaceAnchors[] anchors,
+        double clearance)
+    {
+        var groups = new Dictionary<(LayoutBox Box, PortSide Side), List<FaceSlot>>(FaceKeyComparer.Instance);
+
+        for (var i = 0; i < connections.Count; i++)
+        {
+            var connection = connections[i];
+            var faceAnchors = anchors[i];
+
+            AddSlot(groups, connection.From, faceAnchors.SourceSide, i, isSource: true, CounterpartCentre(connection.To, faceAnchors.SourceSide));
+            AddSlot(groups, connection.To, faceAnchors.TargetSide, i, isSource: false, CounterpartCentre(connection.From, faceAnchors.TargetSide));
+        }
+
+        foreach (var (key, slots) in groups)
+        {
+            if (slots.Count < 2)
+            {
+                // A face claimed by a single connector already has the best anchor FacingAnchors could
+                // compute for that pair of boxes; leave it untouched.
+                continue;
+            }
+
+            var (box, side) = key;
+            var isVerticalFace = side is PortSide.Left or PortSide.Right;
+            var faceLo = isVerticalFace ? box.Y : box.X;
+            var faceExtent = isVerticalFace ? box.Height : box.Width;
+            var fixedCoord = side switch
+            {
+                PortSide.Left => box.X,
+                PortSide.Right => box.X + box.Width,
+                PortSide.Top => box.Y,
+                _ => box.Y + box.Height,
+            };
+
+            // Cap the inset so the usable span never inverts for a face too small to hold the full
+            // clearance on both ends; degrade gracefully by collapsing ports toward the centre instead.
+            var inset = Math.Min(clearance, faceExtent / 2.0);
+            var usable = faceExtent - (2.0 * inset);
+            var ordered = slots.OrderBy(s => s.Counterpart).ThenBy(s => s.ConnectionIndex).ToList();
+            var count = ordered.Count;
+
+            for (var k = 0; k < count; k++)
+            {
+                var along = faceLo + inset + (count == 1 ? usable / 2.0 : k * usable / (count - 1));
+                var point = isVerticalFace ? new Point2D(fixedCoord, along) : new Point2D(along, fixedCoord);
+
+                var slot = ordered[k];
+                var current = anchors[slot.ConnectionIndex];
+                anchors[slot.ConnectionIndex] = slot.IsSource
+                    ? current with { Source = point }
+                    : current with { Target = point };
+            }
+        }
+    }
+
+    /// <summary>Records one connector's claim on a shared box face for later distribution.</summary>
+    private static void AddSlot(
+        Dictionary<(LayoutBox Box, PortSide Side), List<FaceSlot>> groups,
+        LayoutBox box,
+        PortSide side,
+        int connectionIndex,
+        bool isSource,
+        double counterpartCentre)
+    {
+        var key = (box, side);
+        if (!groups.TryGetValue(key, out var slots))
+        {
+            slots = [];
+            groups[key] = slots;
+        }
+
+        slots.Add(new FaceSlot(connectionIndex, isSource, counterpartCentre));
+    }
+
+    /// <summary>
+    /// The centre of <paramref name="box"/> on the axis perpendicular to <paramref name="faceSide"/>,
+    /// used to order connectors sharing a face by where their counterpart box sits.
+    /// </summary>
+    private static double CounterpartCentre(LayoutBox box, PortSide faceSide) =>
+        faceSide is PortSide.Left or PortSide.Right
+            ? box.Y + (box.Height / 2.0)
+            : box.X + (box.Width / 2.0);
+
+    /// <summary>
+    /// Matches box faces by the source box's instance identity rather than <see cref="LayoutBox"/>'s
+    /// record value-equality, so two distinct boxes that happen to share the same geometry are not
+    /// merged into a single face group.
+    /// </summary>
+    private sealed class FaceKeyComparer : IEqualityComparer<(LayoutBox Box, PortSide Side)>
+    {
+        public static readonly FaceKeyComparer Instance = new();
+
+        public bool Equals((LayoutBox Box, PortSide Side) x, (LayoutBox Box, PortSide Side) y) =>
+            ReferenceEquals(x.Box, y.Box) && x.Side == y.Side;
+
+        public int GetHashCode((LayoutBox Box, PortSide Side) obj) =>
+            HashCode.Combine(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Box), obj.Side);
     }
 
     /// <summary>

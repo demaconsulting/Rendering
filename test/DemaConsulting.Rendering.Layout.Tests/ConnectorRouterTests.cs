@@ -168,6 +168,87 @@ public sealed class ConnectorRouterTests
     }
 
     /// <summary>
+    ///     Reproduces the DictionaryMark rendering defect: three small source boxes stacked far below a
+    ///     much taller target box, each connected to the same target. Routed independently, every
+    ///     connector's naive anchor clamps to the exact same target-box corner because none of the
+    ///     source boxes overlap the target vertically. Routed as a batch, the three target anchors must
+    ///     be spread apart instead.
+    /// </summary>
+    [Fact]
+    public void Route_ThreeConnectorsShareTargetFace_BatchSpreadsTargetAnchors()
+    {
+        // Arrange: geometry taken directly from DictionaryMark's generated SVG.
+        var yamlDotNet = Box(24, 1265, 130, 50, "YamlDotNet");
+        var fileSystemGlobbing = Box(24, 1345, 168.24, 50, "FileSystemGlobbing");
+        var testResults = Box(24, 1425, 130, 50, "TestResults");
+        var dictionaryMarkSystem = Box(1037.52, 421, 308.16, 224, "DictionaryMarkSystem");
+        var boxes = new[] { yamlDotNet, fileSystemGlobbing, testResults, dictionaryMarkSystem };
+
+        var connections = new[]
+        {
+            new Connection(yamlDotNet, dictionaryMarkSystem, EndMarkerStyle.FilledDiamond),
+            new Connection(fileSystemGlobbing, dictionaryMarkSystem, EndMarkerStyle.FilledDiamond),
+            new Connection(testResults, dictionaryMarkSystem, EndMarkerStyle.FilledDiamond),
+        };
+
+        // Act: route the single-connection overload to confirm the defect this test guards against,
+        // then route the same connections as a batch.
+        var independentTargets = connections
+            .Select(c => ConnectorRouter.Route(boxes, c, new ConnectorRouteOptions()).Waypoints[^1])
+            .ToArray();
+        var batchLines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+        var batchTargets = batchLines.Select(l => l.Waypoints[^1]).ToArray();
+
+        // Assert: routed independently, all three connectors collapse onto the identical target point
+        // (the defect reported against DictionaryMark's diagram).
+        Assert.Equal(independentTargets[0].Y, independentTargets[1].Y, 6);
+        Assert.Equal(independentTargets[1].Y, independentTargets[2].Y, 6);
+
+        // Assert: routed as a batch, the three target anchors are distinct and ordered to match the
+        // source boxes' own stacking order (YamlDotNet above FileSystemGlobbing above TestResults).
+        Assert.True(batchTargets[0].Y < batchTargets[1].Y, "First target anchor should sit above the second.");
+        Assert.True(batchTargets[1].Y < batchTargets[2].Y, "Second target anchor should sit above the third.");
+
+        // Assert: every batch target anchor still lands on the target box's left face.
+        Assert.All(batchTargets, p => Assert.Equal(dictionaryMarkSystem.X, p.X, 6));
+
+        // Assert: every batch target anchor stays within the target box's own vertical extent.
+        Assert.All(batchTargets, p =>
+        {
+            Assert.True(p.Y >= dictionaryMarkSystem.Y, "Target anchor should not sit above the target box.");
+            Assert.True(p.Y <= dictionaryMarkSystem.Y + dictionaryMarkSystem.Height, "Target anchor should not sit below the target box.");
+        });
+    }
+
+    /// <summary>
+    ///     When a box face is shared by only one connector in the batch, that connector's anchor is
+    ///     left exactly as independent single-connection routing would produce — the redistribution
+    ///     logic only engages for faces with two or more connectors.
+    /// </summary>
+    [Fact]
+    public void Route_BatchWithoutSharedFaces_MatchesIndependentRouting()
+    {
+        // Arrange: two unrelated connections that do not share any box
+        var a = Box(0, 0, 60, 60);
+        var b = Box(200, 0, 60, 60);
+        var c = Box(0, 300, 60, 60);
+        var d = Box(200, 300, 60, 60);
+        var boxes = new[] { a, b, c, d };
+        var connections = new[] { new Connection(a, b), new Connection(c, d) };
+
+        // Act
+        var batchLines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+        var independentLine0 = ConnectorRouter.Route(boxes, connections[0], new ConnectorRouteOptions());
+        var independentLine1 = ConnectorRouter.Route(boxes, connections[1], new ConnectorRouteOptions());
+
+        // Assert: batch routing reproduces the same anchors as routing each connection independently
+        Assert.Equal(independentLine0.Waypoints[0], batchLines[0].Waypoints[0]);
+        Assert.Equal(independentLine0.Waypoints[^1], batchLines[0].Waypoints[^1]);
+        Assert.Equal(independentLine1.Waypoints[0], batchLines[1].Waypoints[0]);
+        Assert.Equal(independentLine1.Waypoints[^1], batchLines[1].Waypoints[^1]);
+    }
+
+    /// <summary>
     ///     A null box list is rejected by the batch overload.
     /// </summary>
     [Fact]
