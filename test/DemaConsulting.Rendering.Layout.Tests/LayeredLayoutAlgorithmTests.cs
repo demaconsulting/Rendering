@@ -54,6 +54,49 @@ public class LayeredLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a node's <see cref="LayoutGraphNode.Shape"/>, <see cref="LayoutGraphNode.Keyword"/>,
+    ///     and <see cref="LayoutGraphNode.Compartments"/> flow through to the placed <see cref="LayoutBox"/>
+    ///     unchanged, so a caller can select a folder outline, a SysML keyword line, and feature
+    ///     compartments purely through the input graph model.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPlacedBox()
+    {
+        var graph = new LayoutGraph();
+        var node = graph.AddNode("part", 120, 80);
+        node.Label = "Engine";
+        node.Shape = BoxShape.RoundedRectangle;
+        node.Keyword = "part def";
+        node.Compartments = [new LayoutCompartment("ports", ["intake : FluidPort", "exhaust : FluidPort"])];
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var box = Assert.Single(tree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(BoxShape.RoundedRectangle, box.Shape);
+        Assert.Equal("part def", box.Keyword);
+        Assert.Equal(node.Compartments, box.Compartments);
+    }
+
+    /// <summary>
+    ///     Proves that an unset <see cref="LayoutGraphNode.Shape"/>, <see cref="LayoutGraphNode.Keyword"/>,
+    ///     and <see cref="LayoutGraphNode.Compartments"/> default to a plain rectangle with no keyword or
+    ///     compartments, preserving the algorithm's prior behavior for callers that never set them.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeWithNoShapeKeywordOrCompartments_DefaultsToPlainRectangle()
+    {
+        var graph = new LayoutGraph();
+        graph.AddNode("plain", 80, 40);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var box = Assert.Single(tree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(BoxShape.Rectangle, box.Shape);
+        Assert.Null(box.Keyword);
+        Assert.Empty(box.Compartments);
+    }
+
+    /// <summary>
     ///     Proves that an empty graph produces an empty, positively-sized canvas.
     /// </summary>
     [Fact]

@@ -188,4 +188,19 @@ public sealed class GalleryShowcaseTests
             GalleryDiagrams.HierarchicalNested(),
             Themes.Dark);
     }
+
+    /// <summary>
+    ///     Renders the box-appearance showcase to SVG, proving a folder container's
+    ///     <see cref="LayoutGraphNode.Shape"/> and <see cref="LayoutGraphNode.Keyword"/>, and a nested
+    ///     box's <see cref="LayoutGraphNode.Keyword"/> and <see cref="LayoutGraphNode.Compartments"/>,
+    ///     all render correctly when selected purely through the input graph model.
+    /// </summary>
+    [Fact]
+    public void Gallery_BoxAppearance_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.BoxAppearanceSvg,
+            GalleryDiagrams.BoxAppearance(),
+            Themes.Dark);
+    }
 }

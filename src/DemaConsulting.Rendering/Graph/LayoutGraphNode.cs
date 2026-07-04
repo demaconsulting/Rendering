@@ -100,6 +100,27 @@ public sealed class LayoutGraphNode : PropertyHolder
     public string? Label { get; set; }
 
     /// <summary>
+    /// Gets or sets the visual shape of the box a leaf algorithm places for this node. Defaults to
+    /// <see cref="BoxShape.Rectangle"/>; set to <see cref="BoxShape.Folder"/> for a package-style
+    /// container, for example.
+    /// </summary>
+    public BoxShape Shape { get; set; } = BoxShape.Rectangle;
+
+    /// <summary>
+    /// Gets or sets an optional keyword (for example <c>"part def"</c>) rendered on a smaller line
+    /// above the node's <see cref="Label"/>, following the SysML v2 graphical convention.
+    /// <see langword="null"/> when no keyword line should be shown.
+    /// </summary>
+    public string? Keyword { get; set; }
+
+    /// <summary>
+    /// Gets or sets the ordered list of compartments (for example an attributes or ports section)
+    /// displayed below the node's label when it is placed as a <see cref="LayoutBox"/>. Empty by
+    /// default.
+    /// </summary>
+    public IReadOnlyList<LayoutCompartment> Compartments { get; set; } = [];
+
+    /// <summary>
     /// Gets the child subgraph nested inside this node, turning the node into a container of nodes and
     /// contained edges.
     /// </summary>

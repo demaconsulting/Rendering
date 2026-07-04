@@ -79,3 +79,19 @@ sections:
         tests:
           - LayoutGraphEdge_CrossContainer_ReferencingDescendant_ConstructibleAtRoot
           - LayoutGraphEdge_CrossContainer_BetweenSiblingContainers_ConstructibleAtRoot
+
+      - id: Rendering-Model-LayoutGraph-BoxAppearance
+        title: >-
+          A graph node shall carry a box shape, an optional keyword, and an ordered list of
+          compartments, and a layout algorithm shall propagate them unchanged onto the placed box.
+        justification: |
+          Selecting a node's outline, italicized keyword line, and labelled feature sections through
+          the input graph model — rather than only on the output box — lets a caller describe a
+          node's full appearance once, before layout, so every bundled leaf algorithm and the
+          hierarchical layout engine place a box with the requested appearance instead of defaulting
+          every node to a plain rectangle with no compartments.
+        tests:
+          - Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPlacedBox
+          - Apply_NodeWithNoShapeKeywordOrCompartments_DefaultsToPlainRectangle
+          - Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPackedBox
+          - Apply_NestedGraph_PropagatesContainerAndLeafShapeKeywordCompartments

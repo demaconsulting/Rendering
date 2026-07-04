@@ -80,3 +80,14 @@ The layered pipeline rendered to a raster PNG image.
 ![Hierarchical nested diagram as PNG](hierarchical-nested.png)
 
 The hierarchical nested diagram rendered to a raster PNG image.
+
+## Box appearance
+
+A node's Shape, Keyword, and Compartments properties select the box outline, an italicized keyword line, and labelled
+feature sections, all through the plain input graph model — no downstream renderer-specific code required. This is
+generic block-diagram notation; SysML is just one modeling language that uses it.
+
+![A folder container with two boxes carrying a keyword, one also compartmented, joined by an edge](box-appearance.svg)
+
+A folder container holding two boxes with a keyword line — one also with a labelled compartment — joined by a decorated
+edge.

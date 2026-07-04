@@ -164,9 +164,12 @@ public static class ConnectorRouter
 
         DistributeSharedFaceAnchors(connections, anchors, options.Clearance);
 
-        // Route one connector at a time, growing the obstacle set with each already-routed line (as a
-        // thin rectangle per segment) so later connectors steer clear of earlier ones instead of
-        // independently finding the same obstacle-free corridor.
+        // Route one connector at a time, growing a soft-obstacle set with each already-routed line (as
+        // a thin rectangle per segment) so later connectors prefer a free lane over one already used by
+        // an earlier connector. These are soft (cost-penalized), not hard, obstacles: several connectors
+        // converging on the same box face legitimately share their final short approach corridor, and
+        // hard-blocking it would make that shared face unreachable for every connector after the first
+        // (see AddLineObstacles remarks).
         var lines = new List<LayoutLine>(connections.Count);
         var routedLineObstacles = new List<Rect>();
         foreach (var t in anchors)
@@ -228,24 +231,23 @@ public static class ConnectorRouter
     }
 
     /// <summary>
-    /// Builds the obstacle set for <paramref name="connection"/> — every other box plus any already
-    /// routed <paramref name="extraObstacles"/> — and routes it between the already chosen
-    /// <paramref name="anchors"/>.
+    /// Builds the obstacle set for <paramref name="connection"/> — every other box, plus any already
+    /// routed <paramref name="extraSoftObstacles"/> treated as soft (cost-penalized, never hard-blocking)
+    /// obstacles — and routes it between the already chosen <paramref name="anchors"/>.
     /// </summary>
     private static LayoutLine RouteWithAnchors(
         IReadOnlyList<LayoutBox> boxes,
         Connection connection,
         ConnectorRouteOptions options,
         FaceAnchors anchors,
-        IReadOnlyList<Rect> extraObstacles)
+        IReadOnlyList<Rect> extraSoftObstacles)
     {
         var from = connection.From;
         var to = connection.To;
 
-        // The obstacle set is every box except this connection's own endpoints, matched by instance
-        // identity, plus any already-routed lines passed in via extraObstacles. The connector must be
-        // free to leave and enter the boxes it joins.
-        var obstacles = new List<Rect>(boxes.Count + extraObstacles.Count);
+        // The hard obstacle set is every box except this connection's own endpoints, matched by
+        // instance identity. The connector must be free to leave and enter the boxes it joins.
+        var obstacles = new List<Rect>(boxes.Count);
         foreach (var box in boxes)
         {
             if (ReferenceEquals(box, from) || ReferenceEquals(box, to))
@@ -256,10 +258,8 @@ public static class ConnectorRouter
             obstacles.Add(new Rect(box.X, box.Y, box.Width, box.Height));
         }
 
-        obstacles.AddRange(extraObstacles);
-
         var waypoints = RouteWaypoints(
-            options.EdgeRouting, anchors.Source, anchors.Target, obstacles, options.Clearance, anchors.SourceSide, anchors.TargetSide);
+            options.EdgeRouting, anchors.Source, anchors.Target, obstacles, options.Clearance, anchors.SourceSide, anchors.TargetSide, extraSoftObstacles);
 
         return new LayoutLine(
             Waypoints: waypoints,
@@ -449,10 +449,12 @@ public static class ConnectorRouter
         IReadOnlyList<Rect> obstacles,
         double clearance,
         PortSide sourceSide,
-        PortSide targetSide) => edgeRouting switch
+        PortSide targetSide,
+        IReadOnlyList<Rect>? softObstacles = null) => edgeRouting switch
         {
             EdgeRouting.Orthogonal =>
-                OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, clearance, sourceSide, targetSide).Waypoints,
+                OrthogonalEdgeRouter.RouteWithStatus(
+                    source, target, obstacles, clearance, sourceSide, targetSide, costBands: null, softObstacles).Waypoints,
             _ => throw new NotSupportedException($"Edge routing style '{edgeRouting}' has no shipped router."),
         };
 

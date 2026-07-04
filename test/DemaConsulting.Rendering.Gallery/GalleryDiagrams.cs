@@ -2,6 +2,8 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
+using DemaConsulting.Rendering.Abstractions;
+
 namespace DemaConsulting.Rendering.Gallery;
 
 /// <summary>
@@ -201,6 +203,54 @@ internal static class GalleryDiagrams
         // rather than falling back to disconnected-singleton packing.
         Connect(graph, "intake-pipeline", intake, pipeline);
         Connect(graph, "pipeline-archive", pipeline, archive);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     A folder container holding two boxes with a keyword line, one also compartmented, joined by a decorated edge —
+    ///     a block-diagram notation used by SysML and similar modeling languages, but expressed purely
+    ///     through the generic <see cref="LayoutGraphNode.Shape"/>, <see cref="LayoutGraphNode.Keyword"/>,
+    ///     and <see cref="LayoutGraphNode.Compartments"/> properties on the input graph model, with no
+    ///     SysML-specific code anywhere in the rendering pipeline.
+    /// </summary>
+    /// <remarks>
+    ///     A leaf algorithm places a box at exactly the width and height its node declares — it never
+    ///     grows a box to fit a keyword line or compartment rows — so the caller must size each node
+    ///     tall enough to hold its title area (<see cref="BoxMetrics.TitleAreaHeight"/>) plus every
+    ///     compartment's own rows, exactly as a caller such as a SysML general-view layout strategy does.
+    /// </remarks>
+    /// <returns>A two-level compound graph with a folder container and boxes carrying a keyword and compartments.</returns>
+    public static LayoutGraph BoxAppearance()
+    {
+        var theme = Themes.Dark;
+        var titleHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: true);
+
+        var graph = new LayoutGraph();
+
+        var pkg = graph.AddNode("pkg", 10, 10);
+        pkg.Label = "Powertrain";
+        pkg.Shape = BoxShape.Folder;
+        pkg.Keyword = "package";
+
+        // The "ports" compartment adds a title row plus one row per port, sized from the same theme
+        // metrics the renderer uses, so the compartment text never overflows the box.
+        var portsCompartment = new LayoutCompartment("ports", ["intake : FluidPort", "exhaust : FluidPort"]);
+        var compartmentHeight = theme.LabelPadding + theme.FontSizeBody + theme.LabelPadding // title row
+            + (portsCompartment.Rows.Count * (theme.LabelPadding + theme.FontSizeBody)) // data rows
+            + theme.LabelPadding; // bottom gap
+
+        var engine = pkg.Children.AddNode("engine", 160, titleHeight + compartmentHeight);
+        engine.Label = "Engine";
+        engine.Keyword = "part def";
+        engine.Compartments = [portsCompartment];
+
+        var motor = pkg.Children.AddNode("motor", 160, titleHeight);
+        motor.Label = "ElectricMotor";
+        motor.Keyword = "part def";
+
+        var edge = pkg.Children.AddEdge("motor-engine", motor, engine);
+        edge.TargetEnd = EndMarkerStyle.HollowTriangle;
 
         return graph;
     }

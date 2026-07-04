@@ -249,6 +249,87 @@ public sealed class ConnectorRouterTests
     }
 
     /// <summary>
+    ///     Reproduces the second half of the DictionaryMark rendering defect: once the batch overload
+    ///     spreads three connectors' target anchors across a shared face (see
+    ///     <see cref="Route_ThreeConnectorsShareTargetFace_BatchSpreadsTargetAnchors"/>), each connector
+    ///     still travels from its own widely separated source box toward that face, and every one of
+    ///     them naturally wants its long axis-changing run in the same column (the target's own
+    ///     stepped-off approach column), because that column is the only fixed X common to all three
+    ///     paths. Routing the connectors sequentially and steering each later one away from earlier
+    ///     ones' already-claimed corridors must produce visually distinct vertical runs instead of one
+    ///     another's corridor, while still reaching its own spread-out target anchor.
+    /// </summary>
+    [Fact]
+    public void Route_ThreeConnectorsShareTargetFace_TrunksDoNotOverlap()
+    {
+        // Arrange: geometry taken directly from DictionaryMark's generated SVG (same as the anchor
+        // spread test above) — three source boxes stacked far below a much taller target box.
+        var yamlDotNet = Box(24, 1265, 130, 50, "YamlDotNet");
+        var fileSystemGlobbing = Box(24, 1345, 168.24, 50, "FileSystemGlobbing");
+        var testResults = Box(24, 1425, 130, 50, "TestResults");
+        var dictionaryMarkSystem = Box(1037.52, 421, 308.16, 224, "DictionaryMarkSystem");
+        var boxes = new[] { yamlDotNet, fileSystemGlobbing, testResults, dictionaryMarkSystem };
+
+        var connections = new[]
+        {
+            new Connection(yamlDotNet, dictionaryMarkSystem, EndMarkerStyle.FilledDiamond),
+            new Connection(fileSystemGlobbing, dictionaryMarkSystem, EndMarkerStyle.FilledDiamond),
+            new Connection(testResults, dictionaryMarkSystem, EndMarkerStyle.FilledDiamond),
+        };
+
+        // Act
+        var lines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions(EdgeRouting.Orthogonal, 12.0));
+
+        // Assert: every connector still reaches its own (now distinct) anchor on the target's face.
+        Assert.Equal(dictionaryMarkSystem.X, lines[0].Waypoints[^1].X, 6);
+        Assert.Equal(dictionaryMarkSystem.X, lines[1].Waypoints[^1].X, 6);
+        Assert.Equal(dictionaryMarkSystem.X, lines[2].Waypoints[^1].X, 6);
+
+        // Assert: the long vertical run each connector uses to change its Y position (its longest
+        // vertical segment) sits at a distinct X for each connector — the defect this test guards
+        // against had all three collapse onto the exact same column, drawing what looked like one
+        // thick merged trunk instead of three separate connectors.
+        var trunkX = lines.Select(LongestVerticalSegmentX).ToArray();
+        Assert.NotEqual(trunkX[0], trunkX[1], 3);
+        Assert.NotEqual(trunkX[0], trunkX[2], 3);
+        Assert.NotEqual(trunkX[1], trunkX[2], 3);
+
+        // Assert: none of the three connectors crossed a box (the soft-obstacle steering must never
+        // force a fallback to an obstacle-crossing route just to avoid another connector's corridor).
+        Assert.All(lines, line => AssertAllSegmentsOrthogonal(line.Waypoints));
+    }
+
+    /// <summary>
+    ///     Returns the X coordinate of <paramref name="line"/>'s longest vertical (axis-changing)
+    ///     segment — the run a connector uses to move from its source's Y level toward its target's Y
+    ///     level, as opposed to the short perpendicular entry/exit stubs at either end.
+    /// </summary>
+    private static double LongestVerticalSegmentX(LayoutLine line)
+    {
+        var waypoints = line.Waypoints;
+        var bestLength = -1.0;
+        var bestX = double.NaN;
+        for (var i = 0; i < waypoints.Count - 1; i++)
+        {
+            var a = waypoints[i];
+            var b = waypoints[i + 1];
+            if (Math.Abs(a.X - b.X) > 1e-6)
+            {
+                continue;
+            }
+
+            var length = Math.Abs(a.Y - b.Y);
+            if (length > bestLength)
+            {
+                bestLength = length;
+                bestX = a.X;
+            }
+        }
+
+        return bestX;
+    }
+
+    /// <summary>
     ///     A null box list is rejected by the batch overload.
     /// </summary>
     [Fact]
@@ -257,6 +338,7 @@ public sealed class ConnectorRouterTests
         // Arrange
         var from = Box(0, 0, 60, 60);
         var to = Box(200, 0, 60, 60);
+
 
         // Act / Assert
         Assert.Throws<ArgumentNullException>(

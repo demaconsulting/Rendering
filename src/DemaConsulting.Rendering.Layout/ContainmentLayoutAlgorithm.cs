@@ -116,9 +116,10 @@ public sealed class ContainmentLayoutAlgorithm : ILayoutAlgorithm
                 node.Height,
                 node.Label,
                 Depth: 0,
-                BoxShape.Rectangle,
-                Compartments: [],
-                Children: []);
+                node.Shape,
+                node.Compartments,
+                Children: [],
+                Keyword: node.Keyword);
         }
 
         // Pack the leaf boxes into rows within a width budget derived from a roughly 4:3 canvas, keeping

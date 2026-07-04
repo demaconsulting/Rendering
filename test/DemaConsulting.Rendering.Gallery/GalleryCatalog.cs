@@ -43,6 +43,7 @@ internal static class GalleryCatalog
     public const string ThemePrintPng = "theme-print.png";
     public const string LayeredPipelinePng = "layered-pipeline.png";
     public const string HierarchicalNestedPng = "hierarchical-nested.png";
+    public const string BoxAppearanceSvg = "box-appearance.svg";
 
     /// <summary>Gets the browsable sections of the gallery, in display order.</summary>
     public static IReadOnlyList<GallerySection> Sections { get; } =
@@ -131,6 +132,19 @@ internal static class GalleryCatalog
                     HierarchicalNestedPng,
                     "Hierarchical nested diagram as PNG",
                     "The hierarchical nested diagram rendered to a raster PNG image."),
+            ]),
+        new GallerySection(
+            "Box appearance",
+            "A node's Shape, Keyword, and Compartments properties select the box outline, an "
+            + "italicized keyword line, and labelled feature sections, all through the plain input "
+            + "graph model — no downstream renderer-specific code required. This is generic block-"
+            + "diagram notation; SysML is just one modeling language that uses it.",
+            [
+                new GalleryImage(
+                    BoxAppearanceSvg,
+                    "A folder container with two boxes carrying a keyword, one also compartmented, joined by an edge",
+                    "A folder container holding two boxes with a keyword line — one also with a labelled "
+                    + "compartment — joined by a decorated edge."),
             ]),
     ];
 }

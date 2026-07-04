@@ -173,6 +173,38 @@ The flat *leaf* algorithms (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorith
 top-level nodes and edges, so a flat graph lays out exactly as before and any nesting is carried
 harmlessly until a hierarchical engine consumes it.
 
+## Selecting box appearance
+
+A `LayoutGraphNode` also carries the appearance of the box it will be placed as: `Shape` (the
+`BoxShape` outline — `Rectangle`, `RoundedRectangle`, `Folder`, or `Note`), `Keyword` (an optional
+italicized keyword line shown above the title, e.g. `«part def»`), and `Compartments` (an ordered
+list of `LayoutCompartment` feature sections, each with its own title and rows, rendered below the
+title with a divider line). This is generic block-diagram notation — useful for any node-and-edge
+diagram, not just SysML — and every bundled leaf algorithm plus `HierarchicalLayoutAlgorithm` copy
+all three properties, unchanged, onto the placed box, so you select a node's full appearance once
+on the input graph:
+
+```csharp
+var graph = new LayoutGraph();
+
+// A folder-shaped container node.
+var group = graph.AddNode("powertrain", width: 240, height: 220);
+group.Label = "Powertrain";
+group.Shape = BoxShape.Folder;
+
+// A nested leaf node with a keyword and a compartment of feature rows.
+var engine = group.Children.AddNode("engine", width: 160, height: 110);
+engine.Label = "Engine";
+engine.Keyword = "part def";
+engine.Compartments = [new LayoutCompartment("ports", ["intake", "exhaust"])];
+```
+
+Only the node's `Width`/`Height` affect layout placement — a caller is responsible for sizing a node
+large enough to fit its keyword line and compartment rows (see `BoxMetrics.TitleAreaHeight` and the
+per-compartment row heights in `DemaConsulting.Rendering.Abstractions`); no leaf algorithm grows a box
+to fit its own appearance. The [gallery's "Box appearance" diagram](../gallery/gallery.md) shows a
+complete, rendered example.
+
 ## Configuring layout with options
 
 Options are set with typed keys from `CoreOptions`. Unknown or not-yet-honored options default

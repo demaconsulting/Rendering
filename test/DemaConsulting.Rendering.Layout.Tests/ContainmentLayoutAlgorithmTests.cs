@@ -23,6 +23,33 @@ public sealed class ContainmentLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a node's <see cref="LayoutGraphNode.Shape"/>, <see cref="LayoutGraphNode.Keyword"/>,
+    ///     and <see cref="LayoutGraphNode.Compartments"/> flow through to the packed <see cref="LayoutBox"/>
+    ///     unchanged, so a caller can select a folder outline, a SysML keyword line, and feature
+    ///     compartments purely through the input graph model.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPackedBox()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        var node = graph.AddNode("pkg", 120, 80);
+        node.Label = "Powertrain";
+        node.Shape = BoxShape.Folder;
+        node.Keyword = "package";
+        node.Compartments = [new LayoutCompartment(null, ["Engine", "Gearbox"])];
+
+        // Act
+        var tree = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        // Assert
+        var box = Assert.Single(tree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(BoxShape.Folder, box.Shape);
+        Assert.Equal("package", box.Keyword);
+        Assert.Equal(node.Compartments, box.Compartments);
+    }
+
+    /// <summary>
     ///     Proves that the nodes are packed as non-overlapping boxes, in input order, entirely within
     ///     the returned canvas.
     /// </summary>

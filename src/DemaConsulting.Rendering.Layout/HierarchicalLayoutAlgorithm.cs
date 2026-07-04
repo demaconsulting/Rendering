@@ -212,7 +212,18 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
         var effectiveSize = new Dictionary<LayoutGraphNode, (double Width, double Height)>();
         LayoutContainerChildren(graph, effective, subLayouts, effectiveSize);
 
-        var (view, _) = BuildSizedView(graph, effectiveSize);
+        // Map every descendant node to the direct member of this scope that contains it (needed before
+        // placement so edge classification below can decide, purely from graph structure, which edges
+        // the leaf algorithm should route locally versus which the router must handle for this scope).
+        var descendantToDirect = new Dictionary<LayoutGraphNode, LayoutGraphNode>();
+        foreach (var direct in graph.Nodes)
+        {
+            MapDescendants(direct, direct, descendantToDirect);
+        }
+
+        var (leafEdges, routedEdges) = ClassifyEdges(graph, descendantToDirect);
+
+        var (view, _) = BuildSizedView(graph, effectiveSize, leafEdges);
 
         // Place this level with the resolved leaf algorithm over the sized view. The leaf algorithm
         // emits one box per node in Nodes order, so placed boxes align with graph.Nodes by index.
@@ -222,7 +233,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
         var (composed, indexOf) = ComposeBoxes(graph, placedBoxes, subLayouts);
 
-        var crossLines = RouteCrossContainerEdges(graph, composed, indexOf, effective);
+        var crossLines = RouteCrossContainerEdges(routedEdges, composed, indexOf, descendantToDirect, effective);
 
         // Assemble: composed boxes, then the leaf algorithm's routed lines, then the cross-container
         // lines. The canvas dimensions are the leaf algorithm's for this (sized) level.
@@ -277,18 +288,24 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
     /// <summary>
     /// Builds an internal, side-effect-free sized view of <paramref name="graph"/>: the same nodes in
-    /// the same order (container nodes carrying their effective size, leaves their own size), only
-    /// the edges whose endpoints are both direct members of this scope. The scope's own cascaded
+    /// the same order (container nodes carrying their effective size, leaves their own size), only the
+    /// edges in <paramref name="leafEdges"/> — those between two distinct direct members that neither
+    /// touch a box also involved in a cross-container edge, per <see cref="ClassifyEdges"/>. Every
+    /// other edge (genuine cross-container edges, and any direct-member edge that shares a box with
+    /// one) is routed by this scope's router instead, so a box that receives both kinds of connector
+    /// has every one of its anchors allocated by a single coordinated pass. The scope's own cascaded
     /// options are carried separately as the caller's <c>effective</c> snapshot rather than propagated
     /// onto this view, since every leaf algorithm resolves such properties from the options it is
     /// invoked with.
     /// </summary>
     /// <param name="graph">The caller's scope, which is never mutated.</param>
     /// <param name="effectiveSize">Effective sizes for the container nodes of this scope.</param>
+    /// <param name="leafEdges">The edges this scope's leaf algorithm should route locally.</param>
     /// <returns>The sized view graph and a map from each original node to its view counterpart.</returns>
     private static (LayoutGraph View, Dictionary<LayoutGraphNode, LayoutGraphNode> ViewOf) BuildSizedView(
         LayoutGraph graph,
-        Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize)
+        Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize,
+        HashSet<LayoutGraphEdge> leafEdges)
     {
         var view = new LayoutGraph();
 
@@ -300,13 +317,22 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
                 : (node.Width, node.Height);
             var viewNode = view.AddNode(node.Id, width, height);
             viewNode.Label = node.Label;
+            viewNode.Shape = node.Shape;
+            viewNode.Keyword = node.Keyword;
+            viewNode.Compartments = node.Compartments;
             viewOf[node] = viewNode;
         }
 
         foreach (var edge in graph.Edges)
         {
-            // Only edges whose both endpoints are direct members of this scope are placed by the leaf
-            // algorithm here; cross-container edges are routed separately after composition.
+            // Only edges classified for local routing are placed by the leaf algorithm here; every
+            // other edge (cross-container, or a direct-member edge promoted alongside one) is routed
+            // separately after composition, by this scope's router.
+            if (!leafEdges.Contains(edge))
+            {
+                continue;
+            }
+
             if (viewOf.TryGetValue(edge.Source, out var viewSource) &&
                 viewOf.TryGetValue(edge.Target, out var viewTarget))
             {
@@ -367,50 +393,74 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     }
 
     /// <summary>
-    /// Routes the cross-container edges owned by this scope — edges whose endpoints resolve to different
-    /// direct-member containers of this level — around the sibling boxes between them.
+    /// Routes every edge this scope's router is responsible for — genuine cross-container edges, plus
+    /// any direct-member edge promoted alongside one by <see cref="ClassifyEdges"/> because it shares a
+    /// box with a cross-container edge — around the sibling boxes between them, all in one batch call.
     /// </summary>
-    /// <param name="graph">The scope whose edges are examined for cross-container routing.</param>
+    /// <param name="routedEdges">The edges this scope must route, per <see cref="ClassifyEdges"/>.</param>
     /// <param name="composed">The composed top-level boxes of this scope, aligned with its nodes by index.</param>
     /// <param name="indexOf">Map from each direct-member node to its positional index in <paramref name="composed"/>.</param>
+    /// <param name="descendantToDirect">Map from every descendant node to the direct member that owns it.</param>
     /// <param name="effective">This scope's cascaded effective options, supplying <see cref="CoreOptions.EdgeRouting"/>.</param>
-    /// <returns>One routed line per cross-container edge owned by this scope.</returns>
+    /// <returns>One routed line per edge in <paramref name="routedEdges"/>.</returns>
     private static List<LayoutLine> RouteCrossContainerEdges(
-        LayoutGraph graph,
+        List<LayoutGraphEdge> routedEdges,
         LayoutBox[] composed,
         Dictionary<LayoutGraphNode, int> indexOf,
+        Dictionary<LayoutGraphNode, LayoutGraphNode> descendantToDirect,
         LayoutOptions effective)
     {
-        // Map every descendant node to the direct member of this scope that contains it, so an edge that
-        // references a deeply nested endpoint can be anchored to the top-level box that owns it.
-        var descendantToDirect = new Dictionary<LayoutGraphNode, LayoutGraphNode>();
-        foreach (var direct in graph.Nodes)
-        {
-            MapDescendants(direct, direct, descendantToDirect);
-        }
-
         var routeOptions = new ConnectorRouteOptions(effective.Get(CoreOptions.EdgeRouting));
         var boxesForRouting = (IReadOnlyList<LayoutBox>)composed;
 
-        // Collect every cross-container edge owned by this scope into one list of Connections, then
-        // route them all in a single batch call. Routing them independently (one ConnectorRouter.Route
-        // call per edge) would let separate edges that converge on the same box face pick colliding
-        // anchors, and separate edges on similar paths collapse onto the same corridor — the batch
-        // overload spreads shared-face anchors and steers later connectors around earlier ones.
-        var connections = new List<Connection>();
+        // Collect every edge this scope must route into one list of Connections, then route them all in
+        // a single batch call. Routing them independently (one ConnectorRouter.Route call per edge)
+        // would let separate edges that converge on the same box face pick colliding anchors, and
+        // separate edges on similar paths collapse onto the same corridor — the batch overload spreads
+        // shared-face anchors and steers later connectors around earlier ones.
+        var connections = new List<Connection>(routedEdges.Count);
+        foreach (var edge in routedEdges)
+        {
+            var from = composed[indexOf[descendantToDirect[edge.Source]]];
+            var to = composed[indexOf[descendantToDirect[edge.Target]]];
+            connections.Add(new Connection(from, to, edge.TargetEnd, edge.LineStyle, edge.Label));
+        }
+
+        return new List<LayoutLine>(ConnectorRouter.Route(boxesForRouting, connections, routeOptions));
+    }
+
+    /// <summary>
+    /// Classifies every edge of <paramref name="graph"/>, purely from graph structure, into the edges
+    /// this scope's leaf algorithm should route locally and the edges this scope's router must handle
+    /// instead.
+    /// </summary>
+    /// <remarks>
+    /// An edge whose direct-member endpoints (per <paramref name="descendantToDirect"/>) resolve to the
+    /// same node belongs to a lower scope entirely and is skipped here. An edge between two distinct
+    /// direct members, with at least one endpoint actually nested inside a container, is a genuine
+    /// cross-container edge routed by this scope's router. An edge between two distinct direct members
+    /// that are <em>both</em> literally direct (neither endpoint nested) would normally be routed
+    /// locally by the leaf algorithm — but when either of those direct members is also an endpoint of a
+    /// genuine cross-container edge, the edge is promoted to this scope's router too, so every connector
+    /// converging on that box's face is anchored by one coordinated pass instead of two independent,
+    /// mutually unaware ones (the leaf algorithm's own internal routing and this scope's router).
+    /// </remarks>
+    /// <param name="graph">The scope whose edges are classified.</param>
+    /// <param name="descendantToDirect">Map from every descendant node to the direct member that owns it.</param>
+    /// <returns>The edges to route locally, and the edges this scope's router must handle.</returns>
+    private static (HashSet<LayoutGraphEdge> LeafEdges, List<LayoutGraphEdge> RoutedEdges) ClassifyEdges(
+        LayoutGraph graph,
+        Dictionary<LayoutGraphNode, LayoutGraphNode> descendantToDirect)
+    {
+        var directDirect = new List<LayoutGraphEdge>();
+        var routedEdges = new List<LayoutGraphEdge>();
+        var conflicted = new HashSet<LayoutGraphNode>();
+
         foreach (var edge in graph.Edges)
         {
             // Skip edges whose endpoints are not both under this scope.
             if (!descendantToDirect.TryGetValue(edge.Source, out var sourceDirect) ||
                 !descendantToDirect.TryGetValue(edge.Target, out var targetDirect))
-            {
-                continue;
-            }
-
-            // An edge whose endpoints are both direct members is already routed by the leaf algorithm.
-            var bothDirect = ReferenceEquals(sourceDirect, edge.Source) &&
-                             ReferenceEquals(targetDirect, edge.Target);
-            if (bothDirect)
             {
                 continue;
             }
@@ -421,14 +471,35 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
                 continue;
             }
 
-            var from = composed[indexOf[sourceDirect]];
-            var to = composed[indexOf[targetDirect]];
-            connections.Add(new Connection(from, to, edge.TargetEnd, edge.LineStyle, edge.Label));
+            var bothDirect = ReferenceEquals(sourceDirect, edge.Source) && ReferenceEquals(targetDirect, edge.Target);
+            if (bothDirect)
+            {
+                // Provisionally a leaf-routed edge; may still be promoted below if either endpoint is
+                // also touched by a genuine cross-container edge.
+                directDirect.Add(edge);
+            }
+            else
+            {
+                routedEdges.Add(edge);
+                conflicted.Add(sourceDirect);
+                conflicted.Add(targetDirect);
+            }
         }
 
-        var crossLines = new List<LayoutLine>(ConnectorRouter.Route(boxesForRouting, connections, routeOptions));
+        var leafEdges = new HashSet<LayoutGraphEdge>();
+        foreach (var edge in directDirect)
+        {
+            if (conflicted.Contains(edge.Source) || conflicted.Contains(edge.Target))
+            {
+                routedEdges.Add(edge);
+            }
+            else
+            {
+                leafEdges.Add(edge);
+            }
+        }
 
-        return crossLines;
+        return (leafEdges, routedEdges);
     }
 
     /// <summary>

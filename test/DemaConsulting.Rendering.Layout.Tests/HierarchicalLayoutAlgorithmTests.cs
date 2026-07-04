@@ -430,6 +430,90 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a box which is both a plain root-level sibling (connected to several other
+    ///     root-level boxes by ordinary edges the leaf algorithm would normally route locally) and the
+    ///     endpoint of a genuine cross-container edge from inside a separate container has every one of
+    ///     its anchors allocated by a single coordinated pass, not two independent ones. Regression: the
+    ///     leaf algorithm's own locally-routed anchors and this scope's cross-container router's anchor
+    ///     were previously computed by two separate <see cref="ConnectorRouter"/> batches, each
+    ///     unaware of the other, so an anchor from one batch could land at the exact same point as an
+    ///     anchor from the other — exactly what happened in a real SysML general-view diagram where a
+    ///     package-external specialization edge collided with several sibling boxes' membership edges on
+    ///     the same shared target face.
+    /// </summary>
+    [Fact]
+    public void Apply_BoxWithBothLeafAndCrossContainerEdges_SpreadsSharedFaceAnchorsTogether()
+    {
+        // Arrange: "target" is a small root-level box; "a" is a much wider box packed directly below
+        // it, and "pkg" (a container whose child "typed" is the real edge endpoint, after promotion to
+        // the cross-container batch) is packed in a further row, also directly below "target" and also
+        // wide enough to span its full width. Both "a" and "pkg" fully contain target's horizontal
+        // extent, so ConnectorRouter's face-anchor calculation (which centres on the *overlap* of the
+        // two boxes, or the target's own centre when they don't overlap at all) resolves to target's
+        // own bottom-face centre for BOTH edges independently. Before the fix, "a-target" was routed
+        // alone in the leaf algorithm's own batch and "typed-target" was routed alone in this scope's
+        // separate cross-container batch, so each computed that identical centred point with no
+        // awareness of the other, landing both anchors on the exact same pixel. This mirrors the real
+        // DictionaryMark diagram where a package-external specialization edge collided with a sibling
+        // membership edge on the same shared target face.
+        var graph = new LayoutGraph();
+        var target = graph.AddNode("target", 40, 40);
+        var a = graph.AddNode("a", 300, 40);
+
+        var pkg = graph.AddNode("pkg", 10, 10);
+        var typed = pkg.Children.AddNode("typed", 60, 40);
+
+        graph.AddEdge("a-target", a, target);
+        graph.AddEdge("typed-target", typed, target);
+
+        // Act: the "containment" leaf algorithm packs boxes deterministically and routes its own edges
+        // with ConnectorRouter, so the root scope's leaf-routed batch and its cross-container batch are
+        // both driven by the same underlying router — exactly like the real diagram's regression.
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("containment"));
+
+        // Assert: the two connectors landing on "target" reach distinct anchor points.
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(2, lines.Count);
+        Assert.NotEqual(lines[0].Waypoints[^1], lines[1].Waypoints[^1]);
+    }
+
+    /// <summary>
+    ///     Proves that a container node's <see cref="LayoutGraphNode.Shape"/> and
+    ///     <see cref="LayoutGraphNode.Keyword"/> (for example a package folder) and a nested leaf's
+    ///     <see cref="LayoutGraphNode.Compartments"/> both survive the hierarchical engine's sized-view
+    ///     and composition round-trip unchanged, so a caller can describe an entire nested SysML diagram
+    ///     — package folders and definition boxes with feature compartments alike — purely through the
+    ///     input graph model.
+    /// </summary>
+    [Fact]
+    public void Apply_NestedGraph_PropagatesContainerAndLeafShapeKeywordCompartments()
+    {
+        // Arrange: a "package" folder container holding a "part def" leaf with a ports compartment.
+        var graph = new LayoutGraph();
+        var pkg = graph.AddNode("pkg", 10, 10);
+        pkg.Label = "Powertrain";
+        pkg.Shape = BoxShape.Folder;
+        pkg.Keyword = "package";
+
+        var engine = pkg.Children.AddNode("engine", 120, 80);
+        engine.Label = "Engine";
+        engine.Keyword = "part def";
+        engine.Compartments = [new LayoutCompartment("ports", ["intake : FluidPort"])];
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert
+        var folder = Assert.Single(tree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(BoxShape.Folder, folder.Shape);
+        Assert.Equal("package", folder.Keyword);
+
+        var part = Assert.Single(folder.Children.OfType<LayoutBox>());
+        Assert.Equal("part def", part.Keyword);
+        Assert.Equal(engine.Compartments, part.Compartments);
+    }
+
+    /// <summary>
     ///     Proves that three levels of nesting compose so a box contains a box that contains a box.
     /// </summary>
     [Fact]
