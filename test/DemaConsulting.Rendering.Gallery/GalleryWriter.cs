@@ -27,16 +27,19 @@ internal static class GalleryWriter
     private static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
     /// <summary>
-    ///     Lays out <paramref name="graph"/> with <paramref name="options"/>, renders it to
-    ///     <paramref name="fileName"/> as SVG, and asserts the result is a well-formed SVG document.
+    ///     Lays out <paramref name="graph"/> with whatever algorithm and options it declares (see
+    ///     <see cref="LayoutEngine"/>), renders it to <paramref name="fileName"/> as SVG, and asserts the
+    ///     result is a well-formed SVG document.
     /// </summary>
     /// <param name="fileName">Stable output filename (for example <c>layered-pipeline.svg</c>).</param>
-    /// <param name="graph">The graph to lay out.</param>
-    /// <param name="options">The layout options selecting the algorithm.</param>
+    /// <param name="graph">
+    /// The graph to lay out. Configure it directly (for example
+    /// <c>graph.Set(CoreOptions.Algorithm, "layered")</c>) before calling this method.
+    /// </param>
     /// <param name="theme">The theme to render with.</param>
-    public static void Svg(string fileName, LayoutGraph graph, LayoutOptions options, Theme theme)
+    public static void Svg(string fileName, LayoutGraph graph, Theme theme)
     {
-        var tree = LayoutEngine.Layout(graph, options);
+        var tree = LayoutEngine.Layout(graph);
         var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
 
         using (var stream = File.Create(path))
@@ -48,16 +51,19 @@ internal static class GalleryWriter
     }
 
     /// <summary>
-    ///     Lays out <paramref name="graph"/> with <paramref name="options"/>, renders it to
-    ///     <paramref name="fileName"/> as PNG, and asserts the result decodes as a valid raster image.
+    ///     Lays out <paramref name="graph"/> with whatever algorithm and options it declares (see
+    ///     <see cref="LayoutEngine"/>), renders it to <paramref name="fileName"/> as PNG, and asserts the
+    ///     result decodes as a valid raster image.
     /// </summary>
     /// <param name="fileName">Stable output filename (for example <c>layered-pipeline.png</c>).</param>
-    /// <param name="graph">The graph to lay out.</param>
-    /// <param name="options">The layout options selecting the algorithm.</param>
+    /// <param name="graph">
+    /// The graph to lay out. Configure it directly (for example
+    /// <c>graph.Set(CoreOptions.Algorithm, "layered")</c>) before calling this method.
+    /// </param>
     /// <param name="theme">The theme to render with.</param>
-    public static void Png(string fileName, LayoutGraph graph, LayoutOptions options, Theme theme)
+    public static void Png(string fileName, LayoutGraph graph, Theme theme)
     {
-        var tree = LayoutEngine.Layout(graph, options);
+        var tree = LayoutEngine.Layout(graph);
         var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
 
         using (var stream = File.Create(path))

@@ -16,8 +16,9 @@ namespace DemaConsulting.Rendering.Layout;
 /// </para>
 /// <para>
 /// Begin with the one-call facade <see cref="LayoutEngine"/>:
-/// <c>LayoutEngine.Layout(graph, options)</c> resolves whichever algorithm the graph (or options)
-/// declares and lays out flat and nested graphs uniformly. The bundled algorithms are
+/// <c>LayoutEngine.Layout(graph)</c> resolves whichever algorithm the graph declares (configure it
+/// directly, e.g. <c>graph.Set(CoreOptions.Algorithm, "layered")</c>) and lays out flat and nested
+/// graphs uniformly. The bundled algorithms are
 /// <see cref="LayeredLayoutAlgorithm"/> (<c>layered</c> — ELK-style Sugiyama layering),
 /// <see cref="ContainmentLayoutAlgorithm"/> (<c>containment</c> — grouped/packed placement), and
 /// <see cref="HierarchicalLayoutAlgorithm"/> (<c>hierarchical</c> — the recursive engine that

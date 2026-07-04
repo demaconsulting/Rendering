@@ -24,18 +24,20 @@ registry is safe to read (resolve) concurrently.
 
 ### DefaultLayout Methods
 
-`LayoutEngine.Layout(graph, options)` resolves against the shared default registry;
-`LayoutEngine.Layout(graph, options, registry)` resolves against a caller-supplied registry. Both reject
+`LayoutEngine.Layout(graph)` resolves against the shared default registry;
+`LayoutEngine.Layout(graph, registry)` resolves against a caller-supplied registry. Both reject
 null arguments with `ArgumentNullException`, then:
 
 1. **Resolve the algorithm identifier.** The identifier is read from an explicit `CoreOptions.Algorithm`
-   on the graph, else from an explicit `CoreOptions.Algorithm` on the options, else `DefaultAlgorithmId`
-   (`"hierarchical"`). Resolution consults *explicit* settings only (via `TryGet`), so an unset graph and
-   options fall through to the hierarchical default rather than the `CoreOptions.Algorithm` property
-   default of `"layered"`. The graph takes precedence over the options because, in the ELK-style model,
-   layout options are naturally attached to the graph being laid out.
+   set directly on the graph, else `DefaultAlgorithmId` (`"hierarchical"`). Resolution consults an
+   *explicit* graph setting only (via `TryGet`), so an unset graph falls through to the hierarchical
+   default rather than the `CoreOptions.Algorithm` property default of `"layered"`. The graph is the
+   single place to configure a layout — since `LayoutGraph` is itself an `IPropertyHolder` — so there is
+   no second, free-standing options object at this entry point that could disagree with it.
 2. **Resolve and apply.** The identifier is resolved from the registry and the resolved algorithm's
-   `Apply(graph, options)` produces the placed `LayoutTree`.
+   `Apply(graph, options)` produces the placed `LayoutTree`, where `options` is an empty `LayoutOptions`
+   used only to seed the algorithm's internal option-cascading contract (see the respective algorithm's
+   Unit Design document); the graph itself already carries every explicit setting.
 
 Defaulting to the hierarchical engine is what lets the single facade serve both flat and nested graphs.
 It is safe because of the hierarchical engine's flat-graph equivalence guarantee: for a graph with no
@@ -51,12 +53,12 @@ would, while a nested graph is composed correctly — with no decision required 
 - The facade shall default to the hierarchical engine, not the layered algorithm, so one entry point
   handles both flat and nested graphs; the flat-graph equivalence guarantee makes this behavior-
   preserving.
-- The facade shall consult only explicit algorithm declarations when resolving, so an unset graph and
-  options reach the hierarchical default rather than the layered property default.
+- The facade shall consult only an explicit algorithm declaration on the graph when resolving, so an
+  unset graph reaches the hierarchical default rather than the layered property default.
 
 ### DefaultLayout Error Handling
 
-Null `graph`, `options`, or (three-argument overload) `registry` throw `ArgumentNullException`. A
+Null `graph` or (two-argument overload) `registry` throw `ArgumentNullException`. A
 declared algorithm identifier absent from the resolving registry surfaces the registry's
 `KeyNotFoundException`.
 
@@ -67,7 +69,7 @@ declared algorithm identifier absent from the resolving registry surfaces the re
 - **Rendering.Abstractions** (`LayoutAlgorithmRegistry`, `ILayoutAlgorithm`) — the registry type
   populated by `CreateDefaultRegistry` and the algorithm contract resolved and invoked by
   `LayoutEngine.Layout`.
-- **Rendering model** (`DemaConsulting.Rendering`) — the `LayoutGraph`, `LayoutOptions`, and
+- **Rendering model** (`DemaConsulting.Rendering`) — the `LayoutGraph` and
   `LayoutTree` types on the public `Layout` signature, plus `CoreOptions.Algorithm` used for
   algorithm-identifier resolution.
 - **Layout units** (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`,
@@ -80,8 +82,8 @@ No OTS runtime component or shared package is consumed.
 
 `LayoutAlgorithms` and `LayoutEngine` are consumed by:
 
-- **External application code** — the primary caller. Applications invoke `LayoutEngine.Layout(graph,
-  options)` (or the three-argument overload with a custom registry) as the batteries-included happy
+- **External application code** — the primary caller. Applications invoke `LayoutEngine.Layout(graph)`
+  (or the two-argument overload with a custom registry) as the batteries-included happy
   path for going from `LayoutGraph` to placed `LayoutTree` with a single call.
 - **Renderer host code** (for example downstream of `SvgRenderer` / `PngRenderer`) — callers that
   pair `LayoutEngine.Layout(...)` with an `IRenderer` to go from graph to rendered output in two

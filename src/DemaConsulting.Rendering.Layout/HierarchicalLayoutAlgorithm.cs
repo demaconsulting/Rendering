@@ -391,7 +391,13 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
         var routeOptions = new ConnectorRouteOptions(effective.Get(CoreOptions.EdgeRouting));
         var boxesForRouting = (IReadOnlyList<LayoutBox>)composed;
-        var crossLines = new List<LayoutLine>();
+
+        // Collect every cross-container edge owned by this scope into one list of Connections, then
+        // route them all in a single batch call. Routing them independently (one ConnectorRouter.Route
+        // call per edge) would let separate edges that converge on the same box face pick colliding
+        // anchors, and separate edges on similar paths collapse onto the same corridor — the batch
+        // overload spreads shared-face anchors and steers later connectors around earlier ones.
+        var connections = new List<Connection>();
         foreach (var edge in graph.Edges)
         {
             // Skip edges whose endpoints are not both under this scope.
@@ -417,11 +423,10 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
             var from = composed[indexOf[sourceDirect]];
             var to = composed[indexOf[targetDirect]];
-            crossLines.Add(ConnectorRouter.Route(
-                boxesForRouting,
-                new Connection(from, to, edge.TargetEnd, edge.LineStyle, edge.Label),
-                routeOptions));
+            connections.Add(new Connection(from, to, edge.TargetEnd, edge.LineStyle, edge.Label));
         }
+
+        var crossLines = new List<LayoutLine>(ConnectorRouter.Route(boxesForRouting, connections, routeOptions));
 
         return crossLines;
     }

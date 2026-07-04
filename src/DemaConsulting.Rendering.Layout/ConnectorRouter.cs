@@ -136,7 +136,10 @@ public static class ConnectorRouter
     /// face's axis, that per-pair calculation can clamp to the same boundary point for every connector
     /// sharing the face, making them visually collapse into one another. Routing as a batch lets this
     /// method detect a face shared by more than one connector and spread their anchors evenly across it
-    /// (see <see cref="DistributeSharedFaceAnchors"/>) before any obstacle-avoiding path is computed.
+    /// (see <see cref="DistributeSharedFaceAnchors"/>) before any obstacle-avoiding path is computed. It
+    /// also routes connectors one at a time, adding each already-routed line's own path as a soft
+    /// obstacle for the ones that follow, so parallel connectors bound for nearby anchors fan out into
+    /// separate corridors instead of overlapping along a shared trunk.
     /// </remarks>
     public static IReadOnlyList<LayoutLine> Route(
         IReadOnlyList<LayoutBox> boxes,
@@ -161,10 +164,17 @@ public static class ConnectorRouter
 
         DistributeSharedFaceAnchors(connections, anchors, options.Clearance);
 
+        // Route one connector at a time, growing the obstacle set with each already-routed line (as a
+        // thin rectangle per segment) so later connectors steer clear of earlier ones instead of
+        // independently finding the same obstacle-free corridor.
         var lines = new List<LayoutLine>(connections.Count);
-        for (var i = 0; i < connections.Count; i++)
+        var routedLineObstacles = new List<Rect>();
+        foreach (var t in anchors)
         {
-            lines.Add(RouteWithAnchors(boxes, connections[i], options, anchors[i]));
+            var index = lines.Count;
+            var line = RouteWithAnchors(boxes, connections[index], options, t, routedLineObstacles);
+            lines.Add(line);
+            AddLineObstacles(line.Waypoints, routedLineObstacles);
         }
 
         return lines;
@@ -192,8 +202,9 @@ public static class ConnectorRouter
     /// <remarks>
     /// This overload considers only <paramref name="connection"/>'s own two boxes when picking anchors,
     /// so it cannot spread anchors across a box face that also receives other connectors routed by
-    /// separate calls. When routing several connectors that may share a target (or source) box, prefer
-    /// the batch <see cref="Route(IReadOnlyList{LayoutBox},IReadOnlyList{Connection},ConnectorRouteOptions)"/>
+    /// separate calls, nor steer around any other connector's path. When routing several connectors that
+    /// may share a target (or source) box, or may run parallel to one another, prefer the batch
+    /// <see cref="Route(IReadOnlyList{LayoutBox},IReadOnlyList{Connection},ConnectorRouteOptions)"/>
     /// overload instead.
     /// </remarks>
     public static LayoutLine Route(
@@ -213,25 +224,28 @@ public static class ConnectorRouter
         // box; deriving the facing sides from the box rectangles avoids that.
         var (source, sourceSide, target, targetSide) = FacingAnchors(connection.From, connection.To);
 
-        return RouteWithAnchors(boxes, connection, options, new FaceAnchors(source, sourceSide, target, targetSide));
+        return RouteWithAnchors(boxes, connection, options, new FaceAnchors(source, sourceSide, target, targetSide), []);
     }
 
     /// <summary>
-    /// Builds the obstacle set for <paramref name="connection"/> and routes it between the already
-    /// chosen <paramref name="anchors"/>.
+    /// Builds the obstacle set for <paramref name="connection"/> — every other box plus any already
+    /// routed <paramref name="extraObstacles"/> — and routes it between the already chosen
+    /// <paramref name="anchors"/>.
     /// </summary>
     private static LayoutLine RouteWithAnchors(
         IReadOnlyList<LayoutBox> boxes,
         Connection connection,
         ConnectorRouteOptions options,
-        FaceAnchors anchors)
+        FaceAnchors anchors,
+        IReadOnlyList<Rect> extraObstacles)
     {
         var from = connection.From;
         var to = connection.To;
 
         // The obstacle set is every box except this connection's own endpoints, matched by instance
-        // identity. The connector must be free to leave and enter the boxes it joins.
-        var obstacles = new List<Rect>(boxes.Count);
+        // identity, plus any already-routed lines passed in via extraObstacles. The connector must be
+        // free to leave and enter the boxes it joins.
+        var obstacles = new List<Rect>(boxes.Count + extraObstacles.Count);
         foreach (var box in boxes)
         {
             if (ReferenceEquals(box, from) || ReferenceEquals(box, to))
@@ -242,6 +256,8 @@ public static class ConnectorRouter
             obstacles.Add(new Rect(box.X, box.Y, box.Width, box.Height));
         }
 
+        obstacles.AddRange(extraObstacles);
+
         var waypoints = RouteWaypoints(
             options.EdgeRouting, anchors.Source, anchors.Target, obstacles, options.Clearance, anchors.SourceSide, anchors.TargetSide);
 
@@ -251,6 +267,50 @@ public static class ConnectorRouter
             TargetEnd: connection.TargetEnd,
             LineStyle: connection.LineStyle,
             MidpointLabel: connection.Label);
+    }
+
+    /// <summary>
+    /// Appends a thin rectangle obstacle for every orthogonal segment of <paramref name="waypoints"/> to
+    /// <paramref name="obstacles"/>, so a subsequently routed connector treats this already-routed line
+    /// as something to steer clear of (by the router's usual obstacle clearance) rather than freely
+    /// overlapping it.
+    /// </summary>
+    private static void AddLineObstacles(IReadOnlyList<Point2D> waypoints, List<Rect> obstacles)
+    {
+        // A hairline thickness is enough: the router already keeps a clearance gap between paths and
+        // any obstacle, so a wide slab here would only double up on that margin unnecessarily.
+        const double halfThickness = 1.0;
+
+        for (var i = 0; i < waypoints.Count - 1; i++)
+        {
+            var a = waypoints[i];
+            var b = waypoints[i + 1];
+
+            if (Math.Abs(a.Y - b.Y) < 1e-6)
+            {
+                // Horizontal segment.
+                var x = Math.Min(a.X, b.X);
+                var width = Math.Abs(b.X - a.X);
+                if (width < 1e-6)
+                {
+                    continue;
+                }
+
+                obstacles.Add(new Rect(x, a.Y - halfThickness, width, 2.0 * halfThickness));
+            }
+            else if (Math.Abs(a.X - b.X) < 1e-6)
+            {
+                // Vertical segment.
+                var y = Math.Min(a.Y, b.Y);
+                var height = Math.Abs(b.Y - a.Y);
+                if (height < 1e-6)
+                {
+                    continue;
+                }
+
+                obstacles.Add(new Rect(a.X - halfThickness, y, 2.0 * halfThickness, height));
+            }
+        }
     }
 
     /// <summary>
@@ -400,7 +460,9 @@ public static class ConnectorRouter
     /// Chooses boundary anchors on the two box faces that front each other, based on the boxes'
     /// relative placement. The connector leaves and enters on the sides actually facing the other box —
     /// the axis along which the boxes are more separated — and each anchor is aligned to the overlap of
-    /// the boxes on the shared edge, so the route stays short and never wraps back across an endpoint.
+    /// the boxes on the shared edge when they overlap, or to each box's own face centre when they don't,
+    /// so the route stays short and every anchor sits at a natural point on its own box regardless of
+    /// how far away the other box sits.
     /// </summary>
     /// <param name="from">The source box.</param>
     /// <param name="to">The target box.</param>
@@ -418,34 +480,40 @@ public static class ConnectorRouter
         {
             // Left/right relationship: the left box anchors its right face, the right box its left face.
             var fromIsLeft = from.X + (from.Width / 2.0) <= to.X + (to.Width / 2.0);
-            var y = AlignedCoordinate(from.Y, from.Y + from.Height, to.Y, to.Y + to.Height);
+            var fromY = AnchorCoordinate(from.Y, from.Y + from.Height, to.Y, to.Y + to.Height);
+            var toY = AnchorCoordinate(to.Y, to.Y + to.Height, from.Y, from.Y + from.Height);
             return fromIsLeft
-                ? (new Point2D(from.X + from.Width, Clamp(y, from.Y, from.Y + from.Height)), PortSide.Right,
-                   new Point2D(to.X, Clamp(y, to.Y, to.Y + to.Height)), PortSide.Left)
-                : (new Point2D(from.X, Clamp(y, from.Y, from.Y + from.Height)), PortSide.Left,
-                   new Point2D(to.X + to.Width, Clamp(y, to.Y, to.Y + to.Height)), PortSide.Right);
+                ? (new Point2D(from.X + from.Width, fromY), PortSide.Right,
+                   new Point2D(to.X, toY), PortSide.Left)
+                : (new Point2D(from.X, fromY), PortSide.Left,
+                   new Point2D(to.X + to.Width, toY), PortSide.Right);
         }
 
         // Top/bottom relationship: the upper box anchors its bottom face, the lower box its top face.
         var fromIsAbove = from.Y + (from.Height / 2.0) <= to.Y + (to.Height / 2.0);
-        var x = AlignedCoordinate(from.X, from.X + from.Width, to.X, to.X + to.Width);
+        var fromX = AnchorCoordinate(from.X, from.X + from.Width, to.X, to.X + to.Width);
+        var toX = AnchorCoordinate(to.X, to.X + to.Width, from.X, from.X + from.Width);
         return fromIsAbove
-            ? (new Point2D(Clamp(x, from.X, from.X + from.Width), from.Y + from.Height), PortSide.Bottom,
-               new Point2D(Clamp(x, to.X, to.X + to.Width), to.Y), PortSide.Top)
-            : (new Point2D(Clamp(x, from.X, from.X + from.Width), from.Y), PortSide.Top,
-               new Point2D(Clamp(x, to.X, to.X + to.Width), to.Y + to.Height), PortSide.Bottom);
+            ? (new Point2D(fromX, from.Y + from.Height), PortSide.Bottom,
+               new Point2D(toX, to.Y), PortSide.Top)
+            : (new Point2D(fromX, from.Y), PortSide.Top,
+               new Point2D(toX, to.Y + to.Height), PortSide.Bottom);
     }
 
     /// <summary>
-    /// Returns a coordinate shared by the spans [<paramref name="aLo"/>, <paramref name="aHi"/>] and
-    /// [<paramref name="bLo"/>, <paramref name="bHi"/>]: the centre of their overlap when they overlap,
-    /// otherwise the midpoint of the gap between them. Anchors are clamped into each box afterwards, so
-    /// a shared coordinate keeps both ends aligned when the boxes overlap on the perpendicular axis.
+    /// Returns the anchor coordinate for a box face spanning [<paramref name="lo"/>, <paramref name="hi"/>]
+    /// against the facing box's span [<paramref name="otherLo"/>, <paramref name="otherHi"/>] on the same
+    /// axis: the centre of their overlap when the spans overlap (keeping both ends aligned on a single
+    /// coordinate for a short, straight hop across the shared span), or this box's own centre when they
+    /// don't overlap at all. The "own centre" fallback matters because a shared "gap midpoint" between
+    /// two far-apart, differently sized boxes can fall entirely outside one (or both) box's own span;
+    /// clamping that midpoint into the box's range would then pin the anchor to whichever edge happens to
+    /// be nearest, rather than the natural middle of the face every other connector uses.
     /// </summary>
-    private static double AlignedCoordinate(double aLo, double aHi, double bLo, double bHi) =>
-        (Math.Max(aLo, bLo) + Math.Min(aHi, bHi)) / 2.0;
-
-    /// <summary>Clamps <paramref name="value"/> into the inclusive range [<paramref name="min"/>, <paramref name="max"/>].</summary>
-    private static double Clamp(double value, double min, double max) =>
-        Math.Clamp(value, min, max);
+    private static double AnchorCoordinate(double lo, double hi, double otherLo, double otherHi)
+    {
+        var overlapLo = Math.Max(lo, otherLo);
+        var overlapHi = Math.Min(hi, otherHi);
+        return overlapLo <= overlapHi ? (overlapLo + overlapHi) / 2.0 : (lo + hi) / 2.0;
+    }
 }
