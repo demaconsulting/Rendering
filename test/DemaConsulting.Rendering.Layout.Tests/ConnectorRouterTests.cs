@@ -16,8 +16,29 @@ public sealed class ConnectorRouterTests
     ///     Creates a plain rectangular <see cref="LayoutBox"/> at the given placement with no
     ///     compartments or children.
     /// </summary>
-    private static LayoutBox Box(double x, double y, double width, double height, string? label = null) =>
-        new(x, y, width, height, label, 0, BoxShape.Rectangle, [], []);
+    private static LayoutBox Box(
+        double x,
+        double y,
+        double width,
+        double height,
+        string? label = null,
+        BoxShape shape = BoxShape.Rectangle,
+        double? roundedCornerRadius = null,
+        double? folderTabWidth = null,
+        double? folderTabHeight = null) =>
+        new(
+            x,
+            y,
+            width,
+            height,
+            label,
+            0,
+            shape,
+            [],
+            [],
+            RoundedCornerRadius: roundedCornerRadius,
+            FolderTabWidth: folderTabWidth,
+            FolderTabHeight: folderTabHeight);
 
     /// <summary>
     ///     When the target box lies to the right, the source anchor sits on the source box's right
@@ -66,6 +87,106 @@ public sealed class ConnectorRouterTests
         Assert.Equal(from.Y + from.Height, start.Y, 6); // bottom face of source
         Assert.Equal(to.X + (to.Width / 2.0), end.X, 6);
         Assert.Equal(to.Y, end.Y, 6); // top face of target
+    }
+
+    /// <summary>
+    ///     A folder's top-face connectable extent excludes the raised tab strip, so a connector
+    ///     approaching from above clamps to the first usable point to the right of the tab instead of
+    ///     anchoring on the tab itself.
+    /// </summary>
+    [Fact]
+    public void Route_FolderTopFace_TabExcludedFromConnectableExtent()
+    {
+        // Arrange: the source sits above the folder and overlaps only the tab region horizontally.
+        var from = Box(40, 0, 40, 40);
+        var to = Box(0, 120, 140, 90, "Utilities", BoxShape.Folder, folderTabWidth: 60.0, folderTabHeight: 24.0);
+        var boxes = new[] { from, to };
+
+        // Act: route directly into the folder from above.
+        var line = ConnectorRouter.Route(boxes, new Connection(from, to), new ConnectorRouteOptions());
+
+        // Assert: the target anchor lands to the right of the tab strip and on the recessed body top.
+        var end = line.Waypoints[^1];
+        Assert.True(end.X > to.X + 60.0, "Target anchor should clamp to the usable top-face extent right of the tab.");
+        Assert.Equal(to.Y + 24.0, end.Y, 6);
+    }
+
+    /// <summary>
+    ///     When several connectors share a folder's top face, their anchors are distributed across the
+    ///     usable top-face extent to the right of the tab, not across the full box width.
+    /// </summary>
+    [Fact]
+    public void Route_SharedFolderTopFace_DistributesAcrossReducedExtent()
+    {
+        // Arrange: three source boxes above a folder, all converging on its top face.
+        var s1 = Box(0, 0, 30, 30);
+        var s2 = Box(55, 0, 30, 30);
+        var s3 = Box(110, 0, 30, 30);
+        var folder = Box(0, 120, 140, 90, "Utilities", BoxShape.Folder, folderTabWidth: 60.0, folderTabHeight: 24.0);
+        var boxes = new[] { s1, s2, s3, folder };
+        var connections = new[]
+        {
+            new Connection(s1, folder),
+            new Connection(s2, folder),
+            new Connection(s3, folder),
+        };
+
+        // Act: route them as a batch so the shared-face distribution logic engages.
+        var lines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+        var targets = lines.Select(line => line.Waypoints[^1]).ToArray();
+
+        // Assert: every target anchor stays on the recessed body top and to the right of the tab.
+        Assert.All(targets, target =>
+        {
+            Assert.True(target.X > folder.X + 60.0, "Target anchor should remain off the folder tab.");
+            Assert.Equal(folder.Y + 24.0, target.Y, 6);
+        });
+
+        // Assert: the anchors are distinct and ordered across the reduced usable span.
+        Assert.True(targets[0].X < targets[1].X, "First target anchor should sit left of the second.");
+        Assert.True(targets[1].X < targets[2].X, "Second target anchor should sit left of the third.");
+    }
+
+    /// <summary>
+    ///     Surface projection applies the folder tab height as an inward offset on the top face, so the
+    ///     final anchor touches the folder body's recessed outline rather than the bounding-box edge.
+    /// </summary>
+    [Fact]
+    public void Route_FolderTopFace_ProjectsAnchorToRecessedBodyTop()
+    {
+        // Arrange: the source overlaps a clearly usable part of the folder's top face.
+        var from = Box(95, 0, 20, 20);
+        var to = Box(0, 120, 140, 90, "Utilities", BoxShape.Folder, folderTabWidth: 60.0, folderTabHeight: 24.0);
+        var boxes = new[] { from, to };
+
+        // Act
+        var line = ConnectorRouter.Route(boxes, new Connection(from, to), new ConnectorRouteOptions());
+
+        // Assert: the route still enters from above, but the final touch point is recessed by the tab height.
+        Assert.Equal(line.Waypoints[^1].X, line.Waypoints[^2].X, 6);
+        Assert.True(line.Waypoints[^2].Y < line.Waypoints[^1].Y, "Last segment should enter the top face from above.");
+        Assert.Equal(to.Y + 24.0, line.Waypoints[^1].Y, 6);
+    }
+
+    /// <summary>
+    ///     When the naturally-facing face has an empty connectable extent, anchor selection falls back
+    ///     to the first usable adjacent face in the documented preference order.
+    /// </summary>
+    [Fact]
+    public void Route_FaceSelectionFallback_EmptyNaturalFaceUsesAdjacentFace()
+    {
+        // Arrange: the source sits above-left of a folder whose top face is entirely consumed by the tab.
+        var from = Box(90, 0, 20, 20);
+        var to = Box(100, 100, 80, 60, "Package", BoxShape.Folder, folderTabWidth: 80.0, folderTabHeight: 24.0);
+        var boxes = new[] { from, to };
+
+        // Act
+        var line = ConnectorRouter.Route(boxes, new Connection(from, to), new ConnectorRouteOptions());
+
+        // Assert: the target cannot use its top face, so it falls back to its left face.
+        var end = line.Waypoints[^1];
+        Assert.Equal(to.X, end.X, 6);
+        Assert.Equal(to.Y + (to.Height / 2.0), end.Y, 6);
     }
 
     /// <summary>

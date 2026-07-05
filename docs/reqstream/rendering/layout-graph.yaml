@@ -111,3 +111,19 @@ sections:
         tests:
           - Apply_ContainerWithTitleHeightOverride_ReplacesDefaultTitleBand
           - Apply_UnlabelledContainerWithTitleHeightOverride_ReservesNoTitleBand
+
+      - id: Rendering-Model-LayoutGraph-ShapeGeometryHints
+        title: >-
+          A graph node shall be able to carry optional resolved shape-geometry hints for a rounded
+          corner radius and a folder tab's width and height, and layout algorithms shall propagate
+          those hints unchanged onto the placed box.
+        justification: |
+          The layout pipeline routes connectors after placement but before rendering, while renderers
+          draw the final outline using theme-resolved shape geometry. Carrying optional resolved shape
+          hints on the input node lets routing and rendering agree on the same real outline without
+          forcing the layout APIs to take a theme dependency.
+        tests:
+          - LayoutGraphNode_ShapeGeometryHints_DefaultNullAndSettable
+          - Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPlacedBox
+          - Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPackedBox
+          - Apply_NestedGraph_PropagatesContainerAndLeafShapeKeywordCompartments

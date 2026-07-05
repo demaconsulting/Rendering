@@ -74,3 +74,14 @@ sections:
           must bias toward discounted bands while keeping null bands neutral.
         tests:
           - RouteWithStatus_HighwayBand_PrefersBandedDetour
+
+      - id: Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit
+        title: >-
+          OrthogonalEdgeRouter shall not publish a waypoint sequence that visits one point, leaves it,
+          and later revisits that exact point before continuing.
+        justification: |
+          A leave-and-return loop is a visibly redundant detour that adds no routing value and makes a
+          connector appear to hesitate or double back. The engine must therefore either avoid or
+          defensively remove such revisit loops before returning the route.
+        tests:
+          - RouteWithStatus_SoftObstacleDetour_DoesNotRevisitWaypoint

@@ -55,9 +55,9 @@ public class LayeredLayoutAlgorithmTests
 
     /// <summary>
     ///     Proves that a node's <see cref="LayoutGraphNode.Shape"/>, <see cref="LayoutGraphNode.Keyword"/>,
-    ///     and <see cref="LayoutGraphNode.Compartments"/> flow through to the placed <see cref="LayoutBox"/>
-    ///     unchanged, so a caller can select a folder outline, a SysML keyword line, and feature
-    ///     compartments purely through the input graph model.
+    ///     <see cref="LayoutGraphNode.Compartments"/>, and optional shape-geometry hints flow through to
+    ///     the placed <see cref="LayoutBox"/> unchanged, so a caller can select both the visible outline
+    ///     and any resolved routing/rendering geometry purely through the input graph model.
     /// </summary>
     [Fact]
     public void Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPlacedBox()
@@ -68,6 +68,9 @@ public class LayeredLayoutAlgorithmTests
         node.Shape = BoxShape.RoundedRectangle;
         node.Keyword = "part def";
         node.Compartments = [new LayoutCompartment("ports", ["intake : FluidPort", "exhaust : FluidPort"])];
+        node.RoundedCornerRadius = 14.0;
+        node.FolderTabWidth = 70.0;
+        node.FolderTabHeight = 22.0;
 
         var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
 
@@ -75,6 +78,9 @@ public class LayeredLayoutAlgorithmTests
         Assert.Equal(BoxShape.RoundedRectangle, box.Shape);
         Assert.Equal("part def", box.Keyword);
         Assert.Equal(node.Compartments, box.Compartments);
+        Assert.Equal(14.0, box.RoundedCornerRadius);
+        Assert.Equal(70.0, box.FolderTabWidth);
+        Assert.Equal(22.0, box.FolderTabHeight);
     }
 
     /// <summary>

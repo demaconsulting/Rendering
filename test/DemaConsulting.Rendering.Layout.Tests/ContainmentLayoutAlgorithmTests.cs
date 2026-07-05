@@ -24,9 +24,9 @@ public sealed class ContainmentLayoutAlgorithmTests
 
     /// <summary>
     ///     Proves that a node's <see cref="LayoutGraphNode.Shape"/>, <see cref="LayoutGraphNode.Keyword"/>,
-    ///     and <see cref="LayoutGraphNode.Compartments"/> flow through to the packed <see cref="LayoutBox"/>
-    ///     unchanged, so a caller can select a folder outline, a SysML keyword line, and feature
-    ///     compartments purely through the input graph model.
+    ///     <see cref="LayoutGraphNode.Compartments"/>, and optional shape-geometry hints flow through to
+    ///     the packed <see cref="LayoutBox"/> unchanged, so routing and rendering can agree on the box's
+    ///     real outline after packing.
     /// </summary>
     [Fact]
     public void Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPackedBox()
@@ -38,6 +38,9 @@ public sealed class ContainmentLayoutAlgorithmTests
         node.Shape = BoxShape.Folder;
         node.Keyword = "package";
         node.Compartments = [new LayoutCompartment(null, ["Engine", "Gearbox"])];
+        node.RoundedCornerRadius = 10.0;
+        node.FolderTabWidth = 76.0;
+        node.FolderTabHeight = 24.0;
 
         // Act
         var tree = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
@@ -47,6 +50,9 @@ public sealed class ContainmentLayoutAlgorithmTests
         Assert.Equal(BoxShape.Folder, box.Shape);
         Assert.Equal("package", box.Keyword);
         Assert.Equal(node.Compartments, box.Compartments);
+        Assert.Equal(10.0, box.RoundedCornerRadius);
+        Assert.Equal(76.0, box.FolderTabWidth);
+        Assert.Equal(24.0, box.FolderTabHeight);
     }
 
     /// <summary>

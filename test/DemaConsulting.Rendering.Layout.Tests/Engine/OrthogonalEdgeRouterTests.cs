@@ -229,6 +229,36 @@ public sealed class OrthogonalEdgeRouterTests
     }
 
     /// <summary>
+    ///     A route steered by soft-obstacle penalties does not publish a redundant leave-and-return
+    ///     waypoint loop that revisits the same point before continuing.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_SoftObstacleDetour_DoesNotRevisitWaypoint()
+    {
+        // Arrange: a vertical route whose preferred corridor is marked as a soft obstacle, representing
+        // an already-routed connector that a later connector should prefer to steer around without
+        // publishing a redundant excursion that leaves and returns to the same point.
+        var source = new Point2D(100, 0);
+        var target = new Point2D(100, 200);
+        var softObstacles = new[] { new Rect(99, 20, 2, 160) };
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(
+            source,
+            target,
+            obstacles: [],
+            clearance: 10,
+            sourceSide: PortSide.Bottom,
+            targetSide: PortSide.Top,
+            softObstacles: softObstacles);
+
+        // Assert: the path is valid and never visits, leaves, and later revisits the same point.
+        Assert.False(result.Crossed);
+        AssertAllSegmentsOrthogonal(result.Waypoints);
+        AssertNoWaypointRevisit(result.Waypoints);
+    }
+
+    /// <summary>
     ///     A null source anchor is rejected.
     /// </summary>
     [Fact]
@@ -307,6 +337,23 @@ public sealed class OrthogonalEdgeRouterTests
     }
 
     /// <summary>
+    ///     Asserts that the path never visits one point, leaves it, and later returns to the exact same
+    ///     point.
+    /// </summary>
+    private static void AssertNoWaypointRevisit(IReadOnlyList<Point2D> path)
+    {
+        for (var i = 0; i < path.Count - 2; i++)
+        {
+            for (var j = i + 2; j < path.Count; j++)
+            {
+                Assert.False(
+                    SamePoint(path[i], path[j]),
+                    $"Waypoint ({path[i].X},{path[i].Y}) is revisited at positions {i} and {j}.");
+            }
+        }
+    }
+
+    /// <summary>
     ///     Returns true when the axis-aligned segment passes through the strict interior of the rect.
     /// </summary>
     private static bool SegmentCrossesRect(Point2D a, Point2D b, Rect r)
@@ -344,4 +391,10 @@ public sealed class OrthogonalEdgeRouterTests
         var dy = Math.Max(0.0, Math.Max(r.Y - yhi, ylo - (r.Y + r.Height)));
         return Math.Sqrt((dx * dx) + (dy * dy));
     }
+
+    /// <summary>
+    ///     Returns whether two waypoints identify the same geometric point.
+    /// </summary>
+    private static bool SamePoint(Point2D left, Point2D right) =>
+        Math.Abs(left.X - right.X) < 1e-9 && Math.Abs(left.Y - right.Y) < 1e-9;
 }

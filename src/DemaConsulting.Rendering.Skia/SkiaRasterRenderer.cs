@@ -359,8 +359,8 @@ public abstract class SkiaRasterRenderer : IRenderer
                 RenderNotePng(canvas, box, scale, fillPaint, strokePaint);
                 break;
 
-            case BoxShape.RoundedRectangle when theme.LineCornerRadius > 0:
-                var cornerR = (float)(NotationMetrics.RoundedRectRadius(theme) * scale);
+            case BoxShape.RoundedRectangle when ResolveRoundedCornerRadius(box, theme) > 0:
+                var cornerR = (float)(ResolveRoundedCornerRadius(box, theme) * scale);
                 canvas.DrawRoundRect(rect, cornerR, cornerR, fillPaint);
                 canvas.DrawRoundRect(rect, cornerR, cornerR, strokePaint);
                 break;
@@ -377,12 +377,8 @@ public abstract class SkiaRasterRenderer : IRenderer
     /// </summary>
     private static SKPath BuildFolderPath(LayoutBox box, Theme theme, float scale)
     {
-        var tabHeight = BoxMetrics.FolderTabHeight(theme);
-        var tabWidth = Math.Min(
-            box.Width * NotationMetrics.FolderTabMaxWidthFraction,
-            Math.Max(
-                NotationMetrics.FolderTabMinWidth,
-                (box.Label?.Length ?? 4) * theme.FontSizeBody * NotationMetrics.FolderLabelCharWidthFactor + 2.0 * theme.LabelPadding));
+        var tabHeight = ResolveFolderTabHeight(box, theme);
+        var tabWidth = ResolveFolderTabWidth(box, theme);
 
         var x = (float)(box.X * scale);
         var yTab = (float)(box.Y * scale);
@@ -402,6 +398,32 @@ public abstract class SkiaRasterRenderer : IRenderer
         path.Close();
         return path;
     }
+
+    /// <summary>
+    /// Resolves the rounded-corner radius for a box, preferring a caller-supplied placed-box value so
+    /// routing and rendering can agree on the exact outline geometry.
+    /// </summary>
+    private static double ResolveRoundedCornerRadius(LayoutBox box, Theme theme) =>
+        box.RoundedCornerRadius ?? NotationMetrics.RoundedRectRadius(theme);
+
+    /// <summary>
+    /// Resolves the folder tab width for a box, preferring a caller-supplied placed-box value so
+    /// routing and rendering can agree on the exact top-face geometry.
+    /// </summary>
+    private static double ResolveFolderTabWidth(LayoutBox box, Theme theme) =>
+        box.FolderTabWidth ?? Math.Min(
+            box.Width * NotationMetrics.FolderTabMaxWidthFraction,
+            Math.Max(
+                NotationMetrics.FolderTabMinWidth,
+                (box.Label?.Length ?? 4) * theme.FontSizeBody * NotationMetrics.FolderLabelCharWidthFactor +
+                (2.0 * theme.LabelPadding)));
+
+    /// <summary>
+    /// Resolves the folder tab height for a box, preferring a caller-supplied placed-box value so
+    /// routing and rendering can agree on the exact top-face projection offset.
+    /// </summary>
+    private static double ResolveFolderTabHeight(LayoutBox box, Theme theme) =>
+        box.FolderTabHeight ?? BoxMetrics.FolderTabHeight(theme);
 
     /// <summary>
     /// Draws a note-shaped box (a rectangle with a folded-down top-right corner).
@@ -1595,4 +1617,3 @@ public abstract class SkiaRasterRenderer : IRenderer
         }
     }
 }
-

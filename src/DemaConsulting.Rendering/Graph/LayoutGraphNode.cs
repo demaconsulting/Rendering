@@ -132,6 +132,35 @@ public sealed class LayoutGraphNode : PropertyHolder
     public double? TitleHeight { get; set; }
 
     /// <summary>
+    /// Gets or sets the rounded-corner radius, in logical pixels, that a caller has already resolved
+    /// for this node's <see cref="BoxShape.RoundedRectangle"/> outline. <see langword="null"/> means
+    /// downstream components should use their own generic fallback. Set this when the layout and
+    /// rendering pipelines must agree on the exact rounded-rectangle face extents — for example so a
+    /// connector router keeps anchors off the corner arcs while the renderer draws the matching
+    /// outline.
+    /// </summary>
+    public double? RoundedCornerRadius { get; set; }
+
+    /// <summary>
+    /// Gets or sets the folder-tab width, in logical pixels, that a caller has already resolved for
+    /// this node's <see cref="BoxShape.Folder"/> outline. <see langword="null"/> means downstream
+    /// components should use their own generic fallback. Set this when routing and rendering must agree
+    /// on the exact width of the raised tab that occupies the folder's top-left edge, so connectors can
+    /// avoid anchoring on that tab strip.
+    /// </summary>
+    public double? FolderTabWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the folder-tab height, in logical pixels, that a caller has already resolved for
+    /// this node's <see cref="BoxShape.Folder"/> outline. <see langword="null"/> means downstream
+    /// components should use their own generic fallback. Set this when routing and rendering must agree
+    /// on how far the folder body's real top edge sits below the bounding box's top edge, so connector
+    /// anchors projected onto the folder's top face touch the drawn outline instead of floating above
+    /// it.
+    /// </summary>
+    public double? FolderTabHeight { get; set; }
+
+    /// <summary>
     /// Gets the child subgraph nested inside this node, turning the node into a container of nodes and
     /// contained edges.
     /// </summary>

@@ -77,7 +77,10 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                 graphNodes[i].Shape,
                 graphNodes[i].Compartments,
                 Children: [],
-                Keyword: graphNodes[i].Keyword));
+                Keyword: graphNodes[i].Keyword,
+                RoundedCornerRadius: graphNodes[i].RoundedCornerRadius,
+                FolderTabWidth: graphNodes[i].FolderTabWidth,
+                FolderTabHeight: graphNodes[i].FolderTabHeight));
         }
 
         // Build a (source, target) -> polyline lookup from the acyclic edge set the engine routed.

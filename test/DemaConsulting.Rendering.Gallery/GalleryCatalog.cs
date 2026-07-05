@@ -44,6 +44,7 @@ internal static class GalleryCatalog
     public const string LayeredPipelinePng = "layered-pipeline.png";
     public const string HierarchicalNestedPng = "hierarchical-nested.png";
     public const string BoxAppearanceSvg = "box-appearance.svg";
+    public const string FolderTopFaceAnchorSvg = "folder-top-face-anchor.svg";
 
     /// <summary>Gets the browsable sections of the gallery, in display order.</summary>
     public static IReadOnlyList<GallerySection> Sections { get; } =
@@ -145,6 +146,20 @@ internal static class GalleryCatalog
                     "A folder container with two boxes carrying a keyword, one also compartmented, joined by an edge",
                     "A folder container holding two boxes with a keyword line — one also with a labelled "
                     + "compartment — joined by a decorated edge."),
+            ]),
+        new GallerySection(
+            "Shape-aware connectors",
+            "A box's Shape can make its true outline diverge from its plain bounding rectangle — a "
+            + "folder's tab, a note's folded corner, a rounded rectangle's corners. The router keeps "
+            + "connectors off those non-connectable regions and projects each anchor down to the shape's "
+            + "actual drawn outline, so every connector visibly touches the shape it targets.",
+            [
+                new GalleryImage(
+                    FolderTopFaceAnchorSvg,
+                    "An external node connected into a folder top face, clear of the tab",
+                    "A cross-container edge approaching a folder container from above: the connector "
+                    + "avoids the tab and anchors on the folder's recessed top edge instead of floating "
+                    + "above it."),
             ]),
     ];
 }

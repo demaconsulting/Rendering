@@ -71,9 +71,14 @@ public sealed record ConnectorRouteOptions(
 /// <para>
 /// Source and target anchors are chosen on the box faces that front each other, based on the boxes'
 /// relative placement rather than the direction to a possibly far-off centre, and are aligned to the
-/// overlap of the boxes on the shared edge. Connectors therefore leave and arrive on the sides the two
-/// boxes actually present to each other, without wrapping back across a wide endpoint box. The chosen
-/// side is passed to the underlying router so the connector exits and enters perpendicular to the edge.
+/// overlap of the boxes on the shared edge. Each face is then interpreted through the box shape's own
+/// routing geometry: only its connectable sub-ranges may be used, an unusable natural face falls back
+/// to the next-best adjacent face, and the final anchor is projected inward from the bounding box to
+/// the real outline when the shape is recessed there (for example the body top of a folder below its
+/// tab). Connectors therefore leave and arrive on the sides the two boxes actually present to each
+/// other, without wrapping back across a wide endpoint box or anchoring on a shape's non-connectable
+/// outline detail. The chosen side is passed to the underlying router so the connector exits and
+/// enters perpendicular to the edge.
 /// </para>
 /// <para>
 /// Today the only supported style is <see cref="Rendering.EdgeRouting.Orthogonal"/>, realized by the
@@ -158,8 +163,8 @@ public static class ConnectorRouter
             ArgumentNullException.ThrowIfNull(connection.From);
             ArgumentNullException.ThrowIfNull(connection.To);
 
-            var (source, sourceSide, target, targetSide) = FacingAnchors(connection.From, connection.To);
-            anchors[i] = new FaceAnchors(source, sourceSide, target, targetSide);
+            var (sourceAlong, sourceSide, targetAlong, targetSide) = FacingAnchors(connection.From, connection.To);
+            anchors[i] = new FaceAnchors(sourceAlong, sourceSide, targetAlong, targetSide);
         }
 
         DistributeSharedFaceAnchors(connections, anchors, options.Clearance);
@@ -225,9 +230,14 @@ public static class ConnectorRouter
         // relative placement. Using the direction to the other box's centre misfires for wide boxes
         // (whose centre can sit far past the near endpoint), forcing the connector to wrap back across a
         // box; deriving the facing sides from the box rectangles avoids that.
-        var (source, sourceSide, target, targetSide) = FacingAnchors(connection.From, connection.To);
+        var (sourceAlong, sourceSide, targetAlong, targetSide) = FacingAnchors(connection.From, connection.To);
 
-        return RouteWithAnchors(boxes, connection, options, new FaceAnchors(source, sourceSide, target, targetSide), []);
+        return RouteWithAnchors(
+            boxes,
+            connection,
+            options,
+            new FaceAnchors(sourceAlong, sourceSide, targetAlong, targetSide),
+            []);
     }
 
     /// <summary>
@@ -244,6 +254,8 @@ public static class ConnectorRouter
     {
         var from = connection.From;
         var to = connection.To;
+        var source = ResolveAnchorPoint(from, anchors.SourceSide, anchors.SourceAlong);
+        var target = ResolveAnchorPoint(to, anchors.TargetSide, anchors.TargetAlong);
 
         // The hard obstacle set is every box except this connection's own endpoints, matched by
         // instance identity. The connector must be free to leave and enter the boxes it joins.
@@ -259,7 +271,7 @@ public static class ConnectorRouter
         }
 
         var waypoints = RouteWaypoints(
-            options.EdgeRouting, anchors.Source, anchors.Target, obstacles, options.Clearance, anchors.SourceSide, anchors.TargetSide, extraSoftObstacles);
+            options.EdgeRouting, source, target, obstacles, options.Clearance, anchors.SourceSide, anchors.TargetSide, extraSoftObstacles);
 
         return new LayoutLine(
             Waypoints: waypoints,
@@ -270,11 +282,17 @@ public static class ConnectorRouter
     }
 
     /// <summary>
-    /// Appends a thin rectangle obstacle for every orthogonal segment of <paramref name="waypoints"/> to
-    /// <paramref name="obstacles"/>, so a subsequently routed connector treats this already-routed line
-    /// as something to steer clear of (by the router's usual obstacle clearance) rather than freely
-    /// overlapping it.
+    /// Appends a thin rectangle obstacle for every interior orthogonal segment of
+    /// <paramref name="waypoints"/> to <paramref name="obstacles"/>, so a subsequently routed
+    /// connector treats this already-routed line as something to steer clear of (by the router's usual
+    /// obstacle clearance) rather than freely overlapping it.
     /// </summary>
+    /// <remarks>
+    /// The first and last segments are intentionally excluded. Those short endpoint-adjacent approach
+    /// legs are the one place where several connectors may legitimately share the same corridor while
+    /// still reaching a common face cleanly; penalizing them as soft obstacles is what causes the
+    /// redundant leave-and-return detours this method now avoids.
+    /// </remarks>
     private static void AddLineObstacles(IReadOnlyList<Point2D> waypoints, List<Rect> obstacles)
     {
         // A hairline thickness is enough: the router already keeps a clearance gap between paths and
@@ -283,6 +301,11 @@ public static class ConnectorRouter
 
         for (var i = 0; i < waypoints.Count - 1; i++)
         {
+            if (i == 0 || i == waypoints.Count - 2)
+            {
+                continue;
+            }
+
             var a = waypoints[i];
             var b = waypoints[i + 1];
 
@@ -314,10 +337,12 @@ public static class ConnectorRouter
     }
 
     /// <summary>
-    /// The chosen source and target anchors and box sides for one connection, prior to obstacle-avoiding
-    /// path computation.
+    /// The chosen source and target face coordinates and box sides for one connection, prior to
+    /// obstacle-avoiding path computation. The along-axis coordinates are stored in the owning box's
+    /// local face coordinate system (0 at the face start, increasing toward the face end) so shared-face
+    /// redistribution can work directly against shape-aware connectable extents.
     /// </summary>
-    private readonly record struct FaceAnchors(Point2D Source, PortSide SourceSide, Point2D Target, PortSide TargetSide);
+    private readonly record struct FaceAnchors(double SourceAlong, PortSide SourceSide, double TargetAlong, PortSide TargetSide);
 
     /// <summary>
     /// One connector's claim on a shared box face: which connection it belongs to, whether it is the
@@ -334,7 +359,8 @@ public static class ConnectorRouter
     /// <param name="connections">The connections being routed, in the same order as <paramref name="anchors"/>.</param>
     /// <param name="anchors">
     /// The naive per-connection anchors computed by <see cref="FacingAnchors"/>; updated in place for any
-    /// connector whose anchor is moved to share its face fairly with others.
+    /// connector whose anchor is moved to share its face fairly with others. The redistribution spans
+    /// the union of the face's connectable extents rather than the full bounding-box edge.
     /// </param>
     /// <param name="clearance">Minimum inset kept between a redistributed anchor and the ends of the face.</param>
     private static void DistributeSharedFaceAnchors(
@@ -363,34 +389,26 @@ public static class ConnectorRouter
             }
 
             var (box, side) = key;
-            var isVerticalFace = side is PortSide.Left or PortSide.Right;
-            var faceLo = isVerticalFace ? box.Y : box.X;
-            var faceExtent = isVerticalFace ? box.Height : box.Width;
-            var fixedCoord = side switch
+            var geometry = ResolveShapeGeometry(box);
+            var usableExtents = BuildUsableExtents(geometry.GetConnectableExtents(side), clearance);
+            if (usableExtents.Count == 0)
             {
-                PortSide.Left => box.X,
-                PortSide.Right => box.X + box.Width,
-                PortSide.Top => box.Y,
-                _ => box.Y + box.Height,
-            };
+                continue;
+            }
 
-            // Cap the inset so the usable span never inverts for a face too small to hold the full
-            // clearance on both ends; degrade gracefully by collapsing ports toward the centre instead.
-            var inset = Math.Min(clearance, faceExtent / 2.0);
-            var usable = faceExtent - (2.0 * inset);
+            var usableLength = TotalExtentLength(usableExtents);
             var ordered = slots.OrderBy(s => s.Counterpart).ThenBy(s => s.ConnectionIndex).ToList();
             var count = ordered.Count;
 
             for (var k = 0; k < count; k++)
             {
-                var along = faceLo + inset + (count == 1 ? usable / 2.0 : k * usable / (count - 1));
-                var point = isVerticalFace ? new Point2D(fixedCoord, along) : new Point2D(along, fixedCoord);
-
+                var distance = count == 1 ? usableLength / 2.0 : k * usableLength / (count - 1);
+                var along = CoordinateAtDistance(usableExtents, distance);
                 var slot = ordered[k];
                 var current = anchors[slot.ConnectionIndex];
                 anchors[slot.ConnectionIndex] = slot.IsSource
-                    ? current with { Source = point }
-                    : current with { Target = point };
+                    ? current with { SourceAlong = along }
+                    : current with { TargetAlong = along };
             }
         }
     }
@@ -424,6 +442,83 @@ public static class ConnectorRouter
             : box.X + (box.Width / 2.0);
 
     /// <summary>
+    /// Insets each connectable face segment by up to <paramref name="clearance"/> at both ends so
+    /// redistributed anchors keep the same breathing room from the face edges that plain rectangular
+    /// distribution already used. When that inset would collapse every segment to a point, the original
+    /// extents are used instead so a reduced-but-still-usable face does not become artificially empty.
+    /// </summary>
+    private static IReadOnlyList<(double Lo, double Hi)> BuildUsableExtents(
+        IReadOnlyList<(double Lo, double Hi)> extents,
+        double clearance)
+    {
+        var insetExtents = new List<(double Lo, double Hi)>(extents.Count);
+        foreach (var (lo, hi) in extents)
+        {
+            if (hi < lo)
+            {
+                continue;
+            }
+
+            var inset = Math.Min(clearance, (hi - lo) / 2.0);
+            insetExtents.Add((lo + inset, hi - inset));
+        }
+
+        if (TotalExtentLength(insetExtents) > 1e-9)
+        {
+            return insetExtents;
+        }
+
+        var fallback = new List<(double Lo, double Hi)>(extents.Count);
+        foreach (var (lo, hi) in extents)
+        {
+            if (hi >= lo)
+            {
+                fallback.Add((lo, hi));
+            }
+        }
+
+        return fallback;
+    }
+
+    /// <summary>
+    /// Returns the total length covered by a set of local face extents.
+    /// </summary>
+    private static double TotalExtentLength(IReadOnlyList<(double Lo, double Hi)> extents)
+    {
+        var total = 0.0;
+        foreach (var (lo, hi) in extents)
+        {
+            total += Math.Max(0.0, hi - lo);
+        }
+
+        return total;
+    }
+
+    /// <summary>
+    /// Returns the local face coordinate lying <paramref name="distance"/> units along the concatenated
+    /// union of <paramref name="extents"/>.
+    /// </summary>
+    private static double CoordinateAtDistance(IReadOnlyList<(double Lo, double Hi)> extents, double distance)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(distance);
+
+        var remaining = distance;
+        for (var i = 0; i < extents.Count; i++)
+        {
+            var (lo, hi) = extents[i];
+            var length = Math.Max(0.0, hi - lo);
+            if (remaining <= length || i == extents.Count - 1)
+            {
+                return lo + Math.Min(remaining, length);
+            }
+
+            remaining -= length;
+        }
+
+        return 0.0;
+    }
+
+    /// <summary>
     /// Matches box faces by the source box's instance identity rather than <see cref="LayoutBox"/>'s
     /// record value-equality, so two distinct boxes that happen to share the same geometry are not
     /// merged into a single face group.
@@ -438,6 +533,306 @@ public static class ConnectorRouter
         public int GetHashCode((LayoutBox Box, PortSide Side) obj) =>
             HashCode.Combine(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Box), obj.Side);
     }
+
+    /// <summary>
+    /// Small inset applied immediately to the right of a folder tab so a top-face anchor never lands
+    /// exactly on the tab's vertical shoulder.
+    /// </summary>
+    private const double FolderTopFaceMargin = 1.0;
+
+    /// <summary>
+    /// Describes the parts of a box face that connectors may use and how a point chosen on the bounding
+    /// box projects inward to the shape's real outline.
+    /// </summary>
+    /// <remarks>
+    /// Current shipped shapes use constant per-face projections, but <see cref="ProjectToSurface"/>
+    /// intentionally receives the along-face coordinate so a future shape can vary its projection across
+    /// the face (for example a sloped or curved shoulder) without changing the router's calling
+    /// contract.
+    /// </remarks>
+    private interface IBoxShapeGeometry
+    {
+        /// <summary>
+        /// Returns the local along-face sub-ranges, in logical pixels, where connectors may anchor on
+        /// <paramref name="side"/>. Coordinates are measured from the face start (top-to-bottom on left
+        /// and right faces; left-to-right on top and bottom faces). An empty list means the face is
+        /// unusable for anchoring.
+        /// </summary>
+        IReadOnlyList<(double Lo, double Hi)> GetConnectableExtents(PortSide side);
+
+        /// <summary>
+        /// Returns the inward perpendicular offset, in logical pixels, from the bounding-box face on
+        /// <paramref name="side"/> to the real shape outline at the given local along-face coordinate.
+        /// A value of zero means the bounding box already lies on the drawn outline.
+        /// </summary>
+        double ProjectToSurface(PortSide side, double alongAxisCoordinate);
+    }
+
+    /// <summary>
+    /// Shared base for the shipped box-shape geometries.
+    /// </summary>
+    private abstract class BoxShapeGeometryBase : IBoxShapeGeometry
+    {
+        /// <summary>
+        /// Gets the width of the owning box, used when resolving top and bottom face extents.
+        /// </summary>
+        protected double Width { get; }
+
+        /// <summary>
+        /// Gets the height of the owning box, used when resolving left and right face extents.
+        /// </summary>
+        protected double Height { get; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BoxShapeGeometryBase"/> class.
+        /// </summary>
+        protected BoxShapeGeometryBase(LayoutBox box)
+        {
+            Width = box.Width;
+            Height = box.Height;
+        }
+
+        /// <inheritdoc/>
+        public abstract IReadOnlyList<(double Lo, double Hi)> GetConnectableExtents(PortSide side);
+
+        /// <inheritdoc/>
+        public abstract double ProjectToSurface(PortSide side, double alongAxisCoordinate);
+
+        /// <summary>
+        /// Returns a single full-length extent for <paramref name="side"/>.
+        /// </summary>
+        protected IReadOnlyList<(double Lo, double Hi)> FullExtent(PortSide side) =>
+            [(0.0, BoxFaceLength(side))];
+
+        /// <summary>
+        /// Returns the local length of <paramref name="side"/>.
+        /// </summary>
+        protected double BoxFaceLength(PortSide side) =>
+            side is PortSide.Left or PortSide.Right ? Height : Width;
+
+        /// <summary>
+        /// Builds a single connectable segment inset equally from both ends of the given face length.
+        /// If the inset consumes the whole face, the remaining usable anchor point collapses to the face
+        /// midpoint instead of becoming invalid.
+        /// </summary>
+        protected static IReadOnlyList<(double Lo, double Hi)> InsetExtent(double faceLength, double inset)
+        {
+            var boundedInset = Math.Min(Math.Max(0.0, inset), faceLength / 2.0);
+            return [(boundedInset, faceLength - boundedInset)];
+        }
+    }
+
+    /// <summary>
+    /// Rectangle geometry: every face is fully usable and the bounding box already lies on the drawn
+    /// outline.
+    /// </summary>
+    private sealed class RectangleGeometry : BoxShapeGeometryBase
+    {
+        public RectangleGeometry(LayoutBox box)
+            : base(box)
+        {
+        }
+
+        public override IReadOnlyList<(double Lo, double Hi)> GetConnectableExtents(PortSide side) => FullExtent(side);
+
+        public override double ProjectToSurface(PortSide side, double alongAxisCoordinate) => 0.0;
+    }
+
+    /// <summary>
+    /// Rounded-rectangle geometry: each face is usable only between the two corner arcs.
+    /// </summary>
+    private sealed class RoundedRectangleGeometry : BoxShapeGeometryBase
+    {
+        private readonly double _cornerRadius;
+
+        public RoundedRectangleGeometry(LayoutBox box)
+            : base(box)
+        {
+            _cornerRadius = Math.Max(0.0, box.RoundedCornerRadius ?? 0.0);
+        }
+
+        public override IReadOnlyList<(double Lo, double Hi)> GetConnectableExtents(PortSide side) =>
+            InsetExtent(BoxFaceLength(side), _cornerRadius);
+
+        public override double ProjectToSurface(PortSide side, double alongAxisCoordinate) => 0.0;
+    }
+
+    /// <summary>
+    /// Note geometry: connectors may anchor anywhere along the bounding-box faces for now, because the
+    /// shipped folded-corner note shape does not currently expose a separate routing hint.
+    /// </summary>
+    private sealed class NoteGeometry : BoxShapeGeometryBase
+    {
+        public NoteGeometry(LayoutBox box)
+            : base(box)
+        {
+        }
+
+        public override IReadOnlyList<(double Lo, double Hi)> GetConnectableExtents(PortSide side) => FullExtent(side);
+
+        public override double ProjectToSurface(PortSide side, double alongAxisCoordinate) => 0.0;
+    }
+
+    /// <summary>
+    /// Folder geometry: the top-left tab occupies part of the top bounding edge, so that portion is
+    /// excluded from the connectable extent and the remaining top-face anchors project down to the
+    /// body's recessed top edge.
+    /// </summary>
+    private sealed class FolderGeometry : BoxShapeGeometryBase
+    {
+        private readonly double _tabHeight;
+        private readonly double _tabWidth;
+
+        public FolderGeometry(LayoutBox box)
+            : base(box)
+        {
+            _tabHeight = Math.Max(0.0, box.FolderTabHeight ?? 0.0);
+            _tabWidth = Math.Max(0.0, box.FolderTabWidth ?? 0.0);
+        }
+
+        public override IReadOnlyList<(double Lo, double Hi)> GetConnectableExtents(PortSide side)
+        {
+            if (side is not PortSide.Top)
+            {
+                return FullExtent(side);
+            }
+
+            if (_tabWidth <= 0.0 || _tabHeight <= 0.0)
+            {
+                return FullExtent(side);
+            }
+
+            var topStart = Math.Min(Width, _tabWidth + FolderTopFaceMargin);
+            return topStart >= Width
+                ? []
+                : [(topStart, Width)];
+        }
+
+        public override double ProjectToSurface(PortSide side, double alongAxisCoordinate) =>
+            side is PortSide.Top ? _tabHeight : 0.0;
+    }
+
+    /// <summary>
+    /// Resolves the shape geometry object used to interpret a box's connectable face extents and real
+    /// outline projection.
+    /// </summary>
+    private static IBoxShapeGeometry ResolveShapeGeometry(LayoutBox box) => box.Shape switch
+    {
+        BoxShape.Folder => new FolderGeometry(box),
+        BoxShape.RoundedRectangle => new RoundedRectangleGeometry(box),
+        BoxShape.Note => new NoteGeometry(box),
+        _ => new RectangleGeometry(box),
+    };
+
+    /// <summary>
+    /// Returns the local face coordinate to use on <paramref name="side"/> after clamping the naive
+    /// along-face position to the nearest connectable shape extent.
+    /// </summary>
+    private static double ClampToConnectableExtent(LayoutBox box, PortSide side, double alongAxisCoordinate)
+    {
+        var geometry = ResolveShapeGeometry(box);
+        var extents = geometry.GetConnectableExtents(side);
+        if (extents.Count == 0)
+        {
+            return FaceLength(box, side) / 2.0;
+        }
+
+        var best = alongAxisCoordinate;
+        var bestDistance = double.PositiveInfinity;
+        foreach (var (lo, hi) in extents)
+        {
+            var clamped = Math.Clamp(alongAxisCoordinate, lo, hi);
+            var distance = Math.Abs(clamped - alongAxisCoordinate);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = clamped;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>
+    /// Resolves the final anchor point on a box: clamp the local face coordinate into the nearest
+    /// connectable extent, then project it inward from the bounding box to the real drawn outline.
+    /// </summary>
+    private static Point2D ResolveAnchorPoint(LayoutBox box, PortSide side, double alongAxisCoordinate)
+    {
+        var geometry = ResolveShapeGeometry(box);
+        var clamped = ClampToConnectableExtent(box, side, alongAxisCoordinate);
+        var offset = Math.Max(0.0, geometry.ProjectToSurface(side, clamped));
+
+        return side switch
+        {
+            PortSide.Left => new Point2D(box.X + offset, box.Y + clamped),
+            PortSide.Right => new Point2D(box.X + box.Width - offset, box.Y + clamped),
+            PortSide.Top => new Point2D(box.X + clamped, box.Y + offset),
+            _ => new Point2D(box.X + clamped, box.Y + box.Height - offset),
+        };
+    }
+
+    /// <summary>
+    /// Returns the local length of a box face.
+    /// </summary>
+    private static double FaceLength(LayoutBox box, PortSide side) =>
+        side is PortSide.Left or PortSide.Right ? box.Height : box.Width;
+
+    /// <summary>
+    /// Returns the faces to try for one endpoint, ordered from the natural face chosen by box
+    /// separation, then the adjacent face that still points most toward the other box on the minor
+    /// axis, then the other adjacent face, and finally the opposite face as a last resort.
+    /// </summary>
+    private static IReadOnlyList<PortSide> PreferredFaceOrder(LayoutBox box, LayoutBox other, PortSide naturalSide)
+    {
+        var boxCentreX = box.X + (box.Width / 2.0);
+        var boxCentreY = box.Y + (box.Height / 2.0);
+        var otherCentreX = other.X + (other.Width / 2.0);
+        var otherCentreY = other.Y + (other.Height / 2.0);
+
+        return naturalSide switch
+        {
+            PortSide.Left => otherCentreY <= boxCentreY
+                ? [PortSide.Left, PortSide.Top, PortSide.Bottom, PortSide.Right]
+                : [PortSide.Left, PortSide.Bottom, PortSide.Top, PortSide.Right],
+            PortSide.Right => otherCentreY <= boxCentreY
+                ? [PortSide.Right, PortSide.Top, PortSide.Bottom, PortSide.Left]
+                : [PortSide.Right, PortSide.Bottom, PortSide.Top, PortSide.Left],
+            PortSide.Top => otherCentreX <= boxCentreX
+                ? [PortSide.Top, PortSide.Left, PortSide.Right, PortSide.Bottom]
+                : [PortSide.Top, PortSide.Right, PortSide.Left, PortSide.Bottom],
+            _ => otherCentreX <= boxCentreX
+                ? [PortSide.Bottom, PortSide.Left, PortSide.Right, PortSide.Top]
+                : [PortSide.Bottom, PortSide.Right, PortSide.Left, PortSide.Top],
+        };
+    }
+
+    /// <summary>
+    /// Chooses the first usable face from <see cref="PreferredFaceOrder"/>; when every face reports an
+    /// empty extent, the natural face is returned so routing still has a deterministic fallback.
+    /// </summary>
+    private static PortSide ChooseUsableFace(LayoutBox box, LayoutBox other, PortSide naturalSide)
+    {
+        var geometry = ResolveShapeGeometry(box);
+        foreach (var side in PreferredFaceOrder(box, other, naturalSide))
+        {
+            if (geometry.GetConnectableExtents(side).Count > 0)
+            {
+                return side;
+            }
+        }
+
+        return naturalSide;
+    }
+
+    /// <summary>
+    /// Converts an absolute axis coordinate on one of <paramref name="box"/>'s faces into the owning
+    /// face's local coordinate system.
+    /// </summary>
+    private static double ToLocalAlong(LayoutBox box, PortSide side, double absoluteCoordinate) =>
+        side is PortSide.Left or PortSide.Right
+            ? absoluteCoordinate - box.Y
+            : absoluteCoordinate - box.X;
 
     /// <summary>
     /// Dispatches to the router realizing the requested <paramref name="edgeRouting"/> style.
@@ -460,16 +855,19 @@ public static class ConnectorRouter
 
     /// <summary>
     /// Chooses boundary anchors on the two box faces that front each other, based on the boxes'
-    /// relative placement. The connector leaves and enters on the sides actually facing the other box —
-    /// the axis along which the boxes are more separated — and each anchor is aligned to the overlap of
-    /// the boxes on the shared edge when they overlap, or to each box's own face centre when they don't,
-    /// so the route stays short and every anchor sits at a natural point on its own box regardless of
-    /// how far away the other box sits.
+    /// relative placement. The natural side is the face on the axis along which the boxes are more
+    /// separated; when that face has no connectable extent, the router falls back to the adjacent face
+    /// that still points most toward the other box on the minor axis, then the other adjacent face, and
+    /// finally the opposite face. The along-face coordinate is still aligned to the overlap of the two
+    /// boxes on that face axis when they overlap, or to this box's own face centre when they do not, so
+    /// the route stays short before any shape-specific clamping is applied.
     /// </summary>
     /// <param name="from">The source box.</param>
     /// <param name="to">The target box.</param>
-    /// <returns>The source anchor and side, and the target anchor and side.</returns>
-    private static (Point2D Source, PortSide SourceSide, Point2D Target, PortSide TargetSide) FacingAnchors(
+    /// <returns>
+    /// The source and target local face coordinates, together with the chosen source and target sides.
+    /// </returns>
+    private static (double SourceAlong, PortSide SourceSide, double TargetAlong, PortSide TargetSide) FacingAnchors(
         LayoutBox from, LayoutBox to)
     {
         // Signed separation on each axis: positive when the boxes clear each other on that axis,
@@ -482,25 +880,35 @@ public static class ConnectorRouter
         {
             // Left/right relationship: the left box anchors its right face, the right box its left face.
             var fromIsLeft = from.X + (from.Width / 2.0) <= to.X + (to.Width / 2.0);
-            var fromY = AnchorCoordinate(from.Y, from.Y + from.Height, to.Y, to.Y + to.Height);
-            var toY = AnchorCoordinate(to.Y, to.Y + to.Height, from.Y, from.Y + from.Height);
-            return fromIsLeft
-                ? (new Point2D(from.X + from.Width, fromY), PortSide.Right,
-                   new Point2D(to.X, toY), PortSide.Left)
-                : (new Point2D(from.X, fromY), PortSide.Left,
-                   new Point2D(to.X + to.Width, toY), PortSide.Right);
+            var naturalFromSide = fromIsLeft ? PortSide.Right : PortSide.Left;
+            var naturalToSide = fromIsLeft ? PortSide.Left : PortSide.Right;
+            var sourceSide = ChooseUsableFace(from, to, naturalFromSide);
+            var targetSide = ChooseUsableFace(to, from, naturalToSide);
+            var sourceCoordinate = NaiveAnchorCoordinate(from, to, sourceSide);
+            var targetCoordinate = NaiveAnchorCoordinate(to, from, targetSide);
+            return (ToLocalAlong(from, sourceSide, sourceCoordinate), sourceSide, ToLocalAlong(to, targetSide, targetCoordinate), targetSide);
         }
 
         // Top/bottom relationship: the upper box anchors its bottom face, the lower box its top face.
         var fromIsAbove = from.Y + (from.Height / 2.0) <= to.Y + (to.Height / 2.0);
-        var fromX = AnchorCoordinate(from.X, from.X + from.Width, to.X, to.X + to.Width);
-        var toX = AnchorCoordinate(to.X, to.X + to.Width, from.X, from.X + from.Width);
-        return fromIsAbove
-            ? (new Point2D(fromX, from.Y + from.Height), PortSide.Bottom,
-               new Point2D(toX, to.Y), PortSide.Top)
-            : (new Point2D(fromX, from.Y), PortSide.Top,
-               new Point2D(toX, to.Y + to.Height), PortSide.Bottom);
+        var naturalSourceSide = fromIsAbove ? PortSide.Bottom : PortSide.Top;
+        var naturalTargetSide = fromIsAbove ? PortSide.Top : PortSide.Bottom;
+        var sourceTopBottomSide = ChooseUsableFace(from, to, naturalSourceSide);
+        var targetTopBottomSide = ChooseUsableFace(to, from, naturalTargetSide);
+        var sourceCoordinateOnFallback = NaiveAnchorCoordinate(from, to, sourceTopBottomSide);
+        var targetCoordinateOnFallback = NaiveAnchorCoordinate(to, from, targetTopBottomSide);
+        return (ToLocalAlong(from, sourceTopBottomSide, sourceCoordinateOnFallback), sourceTopBottomSide, ToLocalAlong(to, targetTopBottomSide, targetCoordinateOnFallback), targetTopBottomSide);
     }
+
+    /// <summary>
+    /// Returns the naive absolute coordinate on <paramref name="box"/>'s chosen face before shape
+    /// extents are applied: the overlap centre on the face axis when the two boxes overlap there, or
+    /// this box's own face centre when they do not.
+    /// </summary>
+    private static double NaiveAnchorCoordinate(LayoutBox box, LayoutBox other, PortSide side) =>
+        side is PortSide.Left or PortSide.Right
+            ? AnchorCoordinate(box.Y, box.Y + box.Height, other.Y, other.Y + other.Height)
+            : AnchorCoordinate(box.X, box.X + box.Width, other.X, other.X + other.Width);
 
     /// <summary>
     /// Returns the anchor coordinate for a box face spanning [<paramref name="lo"/>, <paramref name="hi"/>]

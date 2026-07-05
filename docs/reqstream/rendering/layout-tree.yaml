@@ -144,3 +144,14 @@ sections:
         tests:
           - Point2D_Construction_StoresXY
           - Rect_Construction_StoresAllFields
+
+      - id: Rendering-Model-LayoutTree-ShapeGeometryHints
+        title: >-
+          A placed box shall be able to carry optional resolved shape-geometry hints for a rounded
+          corner radius and a folder tab's width and height.
+        justification: |
+          Once layout has produced placed boxes, both connector routing and rendering operate from the
+          layout tree rather than the original input graph. Carrying any optional resolved shape
+          geometry on the placed box lets both later stages agree on the same physical outline.
+        tests:
+          - LayoutBox_Construction_StoresAllFields

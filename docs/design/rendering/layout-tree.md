@@ -26,7 +26,8 @@ the top-left, so a renderer can draw each element directly without resolving nes
   `Warnings`.
 - `LayoutNode` (abstract record) — the discriminated-union root; carries no members.
 - `LayoutBox` (node record) — `X`, `Y`, `Width`, `Height`, `Label`, integer `Depth`, `Shape`,
-  `Compartments`, `Children`, and optional `Keyword`.
+  `Compartments`, `Children`, optional `Keyword`, and optional resolved shape-geometry hints
+  `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight`.
 - `LayoutCompartment` (sealed record) — `Title` and text `Rows`.
 - `LayoutPort` (node record) — `CentreX`, `CentreY`, attached `Side`, and `Label`.
 - `LayoutLine` (node record) — `Waypoints`, `SourceEnd`, `TargetEnd`, `LineStyle`, and
@@ -71,6 +72,9 @@ Layout Graph unit, not this unit.
   shall not apply any coordinate transform.
 - `LayoutBox` shall express nesting as an integer `Depth`, not a resolved color, so that the theme
   in effect at render time selects the fill color.
+- `LayoutBox` may carry optional resolved shape-geometry hints when routing and rendering need to
+  agree on the real outline of a non-rectangular shape; the hints remain geometric values rather than
+  resolved drawing commands so the model stays renderer-agnostic.
 - `LayoutNode` shall remain an open discriminated union; adding a new node type shall be an additive
   change, and consumers shall skip node types they do not recognize.
 - All node records shall be immutable, so a placed tree can be shared and rendered repeatedly without
@@ -117,3 +121,4 @@ it obtains one from a layout algorithm and passes it to a renderer.
 | Rendering-Model-LayoutTree-Activation | `LayoutActivation` record |
 | Rendering-Model-LayoutTree-Grid | `LayoutGrid` / `LayoutGridRow` / `LayoutGridCell` |
 | Rendering-Model-LayoutTree-Geometry | `Point2D` and `Rect` value types |
+| Rendering-Model-LayoutTree-ShapeGeometryHints | `LayoutBox` shape-geometry hint properties |

@@ -52,6 +52,9 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
 - **Cost bands** (`Rendering-Layout-OrthogonalEdgeRouter-CostBands`):
   `RouteWithStatus_HighwayBand_PrefersBandedDetour` confirms the router prefers a discounted band
   over an equal-length alternative.
+- **No redundant waypoint revisit** (`Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit`):
+  `RouteWithStatus_SoftObstacleDetour_DoesNotRevisitWaypoint` confirms a soft-obstacle-driven detour
+  does not publish a leave-and-return loop that revisits one waypoint before continuing.
 
 #### Requirements Coverage
 
@@ -68,3 +71,5 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
   RouteWithStatus_NoBlockingObstacle_ReportsNotCrossed, RouteWithStatus_TargetEnclosedByObstacle_ReportsCrossed
 - **`Rendering-Layout-OrthogonalEdgeRouter-CostBands`**:
   RouteWithStatus_HighwayBand_PrefersBandedDetour
+- **`Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit`**:
+  RouteWithStatus_SoftObstacleDetour_DoesNotRevisitWaypoint

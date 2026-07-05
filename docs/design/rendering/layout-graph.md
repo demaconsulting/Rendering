@@ -41,8 +41,10 @@ the responsibility of a hierarchical layout engine (a later delivery).
   keyword line shown above the title), `Compartments` (an ordered, read-only list of
   `LayoutCompartment` feature sections, defaulting to empty), `TitleHeight` (an optional override, in
   logical pixels, of the title band a hierarchical layout engine reserves above this node's children
-  when it is a labelled container), `Children` (the lazily-created nested child subgraph), and
-  `HasChildren` (whether the node holds at least one child).
+  when it is a labelled container), `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight`
+  (optional resolved shape-geometry hints copied onto placed boxes so routing and rendering can agree
+  on the real outline of rounded rectangles and folders), `Children` (the lazily-created nested child
+  subgraph), and `HasChildren` (whether the node holds at least one child).
 - `LayoutGraphEdge` (sealed class extending `PropertyHolder`) — `Id`, `Source`, `Target`,
   `TargetEnd`, `LineStyle`, `Label`.
 
@@ -84,6 +86,18 @@ setting it — typically to a theme's own computed title-area height when the co
 to the engine's generic default. Ignored for a leaf node (one with no children) and for a container
 with no `Label`.
 
+`double? LayoutGraphNode.RoundedCornerRadius { get; set; }`, `double? LayoutGraphNode.FolderTabWidth
+{ get; set; }`, and `double? LayoutGraphNode.FolderTabHeight { get; set; }` — optional resolved
+shape-geometry hints, in logical pixels, for the two shipped non-rectangular box families whose real
+outline differs materially from the bounding rectangle used during placement. A caller sets
+`RoundedCornerRadius` to the radius the renderer will actually draw for a rounded rectangle and sets
+the two folder-tab values to the exact top-left folder tab geometry the renderer will draw. All three
+default to `null`, preserving the existing fallback behavior for callers that do not need exact
+shape-aware routing. The bundled leaf algorithms and the hierarchical engine's sized view propagate
+the hints unchanged onto the placed `LayoutBox`, where `ConnectorRouter`, `SvgRenderer`, and
+`SkiaRasterRenderer` can all consume the same resolved values without the layout APIs taking a
+`Theme` dependency.
+
 ### Layout Graph Error Handling
 
 Invalid inputs are rejected at their entry point rather than deferred to layout time. The
@@ -120,6 +134,9 @@ the appropriate ancestor container.
   generic default title-band height unless a caller explicitly overrides it; the override shall apply
   only while the container also carries a `Label`, matching the existing label-gated title-band
   behavior.
+- `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight` shall default to `null`, so callers
+  that do not need exact shape-aware routing or rendering retain the pre-existing generic fallback
+  behavior; when set, a layout algorithm shall propagate each hint unchanged onto the placed box.
 - An edge shall reside in the container at or above the *lowest common ancestor* (LCA) of its two
   endpoints. An edge whose endpoints live in different descendant containers (a *cross-container*
   edge) shall therefore be added to an ancestor container while its `Source` and `Target` reference
@@ -167,3 +184,4 @@ carries an `EndMarkerStyle` and `LineStyle` from the Layout Tree unit's enumerat
 | Rendering-Model-LayoutGraph-CrossContainerEdge | `LayoutGraphEdge` endpoints referencing descendant nodes |
 | Rendering-Model-LayoutGraph-BoxAppearance | `LayoutGraphNode.Shape` / `.Keyword` / `.Compartments` |
 | Rendering-Model-LayoutGraph-ContainerTitleHeight | `LayoutGraphNode.TitleHeight` |
+| Rendering-Model-LayoutGraph-ShapeGeometryHints | `LayoutGraphNode` shape-geometry hint properties |

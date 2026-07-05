@@ -34,6 +34,16 @@ out-of-order batch result, or non-argument-null exception for invalid input cons
 - **Anchors face each other** (`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`):
   `Route_TargetToTheRight_AnchorsFaceEachOther` and `Route_TargetBelow_AnchorsFaceEachOther` confirm
   the route starts and ends on the box faces that point at the opposing box.
+- **Shape-aware anchors** (`Rendering-Layout-ConnectorRouter-ShapeAwareAnchors`):
+  `Route_FolderTopFace_TabExcludedFromConnectableExtent` confirms a folder top-face anchor never lands
+  on the tab strip, `Route_FolderTopFace_ProjectsAnchorToRecessedBodyTop` confirms the final anchor is
+  projected down to the folder body's recessed top edge, and
+  `Route_FaceSelectionFallback_EmptyNaturalFaceUsesAdjacentFace` confirms anchor selection falls back
+  to the next-best usable face when the natural face has no usable extent.
+- **Shared-face distribution across usable extents**
+  (`Rendering-Layout-ConnectorRouter-SharedFaceDistribution`):
+  `Route_SharedFolderTopFace_DistributesAcrossReducedExtent` confirms a batch of connectors sharing a
+  folder's top face is spread only across the usable extent to the right of the tab.
 - **Obstacle avoidance** (`Rendering-Layout-ConnectorRouter-AvoidsObstacles`):
   `Route_ObstacleBetweenEndpoints_RoutesAroundInterior` confirms the route is orthogonal and never
   enters an intervening box's interior.
@@ -54,6 +64,12 @@ out-of-order batch result, or non-argument-null exception for invalid input cons
 
 - **`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`**:
   Route_TargetToTheRight_AnchorsFaceEachOther, Route_TargetBelow_AnchorsFaceEachOther
+- **`Rendering-Layout-ConnectorRouter-ShapeAwareAnchors`**:
+  Route_FolderTopFace_TabExcludedFromConnectableExtent,
+  Route_FolderTopFace_ProjectsAnchorToRecessedBodyTop,
+  Route_FaceSelectionFallback_EmptyNaturalFaceUsesAdjacentFace
+- **`Rendering-Layout-ConnectorRouter-SharedFaceDistribution`**:
+  Route_SharedFolderTopFace_DistributesAcrossReducedExtent
 - **`Rendering-Layout-ConnectorRouter-AvoidsObstacles`**:
   Route_ObstacleBetweenEndpoints_RoutesAroundInterior
 - **`Rendering-Layout-ConnectorRouter-ExcludesEndpoints`**:

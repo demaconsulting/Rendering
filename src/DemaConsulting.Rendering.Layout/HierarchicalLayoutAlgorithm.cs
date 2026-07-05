@@ -332,6 +332,9 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
             viewNode.Shape = node.Shape;
             viewNode.Keyword = node.Keyword;
             viewNode.Compartments = node.Compartments;
+            viewNode.RoundedCornerRadius = node.RoundedCornerRadius;
+            viewNode.FolderTabWidth = node.FolderTabWidth;
+            viewNode.FolderTabHeight = node.FolderTabHeight;
             viewOf[node] = viewNode;
         }
 

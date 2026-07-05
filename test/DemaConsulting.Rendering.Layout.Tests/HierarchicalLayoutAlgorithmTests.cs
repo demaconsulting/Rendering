@@ -546,12 +546,10 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
-    ///     Proves that a container node's <see cref="LayoutGraphNode.Shape"/> and
-    ///     <see cref="LayoutGraphNode.Keyword"/> (for example a package folder) and a nested leaf's
-    ///     <see cref="LayoutGraphNode.Compartments"/> both survive the hierarchical engine's sized-view
-    ///     and composition round-trip unchanged, so a caller can describe an entire nested SysML diagram
-    ///     — package folders and definition boxes with feature compartments alike — purely through the
-    ///     input graph model.
+    ///     Proves that a container node's <see cref="LayoutGraphNode.Shape"/>,
+    ///     <see cref="LayoutGraphNode.Keyword"/>, and folder-geometry hints, and a nested leaf's
+    ///     <see cref="LayoutGraphNode.Compartments"/> and rounded-corner hint, all survive the
+    ///     hierarchical engine's sized-view and composition round-trip unchanged.
     /// </summary>
     [Fact]
     public void Apply_NestedGraph_PropagatesContainerAndLeafShapeKeywordCompartments()
@@ -562,11 +560,15 @@ public sealed class HierarchicalLayoutAlgorithmTests
         pkg.Label = "Powertrain";
         pkg.Shape = BoxShape.Folder;
         pkg.Keyword = "package";
+        pkg.FolderTabWidth = 82.0;
+        pkg.FolderTabHeight = 24.0;
 
         var engine = pkg.Children.AddNode("engine", 120, 80);
         engine.Label = "Engine";
+        engine.Shape = BoxShape.RoundedRectangle;
         engine.Keyword = "part def";
         engine.Compartments = [new LayoutCompartment("ports", ["intake : FluidPort"])];
+        engine.RoundedCornerRadius = 14.0;
 
         // Act
         var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
@@ -575,10 +577,14 @@ public sealed class HierarchicalLayoutAlgorithmTests
         var folder = Assert.Single(tree.Nodes.OfType<LayoutBox>());
         Assert.Equal(BoxShape.Folder, folder.Shape);
         Assert.Equal("package", folder.Keyword);
+        Assert.Equal(82.0, folder.FolderTabWidth);
+        Assert.Equal(24.0, folder.FolderTabHeight);
 
         var part = Assert.Single(folder.Children.OfType<LayoutBox>());
+        Assert.Equal(BoxShape.RoundedRectangle, part.Shape);
         Assert.Equal("part def", part.Keyword);
         Assert.Equal(engine.Compartments, part.Compartments);
+        Assert.Equal(14.0, part.RoundedCornerRadius);
     }
 
     /// <summary>

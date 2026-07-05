@@ -21,6 +21,34 @@ sections:
           - Route_TargetToTheRight_AnchorsFaceEachOther
           - Route_TargetBelow_AnchorsFaceEachOther
 
+      - id: Rendering-Layout-ConnectorRouter-ShapeAwareAnchors
+        title: >-
+          ConnectorRouter shall respect each chosen face's connectable extents, shall fall back to the
+          next-best usable face when the naturally-facing face is unusable, and shall project the final
+          anchor inward from the bounding box to the box shape's real outline.
+        justification: |
+          Some shapes do not use the entire bounding-box face as a valid connection surface: a folder's
+          raised tab occupies part of the top edge, a rounded rectangle's corner arcs remove the face
+          ends, and future shapes may recess or notch a face. Connector anchors must therefore be
+          selected from the usable sub-ranges of a face, must pick a different face when the natural
+          one has no usable range, and must touch the drawn outline rather than an enclosing rectangle.
+        tests:
+          - Route_FolderTopFace_TabExcludedFromConnectableExtent
+          - Route_FolderTopFace_ProjectsAnchorToRecessedBodyTop
+          - Route_FaceSelectionFallback_EmptyNaturalFaceUsesAdjacentFace
+
+      - id: Rendering-Layout-ConnectorRouter-SharedFaceDistribution
+        title: >-
+          When several connectors share one box face, ConnectorRouter shall distribute their anchors
+          across the union of that face's connectable extents rather than across the full bounding-box
+          span.
+        justification: |
+          A shape may reserve parts of a face for its own outline geometry, such as a folder tab on the
+          top edge. Shared-face anchor spreading must use only the usable connection ranges so multiple
+          connectors remain both distinct and valid for the shape they terminate on.
+        tests:
+          - Route_SharedFolderTopFace_DistributesAcrossReducedExtent
+
       - id: Rendering-Layout-ConnectorRouter-AvoidsObstacles
         title: >-
           ConnectorRouter shall route a connector around an intervening box without passing through

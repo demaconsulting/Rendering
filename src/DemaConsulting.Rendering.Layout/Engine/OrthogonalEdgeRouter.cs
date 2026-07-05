@@ -202,7 +202,7 @@ internal static class OrthogonalEdgeRouter
             full.Add(target);
         }
 
-        return Simplify(full);
+        return RemovePointRevisits(Simplify(full));
     }
 
     /// <summary>
@@ -572,6 +572,57 @@ internal static class OrthogonalEdgeRouter
 
         return result;
     }
+
+    /// <summary>
+    /// Removes any exact leave-and-return excursion that departs a waypoint and later comes back to the
+    /// same point before continuing onward. This is a defensive cleanup only: the primary fix for the
+    /// shared-face detour regression is to stop contributing endpoint-adjacent soft obstacles that lure
+    /// the search into such loops. The cleanup remains valuable as a last line of defense so a future
+    /// caller cannot reintroduce a visibly redundant revisit sequence into the published route.
+    /// </summary>
+    private static IReadOnlyList<Point2D> RemovePointRevisits(IReadOnlyList<Point2D> points)
+    {
+        if (points.Count <= 3)
+        {
+            return points;
+        }
+
+        var result = new List<Point2D>(points);
+        var changed = true;
+        while (changed)
+        {
+            changed = false;
+            for (var i = 0; i < result.Count - 2; i++)
+            {
+                var removedCycle = false;
+                for (var j = i + 2; j < result.Count; j++)
+                {
+                    if (!SamePoint(result[i], result[j]))
+                    {
+                        continue;
+                    }
+
+                    result.RemoveRange(i + 1, j - i);
+                    changed = true;
+                    removedCycle = true;
+                    break;
+                }
+
+                if (removedCycle)
+                {
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns whether two waypoints represent the same geometric point.
+    /// </summary>
+    private static bool SamePoint(Point2D left, Point2D right) =>
+        Math.Abs(left.X - right.X) < 1e-9 && Math.Abs(left.Y - right.Y) < 1e-9;
 
     /// <summary>
     /// Builds the least-bad L-shaped fallback route used when A* cannot find an obstacle-free path:

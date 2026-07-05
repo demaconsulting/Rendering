@@ -30,15 +30,33 @@ It mirrors ELK's `elk.edgeRouting` and today carries the single value `Orthogona
 exposed on the open property system as `CoreOptions.EdgeRouting` (id `rendering.edgerouting`, default
 `Orthogonal`), so routing can be selected per scope alongside `CoreOptions.Algorithm`.
 
+Internally, `ConnectorRouter` also resolves one shape-geometry object per endpoint box. That internal
+abstraction exposes two face-level concerns per `PortSide`: the connectable extents (one or more
+usable sub-ranges along the face, possibly empty) and the surface projection (the inward offset from
+the bounding-box face to the real outline at a chosen along-face coordinate). The shipped
+implementations are:
+
+- **Rectangle** — one full-length extent per face; zero projection on every face.
+- **RoundedRectangle** — one extent per face inset by the resolved corner radius at both ends; zero
+  projection because the flat portion of the face still lies on the bounding box.
+- **Note** — one full-length extent per face for now; zero projection.
+- **Folder** — full-length left, right, and bottom extents; top extent only to the right of the
+  raised tab, and a positive top-face projection equal to the resolved tab height so the anchor
+  touches the recessed body top.
+
 ### ConnectorRouter Methods
 
 `Route(boxes, connection, options)` rejects null arguments (including a null `From` or `To`) with
 `ArgumentNullException`, then:
 
-1. **Anchor selection.** Computes each box centre and, for each endpoint, chooses the midpoint of the
-   box side whose outward normal best points at the opposing box centre (right/left when the
-   horizontal separation dominates, otherwise bottom/top). The chosen `PortSide` is retained so the
-   route exits and enters perpendicular to the face.
+1. **Anchor selection.** Computes the naturally-facing source and target faces from box separation as
+   before (right/left when the horizontal separation dominates, otherwise bottom/top). For each
+   endpoint, if that natural face reports a non-empty connectable extent it is used; otherwise the
+   router falls back, in order, to the adjacent face that still points most toward the other box on
+   the minor axis, then the other adjacent face, and finally the opposite face as a last resort.
+   The along-face coordinate is chosen from the overlap-centre rule used previously, then clamped
+   into the nearest usable extent segment on the chosen face and projected inward to the real outline.
+   The chosen `PortSide` is retained so the route exits and enters perpendicular to the face.
 2. **Obstacle set.** Builds a `Rect` per box, excluding the connection's two endpoint boxes matched
    by reference identity, so the connector is free to leave and enter the boxes it joins.
 3. **Dispatch.** Routes through the router realizing `options.EdgeRouting`. Today `Orthogonal` maps to
@@ -48,8 +66,14 @@ exposed on the open property system as `CoreOptions.EdgeRouting` (id `rendering.
 4. **Assembly.** Wraps the returned waypoints in a `LayoutLine` carrying the connection's `TargetEnd`,
    `LineStyle`, and `Label`, with `SourceEnd` left `None`.
 
-The batch overload applies the single-connection routine to each connection and returns one line per
-connection in input order.
+The batch overload first computes those naive per-connection face coordinates, then groups any shared
+box face claims and redistributes them across the **union of that face's connectable extents** rather
+than across the full bounding-box span. It still orders the claims by counterpart-box centre so the
+visual left-to-right or top-to-bottom order of the connectors tracks the order of their counterparts.
+Finally it routes the connectors sequentially and turns only each prior route's **interior** segments
+into soft obstacles; the short endpoint-adjacent approach legs are intentionally omitted so several
+connectors may still share a legitimate final corridor into the same box face without being lured into
+redundant leave-and-return detours.
 
 ### ConnectorRouter Error Handling
 
@@ -95,6 +119,8 @@ any set of placed boxes.
 | Requirement ID | Satisfied by |
 | --- | --- |
 | Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther | ConnectorRouter behavior described above |
+| Rendering-Layout-ConnectorRouter-ShapeAwareAnchors | ConnectorRouter behavior described above |
+| Rendering-Layout-ConnectorRouter-SharedFaceDistribution | ConnectorRouter behavior described above |
 | Rendering-Layout-ConnectorRouter-AvoidsObstacles | ConnectorRouter behavior described above |
 | Rendering-Layout-ConnectorRouter-ExcludesEndpoints | ConnectorRouter behavior described above |
 | Rendering-Layout-ConnectorRouter-CarriesStyling | ConnectorRouter behavior described above |

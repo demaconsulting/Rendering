@@ -32,7 +32,7 @@ public sealed class LayoutTests
     }
 
     /// <summary>
-    ///     A LayoutBox constructed with all nine parameters set to non-default values stores
+    ///     A LayoutBox constructed with all geometry-related parameters set to non-default values stores
     ///     each property exactly as supplied.
     /// </summary>
     [Fact]
@@ -42,7 +42,7 @@ public sealed class LayoutTests
         var compartment = new LayoutCompartment("Attributes", ["radius : Real"]);
         var child = new LayoutPort(15, 25, PortSide.Top, "p");
 
-        // Act: construct a LayoutBox with all nine parameters non-default
+        // Act: construct a LayoutBox with all fields non-default, including shape-geometry hints.
         var box = new LayoutBox(
             X: 10.0,
             Y: 20.0,
@@ -52,9 +52,13 @@ public sealed class LayoutTests
             Depth: 2,
             Shape: BoxShape.RoundedRectangle,
             Compartments: [compartment],
-            Children: [child]);
+            Children: [child],
+            Keyword: "part def",
+            RoundedCornerRadius: 12.0,
+            FolderTabWidth: 72.0,
+            FolderTabHeight: 24.0);
 
-        // Assert: all nine properties equal the supplied values
+        // Assert: all fields equal the supplied values.
         Assert.Equal(10.0, box.X);
         Assert.Equal(20.0, box.Y);
         Assert.Equal(200.0, box.Width);
@@ -66,6 +70,10 @@ public sealed class LayoutTests
         Assert.Same(compartment, box.Compartments[0]);
         Assert.Single(box.Children);
         Assert.Same(child, box.Children[0]);
+        Assert.Equal("part def", box.Keyword);
+        Assert.Equal(12.0, box.RoundedCornerRadius);
+        Assert.Equal(72.0, box.FolderTabWidth);
+        Assert.Equal(24.0, box.FolderTabHeight);
     }
 
     /// <summary>
