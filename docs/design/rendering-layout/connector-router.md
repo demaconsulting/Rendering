@@ -78,7 +78,10 @@ visual left-to-right or top-to-bottom order of the connectors tracks the order o
 Finally it routes the connectors sequentially and turns only each prior route's **interior** segments
 into soft obstacles; the short endpoint-adjacent approach legs are intentionally omitted so several
 connectors may still share a legitimate final corridor into the same box face without being lured into
-redundant leave-and-return detours.
+redundant leave-and-return detours. The underlying router now discourages an interior overlap in
+proportion to how far it extends, rather than treating every overlap as an equally cheap flat cost, so
+parallel fan-out or fan-in connectors separate into visually distinct corridors instead of merging
+along a shared trunk for an extended span.
 
 ### ConnectorRouter Error Handling
 

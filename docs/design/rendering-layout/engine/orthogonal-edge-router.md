@@ -45,7 +45,15 @@ segment's length is scaled by the cheapest band covering its midpoint, so a disc
 attracts wires into shared corridors while a null band list leaves cost neutral. The thin `Route`
 wrapper returns only the `Waypoints` for callers that do not need the crossing status. Soft obstacles
 add a penalty rather than a hard block, which is what keeps a shared box face reachable even when one
-connector's interior corridor has already been claimed by an earlier route. The redundant leave-and-
+connector's interior corridor has already been claimed by an earlier route. That penalty is
+proportional to the length of the overlap between the candidate move and the soft obstacle, not a flat
+per-move cost: a flat penalty was tried first and found insufficient, because on a sparse narrow-gap
+grid a connector's entire multi-hundred-pixel corridor can collapse into a single grid move, so a flat
+cost priced a long visual overlap identically to a trivial one and was always cheaper than the
+roughly fixed cost of a lane-change detour. Scaling the penalty by overlap length keeps a short,
+incidental overlap cheap while making an extended overlap cost substantially more than detouring to a
+free lane, so parallel connectors separate into distinct corridors instead of merging along a shared
+trunk. The redundant leave-and-
 return regression arose when endpoint-adjacent approach legs were also contributed as soft obstacles:
 those are exactly the segments that several connectors may legitimately share when converging on one
 face, so penalizing them lured the search into a pointless excursion away from a usable approach point
@@ -99,3 +107,4 @@ route individual connectors; the `Crossed` flag feeds their layout-warning handl
 | Rendering-Layout-OrthogonalEdgeRouter-CrossingStatus | OrthogonalEdgeRouter behavior described above |
 | Rendering-Layout-OrthogonalEdgeRouter-CostBands | OrthogonalEdgeRouter behavior described above |
 | Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit | OrthogonalEdgeRouter behavior described above |
+| Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap | OrthogonalEdgeRouter behavior described above |

@@ -340,12 +340,21 @@ internal static class OrthogonalEdgeRouter
         // remove a bend are preferred only when not much longer.
         const double TurnPenalty = 20.0;
 
-        // Penalty added (not a hard block) for a segment that overlaps an already-routed line's own
-        // path; large enough to steer the search toward a free lane when one exists at comparable
-        // length, but never so large that it out-weighs the only way to actually reach a shared
-        // target/source face (unlike a hard obstacle, which can make that face entirely unreachable
-        // once another connector's approach segment already occupies it).
-        const double SoftObstaclePenalty = 60.0;
+        // Soft-obstacle cost is split into a small flat base (so a trivial, few-pixel overlap stays
+        // cheap enough that a shared approach corridor is never worth a pointless detour) plus a
+        // per-unit-length term proportional to how much of the candidate move actually overlaps the
+        // soft obstacle. A flat, length-independent penalty was tried first and found insufficient: on
+        // a sparse narrow-gap grid a connector's entire multi-hundred-pixel corridor can collapse into
+        // a single grid move, so a flat cost priced a 500px visual overlap identically to a trivial
+        // one — cheaper than the roughly fixed cost of detouring to a nearby alternate lane, so A*
+        // always kept the long overlap no matter how visually merged the result looked. Scaling the
+        // cost with the overlap length keeps short, incidental overlaps (and the legitimate
+        // endpoint-adjacent approach corridors that never become soft obstacles in the first place —
+        // see <c>AddLineObstacles</c> in <c>ConnectorRouter</c>) cheap, while making an extended
+        // overlap cost substantially more than a bounded-cost lane change, so the search prefers the
+        // detour once the overlap grows long enough to matter.
+        const double SoftObstacleBaseCost = 10.0;
+        const double SoftObstaclePerUnitLengthCost = 1.0;
 
         while (open.Count > 0)
         {
@@ -371,8 +380,9 @@ internal static class OrthogonalEdgeRouter
                     : Math.Abs(ys[nj] - ys[cj]);
                 var bandMultiplier = SegmentCostMultiplier(xs, ys, ci, cj, ni, nj, costBands);
                 var turnCost = cd != Dir.None && cd != nd ? TurnPenalty : 0.0;
-                var softCost = SegmentBlocked(xs, ys, ci, cj, ni, nj, softObstacles ?? [], 0.0)
-                    ? SoftObstaclePenalty
+                var softOverlap = SoftObstacleOverlapLength(xs, ys, ci, cj, ni, nj, softObstacles ?? []);
+                var softCost = softOverlap > 0.0
+                    ? SoftObstacleBaseCost + (softOverlap * SoftObstaclePerUnitLengthCost)
                     : 0.0;
                 var tentative = g + (stepLength * bandMultiplier) + turnCost + softCost;
 
@@ -503,6 +513,66 @@ internal static class OrthogonalEdgeRouter
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Returns the total length by which the straight grid segment between two adjacent nodes overlaps
+    /// the interiors of <paramref name="softObstacles"/> (summed across every soft obstacle it
+    /// intersects), or 0 when it does not overlap any. Mirrors <see cref="SegmentBlocked"/>'s
+    /// horizontal/vertical branch logic and its clearance-0.0 "just touching interior" semantics
+    /// (soft obstacles are never inflated by clearance, unlike hard <c>obstacles</c>), but reports the
+    /// overlapping span instead of a boolean so the caller can price the move proportionally to how
+    /// much of it is actually shared with an already-routed line.
+    /// </summary>
+    private static double SoftObstacleOverlapLength(
+        double[] xs,
+        double[] ys,
+        int i1,
+        int j1,
+        int i2,
+        int j2,
+        IReadOnlyList<Rect> softObstacles)
+    {
+        var total = 0.0;
+
+        if (j1 == j2)
+        {
+            // Horizontal segment at y = ys[j1] spanning the two x grid lines.
+            var y = ys[j1];
+            var xa = Math.Min(xs[i1], xs[i2]);
+            var xb = Math.Max(xs[i1], xs[i2]);
+            foreach (var r in softObstacles)
+            {
+                if (r.Y < y && y < r.Y + r.Height)
+                {
+                    var overlap = Math.Min(xb, r.X + r.Width) - Math.Max(xa, r.X);
+                    if (overlap > 0.0)
+                    {
+                        total += overlap;
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Vertical segment at x = xs[i1] spanning the two y grid lines.
+            var x = xs[i1];
+            var ya = Math.Min(ys[j1], ys[j2]);
+            var yb = Math.Max(ys[j1], ys[j2]);
+            foreach (var r in softObstacles)
+            {
+                if (r.X < x && x < r.X + r.Width)
+                {
+                    var overlap = Math.Min(yb, r.Y + r.Height) - Math.Max(ya, r.Y);
+                    if (overlap > 0.0)
+                    {
+                        total += overlap;
+                    }
+                }
+            }
+        }
+
+        return total;
     }
 
     /// <summary>Reconstructs the grid-point path by walking the came-from chain back to the start.</summary>

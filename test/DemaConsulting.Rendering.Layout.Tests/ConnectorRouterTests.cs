@@ -619,6 +619,179 @@ public sealed class ConnectorRouterTests
     }
 
     /// <summary>
+    ///     Reproduces the true DictionaryMark rendering defect (a flat, length-independent soft-obstacle
+    ///     penalty in the underlying orthogonal router's A* search): a small source box sits just below
+    ///     a much wider target box across a narrow vertical gap, so every connector leaving the source's
+    ///     top face is stepped off to the identical Y line and the sparse narrow-gap grid offers only one
+    ///     natural corridor row. Three connections fan out from that shared source face to three widely
+    ///     spaced anchors spread across the target's shared face. Before the length-proportional fix, the
+    ///     interior horizontal corridor segments of connectors 1 and 2 collapsed onto the exact same grid
+    ///     row and overlapped for hundreds of pixels because the flat penalty underpriced a long overlap
+    ///     relative to a lane-change detour; after the fix each interior segment must resolve to a
+    ///     distinct row (or overlap for only a trivial span) instead.
+    /// </summary>
+    [Fact]
+    public void Route_ThreeConnectorsNarrowGap_InteriorCorridorsDoNotOverlapAlongLength()
+    {
+        // Arrange: geometry taken directly from the reported DictionaryMark defect repro — a small
+        // source box directly below (with a 48px gap) a much wider target box.
+        var source = Box(12, 1291, 232, 318, "OtsDependencies");
+        var target = Box(166, 36, 1208, 1207, "DictionaryMark");
+        var boxes = new[] { source, target };
+
+        // Three connections between the same pair of boxes fan out across both shared faces.
+        var connections = new[]
+        {
+            new Connection(source, target, EndMarkerStyle.FilledDiamond),
+            new Connection(source, target, EndMarkerStyle.FilledDiamond),
+            new Connection(source, target, EndMarkerStyle.FilledDiamond),
+        };
+
+        // Act
+        var lines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+
+        // Assert: every connector still forms a valid orthogonal path.
+        Assert.All(lines, line => AssertAllSegmentsOrthogonal(line.Waypoints));
+
+        // Assert: no two distinct connectors' interior segments ride the same grid line for an
+        // extended span (the visually merged trunk this test guards against).
+        AssertNoCollinearOverlapAcrossLines(lines);
+    }
+
+    /// <summary>
+    ///     Variation of <see cref="Route_ThreeConnectorsNarrowGap_InteriorCorridorsDoNotOverlapAlongLength"/>
+    ///     with more fan-out edges (five instead of three) from the same narrow-gap source face, to
+    ///     confirm the fix generalizes beyond the exact reported connector count.
+    /// </summary>
+    [Fact]
+    public void Route_FiveConnectorsNarrowGap_InteriorCorridorsDoNotOverlapAlongLength()
+    {
+        // Arrange: same narrow-gap geometry as the primary repro, but with five fan-out connections.
+        var source = Box(12, 1291, 232, 318, "OtsDependencies");
+        var target = Box(166, 36, 1208, 1207, "DictionaryMark");
+        var boxes = new[] { source, target };
+
+        var connections = Enumerable.Range(0, 5)
+            .Select(_ => new Connection(source, target, EndMarkerStyle.FilledDiamond))
+            .ToArray();
+
+        // Act
+        var lines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+
+        // Assert
+        Assert.All(lines, line => AssertAllSegmentsOrthogonal(line.Waypoints));
+        AssertNoCollinearOverlapAcrossLines(lines);
+    }
+
+    /// <summary>
+    ///     Fan-in variation of <see cref="Route_ThreeConnectorsNarrowGap_InteriorCorridorsDoNotOverlapAlongLength"/>:
+    ///     three distinct small source boxes, each across the same narrow gap from the shared wide target,
+    ///     converge on the same target face. This mirrors the reported defect direction (many-to-one)
+    ///     with genuinely separate source boxes rather than repeated connections between the same pair.
+    /// </summary>
+    [Fact]
+    public void Route_ThreeSourceBoxesNarrowGap_InteriorCorridorsDoNotOverlapAlongLength()
+    {
+        // Arrange: three narrow source boxes side by side below the same narrow gap, all facing the
+        // same much wider target box above them.
+        var sourceA = Box(12, 1291, 60, 318, "A");
+        var sourceB = Box(92, 1291, 60, 318, "B");
+        var sourceC = Box(172, 1291, 60, 318, "C");
+        var target = Box(166, 36, 1208, 1207, "DictionaryMark");
+        var boxes = new[] { sourceA, sourceB, sourceC, target };
+
+        var connections = new[]
+        {
+            new Connection(sourceA, target, EndMarkerStyle.FilledDiamond),
+            new Connection(sourceB, target, EndMarkerStyle.FilledDiamond),
+            new Connection(sourceC, target, EndMarkerStyle.FilledDiamond),
+        };
+
+        // Act
+        var lines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+
+        // Assert
+        Assert.All(lines, line => AssertAllSegmentsOrthogonal(line.Waypoints));
+        AssertNoCollinearOverlapAcrossLines(lines);
+    }
+
+    /// <summary>
+    ///     Asserts that no two of the given lines' <em>interior</em> segments — those excluding each
+    ///     line's first and last segment, which are the endpoint-adjacent approach legs the router's own
+    ///     <c>AddLineObstacles</c> design intentionally lets several connectors share (see its remarks in
+    ///     <c>ConnectorRouter.cs</c>) — are collinear and overlap for more than a trivial span. Two
+    ///     horizontal segments are collinear when they share the same Y (within a tight tolerance); two
+    ///     vertical segments are collinear when they share the same X. The overlap span is the length of
+    ///     their shared range along the collinear axis; only spans exceeding <paramref name="maxOverlap"/>
+    ///     are flagged, so incidental few-pixel touches (e.g. two corridors merely crossing the same grid
+    ///     line for an instant) are not falsely reported.
+    /// </summary>
+    private static void AssertNoCollinearOverlapAcrossLines(IReadOnlyList<LayoutLine> lines, double maxOverlap = 5.0)
+    {
+        // Collect each line's interior segments (excluding the first and last, matching
+        // AddLineObstacles' own endpoint-adjacent exclusion).
+        var interiorSegments = new List<(int LineIndex, Point2D A, Point2D B)>();
+        for (var lineIndex = 0; lineIndex < lines.Count; lineIndex++)
+        {
+            var waypoints = lines[lineIndex].Waypoints;
+            for (var i = 1; i < waypoints.Count - 2; i++)
+            {
+                interiorSegments.Add((lineIndex, waypoints[i], waypoints[i + 1]));
+            }
+        }
+
+        for (var x = 0; x < interiorSegments.Count; x++)
+        {
+            for (var y = x + 1; y < interiorSegments.Count; y++)
+            {
+                var (lineX, ax, bx) = interiorSegments[x];
+                var (lineY, ay, by) = interiorSegments[y];
+                if (lineX == lineY)
+                {
+                    // Only cross-connector overlaps are of interest here.
+                    continue;
+                }
+
+                var overlap = CollinearOverlapLength(ax, bx, ay, by);
+                Assert.True(
+                    overlap <= maxOverlap,
+                    $"Interior segments of connectors {lineX} and {lineY} are collinear and overlap for " +
+                    $"{overlap:F1}px (({ax.X},{ax.Y})-({bx.X},{bx.Y}) vs ({ay.X},{ay.Y})-({by.X},{by.Y})), " +
+                    "exceeding the trivial-overlap threshold.");
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Returns the length of the collinear overlap between two axis-aligned segments, or 0 when they
+    ///     are not both horizontal at the same Y, not both vertical at the same X, or do not overlap.
+    /// </summary>
+    private static double CollinearOverlapLength(Point2D a1, Point2D b1, Point2D a2, Point2D b2)
+    {
+        const double tolerance = 1e-6;
+
+        var horizontal1 = Math.Abs(a1.Y - b1.Y) < tolerance;
+        var horizontal2 = Math.Abs(a2.Y - b2.Y) < tolerance;
+        if (horizontal1 && horizontal2 && Math.Abs(a1.Y - a2.Y) < tolerance)
+        {
+            var lo = Math.Max(Math.Min(a1.X, b1.X), Math.Min(a2.X, b2.X));
+            var hi = Math.Min(Math.Max(a1.X, b1.X), Math.Max(a2.X, b2.X));
+            return Math.Max(0.0, hi - lo);
+        }
+
+        var vertical1 = Math.Abs(a1.X - b1.X) < tolerance;
+        var vertical2 = Math.Abs(a2.X - b2.X) < tolerance;
+        if (vertical1 && vertical2 && Math.Abs(a1.X - a2.X) < tolerance)
+        {
+            var lo = Math.Max(Math.Min(a1.Y, b1.Y), Math.Min(a2.Y, b2.Y));
+            var hi = Math.Min(Math.Max(a1.Y, b1.Y), Math.Max(a2.Y, b2.Y));
+            return Math.Max(0.0, hi - lo);
+        }
+
+        return 0.0;
+    }
+
+    /// <summary>
     ///     A null box list is rejected by the batch overload.
     /// </summary>
     [Fact]

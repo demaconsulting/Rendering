@@ -64,6 +64,21 @@ out-of-order batch result, or non-argument-null exception for invalid input cons
   `Route_NullConnections_Throws`, `Route_NullOptions_Throws`, and `Route_NullConnection_Throws` confirm
   null arguments are rejected with an argument-null error.
 
+### Additional Regression Coverage
+
+The following tests guard against a reported defect but are not linked to a requirement here, because
+the actual behavior change they exercise (the length-proportional soft-obstacle cost) is owned by, and
+already covered under, `OrthogonalEdgeRouter`'s own
+`Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap` requirement (see
+_OrthogonalEdgeRouter Unit Verification_); these end-to-end tests add confidence at the batch-API
+level rather than introducing a new `ConnectorRouter`-level responsibility:
+
+- `Route_ThreeConnectorsNarrowGap_InteriorCorridorsDoNotOverlapAlongLength`,
+  `Route_FiveConnectorsNarrowGap_InteriorCorridorsDoNotOverlapAlongLength`, and
+  `Route_ThreeSourceBoxesNarrowGap_InteriorCorridorsDoNotOverlapAlongLength` reproduce the reported
+  DictionaryMark defect (a narrow vertical gap between a small box and a much wider one) and confirm
+  that no two distinct connectors' interior segments ride the same grid line for an extended span.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`**:
