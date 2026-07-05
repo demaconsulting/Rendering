@@ -158,9 +158,8 @@ internal static class GalleryCatalog
                 new GalleryImage(
                     FolderTopFaceAnchorSvg,
                     "An external node connected into a folder top face, clear of the tab",
-                    "A cross-container edge approaching a folder container from above: the connector "
-                    + "avoids the tab and anchors on the folder's recessed top edge instead of floating "
-                    + "above it."),
+                    "An edge approaching a folder container from above: the connector avoids the tab and "
+                    + "anchors on the folder's recessed top edge instead of floating above it."),
                 new GalleryImage(
                     ShapeGallerySvg,
                     "One of each container shape side by side, each holding content",

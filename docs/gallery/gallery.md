@@ -100,8 +100,8 @@ anchor down to the shape's actual drawn outline, so every connector visibly touc
 
 ![An external node connected into a folder top face, clear of the tab](folder-top-face-anchor.svg)
 
-A cross-container edge approaching a folder container from above: the connector avoids the tab and anchors on the
-folder's recessed top edge instead of floating above it.
+An edge approaching a folder container from above: the connector avoids the tab and anchors on the folder's
+recessed top edge instead of floating above it.
 
 ![One of each container shape side by side, each holding content](shape-gallery.svg)
 

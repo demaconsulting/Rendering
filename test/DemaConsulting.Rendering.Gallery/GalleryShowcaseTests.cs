@@ -205,8 +205,8 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
-    ///     Renders the folder-top-face-anchor diagram to SVG, proving a cross-container edge approaching
-    ///     a folder container from above anchors clear of the tab, on the folder's actual outline.
+    ///     Renders the folder-top-face-anchor diagram to SVG, proving an edge approaching a folder
+    ///     container from above anchors clear of the tab, on the folder's actual outline.
     /// </summary>
     [Fact]
     public void Gallery_FolderTopFaceAnchor_RendersSvg()
