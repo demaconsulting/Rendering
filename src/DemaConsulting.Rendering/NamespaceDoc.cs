@@ -38,7 +38,7 @@ namespace DemaConsulting.Rendering;
 ///   <item>
 ///     <description>
 ///     Lay it out with the <c>DemaConsulting.Rendering.Layout</c> package: the one-call
-///     <c>LayoutEngine.Layout(graph, options)</c> facade resolves whatever algorithm the graph
+///     <c>LayoutEngine.Layout(graph)</c> facade resolves whatever algorithm the graph
 ///     declares, or select a specific <c>ILayoutAlgorithm</c> (<c>layered</c>, <c>containment</c>,
 ///     or the recursive <c>hierarchical</c> engine) yourself. This yields a placed
 ///     <see cref="LayoutTree"/>.
@@ -86,8 +86,9 @@ namespace DemaConsulting.Rendering;
 /// graph.AddEdge("b-c", b, c);
 ///
 /// // 2. Lay it out with the one-call facade (default: hierarchical, byte-identical to
-/// //    layered for this flat graph).
-/// LayoutTree tree = LayoutEngine.Layout(graph, new LayoutOptions());
+/// //    layered for this flat graph). Configure the graph itself (e.g.
+/// //    graph.Set(CoreOptions.Algorithm, "layered")) to change that.
+/// LayoutTree tree = LayoutEngine.Layout(graph);
 ///
 /// // 3. Render the placed tree to SVG.
 /// using var output = File.Create("diagram.svg");

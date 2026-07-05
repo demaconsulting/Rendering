@@ -76,6 +76,10 @@ internal static class OrthogonalEdgeRouter
     /// </param>
     /// <param name="targetSide">Optional box side the target anchor sits on; see <paramref name="sourceSide"/>.</param>
     /// <param name="costBands">Optional cost bands biasing the route toward highway corridors; null leaves cost neutral.</param>
+    /// <param name="softObstacles">
+    /// Optional rectangles (typically already-routed connector segments) that the route should prefer
+    /// to avoid but is never hard-blocked by.
+    /// </param>
     /// <returns>
     /// An ordered list of waypoints beginning with <paramref name="source"/> and ending with
     /// <paramref name="target"/>. Consecutive waypoints always share an X or a Y coordinate.
@@ -87,8 +91,9 @@ internal static class OrthogonalEdgeRouter
         double clearance,
         PortSide? sourceSide = null,
         PortSide? targetSide = null,
-        IReadOnlyList<CostBand>? costBands = null) =>
-        RouteWithStatus(source, target, obstacles, clearance, sourceSide, targetSide, costBands).Waypoints;
+        IReadOnlyList<CostBand>? costBands = null,
+        IReadOnlyList<Rect>? softObstacles = null) =>
+        RouteWithStatus(source, target, obstacles, clearance, sourceSide, targetSide, costBands, softObstacles).Waypoints;
 
     /// <summary>
     /// Computes an orthogonal route and reports whether it had to cross an obstacle. The route is
@@ -103,6 +108,13 @@ internal static class OrthogonalEdgeRouter
     /// <param name="sourceSide">Optional box side the source anchor sits on (adds a perpendicular stub).</param>
     /// <param name="targetSide">Optional box side the target anchor sits on (adds a perpendicular stub).</param>
     /// <param name="costBands">Optional cost bands biasing the route toward highway corridors; null leaves cost neutral.</param>
+    /// <param name="softObstacles">
+    /// Optional rectangles (typically already-routed connector segments) that the route should prefer
+    /// to avoid but is never hard-blocked by. Unlike <paramref name="obstacles"/>, a segment may still
+    /// cross a soft obstacle when doing so is the only (or cheapest) way to reach the target; this keeps
+    /// a shared target/source face reachable even when every other connector converging on it already
+    /// occupies the same short approach corridor.
+    /// </param>
     /// <returns>The waypoints and a flag indicating whether the route crosses an obstacle.</returns>
     public static RouteResult RouteWithStatus(
         Point2D source,
@@ -111,7 +123,8 @@ internal static class OrthogonalEdgeRouter
         double clearance,
         PortSide? sourceSide = null,
         PortSide? targetSide = null,
-        IReadOnlyList<CostBand>? costBands = null)
+        IReadOnlyList<CostBand>? costBands = null,
+        IReadOnlyList<Rect>? softObstacles = null)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
@@ -129,14 +142,14 @@ internal static class OrthogonalEdgeRouter
         // Try to find an obstacle-free orthogonal path, preferring the largest clearance that works.
         foreach (var c in ClearanceLevels(clearance))
         {
-            var xs = BuildAxis(routeSource.X, routeTarget.X, obstacles, c, horizontal: true);
-            var ys = BuildAxis(routeSource.Y, routeTarget.Y, obstacles, c, horizontal: false);
+            var xs = BuildAxis(routeSource.X, routeTarget.X, obstacles, c, horizontal: true, softObstacles);
+            var ys = BuildAxis(routeSource.Y, routeTarget.Y, obstacles, c, horizontal: false, softObstacles);
 
             var path = AStar(
                 xs, ys,
                 IndexOf(xs, routeSource.X), IndexOf(ys, routeSource.Y),
                 IndexOf(xs, routeTarget.X), IndexOf(ys, routeTarget.Y),
-                obstacles, c, costBands);
+                obstacles, c, costBands, softObstacles);
 
             if (path is not null)
             {
@@ -189,7 +202,7 @@ internal static class OrthogonalEdgeRouter
             full.Add(target);
         }
 
-        return Simplify(full);
+        return RemovePointRevisits(Simplify(full));
     }
 
     /// <summary>
@@ -230,14 +243,17 @@ internal static class OrthogonalEdgeRouter
 
     /// <summary>
     /// Builds the sorted, de-duplicated set of grid coordinates for one axis: the two endpoint
-    /// coordinates plus each obstacle's near/far edge offset outward by the clearance.
+    /// coordinates plus each obstacle's near/far edge offset outward by the clearance, plus the same
+    /// offset for any <paramref name="softObstacles"/> so the search has a candidate lane on either
+    /// side of an already-routed line to prefer when one is available.
     /// </summary>
     private static double[] BuildAxis(
         double a,
         double b,
         IReadOnlyList<Rect> obstacles,
         double clearance,
-        bool horizontal)
+        bool horizontal,
+        IReadOnlyList<Rect>? softObstacles = null)
     {
         var set = new SortedSet<double> { a, b };
         foreach (var r in obstacles)
@@ -251,6 +267,23 @@ internal static class OrthogonalEdgeRouter
             {
                 set.Add(r.Y - clearance);
                 set.Add(r.Y + r.Height + clearance);
+            }
+        }
+
+        if (softObstacles is not null)
+        {
+            foreach (var r in softObstacles)
+            {
+                if (horizontal)
+                {
+                    set.Add(r.X - clearance);
+                    set.Add(r.X + r.Width + clearance);
+                }
+                else
+                {
+                    set.Add(r.Y - clearance);
+                    set.Add(r.Y + r.Height + clearance);
+                }
             }
         }
 
@@ -288,7 +321,8 @@ internal static class OrthogonalEdgeRouter
         int goalJ,
         IReadOnlyList<Rect> obstacles,
         double clearance,
-        IReadOnlyList<CostBand>? costBands)
+        IReadOnlyList<CostBand>? costBands,
+        IReadOnlyList<Rect>? softObstacles = null)
     {
         var nx = xs.Length;
         var ny = ys.Length;
@@ -305,6 +339,26 @@ internal static class OrthogonalEdgeRouter
         // Turn penalty expressed in pixels; comparable to a short straight run so detours that
         // remove a bend are preferred only when not much longer.
         const double TurnPenalty = 20.0;
+
+        // Soft-obstacle cost is split into a small flat base (so a trivial, few-pixel overlap stays
+        // cheap enough that a shared approach corridor is never worth a pointless detour) plus a
+        // per-unit-length term proportional to how much of the candidate move actually overlaps the
+        // soft obstacle. A flat, length-independent penalty was tried first and found insufficient: on
+        // a sparse narrow-gap grid a connector's entire multi-hundred-pixel corridor can collapse into
+        // a single grid move, so a flat cost priced a 500px visual overlap identically to a trivial
+        // one — cheaper than the roughly fixed cost of detouring to a nearby alternate lane, so A*
+        // always kept the long overlap no matter how visually merged the result looked. Scaling the
+        // cost with the overlap length keeps short, incidental overlaps (and the legitimate
+        // endpoint-adjacent approach corridors that never become soft obstacles in the first place —
+        // see <c>AddLineObstacles</c> in <c>ConnectorRouter</c>) cheap, while making an extended
+        // overlap cost substantially more than a bounded-cost lane change, so the search prefers the
+        // detour once the overlap grows long enough to matter.
+        const double SoftObstacleBaseCost = 10.0;
+        const double SoftObstaclePerUnitLengthCost = 1.0;
+
+        // Resolved once outside the neighbor loop so a null softObstacles argument does not allocate a
+        // fresh empty array on every A* iteration.
+        var resolvedSoftObstacles = softObstacles ?? [];
 
         while (open.Count > 0)
         {
@@ -330,7 +384,11 @@ internal static class OrthogonalEdgeRouter
                     : Math.Abs(ys[nj] - ys[cj]);
                 var bandMultiplier = SegmentCostMultiplier(xs, ys, ci, cj, ni, nj, costBands);
                 var turnCost = cd != Dir.None && cd != nd ? TurnPenalty : 0.0;
-                var tentative = g + (stepLength * bandMultiplier) + turnCost;
+                var softOverlap = SoftObstacleOverlapLength(xs, ys, ci, cj, ni, nj, resolvedSoftObstacles);
+                var softCost = softOverlap > 0.0
+                    ? SoftObstacleBaseCost + (softOverlap * SoftObstaclePerUnitLengthCost)
+                    : 0.0;
+                var tentative = g + (stepLength * bandMultiplier) + turnCost + softCost;
 
                 var neighborState = (ni, nj, nd);
                 if (best.TryGetValue(neighborState, out var existing) && tentative >= existing)
@@ -461,6 +519,66 @@ internal static class OrthogonalEdgeRouter
         return false;
     }
 
+    /// <summary>
+    /// Returns the total length by which the straight grid segment between two adjacent nodes overlaps
+    /// the interiors of <paramref name="softObstacles"/> (summed across every soft obstacle it
+    /// intersects), or 0 when it does not overlap any. Mirrors <see cref="SegmentBlocked"/>'s
+    /// horizontal/vertical branch logic and its clearance-0.0 "just touching interior" semantics
+    /// (soft obstacles are never inflated by clearance, unlike hard <c>obstacles</c>), but reports the
+    /// overlapping span instead of a boolean so the caller can price the move proportionally to how
+    /// much of it is actually shared with an already-routed line.
+    /// </summary>
+    private static double SoftObstacleOverlapLength(
+        double[] xs,
+        double[] ys,
+        int i1,
+        int j1,
+        int i2,
+        int j2,
+        IReadOnlyList<Rect> softObstacles)
+    {
+        var total = 0.0;
+
+        if (j1 == j2)
+        {
+            // Horizontal segment at y = ys[j1] spanning the two x grid lines.
+            var y = ys[j1];
+            var xa = Math.Min(xs[i1], xs[i2]);
+            var xb = Math.Max(xs[i1], xs[i2]);
+            foreach (var r in softObstacles)
+            {
+                if (r.Y < y && y < r.Y + r.Height)
+                {
+                    var overlap = Math.Min(xb, r.X + r.Width) - Math.Max(xa, r.X);
+                    if (overlap > 0.0)
+                    {
+                        total += overlap;
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Vertical segment at x = xs[i1] spanning the two y grid lines.
+            var x = xs[i1];
+            var ya = Math.Min(ys[j1], ys[j2]);
+            var yb = Math.Max(ys[j1], ys[j2]);
+            foreach (var r in softObstacles)
+            {
+                if (r.X < x && x < r.X + r.Width)
+                {
+                    var overlap = Math.Min(yb, r.Y + r.Height) - Math.Max(ya, r.Y);
+                    if (overlap > 0.0)
+                    {
+                        total += overlap;
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
     /// <summary>Reconstructs the grid-point path by walking the came-from chain back to the start.</summary>
     private static List<Point2D> Reconstruct(
         double[] xs,
@@ -528,6 +646,57 @@ internal static class OrthogonalEdgeRouter
 
         return result;
     }
+
+    /// <summary>
+    /// Removes any exact leave-and-return excursion that departs a waypoint and later comes back to the
+    /// same point before continuing onward. This is a defensive cleanup only: the primary fix for the
+    /// shared-face detour regression is to stop contributing endpoint-adjacent soft obstacles that lure
+    /// the search into such loops. The cleanup remains valuable as a last line of defense so a future
+    /// caller cannot reintroduce a visibly redundant revisit sequence into the published route.
+    /// </summary>
+    private static IReadOnlyList<Point2D> RemovePointRevisits(IReadOnlyList<Point2D> points)
+    {
+        if (points.Count <= 3)
+        {
+            return points;
+        }
+
+        var result = new List<Point2D>(points);
+        var changed = true;
+        while (changed)
+        {
+            changed = false;
+            for (var i = 0; i < result.Count - 2; i++)
+            {
+                var removedCycle = false;
+                for (var j = i + 2; j < result.Count; j++)
+                {
+                    if (!SamePoint(result[i], result[j]))
+                    {
+                        continue;
+                    }
+
+                    result.RemoveRange(i + 1, j - i);
+                    changed = true;
+                    removedCycle = true;
+                    break;
+                }
+
+                if (removedCycle)
+                {
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns whether two waypoints represent the same geometric point.
+    /// </summary>
+    private static bool SamePoint(Point2D left, Point2D right) =>
+        Math.Abs(left.X - right.X) < 1e-9 && Math.Abs(left.Y - right.Y) < 1e-9;
 
     /// <summary>
     /// Builds the least-bad L-shaped fallback route used when A* cannot find an obstacle-free path:

@@ -89,6 +89,17 @@ edge is expressible at the lowest common ancestor, including the sibling-contain
 
 **Covers**: `Rendering-Model-LayoutGraph-CrossContainerEdge`.
 
+#### Shape-geometry hints are stored and propagated
+
+Test `LayoutGraphNode_ShapeGeometryHints_DefaultNullAndSettable` confirms that the optional rounded
+corner and folder-tab geometry hints default to null and preserve explicit values on the input node.
+The propagation tests `Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPlacedBox`,
+`Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPackedBox`, and
+`Apply_NestedGraph_PropagatesContainerAndLeafShapeKeywordCompartments` then confirm the layered,
+containment, and hierarchical layout paths all copy those hints onto their placed boxes unchanged.
+
+**Covers**: `Rendering-Model-LayoutGraph-ShapeGeometryHints`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-LayoutGraph-AddNode`**: AddNode_AppendsNodeAndReturnsIt
@@ -104,3 +115,8 @@ edge is expressible at the lowest common ancestor, including the sibling-contain
 - **`Rendering-Model-LayoutGraph-CrossContainerEdge`**:
   LayoutGraphEdge_CrossContainer_ReferencingDescendant_ConstructibleAtRoot,
   LayoutGraphEdge_CrossContainer_BetweenSiblingContainers_ConstructibleAtRoot
+- **`Rendering-Model-LayoutGraph-ShapeGeometryHints`**:
+  LayoutGraphNode_ShapeGeometryHints_DefaultNullAndSettable,
+  Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPlacedBox,
+  Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPackedBox,
+  Apply_NestedGraph_PropagatesContainerAndLeafShapeKeywordCompartments

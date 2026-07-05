@@ -9,8 +9,8 @@ namespace DemaConsulting.Rendering.Layout.Tests;
 
 /// <summary>
 ///     Tests for the <see cref="LayoutEngine"/> batteries-included facade, covering algorithm
-///     resolution (graph precedence over options, default to hierarchical), the flat-graph equivalence
-///     to the corresponding leaf algorithm, nested-graph composition, custom-registry support, and
+///     resolution (explicit graph declaration, default to hierarchical), the flat-graph equivalence to
+///     the corresponding leaf algorithm, nested-graph composition, custom-registry support, and
 ///     null-argument validation.
 /// </summary>
 public sealed class LayoutEngineTests
@@ -35,71 +35,50 @@ public sealed class LayoutEngineTests
     {
         // Arrange
         var graph = BuildFlatGraph();
-        var options = new LayoutOptions();
 
         // Act
-        var expected = new LayeredLayoutAlgorithm().Apply(graph, options);
-        var actual = LayoutEngine.Layout(graph, options);
+        var expected = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var actual = LayoutEngine.Layout(graph);
 
         // Assert
         AssertTreesIdentical(expected, actual);
     }
 
     /// <summary>
-    ///     Proves that an explicit "layered" declaration on the options resolves the layered algorithm,
-    ///     producing output identical to invoking that algorithm directly.
-    /// </summary>
-    [Fact]
-    public void Layout_OptionsDeclareLayered_MatchesLayeredAlgorithmExactly()
-    {
-        // Arrange
-        var graph = BuildFlatGraph();
-        var options = LayoutOptions.ForAlgorithm("layered");
-
-        // Act
-        var expected = new LayeredLayoutAlgorithm().Apply(graph, options);
-        var actual = LayoutEngine.Layout(graph, options);
-
-        // Assert
-        AssertTreesIdentical(expected, actual);
-    }
-
-    /// <summary>
-    ///     Proves that an explicit "containment" declaration on the options resolves the containment
+    ///     Proves that an explicit "layered" declaration set directly on the graph resolves the layered
     ///     algorithm, producing output identical to invoking that algorithm directly.
     /// </summary>
     [Fact]
-    public void Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly()
+    public void Layout_GraphDeclaresLayered_MatchesLayeredAlgorithmExactly()
     {
         // Arrange
         var graph = BuildFlatGraph();
-        var options = LayoutOptions.ForAlgorithm("containment");
+        graph.Set(CoreOptions.Algorithm, "layered");
 
         // Act
-        var expected = new ContainmentLayoutAlgorithm().Apply(graph, options);
-        var actual = LayoutEngine.Layout(graph, options);
+        var expected = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var actual = LayoutEngine.Layout(graph);
 
         // Assert
         AssertTreesIdentical(expected, actual);
     }
 
     /// <summary>
-    ///     Proves the graph's explicit algorithm declaration takes precedence over the options'
-    ///     declaration: a graph declaring "containment" is packed even when the options declare "layered".
+    ///     Proves that an explicit "containment" declaration set directly on the graph resolves the
+    ///     containment algorithm, producing output identical to invoking that algorithm directly.
     /// </summary>
     [Fact]
-    public void Layout_GraphDeclarationOverridesOptions()
+    public void Layout_GraphDeclaresContainment_MatchesContainmentAlgorithmExactly()
     {
-        // Arrange: the graph declares containment, the options declare layered
+        // Arrange
         var graph = BuildFlatGraph();
         graph.Set(CoreOptions.Algorithm, "containment");
-        var options = LayoutOptions.ForAlgorithm("layered");
 
         // Act
-        var expected = new ContainmentLayoutAlgorithm().Apply(graph, options);
-        var actual = LayoutEngine.Layout(graph, options);
+        var expected = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var actual = LayoutEngine.Layout(graph);
 
-        // Assert: the containment result wins
+        // Assert
         AssertTreesIdentical(expected, actual);
     }
 
@@ -120,7 +99,7 @@ public sealed class LayoutEngineTests
         graph.AddNode("outside", 80, 40);
 
         // Act
-        var tree = LayoutEngine.Layout(graph, new LayoutOptions());
+        var tree = LayoutEngine.Layout(graph);
 
         // Assert: the container box was composed with its nested children
         var containerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>(), box => box.Children.Count > 0);
@@ -140,7 +119,7 @@ public sealed class LayoutEngineTests
         graph.Set(CoreOptions.Algorithm, "stub");
 
         // Act
-        var tree = LayoutEngine.Layout(graph, new LayoutOptions(), registry);
+        var tree = LayoutEngine.Layout(graph, registry);
 
         // Assert: the stub's sentinel canvas proves it was the algorithm applied
         Assert.Equal(StubAlgorithm.SentinelWidth, tree.Width);
@@ -158,7 +137,7 @@ public sealed class LayoutEngineTests
         graph.Set(CoreOptions.Algorithm, "nope");
 
         // Act / Assert
-        Assert.Throws<KeyNotFoundException>(() => LayoutEngine.Layout(graph, new LayoutOptions()));
+        Assert.Throws<KeyNotFoundException>(() => LayoutEngine.Layout(graph));
     }
 
     /// <summary>
@@ -168,17 +147,7 @@ public sealed class LayoutEngineTests
     public void Layout_NullGraph_Throws()
     {
         // Act / Assert
-        Assert.Throws<ArgumentNullException>(() => LayoutEngine.Layout(null!, new LayoutOptions()));
-    }
-
-    /// <summary>
-    ///     Proves a null options argument is rejected.
-    /// </summary>
-    [Fact]
-    public void Layout_NullOptions_Throws()
-    {
-        // Act / Assert
-        Assert.Throws<ArgumentNullException>(() => LayoutEngine.Layout(new LayoutGraph(), null!));
+        Assert.Throws<ArgumentNullException>(() => LayoutEngine.Layout(null!));
     }
 
     /// <summary>
@@ -189,7 +158,7 @@ public sealed class LayoutEngineTests
     {
         // Act / Assert
         Assert.Throws<ArgumentNullException>(
-            () => LayoutEngine.Layout(new LayoutGraph(), new LayoutOptions(), null!));
+            () => LayoutEngine.Layout(new LayoutGraph(), null!));
     }
 
     /// <summary>Builds a small deterministic flat graph of three labelled leaves and two edges.</summary>

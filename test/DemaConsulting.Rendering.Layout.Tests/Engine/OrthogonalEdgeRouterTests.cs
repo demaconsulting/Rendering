@@ -229,6 +229,101 @@ public sealed class OrthogonalEdgeRouterTests
     }
 
     /// <summary>
+    ///     A route steered by soft-obstacle penalties does not publish a redundant leave-and-return
+    ///     waypoint loop that revisits the same point before continuing.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_SoftObstacleDetour_DoesNotRevisitWaypoint()
+    {
+        // Arrange: a vertical route whose preferred corridor is marked as a soft obstacle, representing
+        // an already-routed connector that a later connector should prefer to steer around without
+        // publishing a redundant excursion that leaves and returns to the same point.
+        var source = new Point2D(100, 0);
+        var target = new Point2D(100, 200);
+        var softObstacles = new[] { new Rect(99, 20, 2, 160) };
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(
+            source,
+            target,
+            obstacles: [],
+            clearance: 10,
+            sourceSide: PortSide.Bottom,
+            targetSide: PortSide.Top,
+            softObstacles: softObstacles);
+
+        // Assert: the path is valid and never visits, leaves, and later revisits the same point.
+        Assert.False(result.Crossed);
+        AssertAllSegmentsOrthogonal(result.Waypoints);
+        AssertNoWaypointRevisit(result.Waypoints);
+    }
+
+    /// <summary>
+    ///     Pins the length-proportional soft-obstacle cost fix directly: when a soft obstacle occupies
+    ///     the entire natural straight corridor for an extended span (hundreds of pixels), the router
+    ///     must prefer a bounded-cost detour to an alternate lane rather than riding the long overlap.
+    ///     Before the fix, the flat per-move <c>SoftObstaclePenalty</c> underpriced a long overlap
+    ///     relative to the (roughly fixed) cost of a one-lane detour, so the search always kept the
+    ///     overlap regardless of its length; this reproduces that exact mechanism with a synthetic soft
+    ///     obstacle standing in for an already-routed connector's corridor.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_LongSoftObstacleOverlap_PrefersAlternateLane()
+    {
+        // Arrange: a straight horizontal route whose entire natural corridor (y = 0) is claimed by a
+        // long soft obstacle for most of its length; an alternate lane is reachable at y = +/-11 (the
+        // soft obstacle's own clearance-offset edge, added to the grid by BuildAxis) for a bounded
+        // detour cost (two turns plus a short perpendicular jog).
+        var source = new Point2D(0, 0);
+        var target = new Point2D(500, 0);
+        var softObstacles = new[] { new Rect(50, -1, 400, 2) };
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(
+            source, target, obstacles: [], clearance: 10, softObstacles: softObstacles);
+
+        // Assert: a valid orthogonal route was found (soft obstacles never hard-block).
+        Assert.False(result.Crossed);
+        AssertAllSegmentsOrthogonal(result.Waypoints);
+
+        // Assert: no segment of the route rides the long soft obstacle for more than a trivial span —
+        // the router must have detoured to the alternate lane instead of eating the full 400px overlap.
+        var longestOverlap = LongestOverlapWithRect(result.Waypoints, softObstacles[0]);
+        Assert.True(
+            longestOverlap < 20.0,
+            $"Route rides the soft obstacle for {longestOverlap:F1}px; expected a detour to an alternate lane.");
+    }
+
+    /// <summary>
+    ///     Companion to <see cref="RouteWithStatus_LongSoftObstacleOverlap_PrefersAlternateLane"/>:
+    ///     confirms the fix's proportional cost does not over-correct into penalizing short, incidental
+    ///     soft-obstacle overlaps into pointless detours — a handful of overlapping pixels must still be
+    ///     cheaper than the bounded detour cost, preserving the router's tolerance for legitimate shared
+    ///     corridors near a common face.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_ShortSoftObstacleOverlap_KeepsStraightRoute()
+    {
+        // Arrange: the same straight corridor, but the soft obstacle now spans only a few pixels near
+        // the midpoint — an incidental overlap rather than a long shared trunk.
+        var source = new Point2D(0, 0);
+        var target = new Point2D(500, 0);
+        var softObstacles = new[] { new Rect(248, -1, 4, 2) };
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(
+            source, target, obstacles: [], clearance: 10, softObstacles: softObstacles);
+
+        // Assert: still a valid, non-crossing route.
+        Assert.False(result.Crossed);
+        AssertAllSegmentsOrthogonal(result.Waypoints);
+
+        // Assert: the route stays on the direct y = 0 corridor rather than detouring for a trivial
+        // overlap — every waypoint remains on the straight line.
+        Assert.All(result.Waypoints, p => Assert.Equal(0.0, p.Y, 6));
+    }
+
+    /// <summary>
     ///     A null source anchor is rejected.
     /// </summary>
     [Fact]
@@ -307,6 +402,23 @@ public sealed class OrthogonalEdgeRouterTests
     }
 
     /// <summary>
+    ///     Asserts that the path never visits one point, leaves it, and later returns to the exact same
+    ///     point.
+    /// </summary>
+    private static void AssertNoWaypointRevisit(IReadOnlyList<Point2D> path)
+    {
+        for (var i = 0; i < path.Count - 2; i++)
+        {
+            for (var j = i + 2; j < path.Count; j++)
+            {
+                Assert.False(
+                    SamePoint(path[i], path[j]),
+                    $"Waypoint ({path[i].X},{path[i].Y}) is revisited at positions {i} and {j}.");
+            }
+        }
+    }
+
+    /// <summary>
     ///     Returns true when the axis-aligned segment passes through the strict interior of the rect.
     /// </summary>
     private static bool SegmentCrossesRect(Point2D a, Point2D b, Rect r)
@@ -343,5 +455,56 @@ public sealed class OrthogonalEdgeRouterTests
         var dx = Math.Max(0.0, Math.Max(r.X - xhi, xlo - (r.X + r.Width)));
         var dy = Math.Max(0.0, Math.Max(r.Y - yhi, ylo - (r.Y + r.Height)));
         return Math.Sqrt((dx * dx) + (dy * dy));
+    }
+
+    /// <summary>
+    ///     Returns whether two waypoints identify the same geometric point.
+    /// </summary>
+    private static bool SamePoint(Point2D left, Point2D right) =>
+        Math.Abs(left.X - right.X) < 1e-9 && Math.Abs(left.Y - right.Y) < 1e-9;
+
+    /// <summary>
+    ///     Returns the longest overlap, in pixels, between any segment of <paramref name="path"/> and
+    ///     the interior of <paramref name="rect"/> along the segment's own axis (horizontal segments
+    ///     are compared against the rect's X range when the segment's Y falls inside the rect's Y range,
+    ///     and vice versa for vertical segments).
+    /// </summary>
+    private static double LongestOverlapWithRect(IReadOnlyList<Point2D> path, Rect rect)
+    {
+        var longest = 0.0;
+        for (var i = 0; i < path.Count - 1; i++)
+        {
+            var a = path[i];
+            var b = path[i + 1];
+
+            if (Math.Abs(a.Y - b.Y) < 1e-6)
+            {
+                // Horizontal segment.
+                if (a.Y <= rect.Y || a.Y >= rect.Y + rect.Height)
+                {
+                    continue;
+                }
+
+                var xa = Math.Min(a.X, b.X);
+                var xb = Math.Max(a.X, b.X);
+                var overlap = Math.Min(xb, rect.X + rect.Width) - Math.Max(xa, rect.X);
+                longest = Math.Max(longest, Math.Max(0.0, overlap));
+            }
+            else
+            {
+                // Vertical segment.
+                if (a.X <= rect.X || a.X >= rect.X + rect.Width)
+                {
+                    continue;
+                }
+
+                var ya = Math.Min(a.Y, b.Y);
+                var yb = Math.Max(a.Y, b.Y);
+                var overlap = Math.Min(yb, rect.Y + rect.Height) - Math.Max(ya, rect.Y);
+                longest = Math.Max(longest, Math.Max(0.0, overlap));
+            }
+        }
+
+        return longest;
     }
 }

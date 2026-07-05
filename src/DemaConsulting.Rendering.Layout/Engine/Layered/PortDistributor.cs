@@ -15,7 +15,6 @@ internal sealed class PortDistributor : ILayoutStage
     public void Apply(LayeredGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
-        var n = graph.N;
         var nodes = graph.Nodes;
         var augNodes = graph.AugNodes;
         var augEdges = graph.AugEdges;
@@ -57,7 +56,14 @@ internal sealed class PortDistributor : ILayoutStage
                     .OrderBy(ei => augY[augEdges[ei].Target] + (augNodes[augEdges[ei].Target].Height / 2.0))
                     .ThenBy(ei => ei)
                     .ToList();
-                DistributePorts(sorted, augY[ni], nodes[ni].Height, augPortYSrc);
+                if (ShapeAnchorSupport.IsPlainRectangle(nodes[ni]))
+                {
+                    DistributePorts(sorted, augY[ni], nodes[ni].Height, augPortYSrc);
+                }
+                else
+                {
+                    DistributeShapedPorts(sorted, graph.Direction, isSource: true, augY[ni], nodes[ni], augPortYSrc);
+                }
             }
         }
 
@@ -90,7 +96,15 @@ internal sealed class PortDistributor : ILayoutStage
                     .OrderBy(ei => augY[augEdges[ei].Source] + (augNodes[augEdges[ei].Source].Height / 2.0))
                     .ThenBy(ei => ei)
                     .ToList();
-                DistributePorts(sorted, augY[ni], nodes[ni < n ? ni : 0].Height, augPortYTgt);
+                var node = nodes[ni];
+                if (ShapeAnchorSupport.IsPlainRectangle(node))
+                {
+                    DistributePorts(sorted, augY[ni], node.Height, augPortYTgt);
+                }
+                else
+                {
+                    DistributeShapedPorts(sorted, graph.Direction, isSource: false, augY[ni], node, augPortYTgt);
+                }
             }
         }
 
@@ -136,6 +150,55 @@ internal sealed class PortDistributor : ILayoutStage
                 y,
                 nodeTop + inset,
                 nodeTop + nodeHeight - inset);
+        }
+    }
+
+    /// <summary>
+    /// Distributes port Y positions along a non-<see cref="BoxShape.Rectangle"/> real node's face,
+    /// restricting the band to the shape's usable connectable extents on the resolved real face
+    /// (proportionally across multiple disjoint extents, when the shape excludes a middle portion of
+    /// the face) instead of the plain full-span band <see cref="DistributePorts"/> uses.
+    /// </summary>
+    /// <remarks>
+    /// Reuses <see cref="ConnectorRouter"/>'s (internal) shape-geometry resolution so a shaped node
+    /// routed through the layered pipeline gets the same connectable-extent restriction that
+    /// <see cref="ConnectorRouter"/>-routed edges already apply; see
+    /// <c>docs/design/rendering-layout/engine/layered-pipeline.md</c>. Per the layered pipeline's
+    /// abstract axis convention (verified in the shape-aware-anchors planning report), the abstract
+    /// cross-axis coordinate is never reflected, so the local face coordinate returned by
+    /// <see cref="ConnectorRouter.CoordinateAtDistance"/> maps directly onto the abstract Y axis by
+    /// adding <paramref name="nodeTop"/>, with no sign flip in any of the four flow directions.
+    /// </remarks>
+    private static void DistributeShapedPorts(
+        IReadOnlyList<int> sortedEdgeIndices,
+        LayoutDirection direction,
+        bool isSource,
+        double nodeTop,
+        LayerNode node,
+        double[] portY)
+    {
+        var side = ShapeAnchorSupport.ResolveRealFace(direction, isSource);
+        var geometry = ConnectorRouter.ResolveShapeGeometry(ShapeAnchorSupport.BuildAdapterBox(node));
+        var extents = geometry.GetConnectableExtents(side);
+        var usable = ConnectorRouter.BuildUsableExtents(extents, ConnectorClearance);
+        var total = ConnectorRouter.TotalExtentLength(usable);
+
+        if (total <= 1e-9)
+        {
+            // The shape excludes the entire face; fall back to the plain full-span band rather than
+            // producing an invalid (zero-length) port distribution. The abstract Height already equals
+            // the tangential face length for whichever real face was resolved (see the verified
+            // abstract-axis invariant on ShapeAnchorSupport.ResolveRealFace).
+            DistributePorts(sortedEdgeIndices, nodeTop, node.Height, portY);
+            return;
+        }
+
+        var count = sortedEdgeIndices.Count;
+        for (var k = 0; k < count; k++)
+        {
+            var distance = count == 1 ? total / 2.0 : k * total / (count - 1);
+            var local = ConnectorRouter.CoordinateAtDistance(usable, distance);
+            portY[sortedEdgeIndices[k]] = nodeTop + local;
         }
     }
 }

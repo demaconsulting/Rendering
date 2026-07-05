@@ -2,6 +2,8 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
+using DemaConsulting.Rendering.Abstractions;
+
 namespace DemaConsulting.Rendering.Gallery;
 
 /// <summary>
@@ -204,6 +206,164 @@ internal static class GalleryDiagrams
 
         return graph;
     }
+
+    /// <summary>
+    ///     A folder container holding two boxes with a keyword line, one also compartmented, joined by a decorated edge —
+    ///     a block-diagram notation used by SysML and similar modeling languages, but expressed purely
+    ///     through the generic <see cref="LayoutGraphNode.Shape"/>, <see cref="LayoutGraphNode.Keyword"/>,
+    ///     and <see cref="LayoutGraphNode.Compartments"/> properties on the input graph model, with no
+    ///     SysML-specific code anywhere in the rendering pipeline.
+    /// </summary>
+    /// <remarks>
+    ///     A leaf algorithm places a box at exactly the width and height its node declares — it never
+    ///     grows a box to fit a keyword line or compartment rows — so the caller must size each node
+    ///     tall enough to hold its title area (<see cref="BoxMetrics.TitleAreaHeight"/>) plus every
+    ///     compartment's own rows, exactly as a caller such as a SysML general-view layout strategy does.
+    /// </remarks>
+    /// <returns>A two-level compound graph with a folder container and boxes carrying a keyword and compartments.</returns>
+    public static LayoutGraph BoxAppearance()
+    {
+        var theme = Themes.Dark;
+        var titleHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: true);
+
+        var graph = new LayoutGraph();
+
+        var pkg = graph.AddNode("pkg", 10, 10);
+        pkg.Label = "Powertrain";
+        pkg.Shape = BoxShape.Folder;
+        pkg.Keyword = "package";
+
+        // The "ports" compartment adds a title row plus one row per port, sized from the same theme
+        // metrics the renderer uses, so the compartment text never overflows the box.
+        var portsCompartment = new LayoutCompartment("ports", ["intake : FluidPort", "exhaust : FluidPort"]);
+        var compartmentHeight = theme.LabelPadding + theme.FontSizeBody + theme.LabelPadding // title row
+            + (portsCompartment.Rows.Count * (theme.LabelPadding + theme.FontSizeBody)) // data rows
+            + theme.LabelPadding; // bottom gap
+
+        var engine = pkg.Children.AddNode("engine", 160, titleHeight + compartmentHeight);
+        engine.Label = "Engine";
+        engine.Keyword = "part def";
+        engine.Compartments = [portsCompartment];
+
+        var motor = pkg.Children.AddNode("motor", 160, titleHeight);
+        motor.Label = "ElectricMotor";
+        motor.Keyword = "part def";
+
+        var edge = pkg.Children.AddEdge("motor-engine", motor, engine);
+        edge.TargetEnd = EndMarkerStyle.HollowTriangle;
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     An edge landing on a <see cref="BoxShape.Folder"/> container's top face, demonstrating
+    ///     shape-aware connector anchoring: the router keeps the connector off the folder's tab (the
+    ///     small raised label strip at the top-left) and projects the anchor down to the folder's
+    ///     actual recessed outline instead of the plain bounding rectangle, so the line visibly touches
+    ///     the drawn shape rather than floating above it.
+    /// </summary>
+    /// <remarks>
+    ///     The edge connects directly to the folder node itself (a direct root member, not a
+    ///     descendant), so it belongs to the root's own leaf view and its ranking honors the downward
+    ///     flow direction below, reliably placing <c>Client</c> above the folder — the one relationship
+    ///     where the tab's presence actually matters. A cross-container edge into a descendant would be
+    ///     excluded from that view and ranked only by insertion order, not by flow direction.
+    /// </remarks>
+    /// <returns>A compound graph with an external node connected into a folder container from above.</returns>
+    public static LayoutGraph FolderTopFaceAnchor()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        var pkg = graph.AddNode("utilities", 10, 10);
+        pkg.Label = "Utilities";
+        pkg.Shape = BoxShape.Folder;
+        pkg.Keyword = "package";
+
+        var globMatcher = AddLabelled(pkg.Children, "glob-matcher", "GlobMatcher");
+        var pathHelpers = AddLabelled(pkg.Children, "path-helpers", "PathHelpers");
+        Connect(pkg.Children, "glob-matcher-path-helpers", globMatcher, pathHelpers);
+
+        var client = AddLabelled(graph, "client", "Client");
+
+        // Connect directly to the folder node itself (a direct root member, not a descendant), so this
+        // edge belongs to the root's own leaf view and its ranking honors the Direction override above,
+        // reliably placing Client above the folder. A cross-container edge into a descendant would be
+        // excluded from that view and ranked only by insertion order, not by Direction.
+        Connect(graph, "client-utilities", client, pkg);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     One sibling of each <see cref="BoxShape"/> value, side by side, each carrying content
+    ///     appropriate to that shape: a plain rectangle and a rounded rectangle each with a keyword line
+    ///     and a labelled compartment, a folder holding a nested child box, and a note holding an
+    ///     untitled compartment of free-form text. Demonstrates that every shape reserves enough space
+    ///     for its own content (title area, compartments, or nested children) without the content
+    ///     overlapping the shape's non-rectangular features (the folder's tab, the note's folded
+    ///     corner).
+    /// </summary>
+    /// <returns>A flat graph of four sibling containers, one per <see cref="BoxShape"/> value.</returns>
+    public static LayoutGraph ShapeGallery()
+    {
+        var theme = Themes.Dark;
+        var graph = new LayoutGraph();
+
+        var titledKeywordHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: true);
+        var titledOnlyHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: false);
+
+        // A plain rectangle with a keyword line and a labelled compartment.
+        var attributesCompartment = new LayoutCompartment("attributes", ["value : Real", "unit : String"]);
+        var sensor = graph.AddNode("sensor", 160, titledKeywordHeight + TitledCompartmentHeight(theme, attributesCompartment));
+        sensor.Label = "Sensor";
+        sensor.Keyword = "part def";
+        sensor.Compartments = [attributesCompartment];
+
+        // A rounded rectangle with a keyword line and a labelled compartment.
+        var portsCompartment = new LayoutCompartment("ports", ["cmd : Signal"]);
+        var controller = graph.AddNode("controller", 160, titledKeywordHeight + TitledCompartmentHeight(theme, portsCompartment));
+        controller.Label = "Controller";
+        controller.Keyword = "part def";
+        controller.Shape = BoxShape.RoundedRectangle;
+        controller.RoundedCornerRadius = 14.0;
+        controller.Compartments = [portsCompartment];
+
+        // A folder holding a single nested child box.
+        var utilities = graph.AddNode("utilities", 160, titledKeywordHeight + 50 + (2 * 12));
+        utilities.Label = "Utilities";
+        utilities.Keyword = "package";
+        utilities.Shape = BoxShape.Folder;
+        AddLabelled(utilities.Children, "path-helpers", "PathHelpers");
+
+        // A note holding an untitled compartment of free-form text, exercising the folded-corner
+        // routing fix: the compartment divider and text sit clear of the diagonal fold.
+        var noteBody = new LayoutCompartment(null, ["Values expressed in SI units", "unless stated otherwise."]);
+        var note = graph.AddNode("note", 200, titledOnlyHeight + UntitledCompartmentHeight(theme, noteBody));
+        note.Label = "Note";
+        note.Shape = BoxShape.Note;
+        note.Compartments = [noteBody];
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Computes the height of a titled compartment (a title row plus one row per line, plus the
+    ///     leading title-area gap and the trailing bottom gap), matching the renderer's own layout
+    ///     formula so the compartment content never overflows the box.
+    /// </summary>
+    private static double TitledCompartmentHeight(Theme theme, LayoutCompartment compartment) =>
+        theme.LabelPadding + theme.FontSizeBody + theme.LabelPadding // title row
+        + (compartment.Rows.Count * (theme.LabelPadding + theme.FontSizeBody)) // data rows
+        + theme.LabelPadding; // bottom gap
+
+    /// <summary>
+    ///     Computes the height of an untitled compartment (one row per line, no title row), matching the
+    ///     renderer's own layout formula so the compartment content never overflows the box.
+    /// </summary>
+    private static double UntitledCompartmentHeight(Theme theme, LayoutCompartment compartment) =>
+        (compartment.Rows.Count * (theme.LabelPadding + theme.FontSizeBody)) // data rows
+        + theme.LabelPadding; // bottom gap
 
     /// <summary>Adds a labelled leaf node of the standard showcase size to the given graph.</summary>
     private static LayoutGraphNode AddLabelled(LayoutGraph graph, string id, string label)

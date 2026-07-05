@@ -23,7 +23,17 @@ per-sub-edge port positions, the per-sub-edge bend points, and finally the assem
 waypoints. The `BackEdgeEntryApproach` parameter (default `ConnectorClearance`) lets a
 decoration-aware caller lengthen a reversed edge's final approach without disturbing default
 geometry. The `SwapNodeAxes` seam swaps each node's width and height for the down/up directions so
-the direction-agnostic stages space layers by the correct extent.
+the direction-agnostic stages space layers by the correct extent; it preserves every other
+`LayerNode` field (`Shape`, `RoundedCornerRadius`, `FolderTabWidth`, `FolderTabHeight`, `Label`,
+`RealWidth`, `RealHeight`) unchanged, since only the abstract along/cross axes need to reorient.
+
+`LayerNode` carries shape metadata alongside its abstract `Width`/`Height`: `Shape` (defaulting to
+`BoxShape.Rectangle`, which keeps every 2-arg call site's byte-identical full-face behavior),
+`RoundedCornerRadius`, `FolderTabWidth`, `FolderTabHeight`, and `Label` mirror the corresponding
+`LayoutGraphNode`/`LayoutBox` properties, and `RealWidth`/`RealHeight` carry the node's true,
+never-swapped bounding-box dimensions (needed because `Width`/`Height` may have been swapped by
+`SwapNodeAxes`, but shape geometry such as a note's fold size combines both real dimensions
+independently of the abstract axes).
 
 Each stage implements `ILayoutStage` (`void Apply(LayeredGraph graph)`) and mutates the graph in
 place. Stages are stateless and may be shared across pipelines. `LayeredLayoutMetrics` holds the
@@ -61,13 +71,22 @@ The default stage sequence added by `AddDefaultStages` runs in this order:
    source-side and target-side port that lies within the corresponding node face. The clearance inset
    is capped at half the face extent so a box too small to hold the full clearance on both edges
    degrades gracefully (ports collapse toward the centre) rather than inverting the clamp range; a
-   box at least twice the clearance tall is unaffected, keeping its geometry byte-identical.
+   box at least twice the clearance tall is unaffected, keeping its geometry byte-identical. For a
+   non-`BoxShape.Rectangle` real node, the port band is further restricted to the shape's usable
+   connectable extents on the resolved real face (proportionally distributed across multiple
+   disjoint extents when the shape excludes a middle portion of the face), reusing `ConnectorRouter`'s
+   shape-geometry resolution via `ShapeAnchorSupport`; a plain-`Rectangle` node keeps the original
+   full-span formula untouched.
 7. **LayeredCorridorRouter.** Assigns routing slots per corridor and emits orthogonal bend points, adding
    no bend points for a straight sub-edge. It reads `BackEdgeEntryApproach` to reserve a minimum
    final approach for a reversed edge; at the default this clamp is a no-op, keeping forward geometry
    byte-identical.
 8. **LongEdgeJoiner.** Concatenates the bend points of a split edge's sub-edges into one polyline per
-   original edge.
+   original edge. For a non-`BoxShape.Rectangle` real endpoint, the assembled perpendicular endpoint
+   coordinate is additionally projected inward by the shape's surface-projection offset at that
+   endpoint's local face coordinate (for example a folder's tab height), so the connector touches the
+   shape's real outline rather than the plain bounding-box edge; a plain-`Rectangle` endpoint skips
+   geometry resolution entirely and keeps the original formula byte-identical.
 9. **AxisTransform.** Maps the abstract left-to-right along/cross coordinates onto screen coordinates
    for the requested direction. The Right direction is the identity; Down, Left, and Up are rotations
    or flips. It also normalizes the input node axes at the start of `Run`.
@@ -85,7 +104,14 @@ or several.
 All pipeline types are internal and consume only the geometric value types of the Layout system
 (`Point2D`, `Rect`) plus the internal `LayerNode`, `LayerEdge`, `AugNode`, and `AugEdge` records.
 No stage depends on the semantic `LayoutGraph` model, any OTS runtime component, or any Shared
-Package.
+Package. The one exception is the `PortDistributor` and `LongEdgeJoiner` stages' dependency, via the
+small internal `ShapeAnchorSupport` helper, on `ConnectorRouter`'s internal shape-geometry types
+(`IBoxShapeGeometry`, `ResolveShapeGeometry`, `BuildUsableExtents`, `TotalExtentLength`,
+`CoordinateAtDistance`) for non-`BoxShape.Rectangle` nodes — a documented cross-unit dependency
+(`LayeredPipeline` unit → `ConnectorRouter` unit) that lets a shaped node's ports and endpoints reuse
+`ConnectorRouter`'s already-tested extent-restriction and surface-projection rules instead of
+duplicating them. See _ConnectorRouter Unit Design_'s "Callers" section for the reverse-direction
+documentation of this dependency.
 
 #### Layered Pipeline Callers
 
@@ -121,3 +147,4 @@ public layout result contract.
 | Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-SharedState | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-InputValidation | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-ShapeAwareAnchors | Layered pipeline behavior described above |

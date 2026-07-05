@@ -16,6 +16,9 @@ internal sealed class LongEdgeJoiner : ILayoutStage
         var augNodes = graph.AugNodes;
         var augEdges = graph.AugEdges;
         var augX = graph.AugX;
+        var augY = graph.AugY;
+        var nodes = graph.Nodes;
+        var direction = graph.Direction;
         var augPortYSrc = graph.AugPortYSrc;
         var augPortYTgt = graph.AugPortYTgt;
         var augBendPoints = graph.AugBendPoints;
@@ -61,6 +64,29 @@ internal sealed class LongEdgeJoiner : ILayoutStage
             var tgtLeft = augX[tgtNodeIdx];
             var srcPortY = augPortYSrc[subEdges[0]];
             var tgtPortY = augPortYTgt[subEdges[^1]];
+
+            // Project a shaped real endpoint inward to the shape's real outline, matching
+            // ConnectorRouter's own shape-geometry rules. Dummy nodes never reach here (long-edge
+            // splitting only inserts dummies at intermediate layers, so the first sub-edge's source
+            // and the last sub-edge's target are always real), and the plain-Rectangle fast path skips
+            // geometry resolution entirely so its arithmetic stays byte-identical.
+            if (!ShapeAnchorSupport.IsPlainRectangle(nodes[srcNodeIdx]))
+            {
+                var srcSide = ShapeAnchorSupport.ResolveRealFace(direction, isSource: true);
+                var srcGeometry = ConnectorRouter.ResolveShapeGeometry(ShapeAnchorSupport.BuildAdapterBox(nodes[srcNodeIdx]));
+                var srcLocal = srcPortY - augY[srcNodeIdx];
+                var srcOffset = Math.Max(0.0, srcGeometry.ProjectToSurface(srcSide, srcLocal));
+                srcRight -= srcOffset;
+            }
+
+            if (!ShapeAnchorSupport.IsPlainRectangle(nodes[tgtNodeIdx]))
+            {
+                var tgtSide = ShapeAnchorSupport.ResolveRealFace(direction, isSource: false);
+                var tgtGeometry = ConnectorRouter.ResolveShapeGeometry(ShapeAnchorSupport.BuildAdapterBox(nodes[tgtNodeIdx]));
+                var tgtLocal = tgtPortY - augY[tgtNodeIdx];
+                var tgtOffset = Math.Max(0.0, tgtGeometry.ProjectToSurface(tgtSide, tgtLocal));
+                tgtLeft += tgtOffset;
+            }
 
             var wps = new List<Point2D>
             {

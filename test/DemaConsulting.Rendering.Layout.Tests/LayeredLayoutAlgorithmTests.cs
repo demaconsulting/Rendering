@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering;
+using DemaConsulting.Rendering.Abstractions;
 
 namespace DemaConsulting.Rendering.Layout.Tests;
 
@@ -51,6 +52,55 @@ public class LayeredLayoutAlgorithmTests
 
         // Every connector has at least a start and an end waypoint.
         Assert.All(lines, line => Assert.True(line.Waypoints.Count >= 2));
+    }
+
+    /// <summary>
+    ///     Proves that a node's <see cref="LayoutGraphNode.Shape"/>, <see cref="LayoutGraphNode.Keyword"/>,
+    ///     <see cref="LayoutGraphNode.Compartments"/>, and optional shape-geometry hints flow through to
+    ///     the placed <see cref="LayoutBox"/> unchanged, so a caller can select both the visible outline
+    ///     and any resolved routing/rendering geometry purely through the input graph model.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPlacedBox()
+    {
+        var graph = new LayoutGraph();
+        var node = graph.AddNode("part", 120, 80);
+        node.Label = "Engine";
+        node.Shape = BoxShape.RoundedRectangle;
+        node.Keyword = "part def";
+        node.Compartments = [new LayoutCompartment("ports", ["intake : FluidPort", "exhaust : FluidPort"])];
+        node.RoundedCornerRadius = 14.0;
+        node.FolderTabWidth = 70.0;
+        node.FolderTabHeight = 22.0;
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var box = Assert.Single(tree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(BoxShape.RoundedRectangle, box.Shape);
+        Assert.Equal("part def", box.Keyword);
+        Assert.Equal(node.Compartments, box.Compartments);
+        Assert.Equal(14.0, box.RoundedCornerRadius);
+        Assert.Equal(70.0, box.FolderTabWidth);
+        Assert.Equal(22.0, box.FolderTabHeight);
+    }
+
+    /// <summary>
+    ///     Proves that an unset <see cref="LayoutGraphNode.Shape"/>, <see cref="LayoutGraphNode.Keyword"/>,
+    ///     and <see cref="LayoutGraphNode.Compartments"/> default to a plain rectangle with no keyword or
+    ///     compartments, preserving the algorithm's prior behavior for callers that never set them.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeWithNoShapeKeywordOrCompartments_DefaultsToPlainRectangle()
+    {
+        var graph = new LayoutGraph();
+        graph.AddNode("plain", 80, 40);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var box = Assert.Single(tree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(BoxShape.Rectangle, box.Shape);
+        Assert.Null(box.Keyword);
+        Assert.Empty(box.Compartments);
     }
 
     /// <summary>
@@ -253,5 +303,187 @@ public class LayeredLayoutAlgorithmTests
         Assert.True(tree.Width > 0);
         Assert.True(tree.Height > 0);
         Assert.All(lines, line => Assert.True(line.Waypoints.Count >= 2));
+    }
+
+    /// <summary>
+    ///     Under a <see cref="LayoutFlowDirection.Down"/> flow the target's resolved real face is
+    ///     <see cref="PortSide.Top"/>, so a <see cref="BoxShape.Folder"/>-shaped target's routed
+    ///     connector lands on the recessed body top (box.Y + folder-tab height) rather than the plain
+    ///     bounding-box top edge — proving <see cref="LayeredLayoutAlgorithm"/>'s own routing pipeline
+    ///     now gets the same anchor projection <see cref="ConnectorRouter"/> already applies.
+    /// </summary>
+    [Fact]
+    public void Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop()
+    {
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("client", 80, 40);
+        var target = graph.AddNode("pkg", 140, 90);
+        target.Label = "Utilities";
+        target.Shape = BoxShape.Folder;
+        target.FolderTabWidth = 60.0;
+        target.FolderTabHeight = 24.0;
+        graph.AddEdge("uses", source, target);
+
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        var targetBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Utilities");
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+
+        // Assert: the connector's final waypoint touches the recessed body top, not the bounding-box edge.
+        Assert.Equal(targetBox.Y + 24.0, line.Waypoints[^1].Y, 6);
+    }
+
+    /// <summary>
+    ///     Under an <see cref="LayoutFlowDirection.Up"/> flow the source's resolved real face is
+    ///     <see cref="PortSide.Top"/>, so a <see cref="BoxShape.Folder"/>-shaped source's routed
+    ///     connector departs from the recessed body top rather than the plain bounding-box top edge.
+    /// </summary>
+    [Fact]
+    public void Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop()
+    {
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("pkg", 140, 90);
+        source.Label = "Utilities";
+        source.Shape = BoxShape.Folder;
+        source.FolderTabWidth = 60.0;
+        source.FolderTabHeight = 24.0;
+        var target = graph.AddNode("client", 80, 40);
+        graph.AddEdge("uses", source, target);
+
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.Direction, LayoutFlowDirection.Up);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        var sourceBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Utilities");
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+
+        // Assert: the connector's first waypoint touches the recessed body top, not the bounding-box edge.
+        Assert.Equal(sourceBox.Y + 24.0, line.Waypoints[0].Y, 6);
+    }
+
+    /// <summary>
+    ///     Under a <see cref="LayoutFlowDirection.Right"/> flow the target's resolved real face is
+    ///     <see cref="PortSide.Left"/>, which <see cref="BoxShape.Folder"/> never restricts or projects
+    ///     (only the real Top face carries a tab), so the connector lands on the plain bounding-box left
+    ///     edge exactly as it would for a rectangle — the folder tab must never spuriously affect a face
+    ///     other than the real Top face.
+    /// </summary>
+    [Fact]
+    public void Apply_RightDirection_FolderTarget_LeftFaceUnaffectedByTab()
+    {
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("client", 40, 20);
+        var target = graph.AddNode("pkg", 140, 90);
+        target.Label = "Utilities";
+        target.Shape = BoxShape.Folder;
+        target.FolderTabWidth = 60.0;
+        target.FolderTabHeight = 24.0;
+        graph.AddEdge("uses", source, target);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var targetBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Utilities");
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+
+        // Assert: the connector's final waypoint sits exactly on the plain bounding-box left edge.
+        Assert.Equal(targetBox.X, line.Waypoints[^1].X, 6);
+    }
+
+    /// <summary>
+    ///     Under a <see cref="LayoutFlowDirection.Left"/> flow the target's resolved real face is
+    ///     <see cref="PortSide.Right"/>, which <see cref="BoxShape.Folder"/> never restricts or
+    ///     projects, so the connector lands on the plain bounding-box right edge exactly as it would for
+    ///     a rectangle.
+    /// </summary>
+    [Fact]
+    public void Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab()
+    {
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("client", 40, 20);
+        var target = graph.AddNode("pkg", 140, 90);
+        target.Label = "Utilities";
+        target.Shape = BoxShape.Folder;
+        target.FolderTabWidth = 60.0;
+        target.FolderTabHeight = 24.0;
+        graph.AddEdge("uses", source, target);
+
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.Direction, LayoutFlowDirection.Left);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        var targetBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Utilities");
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+
+        // Assert: the connector's final waypoint sits exactly on the plain bounding-box right edge.
+        Assert.Equal(targetBox.X + targetBox.Width, line.Waypoints[^1].X, 6);
+    }
+
+    /// <summary>
+    ///     A <see cref="BoxShape.Note"/>-shaped target's fold-excluded strip on its real Top face
+    ///     (resolved for a <see cref="LayoutFlowDirection.Down"/> flow) is excluded from the connector's
+    ///     landing zone, matching <see cref="ConnectorRouter"/>'s own exclusion rule; no surface
+    ///     projection applies (a note's fold sits exactly on the bounding-box edge).
+    /// </summary>
+    [Fact]
+    public void Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone()
+    {
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("author", 80, 40);
+        var target = graph.AddNode("note", 140, 90);
+        target.Label = "Design Note";
+        target.Shape = BoxShape.Note;
+        graph.AddEdge("writes", source, target);
+
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        var targetBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Design Note");
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        var end = line.Waypoints[^1];
+
+        // Assert: the connector lands on the plain top edge (no projection offset for Note) but strictly
+        // left of the fold-excluded strip near the right edge. A 140x90 note folds
+        // min(140, 90) * 0.25 = 22.5, capped at NotationMetrics.NoteFoldMaxSize (16).
+        Assert.Equal(targetBox.Y, end.Y, 6);
+        Assert.True(
+            end.X < targetBox.X + targetBox.Width - NotationMetrics.NoteFoldMaxSize,
+            "Target anchor should land left of the fold-excluded strip.");
+    }
+
+    /// <summary>
+    ///     A plain <see cref="BoxShape.Rectangle"/> chain's placement and routing are byte-for-byte
+    ///     unchanged from the pre-shape-awareness behavior: regression guard proving the new shape-aware
+    ///     code paths never engage for the default (and by far most common) shape. Uses the same chain
+    ///     graph as <see cref="Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges"/>.
+    /// </summary>
+    [Fact]
+    public void Apply_RectangleChain_MatchesPreShapeAwarenessOutput()
+    {
+        var tree = new LayeredLayoutAlgorithm().Apply(BuildChain(), new LayoutOptions());
+
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+
+        Assert.Equal(3, boxes.Count);
+        Assert.Equal(2, lines.Count);
+
+        // Pinned expected values for the 80x40 three-node chain (a->b->c) under the default Right flow.
+        Assert.Equal(20.0, boxes[0].X, 6);
+        Assert.Equal(20.0, boxes[0].Y, 6);
+        Assert.Equal(170.0, boxes[1].X, 6);
+        Assert.Equal(20.0, boxes[1].Y, 6);
+        Assert.Equal(320.0, boxes[2].X, 6);
+        Assert.Equal(20.0, boxes[2].Y, 6);
+        Assert.Equal(100.0, lines[0].Waypoints[0].X, 6);
+        Assert.Equal(40.0, lines[0].Waypoints[0].Y, 6);
+        Assert.Equal(170.0, lines[0].Waypoints[^1].X, 6);
+        Assert.Equal(40.0, lines[0].Waypoints[^1].Y, 6);
     }
 }

@@ -120,6 +120,22 @@ failure.
 - **Input validation** (`Rendering-Layout-LayeredPipeline-InputValidation`):
   `LayeredLayoutPipeline_AddStage_NullStage_ThrowsArgumentNullException` and
   `LayeredLayoutPipeline_Run_NullGraph_ThrowsArgumentNullException`.
+- **Shape-aware anchors** (`Rendering-Layout-LayeredPipeline-ShapeAwareAnchors`):
+  `PortDistributor_Apply_FolderTargetTopFace_Down_PortExcludesTabRegion`,
+  `PortDistributor_Apply_NoteSourceRightFace_Right_PortExcludesFoldRegion`, and
+  `PortDistributor_Apply_RectangleNode_MatchesPlainFullSpanFormula` (port-distribution stage);
+  `LongEdgeJoiner_Apply_FolderTargetTopFace_Down_ProjectsInwardByTabHeight`,
+  `LongEdgeJoiner_Apply_FolderSourceTopFace_Up_ProjectsInwardByTabHeight`,
+  `LongEdgeJoiner_Apply_FolderNode_Right_NonTopFaceUnaffected`,
+  `LongEdgeJoiner_Apply_FolderNode_Left_NonTopFaceUnaffected`, and
+  `LongEdgeJoiner_Apply_RectangleNode_MatchesPlainFormula` (long-edge-joining stage); and the
+  full-pipeline (`LayeredLayoutAlgorithm`) confirmations
+  `Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop`,
+  `Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop`,
+  `Apply_RightDirection_FolderTarget_LeftFaceUnaffectedByTab`,
+  `Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab`,
+  `Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone`, and
+  `Apply_RectangleChain_MatchesPreShapeAwarenessOutput`.
 
 #### Requirements Coverage
 
@@ -182,3 +198,18 @@ failure.
 - **`Rendering-Layout-LayeredPipeline-InputValidation`**:
   LayeredLayoutPipeline_AddStage_NullStage_ThrowsArgumentNullException,
   LayeredLayoutPipeline_Run_NullGraph_ThrowsArgumentNullException
+- **`Rendering-Layout-LayeredPipeline-ShapeAwareAnchors`**:
+  PortDistributor_Apply_FolderTargetTopFace_Down_PortExcludesTabRegion,
+  PortDistributor_Apply_NoteSourceRightFace_Right_PortExcludesFoldRegion,
+  PortDistributor_Apply_RectangleNode_MatchesPlainFullSpanFormula,
+  LongEdgeJoiner_Apply_FolderTargetTopFace_Down_ProjectsInwardByTabHeight,
+  LongEdgeJoiner_Apply_FolderSourceTopFace_Up_ProjectsInwardByTabHeight,
+  LongEdgeJoiner_Apply_FolderNode_Right_NonTopFaceUnaffected,
+  LongEdgeJoiner_Apply_FolderNode_Left_NonTopFaceUnaffected,
+  LongEdgeJoiner_Apply_RectangleNode_MatchesPlainFormula,
+  Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop,
+  Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop,
+  Apply_RightDirection_FolderTarget_LeftFaceUnaffectedByTab,
+  Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab,
+  Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone,
+  Apply_RectangleChain_MatchesPreShapeAwarenessOutput

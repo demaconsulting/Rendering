@@ -118,6 +118,113 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a container's own <see cref="LayoutGraphNode.TitleHeight"/> override replaces the
+    ///     engine's generic default title-band height, both in the container's effective size and in
+    ///     the vertical offset applied to its nested children — so a caller can match a specific theme's
+    ///     actual title-area height (for example when the container also carries a keyword line) instead
+    ///     of being limited to the engine's generic default band.
+    /// </summary>
+    [Fact]
+    public void Apply_ContainerWithTitleHeightOverride_ReplacesDefaultTitleBand()
+    {
+        // Arrange: two otherwise-identical single-child containers, one with a TitleHeight override.
+        var defaultGraph = new LayoutGraph();
+        var defaultGroup = defaultGraph.AddNode("group", 10, 10);
+        defaultGroup.Label = "Group";
+        defaultGroup.Children.AddNode("child", 80, 40);
+
+        var overrideGraph = new LayoutGraph();
+        var overrideGroup = overrideGraph.AddNode("group", 10, 10);
+        overrideGroup.Label = "Group";
+        overrideGroup.TitleHeight = 100.0;
+        overrideGroup.Children.AddNode("child", 80, 40);
+
+        // Act
+        var defaultTree = new HierarchicalLayoutAlgorithm().Apply(defaultGraph, LayoutOptions.ForAlgorithm("layered"));
+        var overrideTree = new HierarchicalLayoutAlgorithm().Apply(overrideGraph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the override container is exactly (100 - 24) taller than the default container, and
+        // its nested child is offset down by that same difference.
+        var defaultContainer = Assert.Single(defaultTree.Nodes.OfType<LayoutBox>());
+        var overrideContainer = Assert.Single(overrideTree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(defaultContainer.Height + 76.0, overrideContainer.Height, precision: 6);
+
+        var defaultChild = Assert.Single(defaultContainer.Children.OfType<LayoutBox>());
+        var overrideChild = Assert.Single(overrideContainer.Children.OfType<LayoutBox>());
+        var defaultOffsetFromTop = defaultChild.Y - defaultContainer.Y;
+        var overrideOffsetFromTop = overrideChild.Y - overrideContainer.Y;
+        Assert.Equal(defaultOffsetFromTop + 76.0, overrideOffsetFromTop, precision: 6);
+    }
+
+    /// <summary>
+    ///     Proves that a container's own <see cref="LayoutGraphNode.TitleHeight"/> override applies only
+    ///     while it carries a <see cref="LayoutGraphNode.Label"/>: an unlabelled container reserves no
+    ///     title band regardless of the override, matching the engine's existing label-gated behavior.
+    /// </summary>
+    [Fact]
+    public void Apply_UnlabelledContainerWithTitleHeightOverride_ReservesNoTitleBand()
+    {
+        // Arrange: two otherwise-identical unlabelled single-child containers; only one sets an
+        // (ignored) TitleHeight override.
+        var plainGraph = new LayoutGraph();
+        var plainGroup = plainGraph.AddNode("group", 10, 10);
+        plainGroup.Children.AddNode("child", 80, 40);
+
+        var overrideGraph = new LayoutGraph();
+        var overrideGroup = overrideGraph.AddNode("group", 10, 10);
+        overrideGroup.TitleHeight = 100.0;
+        overrideGroup.Children.AddNode("child", 80, 40);
+
+        // Act
+        var plainTree = new HierarchicalLayoutAlgorithm().Apply(plainGraph, LayoutOptions.ForAlgorithm("layered"));
+        var overrideTree = new HierarchicalLayoutAlgorithm().Apply(overrideGraph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: both containers are sized identically, since neither reserves a title band.
+        var plainContainer = Assert.Single(plainTree.Nodes.OfType<LayoutBox>());
+        var overrideContainer = Assert.Single(overrideTree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(plainContainer.Height, overrideContainer.Height, precision: 6);
+    }
+
+    /// <summary>
+    ///     Proves that a <see cref="BoxShape.Folder"/> container reserves additional space above its
+    ///     nested children for the folder tab, beyond the ordinary title band, so children are never
+    ///     placed underneath the recessed keyword/label text (which the renderer draws below the tab).
+    /// </summary>
+    [Fact]
+    public void Apply_FolderContainer_ReservesTabHeightAboveChildren()
+    {
+        // Arrange: two otherwise-identical labelled single-child containers, one shaped as a folder
+        // with an explicit tab height.
+        var rectangleGraph = new LayoutGraph();
+        var rectangleGroup = rectangleGraph.AddNode("group", 10, 10);
+        rectangleGroup.Label = "Group";
+        rectangleGroup.Children.AddNode("child", 80, 40);
+
+        var folderGraph = new LayoutGraph();
+        var folderGroup = folderGraph.AddNode("group", 10, 10);
+        folderGroup.Label = "Group";
+        folderGroup.Shape = BoxShape.Folder;
+        folderGroup.FolderTabHeight = 24.0;
+        folderGroup.Children.AddNode("child", 80, 40);
+
+        // Act
+        var rectangleTree = new HierarchicalLayoutAlgorithm().Apply(rectangleGraph, LayoutOptions.ForAlgorithm("layered"));
+        var folderTree = new HierarchicalLayoutAlgorithm().Apply(folderGraph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the folder container is exactly tab-height taller, and its child is offset down by
+        // that same additional amount, so the child never overlaps the recessed title area.
+        var rectangleContainer = Assert.Single(rectangleTree.Nodes.OfType<LayoutBox>());
+        var folderContainer = Assert.Single(folderTree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(rectangleContainer.Height + 24.0, folderContainer.Height, precision: 6);
+
+        var rectangleChild = Assert.Single(rectangleContainer.Children.OfType<LayoutBox>());
+        var folderChild = Assert.Single(folderContainer.Children.OfType<LayoutBox>());
+        var rectangleOffsetFromTop = rectangleChild.Y - rectangleContainer.Y;
+        var folderOffsetFromTop = folderChild.Y - folderContainer.Y;
+        Assert.Equal(rectangleOffsetFromTop + 24.0, folderOffsetFromTop, precision: 6);
+    }
+
+    /// <summary>
     ///     Proves that a containment-packed root can hold a container whose children are laid out with a
     ///     per-node layered override, composing without error.
     /// </summary>
@@ -427,6 +534,96 @@ public sealed class HierarchicalLayoutAlgorithmTests
                     $"Cross-container segment {i} crosses the '{box.Label}' box interior.");
             }
         }
+    }
+
+    /// <summary>
+    ///     Proves that a box which is both a plain root-level sibling (connected to several other
+    ///     root-level boxes by ordinary edges the leaf algorithm would normally route locally) and the
+    ///     endpoint of a genuine cross-container edge from inside a separate container has every one of
+    ///     its anchors allocated by a single coordinated pass, not two independent ones. Regression: the
+    ///     leaf algorithm's own locally-routed anchors and this scope's cross-container router's anchor
+    ///     were previously computed by two separate <see cref="ConnectorRouter"/> batches, each
+    ///     unaware of the other, so an anchor from one batch could land at the exact same point as an
+    ///     anchor from the other — exactly what happened in a real SysML general-view diagram where a
+    ///     package-external specialization edge collided with several sibling boxes' membership edges on
+    ///     the same shared target face.
+    /// </summary>
+    [Fact]
+    public void Apply_BoxWithBothLeafAndCrossContainerEdges_SpreadsSharedFaceAnchorsTogether()
+    {
+        // Arrange: "target" is a small root-level box; "a" is a much wider box packed directly below
+        // it, and "pkg" (a container whose child "typed" is the real edge endpoint, after promotion to
+        // the cross-container batch) is packed in a further row, also directly below "target" and also
+        // wide enough to span its full width. Both "a" and "pkg" fully contain target's horizontal
+        // extent, so ConnectorRouter's face-anchor calculation (which centres on the *overlap* of the
+        // two boxes, or the target's own centre when they don't overlap at all) resolves to target's
+        // own bottom-face centre for BOTH edges independently. Before the fix, "a-target" was routed
+        // alone in the leaf algorithm's own batch and "typed-target" was routed alone in this scope's
+        // separate cross-container batch, so each computed that identical centred point with no
+        // awareness of the other, landing both anchors on the exact same pixel. This mirrors the real
+        // DictionaryMark diagram where a package-external specialization edge collided with a sibling
+        // membership edge on the same shared target face.
+        var graph = new LayoutGraph();
+        var target = graph.AddNode("target", 40, 40);
+        var a = graph.AddNode("a", 300, 40);
+
+        var pkg = graph.AddNode("pkg", 10, 10);
+        var typed = pkg.Children.AddNode("typed", 60, 40);
+
+        graph.AddEdge("a-target", a, target);
+        graph.AddEdge("typed-target", typed, target);
+
+        // Act: the "containment" leaf algorithm packs boxes deterministically and routes its own edges
+        // with ConnectorRouter, so the root scope's leaf-routed batch and its cross-container batch are
+        // both driven by the same underlying router — exactly like the real diagram's regression.
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("containment"));
+
+        // Assert: the two connectors landing on "target" reach distinct anchor points.
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(2, lines.Count);
+        Assert.NotEqual(lines[0].Waypoints[^1], lines[1].Waypoints[^1]);
+    }
+
+    /// <summary>
+    ///     Proves that a container node's <see cref="LayoutGraphNode.Shape"/>,
+    ///     <see cref="LayoutGraphNode.Keyword"/>, and folder-geometry hints, and a nested leaf's
+    ///     <see cref="LayoutGraphNode.Compartments"/> and rounded-corner hint, all survive the
+    ///     hierarchical engine's sized-view and composition round-trip unchanged.
+    /// </summary>
+    [Fact]
+    public void Apply_NestedGraph_PropagatesContainerAndLeafShapeKeywordCompartments()
+    {
+        // Arrange: a "package" folder container holding a "part def" leaf with a ports compartment.
+        var graph = new LayoutGraph();
+        var pkg = graph.AddNode("pkg", 10, 10);
+        pkg.Label = "Powertrain";
+        pkg.Shape = BoxShape.Folder;
+        pkg.Keyword = "package";
+        pkg.FolderTabWidth = 82.0;
+        pkg.FolderTabHeight = 24.0;
+
+        var engine = pkg.Children.AddNode("engine", 120, 80);
+        engine.Label = "Engine";
+        engine.Shape = BoxShape.RoundedRectangle;
+        engine.Keyword = "part def";
+        engine.Compartments = [new LayoutCompartment("ports", ["intake : FluidPort"])];
+        engine.RoundedCornerRadius = 14.0;
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert
+        var folder = Assert.Single(tree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(BoxShape.Folder, folder.Shape);
+        Assert.Equal("package", folder.Keyword);
+        Assert.Equal(82.0, folder.FolderTabWidth);
+        Assert.Equal(24.0, folder.FolderTabHeight);
+
+        var part = Assert.Single(folder.Children.OfType<LayoutBox>());
+        Assert.Equal(BoxShape.RoundedRectangle, part.Shape);
+        Assert.Equal("part def", part.Keyword);
+        Assert.Equal(engine.Compartments, part.Compartments);
+        Assert.Equal(14.0, part.RoundedCornerRadius);
     }
 
     /// <summary>

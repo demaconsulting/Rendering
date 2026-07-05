@@ -228,3 +228,31 @@ sections:
         tests:
           - LayeredLayoutPipeline_AddStage_NullStage_ThrowsArgumentNullException
           - LayeredLayoutPipeline_Run_NullGraph_ThrowsArgumentNullException
+
+      - id: Rendering-Layout-LayeredPipeline-ShapeAwareAnchors
+        title: >-
+          The port-distribution and long-edge-joining stages shall restrict a shaped node's connector
+          ports to its usable connectable face extents and shall project the resulting endpoint inward
+          to the shape's real outline, matching ConnectorRouter's shape-geometry rules.
+        justification: |
+          LayeredLayoutAlgorithm's own routing pipeline previously anchored every connector to the
+          plain bounding-box face, ignoring BoxShape.Folder/Note/RoundedRectangle geometry, so a
+          same-scope (leaf) edge routed through the layered pipeline looked inconsistent with an
+          equivalent cross-container edge routed through ConnectorRouter. Reusing ConnectorRouter's
+          already-tested extent-restriction and surface-projection rules gives both routing paths the
+          same anchor-projection parity for every BoxShape.
+        tests:
+          - PortDistributor_Apply_FolderTargetTopFace_Down_PortExcludesTabRegion
+          - PortDistributor_Apply_NoteSourceRightFace_Right_PortExcludesFoldRegion
+          - PortDistributor_Apply_RectangleNode_MatchesPlainFullSpanFormula
+          - LongEdgeJoiner_Apply_FolderTargetTopFace_Down_ProjectsInwardByTabHeight
+          - LongEdgeJoiner_Apply_FolderSourceTopFace_Up_ProjectsInwardByTabHeight
+          - LongEdgeJoiner_Apply_FolderNode_Right_NonTopFaceUnaffected
+          - LongEdgeJoiner_Apply_FolderNode_Left_NonTopFaceUnaffected
+          - LongEdgeJoiner_Apply_RectangleNode_MatchesPlainFormula
+          - Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop
+          - Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop
+          - Apply_RightDirection_FolderTarget_LeftFaceUnaffectedByTab
+          - Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab
+          - Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone
+          - Apply_RectangleChain_MatchesPreShapeAwarenessOutput

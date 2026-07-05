@@ -22,7 +22,14 @@ per node followed by `LayoutLine` per edge).
 `Apply(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, then:
 
 1. **Index mapping.** Assigns each `LayoutGraphNode` a positional index and builds the
-   `LayerNode` array from node sizes.
+   `LayerNode` array from node sizes and shape metadata (`Shape`, `RoundedCornerRadius`,
+   `FolderTabWidth`, `FolderTabHeight`, `Label`, and the real, never-swapped `RealWidth`/`RealHeight`).
+   The pipeline's `PortDistributor` and `LongEdgeJoiner` stages read this metadata for a
+   non-`BoxShape.Rectangle` node, so `Shape` now influences same-scope connector port placement and
+   endpoint surface projection, not only the placed box's rendered outline: a `BoxShape.Folder`
+   package's tab is excluded from its connectable extent and the routed connector's endpoint is
+   projected inward to the recessed body outline, and a `BoxShape.Note`'s folded corner is similarly
+   excluded, matching `ConnectorRouter`'s existing shape-geometry rules for cross-container edges.
 2. **Edge mapping.** Maps each edge to an index pair, dropping any edge that references a node
    outside this graph.
 3. **Direction resolution.** Resolves the requested flow direction from `CoreOptions.Direction`,
@@ -59,3 +66,4 @@ the Engine subsystem. It is the entry point resolved by renderers through the la
 | Rendering-Layout-LayeredAlgorithm-EmptyGraph | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-Direction | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-Validation | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting | LayeredLayoutAlgorithm behavior described above |

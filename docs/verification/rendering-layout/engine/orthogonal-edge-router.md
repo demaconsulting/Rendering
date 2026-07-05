@@ -52,6 +52,14 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
 - **Cost bands** (`Rendering-Layout-OrthogonalEdgeRouter-CostBands`):
   `RouteWithStatus_HighwayBand_PrefersBandedDetour` confirms the router prefers a discounted band
   over an equal-length alternative.
+- **No redundant waypoint revisit** (`Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit`):
+  `RouteWithStatus_SoftObstacleDetour_DoesNotRevisitWaypoint` confirms a soft-obstacle-driven detour
+  does not publish a leave-and-return loop that revisits one waypoint before continuing.
+- **No extended soft-obstacle overlap** (`Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap`):
+  `RouteWithStatus_LongSoftObstacleOverlap_PrefersAlternateLane` confirms the router detours to an
+  alternate lane instead of riding a soft obstacle that occupies the natural corridor for an extended
+  span; `RouteWithStatus_ShortSoftObstacleOverlap_KeepsStraightRoute` confirms a short, incidental
+  overlap still stays cheaper than the detour and is tolerated as before.
 
 #### Requirements Coverage
 
@@ -68,3 +76,7 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
   RouteWithStatus_NoBlockingObstacle_ReportsNotCrossed, RouteWithStatus_TargetEnclosedByObstacle_ReportsCrossed
 - **`Rendering-Layout-OrthogonalEdgeRouter-CostBands`**:
   RouteWithStatus_HighwayBand_PrefersBandedDetour
+- **`Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit`**:
+  RouteWithStatus_SoftObstacleDetour_DoesNotRevisitWaypoint
+- **`Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap`**:
+  RouteWithStatus_LongSoftObstacleOverlap_PrefersAlternateLane, RouteWithStatus_ShortSoftObstacleOverlap_KeepsStraightRoute

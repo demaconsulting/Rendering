@@ -44,7 +44,16 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         {
             var node = graphNodes[i];
             indexOf[node] = i;
-            engineNodes[i] = new LayerNode(node.Width, node.Height);
+            engineNodes[i] = new LayerNode(
+                node.Width,
+                node.Height,
+                node.Shape,
+                node.RoundedCornerRadius,
+                node.FolderTabWidth,
+                node.FolderTabHeight,
+                node.Label,
+                RealWidth: node.Width,
+                RealHeight: node.Height);
         }
 
         // Map edges to index pairs, dropping any that reference nodes outside this graph.
@@ -74,9 +83,13 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                 rect.Height,
                 graphNodes[i].Label,
                 Depth: 0,
-                BoxShape.Rectangle,
-                Compartments: [],
-                Children: []));
+                graphNodes[i].Shape,
+                graphNodes[i].Compartments,
+                Children: [],
+                Keyword: graphNodes[i].Keyword,
+                RoundedCornerRadius: graphNodes[i].RoundedCornerRadius,
+                FolderTabWidth: graphNodes[i].FolderTabWidth,
+                FolderTabHeight: graphNodes[i].FolderTabHeight));
         }
 
         // Build a (source, target) -> polyline lookup from the acyclic edge set the engine routed.

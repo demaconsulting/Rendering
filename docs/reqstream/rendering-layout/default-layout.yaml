@@ -38,16 +38,16 @@ sections:
 
       - id: Rendering-Layout-LayoutEngine-Resolution
         title: >-
-          The layout facade shall resolve the algorithm from an explicit declaration on the graph in
-          preference to one on the options, applying the resolved algorithm to the graph.
+          The layout facade shall resolve the algorithm from an explicit declaration set directly on the
+          graph, applying the resolved algorithm to the graph.
         justification: |
-          Layout options are naturally attached to the graph in the ELK-style model, so a graph-level
-          declaration must take precedence over a free-standing options declaration, giving callers a
-          predictable single source of truth for algorithm selection.
+          The graph is the single place to configure a layout — since `LayoutGraph` is itself an
+          `IPropertyHolder` — so resolving only against an explicit graph-level declaration gives callers
+          a predictable single source of truth for algorithm selection, with no second, free-standing
+          options object at this entry point that could disagree with it.
         tests:
-          - Layout_OptionsDeclareLayered_MatchesLayeredAlgorithmExactly
-          - Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly
-          - Layout_GraphDeclarationOverridesOptions
+          - Layout_GraphDeclaresLayered_MatchesLayeredAlgorithmExactly
+          - Layout_GraphDeclaresContainment_MatchesContainmentAlgorithmExactly
 
       - id: Rendering-Layout-LayoutEngine-FlatEquivalence
         title: >-
@@ -58,7 +58,7 @@ sections:
           algorithm directly, so routing every call through the facade can never change existing output.
         tests:
           - Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly
-          - Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly
+          - Layout_GraphDeclaresContainment_MatchesContainmentAlgorithmExactly
 
       - id: Rendering-Layout-LayoutEngine-NestedComposition
         title: >-
@@ -85,12 +85,11 @@ sections:
 
       - id: Rendering-Layout-LayoutEngine-Validation
         title: >-
-          The layout facade shall reject a null graph, null options, or null registry argument with an
-          argument-null error.
+          The layout facade shall reject a null graph or null registry argument with an argument-null
+          error.
         justification: |
           Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
           public facade boundary.
         tests:
           - Layout_NullGraph_Throws
-          - Layout_NullOptions_Throws
           - Layout_NullRegistry_Throws

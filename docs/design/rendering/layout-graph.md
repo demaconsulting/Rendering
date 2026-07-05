@@ -37,8 +37,14 @@ the responsibility of a hierarchical layout engine (a later delivery).
 - `LayoutGraph` (sealed class extending `PropertyHolder`) — `Nodes`, `Edges`, `AddNode`, `AddEdge`;
   each instance is a container scope (the root graph, or a node's `Children`).
 - `LayoutGraphNode` (sealed class extending `PropertyHolder`) — `Id`, `Width`, `Height`, `Label`,
-  `Children` (the lazily-created nested child subgraph), and `HasChildren` (whether the node holds at
-  least one child).
+  `Shape` (the `BoxShape` outline, defaulting to `Rectangle`), `Keyword` (an optional italicized
+  keyword line shown above the title), `Compartments` (an ordered, read-only list of
+  `LayoutCompartment` feature sections, defaulting to empty), `TitleHeight` (an optional override, in
+  logical pixels, of the title band a hierarchical layout engine reserves above this node's children
+  when it is a labelled container), `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight`
+  (optional resolved shape-geometry hints copied onto placed boxes so routing and rendering can agree
+  on the real outline of rounded rectangles and folders), `Children` (the lazily-created nested child
+  subgraph), and `HasChildren` (whether the node holds at least one child).
 - `LayoutGraphEdge` (sealed class extending `PropertyHolder`) — `Id`, `Source`, `Target`,
   `TargetEnd`, `LineStyle`, `Label`.
 
@@ -62,6 +68,35 @@ guarantees.
 `bool LayoutGraphNode.HasChildren { get; }` — reports whether the node currently holds at least one
 child without forcing the lazy allocation, so consumers can distinguish a container from a leaf and
 skip empty containers.
+
+`BoxShape LayoutGraphNode.Shape { get; set; }`, `string? LayoutGraphNode.Keyword { get; set; }`, and
+`IReadOnlyList<LayoutCompartment> LayoutGraphNode.Compartments { get; set; }` — the node's box
+outline, optional keyword line, and ordered feature-section list. Each defaults to a plain rectangle
+with no keyword and no compartments, so setting none of them reproduces the pre-existing flat-graph
+behavior exactly. Every bundled leaf algorithm (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`)
+and `HierarchicalLayoutAlgorithm` copy these three properties, unchanged, onto the placed `LayoutBox`
+(or view node), so a caller selects the full appearance of a box once, on the input graph, rather
+than after layout.
+
+`double? LayoutGraphNode.TitleHeight { get; set; }` — an optional override, in logical pixels, of the
+title band `HierarchicalLayoutAlgorithm` reserves above this node's children when the node is a
+labelled container. `null` (the default) selects the engine's own generic default band height;
+setting it — typically to a theme's own computed title-area height when the container also carries a
+`Keyword` — lets the reserved band match what the renderer will actually draw instead of being limited
+to the engine's generic default. Ignored for a leaf node (one with no children) and for a container
+with no `Label`.
+
+`double? LayoutGraphNode.RoundedCornerRadius { get; set; }`, `double? LayoutGraphNode.FolderTabWidth
+{ get; set; }`, and `double? LayoutGraphNode.FolderTabHeight { get; set; }` — optional resolved
+shape-geometry hints, in logical pixels, for the two shipped non-rectangular box families whose real
+outline differs materially from the bounding rectangle used during placement. A caller sets
+`RoundedCornerRadius` to the radius the renderer will actually draw for a rounded rectangle and sets
+the two folder-tab values to the exact top-left folder tab geometry the renderer will draw. All three
+default to `null`, preserving the existing fallback behavior for callers that do not need exact
+shape-aware routing. The bundled leaf algorithms and the hierarchical engine's sized view propagate
+the hints unchanged onto the placed `LayoutBox`, where `ConnectorRouter`, `SvgRenderer`, and
+`SkiaRasterRenderer` can all consume the same resolved values without the layout APIs taking a
+`Theme` dependency.
 
 ### Layout Graph Error Handling
 
@@ -90,6 +125,18 @@ the appropriate ancestor container.
   reused across different scopes but not twice within one scope.
 - A leaf node shall allocate no child subgraph, so that adding the hierarchy capability leaves a flat
   graph's structure and layout unchanged; `HasChildren` shall not force that allocation.
+- `Shape`, `Keyword`, and `Compartments` shall default to a plain rectangle, no keyword, and no
+  compartments respectively, so that adding box-appearance selection to the input graph leaves a
+  node's placed appearance unchanged when none of the three are set; a layout algorithm shall copy
+  each of the three properties unchanged onto the placed box (or, for `HierarchicalLayoutAlgorithm`,
+  onto the corresponding view node) rather than substituting a default.
+- `TitleHeight` shall default to `null`, so that a container node reserves `HierarchicalLayoutAlgorithm`'s
+  generic default title-band height unless a caller explicitly overrides it; the override shall apply
+  only while the container also carries a `Label`, matching the existing label-gated title-band
+  behavior.
+- `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight` shall default to `null`, so callers
+  that do not need exact shape-aware routing or rendering retain the pre-existing generic fallback
+  behavior; when set, a layout algorithm shall propagate each hint unchanged onto the placed box.
 - An edge shall reside in the container at or above the *lowest common ancestor* (LCA) of its two
   endpoints. An edge whose endpoints live in different descendant containers (a *cross-container*
   edge) shall therefore be added to an ancestor container while its `Source` and `Target` reference
@@ -102,9 +149,10 @@ the appropriate ancestor container.
 The unit depends on the Options unit within the Rendering model (`LayoutGraph`, `LayoutGraphNode`,
 and `LayoutGraphEdge` all derive from `PropertyHolder`, and each element carries `LayoutProperty<T>`
 overrides). It also consumes the shared notation enumerations `EndMarkerStyle` and `LineStyle`
-declared by the Layout Tree unit, on `LayoutGraphEdge`. Outside the Rendering model, the unit has no
-project references, no OTS runtime component, and no Shared Package dependency; it uses only the
-.NET base class library.
+declared by the Layout Tree unit, on `LayoutGraphEdge`, and `BoxShape` and `LayoutCompartment`,
+also declared by the Layout Tree unit, on `LayoutGraphNode`. Outside the Rendering model, the unit
+has no project references, no OTS runtime component, and no Shared Package dependency; it uses only
+the .NET base class library.
 
 ### Layout Graph Callers
 
@@ -134,3 +182,6 @@ carries an `EndMarkerStyle` and `LineStyle` from the Layout Tree unit's enumerat
 | Rendering-Model-LayoutGraph-ContainerNodes | `LayoutGraphNode.Children` / `HasChildren` |
 | Rendering-Model-LayoutGraph-ScopedIdentifiers | Per-`LayoutGraph` id-uniqueness reused by `Children` |
 | Rendering-Model-LayoutGraph-CrossContainerEdge | `LayoutGraphEdge` endpoints referencing descendant nodes |
+| Rendering-Model-LayoutGraph-BoxAppearance | `LayoutGraphNode.Shape` / `.Keyword` / `.Compartments` |
+| Rendering-Model-LayoutGraph-ContainerTitleHeight | `LayoutGraphNode.TitleHeight` |
+| Rendering-Model-LayoutGraph-ShapeGeometryHints | `LayoutGraphNode` shape-geometry hint properties |

@@ -22,10 +22,12 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_LayeredPipeline_RendersSvg()
     {
+        var graph = GalleryDiagrams.LayeredPipeline();
+        graph.Set(CoreOptions.Algorithm, "layered");
+
         GalleryWriter.Svg(
             GalleryCatalog.LayeredPipelineSvg,
-            GalleryDiagrams.LayeredPipeline(),
-            LayoutOptions.ForAlgorithm("layered"),
+            graph,
             Themes.Dark);
     }
 
@@ -36,10 +38,12 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ContainmentPacked_RendersSvg()
     {
+        var graph = GalleryDiagrams.ContainmentPacked();
+        graph.Set(CoreOptions.Algorithm, "containment");
+
         GalleryWriter.Svg(
             GalleryCatalog.ContainmentPackedSvg,
-            GalleryDiagrams.ContainmentPacked(),
-            LayoutOptions.ForAlgorithm("containment"),
+            graph,
             Themes.Dark);
     }
 
@@ -53,7 +57,6 @@ public sealed class GalleryShowcaseTests
         GalleryWriter.Svg(
             GalleryCatalog.HierarchicalNestedSvg,
             GalleryDiagrams.HierarchicalNested(),
-            new LayoutOptions(),
             Themes.Dark);
     }
 
@@ -67,7 +70,6 @@ public sealed class GalleryShowcaseTests
         GalleryWriter.Svg(
             GalleryCatalog.OrthogonalObstacleSvg,
             GalleryDiagrams.OrthogonalObstacle(),
-            new LayoutOptions(),
             Themes.Dark);
     }
 
@@ -78,13 +80,13 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_DirectionRight_RendersSvg()
     {
-        var options = LayoutOptions.ForAlgorithm("layered");
-        options.Set(CoreOptions.Direction, LayoutFlowDirection.Right);
+        var graph = GalleryDiagrams.DirectionShowcase();
+        graph.Set(CoreOptions.Algorithm, "layered");
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Right);
 
         GalleryWriter.Svg(
             GalleryCatalog.DirectionRightSvg,
-            GalleryDiagrams.DirectionShowcase(),
-            options,
+            graph,
             Themes.Dark);
     }
 
@@ -95,13 +97,13 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_DirectionDown_RendersSvg()
     {
-        var options = LayoutOptions.ForAlgorithm("layered");
-        options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+        var graph = GalleryDiagrams.DirectionShowcase();
+        graph.Set(CoreOptions.Algorithm, "layered");
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
         GalleryWriter.Svg(
             GalleryCatalog.DirectionDownSvg,
-            GalleryDiagrams.DirectionShowcase(),
-            options,
+            graph,
             Themes.Dark);
     }
 
@@ -116,7 +118,6 @@ public sealed class GalleryShowcaseTests
         GalleryWriter.Svg(
             GalleryCatalog.MixedDirectionNestedSvg,
             GalleryDiagrams.MixedDirectionNested(),
-            new LayoutOptions(),
             Themes.Dark);
     }
 
@@ -130,7 +131,6 @@ public sealed class GalleryShowcaseTests
         GalleryWriter.Png(
             GalleryCatalog.ThemeLightPng,
             GalleryDiagrams.ThemeShowcase(),
-            new LayoutOptions(),
             Themes.Light);
     }
 
@@ -144,7 +144,6 @@ public sealed class GalleryShowcaseTests
         GalleryWriter.Png(
             GalleryCatalog.ThemeDarkPng,
             GalleryDiagrams.ThemeShowcase(),
-            new LayoutOptions(),
             Themes.Dark);
     }
 
@@ -158,7 +157,6 @@ public sealed class GalleryShowcaseTests
         GalleryWriter.Png(
             GalleryCatalog.ThemePrintPng,
             GalleryDiagrams.ThemeShowcase(),
-            new LayoutOptions(),
             Themes.Print);
     }
 
@@ -169,10 +167,12 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_LayeredPipeline_RendersPng()
     {
+        var graph = GalleryDiagrams.LayeredPipeline();
+        graph.Set(CoreOptions.Algorithm, "layered");
+
         GalleryWriter.Png(
             GalleryCatalog.LayeredPipelinePng,
-            GalleryDiagrams.LayeredPipeline(),
-            LayoutOptions.ForAlgorithm("layered"),
+            graph,
             Themes.Dark);
     }
 
@@ -186,7 +186,48 @@ public sealed class GalleryShowcaseTests
         GalleryWriter.Png(
             GalleryCatalog.HierarchicalNestedPng,
             GalleryDiagrams.HierarchicalNested(),
-            new LayoutOptions(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the box-appearance showcase to SVG, proving a folder container's
+    ///     <see cref="LayoutGraphNode.Shape"/> and <see cref="LayoutGraphNode.Keyword"/>, and a nested
+    ///     box's <see cref="LayoutGraphNode.Keyword"/> and <see cref="LayoutGraphNode.Compartments"/>,
+    ///     all render correctly when selected purely through the input graph model.
+    /// </summary>
+    [Fact]
+    public void Gallery_BoxAppearance_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.BoxAppearanceSvg,
+            GalleryDiagrams.BoxAppearance(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the folder-top-face-anchor diagram to SVG, proving an edge approaching a folder
+    ///     container from above anchors clear of the tab, on the folder's actual outline.
+    /// </summary>
+    [Fact]
+    public void Gallery_FolderTopFaceAnchor_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.FolderTopFaceAnchorSvg,
+            GalleryDiagrams.FolderTopFaceAnchor(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the shape-gallery diagram to SVG, proving every <see cref="BoxShape"/> value reserves
+    ///     enough space for its own content (title area, compartments, or nested children) without that
+    ///     content overlapping the shape's non-rectangular features.
+    /// </summary>
+    [Fact]
+    public void Gallery_ShapeGallery_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.ShapeGallerySvg,
+            GalleryDiagrams.ShapeGallery(),
             Themes.Dark);
     }
 }

@@ -66,6 +66,53 @@ public class LayoutGraphTests
     }
 
     /// <summary>
+    ///     Proves that the optional shape-geometry hints used to align routing and rendering are stored
+    ///     on the input node unchanged and default to <see langword="null"/> when not supplied.
+    /// </summary>
+    [Fact]
+    public void LayoutGraphNode_ShapeGeometryHints_DefaultNullAndSettable()
+    {
+        // Arrange: create one node that leaves the hints unset and one that sets all three.
+        var graph = new LayoutGraph();
+        var plain = graph.AddNode("plain", 80, 40);
+        var hinted = graph.AddNode("hinted", 120, 80);
+
+        // Act: supply explicit rounded-corner and folder-tab geometry hints.
+        hinted.RoundedCornerRadius = 12.0;
+        hinted.FolderTabWidth = 72.0;
+        hinted.FolderTabHeight = 24.0;
+
+        // Assert: unset hints stay null, while explicit values are preserved exactly.
+        Assert.Null(plain.RoundedCornerRadius);
+        Assert.Null(plain.FolderTabWidth);
+        Assert.Null(plain.FolderTabHeight);
+        Assert.Equal(12.0, hinted.RoundedCornerRadius);
+        Assert.Equal(72.0, hinted.FolderTabWidth);
+        Assert.Equal(24.0, hinted.FolderTabHeight);
+    }
+
+    /// <summary>
+    ///     Proves that assigning <see langword="null"/> to <see cref="LayoutGraphNode.Compartments"/> is
+    ///     coerced to an empty list rather than leaving the non-nullable property null, so downstream
+    ///     algorithms and renderers can always safely iterate it.
+    /// </summary>
+    [Fact]
+    public void LayoutGraphNode_Compartments_NullAssignmentCoercedToEmpty()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        var node = graph.AddNode("a", 80, 40);
+        node.Compartments = [new LayoutCompartment("Attributes", ["value : int"])];
+
+        // Act
+        node.Compartments = null!;
+
+        // Assert
+        Assert.NotNull(node.Compartments);
+        Assert.Empty(node.Compartments);
+    }
+
+    /// <summary>
     ///     Proves that AddNode rejects a null identifier.
     /// </summary>
     [Fact]

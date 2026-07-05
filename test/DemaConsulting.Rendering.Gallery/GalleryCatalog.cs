@@ -43,6 +43,9 @@ internal static class GalleryCatalog
     public const string ThemePrintPng = "theme-print.png";
     public const string LayeredPipelinePng = "layered-pipeline.png";
     public const string HierarchicalNestedPng = "hierarchical-nested.png";
+    public const string BoxAppearanceSvg = "box-appearance.svg";
+    public const string FolderTopFaceAnchorSvg = "folder-top-face-anchor.svg";
+    public const string ShapeGallerySvg = "shape-gallery.svg";
 
     /// <summary>Gets the browsable sections of the gallery, in display order.</summary>
     public static IReadOnlyList<GallerySection> Sections { get; } =
@@ -131,6 +134,39 @@ internal static class GalleryCatalog
                     HierarchicalNestedPng,
                     "Hierarchical nested diagram as PNG",
                     "The hierarchical nested diagram rendered to a raster PNG image."),
+            ]),
+        new GallerySection(
+            "Box appearance",
+            "A node's Shape, Keyword, and Compartments properties select the box outline, an "
+            + "italicized keyword line, and labelled feature sections, all through the plain input "
+            + "graph model — no downstream renderer-specific code required. This is generic block-"
+            + "diagram notation; SysML is just one modeling language that uses it.",
+            [
+                new GalleryImage(
+                    BoxAppearanceSvg,
+                    "A folder container with two boxes carrying a keyword, one also compartmented, joined by an edge",
+                    "A folder container holding two boxes with a keyword line — one also with a labelled "
+                    + "compartment — joined by a decorated edge."),
+            ]),
+        new GallerySection(
+            "Shape-aware connectors",
+            "A box's Shape can make its true outline diverge from its plain bounding rectangle — a "
+            + "folder's tab, a note's folded corner, a rounded rectangle's corners. The router keeps "
+            + "connectors off those non-connectable regions and projects each anchor down to the shape's "
+            + "actual drawn outline, so every connector visibly touches the shape it targets.",
+            [
+                new GalleryImage(
+                    FolderTopFaceAnchorSvg,
+                    "An external node connected into a folder top face, clear of the tab",
+                    "An edge approaching a folder container from above: the connector avoids the tab and "
+                    + "anchors on the folder's recessed top edge instead of floating above it."),
+                new GalleryImage(
+                    ShapeGallerySvg,
+                    "One of each container shape side by side, each holding content",
+                    "Every Shape value side by side, each with content appropriate to it: rectangle and "
+                    + "rounded-rectangle boxes with a keyword and a compartment, a folder holding a "
+                    + "nested child, and a note holding free-form text — every shape reserves enough "
+                    + "space so its content never overlaps the tab or the folded corner."),
             ]),
     ];
 }

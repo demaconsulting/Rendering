@@ -384,8 +384,9 @@ public sealed class SvgRenderer : IRenderer
                 break;
 
             case BoxShape.RoundedRectangle:
-                var cornerStr = theme.LineCornerRadius > 0
-                    ? $" rx=\"{F(NotationMetrics.RoundedRectRadius(theme) * scale)}\" ry=\"{F(NotationMetrics.RoundedRectRadius(theme) * scale)}\""
+                var cornerRadius = ResolveRoundedCornerRadius(box, theme);
+                var cornerStr = cornerRadius > 0
+                    ? $" rx=\"{F(cornerRadius * scale)}\" ry=\"{F(cornerRadius * scale)}\""
                     : string.Empty;
                 sb.Append(CultureInfo.InvariantCulture,
                     $"""  <rect x="{F(x)}" y="{F(y)}" width="{F(w)}" height="{F(h)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{cornerStr}/>""");
@@ -406,12 +407,8 @@ public sealed class SvgRenderer : IRenderer
     /// </summary>
     private static void RenderFolderOutline(StringBuilder sb, LayoutBox box, Theme theme, string fillColor, double scale)
     {
-        var tabHeight = BoxMetrics.FolderTabHeight(theme);
-        var tabWidth = Math.Min(
-            box.Width * NotationMetrics.FolderTabMaxWidthFraction,
-            Math.Max(
-                NotationMetrics.FolderTabMinWidth,
-                (box.Label?.Length ?? 4) * theme.FontSizeBody * NotationMetrics.FolderLabelCharWidthFactor + 2.0 * theme.LabelPadding));
+        var tabHeight = ResolveFolderTabHeight(box, theme);
+        var tabWidth = ResolveFolderTabWidth(box, theme);
 
         var x = box.X * scale;
         var yTab = box.Y * scale;
@@ -424,6 +421,51 @@ public sealed class SvgRenderer : IRenderer
             $"""  <path d="M {F(x)} {F(yBody)} L {F(x)} {F(yTab)} L {F(xTabRight)} {F(yTab)} L {F(xTabRight)} {F(yBody)} L {F(xRight)} {F(yBody)} L {F(xRight)} {F(yBottom)} L {F(x)} {F(yBottom)} Z" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
         sb.AppendLine();
     }
+
+    /// <summary>
+    /// Resolves the rounded-corner radius for a box, preferring a caller-supplied placed-box value so
+    /// routing and rendering can agree on the exact outline geometry. A negative caller-supplied value
+    /// is clamped to zero.
+    /// </summary>
+    private static double ResolveRoundedCornerRadius(LayoutBox box, Theme theme) =>
+        box.RoundedCornerRadius.HasValue
+            ? Math.Max(0.0, box.RoundedCornerRadius.Value)
+            : NotationMetrics.RoundedRectRadius(theme);
+
+    /// <summary>
+    /// Resolves the folder tab width for a box, preferring a caller-supplied placed-box value so
+    /// routing and rendering can agree on the exact top-face geometry. A negative caller-supplied value
+    /// is clamped to zero.
+    /// </summary>
+    private static double ResolveFolderTabWidth(LayoutBox box, Theme theme) =>
+        box.FolderTabWidth.HasValue
+            ? Math.Max(0.0, box.FolderTabWidth.Value)
+            : Math.Min(
+                box.Width * NotationMetrics.FolderTabMaxWidthFraction,
+                Math.Max(
+                    NotationMetrics.FolderTabMinWidth,
+                    (box.Label?.Length ?? 4) * theme.FontSizeBody * NotationMetrics.FolderLabelCharWidthFactor +
+                    (2.0 * theme.LabelPadding)));
+
+    /// <summary>
+    /// Resolves the folder tab height for a box, preferring a caller-supplied placed-box value so
+    /// routing and rendering can agree on the exact top-face projection offset. A negative
+    /// caller-supplied value is clamped to zero.
+    /// </summary>
+    private static double ResolveFolderTabHeight(LayoutBox box, Theme theme) =>
+        box.FolderTabHeight.HasValue
+            ? Math.Max(0.0, box.FolderTabHeight.Value)
+            : BoxMetrics.FolderTabHeight(theme);
+
+    /// <summary>
+    /// Resolves the top Y coordinate (unscaled) of the title/label area for a box. For a
+    /// <see cref="BoxShape.Folder"/> outline, the title area is recessed below the tab so that
+    /// keyword/label text and compartments never overlap the (otherwise empty) tab notch.
+    /// </summary>
+    private static double ResolveTitleAreaTop(LayoutBox box, Theme theme) =>
+        box.Shape == BoxShape.Folder
+            ? box.Y + ResolveFolderTabHeight(box, theme)
+            : box.Y;
 
     /// <summary>
     /// Renders a note-shaped outline (a rectangle with a folded-down top-right corner),
@@ -462,7 +504,7 @@ public sealed class SvgRenderer : IRenderer
     private static void RenderBoxTitle(StringBuilder sb, LayoutBox box, Theme theme, double scale)
     {
         var centerX = (box.X + box.Width / 2.0) * scale;
-        var cursorY = box.Y + theme.LabelPadding;
+        var cursorY = ResolveTitleAreaTop(box, theme) + theme.LabelPadding;
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
         if (box.Keyword != null)
@@ -522,7 +564,7 @@ public sealed class SvgRenderer : IRenderer
     {
         // Compartments start below the title area (keyword + label), computed via shared metrics
         var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
-        var compartmentY = box.Y + labelAreaHeight;
+        var compartmentY = ResolveTitleAreaTop(box, theme) + labelAreaHeight;
 
         foreach (var compartment in box.Compartments)
         {
@@ -1177,4 +1219,3 @@ public sealed class SvgRenderer : IRenderer
             .Replace("<", "&lt;", StringComparison.Ordinal)
             .Replace(">", "&gt;", StringComparison.Ordinal);
 }
-

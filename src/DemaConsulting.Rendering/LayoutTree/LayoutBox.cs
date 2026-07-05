@@ -48,6 +48,21 @@ public sealed record LayoutCompartment(
 /// above the bold label, following the SysML v2 graphical convention. <see langword="null"/> when no
 /// keyword should be shown.
 /// </param>
+/// <param name="RoundedCornerRadius">
+/// Optional rounded-corner radius, in logical pixels, already resolved for a
+/// <see cref="BoxShape.RoundedRectangle"/> outline. <see langword="null"/> means a downstream
+/// renderer or router should use its own generic fallback.
+/// </param>
+/// <param name="FolderTabWidth">
+/// Optional folder-tab width, in logical pixels, already resolved for a <see cref="BoxShape.Folder"/>
+/// outline. <see langword="null"/> means a downstream renderer or router should use its own generic
+/// fallback.
+/// </param>
+/// <param name="FolderTabHeight">
+/// Optional folder-tab height, in logical pixels, already resolved for a <see cref="BoxShape.Folder"/>
+/// outline. <see langword="null"/> means a downstream renderer or router should use its own generic
+/// fallback.
+/// </param>
 public sealed record LayoutBox(
     double X,
     double Y,
@@ -58,4 +73,7 @@ public sealed record LayoutBox(
     BoxShape Shape,
     IReadOnlyList<LayoutCompartment> Compartments,
     IReadOnlyList<LayoutNode> Children,
-    string? Keyword = null) : LayoutNode;
+    string? Keyword = null,
+    double? RoundedCornerRadius = null,
+    double? FolderTabWidth = null,
+    double? FolderTabHeight = null) : LayoutNode;

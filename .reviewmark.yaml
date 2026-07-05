@@ -365,6 +365,7 @@ reviews:
       - "docs/design/rendering-layout/engine/engine.md"
       - "docs/reqstream/rendering-layout.yaml"
       - "docs/reqstream/rendering-layout/engine/engine.yaml"
+      - "docs/design/rendering-layout/connector-router.md"
 
   # Rendering.Layout system-level units
   - id: Rendering-Layout-LayeredLayoutAlgorithm

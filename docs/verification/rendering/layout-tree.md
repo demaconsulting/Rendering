@@ -138,6 +138,14 @@ and returns its supplied coordinates and bounds unchanged.
 
 **Covers**: `Rendering-Model-LayoutTree-Geometry`.
 
+#### Box carries optional shape-geometry hints
+
+Test `LayoutBox_Construction_StoresAllFields` confirms that a placed box preserves the optional
+rounded-corner and folder-tab geometry hints alongside its existing position, shape, compartments, and
+children, so downstream routing and rendering stages can observe the resolved shape outline geometry.
+
+**Covers**: `Rendering-Model-LayoutTree-ShapeGeometryHints`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-LayoutTree-Canvas`**: LayoutTree_Construction_StoresWidthHeightNodes
@@ -156,3 +164,5 @@ and returns its supplied coordinates and bounds unchanged.
 - **`Rendering-Model-LayoutTree-Grid`**: LayoutGrid_Construction_StoresAllFields
 - **`Rendering-Model-LayoutTree-Geometry`**: Point2D_Construction_StoresXY,
   Rect_Construction_StoresAllFields
+- **`Rendering-Model-LayoutTree-ShapeGeometryHints`**:
+  LayoutBox_Construction_StoresAllFields

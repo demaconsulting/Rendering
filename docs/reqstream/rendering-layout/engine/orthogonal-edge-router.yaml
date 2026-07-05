@@ -74,3 +74,30 @@ sections:
           must bias toward discounted bands while keeping null bands neutral.
         tests:
           - RouteWithStatus_HighwayBand_PrefersBandedDetour
+
+      - id: Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit
+        title: >-
+          OrthogonalEdgeRouter shall not publish a waypoint sequence that visits one point, leaves it,
+          and later revisits that exact point before continuing.
+        justification: |
+          A leave-and-return loop is a visibly redundant detour that adds no routing value and makes a
+          connector appear to hesitate or double back. The engine must therefore either avoid or
+          defensively remove such revisit loops before returning the route.
+        tests:
+          - RouteWithStatus_SoftObstacleDetour_DoesNotRevisitWaypoint
+
+      - id: Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap
+        title: >-
+          When an alternate lane is reachable at bounded extra cost, OrthogonalEdgeRouter shall not
+          route a segment along an extended overlap with an existing soft obstacle.
+        justification: |
+          Several parallel connectors that each collapse their long corridor onto the same grid line
+          visually merge into one thick trunk for the length of the overlap, which reads as a single
+          connector rather than several distinct ones. A short, incidental overlap must remain
+          tolerated (steering every trivial touch away would force pointless detours and would
+          conflict with the legitimate shared endpoint-adjacent approach corridor), but an overlap
+          that extends for a substantial span must be priced high enough that a bounded-cost lane
+          change is preferred instead.
+        tests:
+          - RouteWithStatus_LongSoftObstacleOverlap_PrefersAlternateLane
+          - RouteWithStatus_ShortSoftObstacleOverlap_KeepsStraightRoute

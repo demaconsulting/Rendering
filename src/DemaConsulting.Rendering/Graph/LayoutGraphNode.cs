@@ -71,6 +71,9 @@ public sealed class LayoutGraphNode : PropertyHolder
     /// </summary>
     private LayoutGraph? _children;
 
+    /// <summary>Backing store for <see cref="Compartments"/>; never <see langword="null"/>.</summary>
+    private IReadOnlyList<LayoutCompartment> _compartments = [];
+
     /// <summary>
     /// Initializes a new instance of the <see cref="LayoutGraphNode"/> class.
     /// </summary>
@@ -98,6 +101,71 @@ public sealed class LayoutGraphNode : PropertyHolder
 
     /// <summary>Gets or sets an optional text label rendered inside the node.</summary>
     public string? Label { get; set; }
+
+    /// <summary>
+    /// Gets or sets the visual shape of the box a leaf algorithm places for this node. Defaults to
+    /// <see cref="BoxShape.Rectangle"/>; set to <see cref="BoxShape.Folder"/> for a package-style
+    /// container, for example.
+    /// </summary>
+    public BoxShape Shape { get; set; } = BoxShape.Rectangle;
+
+    /// <summary>
+    /// Gets or sets an optional keyword (for example <c>"part def"</c>) rendered on a smaller line
+    /// above the node's <see cref="Label"/>, following the SysML v2 graphical convention.
+    /// <see langword="null"/> when no keyword line should be shown.
+    /// </summary>
+    public string? Keyword { get; set; }
+
+    /// <summary>
+    /// Gets or sets the ordered list of compartments (for example an attributes or ports section)
+    /// displayed below the node's label when it is placed as a <see cref="LayoutBox"/>. Empty by
+    /// default; assigning <see langword="null"/> is coerced to an empty list.
+    /// </summary>
+    public IReadOnlyList<LayoutCompartment> Compartments
+    {
+        get => _compartments;
+        set => _compartments = value ?? [];
+    }
+
+    /// <summary>
+    /// Gets or sets the height, in logical pixels, of the title band a hierarchical layout engine
+    /// reserves above this node's children when it acts as a labelled container. <see langword="null"/>
+    /// (the default) selects the engine's own generic default band height; set this explicitly — for
+    /// example to a theme's computed title-area height — when the container also carries a
+    /// <see cref="Keyword"/> or a larger title font than the generic default assumes, so the reserved
+    /// band matches what the renderer will actually draw. Ignored for a leaf node (one with no
+    /// children).
+    /// </summary>
+    public double? TitleHeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the rounded-corner radius, in logical pixels, that a caller has already resolved
+    /// for this node's <see cref="BoxShape.RoundedRectangle"/> outline. <see langword="null"/> means
+    /// downstream components should use their own generic fallback. Set this when the layout and
+    /// rendering pipelines must agree on the exact rounded-rectangle face extents — for example so a
+    /// connector router keeps anchors off the corner arcs while the renderer draws the matching
+    /// outline.
+    /// </summary>
+    public double? RoundedCornerRadius { get; set; }
+
+    /// <summary>
+    /// Gets or sets the folder-tab width, in logical pixels, that a caller has already resolved for
+    /// this node's <see cref="BoxShape.Folder"/> outline. <see langword="null"/> means downstream
+    /// components should use their own generic fallback. Set this when routing and rendering must agree
+    /// on the exact width of the raised tab that occupies the folder's top-left edge, so connectors can
+    /// avoid anchoring on that tab strip.
+    /// </summary>
+    public double? FolderTabWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the folder-tab height, in logical pixels, that a caller has already resolved for
+    /// this node's <see cref="BoxShape.Folder"/> outline. <see langword="null"/> means downstream
+    /// components should use their own generic fallback. Set this when routing and rendering must agree
+    /// on how far the folder body's real top edge sits below the bounding box's top edge, so connector
+    /// anchors projected onto the folder's top face touch the drawn outline instead of floating above
+    /// it.
+    /// </summary>
+    public double? FolderTabHeight { get; set; }
 
     /// <summary>
     /// Gets the child subgraph nested inside this node, turning the node into a container of nodes and
