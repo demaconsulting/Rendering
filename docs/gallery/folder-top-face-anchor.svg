@@ -31,8 +31,8 @@
     </filter>
   </defs>
   <path d="M 20.00 164.00 L 20.00 140.00 L 91.40 140.00 L 91.40 164.00 L 204.00 164.00 L 204.00 398.00 L 20.00 398.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="112.00" y="152.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">«package»</text>
-  <text x="112.00" y="171.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Utilities</text>
+  <text x="112.00" y="176.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">«package»</text>
+  <text x="112.00" y="195.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Utilities</text>
   <rect x="52.00" y="196.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="112.00" y="209.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">GlobMatcher</text>
   <rect x="52.00" y="316.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>

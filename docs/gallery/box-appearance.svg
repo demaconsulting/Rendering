@@ -31,8 +31,8 @@
     </filter>
   </defs>
   <path d="M 20.00 44.00 L 20.00 20.00 L 98.00 20.00 L 98.00 44.00 L 474.00 44.00 L 474.00 218.00 L 20.00 218.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="247.00" y="32.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">«package»</text>
-  <text x="247.00" y="51.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Powertrain</text>
+  <text x="247.00" y="56.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">«package»</text>
+  <text x="247.00" y="75.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Powertrain</text>
   <rect x="282.00" y="76.00" width="160.00" height="110.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="362.00" y="88.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">«part def»</text>
   <text x="362.00" y="107.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Engine</text>

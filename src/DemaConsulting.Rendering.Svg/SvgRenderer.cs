@@ -449,6 +449,16 @@ public sealed class SvgRenderer : IRenderer
         box.FolderTabHeight ?? BoxMetrics.FolderTabHeight(theme);
 
     /// <summary>
+    /// Resolves the top Y coordinate (unscaled) of the title/label area for a box. For a
+    /// <see cref="BoxShape.Folder"/> outline, the title area is recessed below the tab so that
+    /// keyword/label text and compartments never overlap the (otherwise empty) tab notch.
+    /// </summary>
+    private static double ResolveTitleAreaTop(LayoutBox box, Theme theme) =>
+        box.Shape == BoxShape.Folder
+            ? box.Y + ResolveFolderTabHeight(box, theme)
+            : box.Y;
+
+    /// <summary>
     /// Renders a note-shaped outline (a rectangle with a folded-down top-right corner),
     /// used for documentation and comment nodes.
     /// </summary>
@@ -485,7 +495,7 @@ public sealed class SvgRenderer : IRenderer
     private static void RenderBoxTitle(StringBuilder sb, LayoutBox box, Theme theme, double scale)
     {
         var centerX = (box.X + box.Width / 2.0) * scale;
-        var cursorY = box.Y + theme.LabelPadding;
+        var cursorY = ResolveTitleAreaTop(box, theme) + theme.LabelPadding;
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
         if (box.Keyword != null)
@@ -545,7 +555,7 @@ public sealed class SvgRenderer : IRenderer
     {
         // Compartments start below the title area (keyword + label), computed via shared metrics
         var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
-        var compartmentY = box.Y + labelAreaHeight;
+        var compartmentY = ResolveTitleAreaTop(box, theme) + labelAreaHeight;
 
         foreach (var compartment in box.Compartments)
         {

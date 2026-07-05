@@ -426,6 +426,16 @@ public abstract class SkiaRasterRenderer : IRenderer
         box.FolderTabHeight ?? BoxMetrics.FolderTabHeight(theme);
 
     /// <summary>
+    /// Resolves the top Y coordinate (unscaled) of the title/label area for a box. For a
+    /// <see cref="BoxShape.Folder"/> outline, the title area is recessed below the tab so that
+    /// keyword/label text and compartments never overlap the (otherwise empty) tab notch.
+    /// </summary>
+    private static double ResolveTitleAreaTop(LayoutBox box, Theme theme) =>
+        box.Shape == BoxShape.Folder
+            ? box.Y + ResolveFolderTabHeight(box, theme)
+            : box.Y;
+
+    /// <summary>
     /// Draws a note-shaped box (a rectangle with a folded-down top-right corner).
     /// </summary>
     private static void RenderNotePng(
@@ -473,7 +483,7 @@ public abstract class SkiaRasterRenderer : IRenderer
         var theme = options.Theme;
         var scale = (float)options.Scale;
         var centerX = (float)((box.X + box.Width / 2.0) * scale);
-        var cursorY = box.Y + theme.LabelPadding;
+        var cursorY = ResolveTitleAreaTop(box, theme) + theme.LabelPadding;
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
         if (box.Keyword != null)
@@ -518,7 +528,7 @@ public abstract class SkiaRasterRenderer : IRenderer
 
         // Compartments start below the title area (keyword + label), computed via shared metrics
         var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
-        var compartmentY = box.Y + labelAreaHeight;
+        var compartmentY = ResolveTitleAreaTop(box, theme) + labelAreaHeight;
 
         foreach (var compartment in box.Compartments)
         {
