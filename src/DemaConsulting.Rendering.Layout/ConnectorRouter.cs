@@ -661,17 +661,51 @@ public static class ConnectorRouter
     }
 
     /// <summary>
-    /// Note geometry: connectors may anchor anywhere along the bounding-box faces for now, because the
-    /// shipped folded-corner note shape does not currently expose a separate routing hint.
+    /// Small inset applied immediately beside a note's folded corner so a face anchor never lands
+    /// exactly on the fold's edge.
+    /// </summary>
+    private const double NoteFoldMargin = 1.0;
+
+    /// <summary>
+    /// Note geometry: the top-right corner is cut by a diagonal fold, so the affected portions of the
+    /// top face (near the right edge) and the right face (near the top edge) are excluded from the
+    /// connectable extent. The remaining extents lie exactly on the bounding box, matching the
+    /// rounded-rectangle pattern, so no surface projection offset is needed.
     /// </summary>
     private sealed class NoteGeometry : BoxShapeGeometryBase
     {
+        private readonly double _fold;
+
         public NoteGeometry(LayoutBox box)
             : base(box)
         {
+            _fold = Math.Min(Math.Min(box.Width, box.Height) * NotationMetrics.NoteFoldFraction, NotationMetrics.NoteFoldMaxSize);
         }
 
-        public override IReadOnlyList<(double Lo, double Hi)> GetConnectableExtents(PortSide side) => FullExtent(side);
+        public override IReadOnlyList<(double Lo, double Hi)> GetConnectableExtents(PortSide side)
+        {
+            if (_fold <= 0.0)
+            {
+                return FullExtent(side);
+            }
+
+            switch (side)
+            {
+                case PortSide.Top:
+                    // The fold cuts diagonally from (Width - fold, 0) to (Width, fold); only the
+                    // portion left of the fold's near edge still touches the real top outline.
+                    var topEnd = Math.Max(0.0, Width - _fold - NoteFoldMargin);
+                    return topEnd <= 0.0 ? [] : [(0.0, topEnd)];
+
+                case PortSide.Right:
+                    // The same diagonal cut removes the topmost portion of the right face.
+                    var rightStart = Math.Min(Height, _fold + NoteFoldMargin);
+                    return rightStart >= Height ? [] : [(rightStart, Height)];
+
+                default:
+                    return FullExtent(side);
+            }
+        }
 
         public override double ProjectToSurface(PortSide side, double alongAxisCoordinate) => 0.0;
     }

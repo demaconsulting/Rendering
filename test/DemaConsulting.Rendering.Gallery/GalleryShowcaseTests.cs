@@ -217,5 +217,17 @@ public sealed class GalleryShowcaseTests
             Themes.Dark);
     }
 
-
+    /// <summary>
+    ///     Renders the shape-gallery diagram to SVG, proving every <see cref="BoxShape"/> value reserves
+    ///     enough space for its own content (title area, compartments, or nested children) without that
+    ///     content overlapping the shape's non-rectangular features.
+    /// </summary>
+    [Fact]
+    public void Gallery_ShapeGallery_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.ShapeGallerySvg,
+            GalleryDiagrams.ShapeGallery(),
+            Themes.Dark);
+    }
 }

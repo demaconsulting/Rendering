@@ -134,6 +134,26 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
         node.Label is null ? 0.0 : node.TitleHeight ?? DefaultContainerTitleHeight;
 
     /// <summary>
+    /// Resolves the total vertical band reserved above a container's children: the label/keyword
+    /// title band from <see cref="ResolveTitleHeight"/>, plus — for a <see cref="BoxShape.Folder"/>
+    /// container — the folder tab height, since the renderer recesses the title text below the tab
+    /// and the container must reserve enough space so nested children never overlap it.
+    /// </summary>
+    /// <param name="node">The container node whose reserved content offset is resolved.</param>
+    /// <returns>The total reserved band height in logical pixels.</returns>
+    private static double ResolveContentOffsetHeight(LayoutGraphNode node)
+    {
+        var titleHeight = ResolveTitleHeight(node);
+        if (node.Shape != BoxShape.Folder)
+        {
+            return titleHeight;
+        }
+
+        var tabHeight = node.FolderTabHeight ?? BoxMetrics.FolderTabHeight(Themes.Light);
+        return titleHeight + tabHeight;
+    }
+
+    /// <summary>
     /// The leaf-algorithm provider used to resolve the per-scope layout algorithm by identifier. It is
     /// deliberately limited to leaf algorithms (for example <c>layered</c> and <c>containment</c>); this
     /// engine is not registered into it, so recursion always terminates in a bundled leaf algorithm.
@@ -291,7 +311,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
             // Size the container to enclose its sub-layout plus a padding inset on every side and, when
             // the container is labelled, a title band above the children.
-            var titleHeight = ResolveTitleHeight(node);
+            var titleHeight = ResolveContentOffsetHeight(node);
             effectiveSize[node] = (
                 sub.Width + (2 * ContainerPadding),
                 sub.Height + (2 * ContainerPadding) + titleHeight);
@@ -387,7 +407,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
             if (subLayouts.TryGetValue(node, out var sub))
             {
                 // Offset the nested content to the container's padded interior, below any title band.
-                var titleHeight = ResolveTitleHeight(node);
+                var titleHeight = ResolveContentOffsetHeight(node);
                 var offsetX = box.X + ContainerPadding;
                 var offsetY = box.Y + ContainerPadding + titleHeight;
                 var children = new List<LayoutNode>(sub.Nodes.Count);

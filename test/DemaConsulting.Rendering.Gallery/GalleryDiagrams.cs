@@ -295,6 +295,76 @@ internal static class GalleryDiagrams
         return graph;
     }
 
+    /// <summary>
+    ///     One sibling of each <see cref="BoxShape"/> value, side by side, each carrying content
+    ///     appropriate to that shape: a plain rectangle and a rounded rectangle each with a keyword line
+    ///     and a labelled compartment, a folder holding a nested child box, and a note holding an
+    ///     untitled compartment of free-form text. Demonstrates that every shape reserves enough space
+    ///     for its own content (title area, compartments, or nested children) without the content
+    ///     overlapping the shape's non-rectangular features (the folder's tab, the note's folded
+    ///     corner).
+    /// </summary>
+    /// <returns>A flat graph of four sibling containers, one per <see cref="BoxShape"/> value.</returns>
+    public static LayoutGraph ShapeGallery()
+    {
+        var theme = Themes.Dark;
+        var graph = new LayoutGraph();
+
+        var titledKeywordHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: true);
+        var titledOnlyHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: false);
+
+        // A plain rectangle with a keyword line and a labelled compartment.
+        var attributesCompartment = new LayoutCompartment("attributes", ["value : Real", "unit : String"]);
+        var sensor = graph.AddNode("sensor", 160, titledKeywordHeight + TitledCompartmentHeight(theme, attributesCompartment));
+        sensor.Label = "Sensor";
+        sensor.Keyword = "part def";
+        sensor.Compartments = [attributesCompartment];
+
+        // A rounded rectangle with a keyword line and a labelled compartment.
+        var portsCompartment = new LayoutCompartment("ports", ["cmd : Signal"]);
+        var controller = graph.AddNode("controller", 160, titledKeywordHeight + TitledCompartmentHeight(theme, portsCompartment));
+        controller.Label = "Controller";
+        controller.Keyword = "part def";
+        controller.Shape = BoxShape.RoundedRectangle;
+        controller.RoundedCornerRadius = 14.0;
+        controller.Compartments = [portsCompartment];
+
+        // A folder holding a single nested child box.
+        var utilities = graph.AddNode("utilities", 160, titledKeywordHeight + 50 + (2 * 12));
+        utilities.Label = "Utilities";
+        utilities.Keyword = "package";
+        utilities.Shape = BoxShape.Folder;
+        AddLabelled(utilities.Children, "path-helpers", "PathHelpers");
+
+        // A note holding an untitled compartment of free-form text, exercising the folded-corner
+        // routing fix: the compartment divider and text sit clear of the diagonal fold.
+        var noteBody = new LayoutCompartment(null, ["Values expressed in SI units", "unless stated otherwise."]);
+        var note = graph.AddNode("note", 200, titledOnlyHeight + UntitledCompartmentHeight(theme, noteBody));
+        note.Label = "Note";
+        note.Shape = BoxShape.Note;
+        note.Compartments = [noteBody];
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Computes the height of a titled compartment (a title row plus one row per line, plus the
+    ///     leading title-area gap and the trailing bottom gap), matching the renderer's own layout
+    ///     formula so the compartment content never overflows the box.
+    /// </summary>
+    private static double TitledCompartmentHeight(Theme theme, LayoutCompartment compartment) =>
+        theme.LabelPadding + theme.FontSizeBody + theme.LabelPadding // title row
+        + (compartment.Rows.Count * (theme.LabelPadding + theme.FontSizeBody)) // data rows
+        + theme.LabelPadding; // bottom gap
+
+    /// <summary>
+    ///     Computes the height of an untitled compartment (one row per line, no title row), matching the
+    ///     renderer's own layout formula so the compartment content never overflows the box.
+    /// </summary>
+    private static double UntitledCompartmentHeight(Theme theme, LayoutCompartment compartment) =>
+        (compartment.Rows.Count * (theme.LabelPadding + theme.FontSizeBody)) // data rows
+        + theme.LabelPadding; // bottom gap
+
     /// <summary>Adds a labelled leaf node of the standard showcase size to the given graph.</summary>
     private static LayoutGraphNode AddLabelled(LayoutGraph graph, string id, string label)
     {

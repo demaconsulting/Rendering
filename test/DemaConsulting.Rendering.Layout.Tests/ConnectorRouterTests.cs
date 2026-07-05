@@ -308,6 +308,56 @@ public sealed class ConnectorRouterTests
     }
 
     /// <summary>
+    ///     A note's top face excludes the portion consumed by the folded-corner cut, so a connector
+    ///     approaching from above clamps to the first usable point left of the fold instead of anchoring
+    ///     in the cut-off triangle.
+    /// </summary>
+    [Fact]
+    public void Route_NoteTopFace_FoldExcludedFromConnectableExtent()
+    {
+        // Arrange: the source sits above the note and overlaps only the folded-corner region horizontally.
+        // A 140x90 note folds min(140, 90) * 0.25 = 22.5, capped at NoteFoldMaxSize (16).
+        var from = Box(130, 0, 40, 40);
+        var to = Box(0, 120, 140, 90, "Design Note", BoxShape.Note);
+        var boxes = new[] { from, to };
+
+        // Act: route directly into the note from above.
+        var line = ConnectorRouter.Route(boxes, new Connection(from, to), new ConnectorRouteOptions());
+
+        // Assert: the target anchor lands left of the fold and directly on the bounding-box top edge
+        // (no projection offset — the safe zone already lies on the real outline).
+        var end = line.Waypoints[^1];
+        Assert.True(
+            end.X < to.X + to.Width - NotationMetrics.NoteFoldMaxSize,
+            "Target anchor should clamp to the usable top-face extent left of the fold.");
+        Assert.Equal(to.Y, end.Y, 6);
+    }
+
+    /// <summary>
+    ///     A note's right face excludes the portion consumed by the folded-corner cut (the topmost
+    ///     strip), so a connector approaching from the right clamps below the fold instead of anchoring
+    ///     in the cut-off triangle.
+    /// </summary>
+    [Fact]
+    public void Route_NoteRightFace_FoldExcludedFromConnectableExtent()
+    {
+        // Arrange: the source sits to the right of the note, level with the folded-corner region.
+        var from = Box(200, 120, 40, 20);
+        var to = Box(0, 120, 140, 90, "Design Note", BoxShape.Note);
+        var boxes = new[] { from, to };
+
+        // Act: route directly into the note from the right.
+        var line = ConnectorRouter.Route(boxes, new Connection(from, to), new ConnectorRouteOptions());
+
+        // Assert: the target anchor lands below the fold and directly on the bounding-box right edge.
+        var end = line.Waypoints[^1];
+        Assert.True(
+            end.Y > to.Y + NotationMetrics.NoteFoldMaxSize,
+            "Target anchor should clamp to the usable right-face extent below the fold.");
+        Assert.Equal(to.X + to.Width, end.X, 6);
+    }
+
+    /// <summary>
     ///     A connector between two boxes routes around an intervening obstacle box without passing
     ///     through the obstacle's interior, while still producing an axis-aligned path.
     /// </summary>

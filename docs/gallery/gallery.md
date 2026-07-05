@@ -102,3 +102,9 @@ anchor down to the shape's actual drawn outline, so every connector visibly touc
 
 A cross-container edge approaching a folder container from above: the connector avoids the tab and anchors on the
 folder's recessed top edge instead of floating above it.
+
+![One of each container shape side by side, each holding content](shape-gallery.svg)
+
+Every Shape value side by side, each with content appropriate to it: rectangle and rounded-rectangle boxes with a
+keyword and a compartment, a folder holding a nested child, and a note holding free-form text — every shape reserves
+enough space so its content never overlaps the tab or the folded corner.

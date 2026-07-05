@@ -186,6 +186,45 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a <see cref="BoxShape.Folder"/> container reserves additional space above its
+    ///     nested children for the folder tab, beyond the ordinary title band, so children are never
+    ///     placed underneath the recessed keyword/label text (which the renderer draws below the tab).
+    /// </summary>
+    [Fact]
+    public void Apply_FolderContainer_ReservesTabHeightAboveChildren()
+    {
+        // Arrange: two otherwise-identical labelled single-child containers, one shaped as a folder
+        // with an explicit tab height.
+        var rectangleGraph = new LayoutGraph();
+        var rectangleGroup = rectangleGraph.AddNode("group", 10, 10);
+        rectangleGroup.Label = "Group";
+        rectangleGroup.Children.AddNode("child", 80, 40);
+
+        var folderGraph = new LayoutGraph();
+        var folderGroup = folderGraph.AddNode("group", 10, 10);
+        folderGroup.Label = "Group";
+        folderGroup.Shape = BoxShape.Folder;
+        folderGroup.FolderTabHeight = 24.0;
+        folderGroup.Children.AddNode("child", 80, 40);
+
+        // Act
+        var rectangleTree = new HierarchicalLayoutAlgorithm().Apply(rectangleGraph, LayoutOptions.ForAlgorithm("layered"));
+        var folderTree = new HierarchicalLayoutAlgorithm().Apply(folderGraph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the folder container is exactly tab-height taller, and its child is offset down by
+        // that same additional amount, so the child never overlaps the recessed title area.
+        var rectangleContainer = Assert.Single(rectangleTree.Nodes.OfType<LayoutBox>());
+        var folderContainer = Assert.Single(folderTree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(rectangleContainer.Height + 24.0, folderContainer.Height, precision: 6);
+
+        var rectangleChild = Assert.Single(rectangleContainer.Children.OfType<LayoutBox>());
+        var folderChild = Assert.Single(folderContainer.Children.OfType<LayoutBox>());
+        var rectangleOffsetFromTop = rectangleChild.Y - rectangleContainer.Y;
+        var folderOffsetFromTop = folderChild.Y - folderContainer.Y;
+        Assert.Equal(rectangleOffsetFromTop + 24.0, folderOffsetFromTop, precision: 6);
+    }
+
+    /// <summary>
     ///     Proves that a containment-packed root can hold a container whose children are laid out with a
     ///     per-node layered override, composing without error.
     /// </summary>

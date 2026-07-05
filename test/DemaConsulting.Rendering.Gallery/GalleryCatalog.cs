@@ -45,6 +45,7 @@ internal static class GalleryCatalog
     public const string HierarchicalNestedPng = "hierarchical-nested.png";
     public const string BoxAppearanceSvg = "box-appearance.svg";
     public const string FolderTopFaceAnchorSvg = "folder-top-face-anchor.svg";
+    public const string ShapeGallerySvg = "shape-gallery.svg";
 
     /// <summary>Gets the browsable sections of the gallery, in display order.</summary>
     public static IReadOnlyList<GallerySection> Sections { get; } =
@@ -160,6 +161,13 @@ internal static class GalleryCatalog
                     "A cross-container edge approaching a folder container from above: the connector "
                     + "avoids the tab and anchors on the folder's recessed top edge instead of floating "
                     + "above it."),
+                new GalleryImage(
+                    ShapeGallerySvg,
+                    "One of each container shape side by side, each holding content",
+                    "Every Shape value side by side, each with content appropriate to it: rectangle and "
+                    + "rounded-rectangle boxes with a keyword and a compartment, a folder holding a "
+                    + "nested child, and a note holding free-form text — every shape reserves enough "
+                    + "space so its content never overlaps the tab or the folded corner."),
             ]),
     ];
 }
