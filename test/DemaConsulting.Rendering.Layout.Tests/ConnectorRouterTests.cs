@@ -91,6 +91,50 @@ public sealed class ConnectorRouterTests
     }
 
     /// <summary>
+    ///     When only a tiny shared span sits at one end of a much longer face, anchor selection clamps
+    ///     the long face inward by the configured clearance instead of hugging that corner.
+    /// </summary>
+    [Fact]
+    public void ConnectorRouter_Route_SmallSharedSpanOnLongFace_UsesClearanceInset()
+    {
+        // Arrange: a tall source box overlaps a short target box only at the very top of the source face.
+        var from = Box(0, 0, 60, 100);
+        var to = Box(200, 0, 60, 10);
+        var boxes = new[] { from, to };
+        var options = new ConnectorRouteOptions(Clearance: 12.0);
+
+        // Act: route from the tall box into the short box across their facing left/right faces.
+        var line = ConnectorRouter.Route(boxes, new Connection(from, to), options);
+
+        // Assert: the long source face stays at least the configured clearance away from both ends.
+        var start = line.Waypoints[0];
+        Assert.Equal(from.X + from.Width, start.X, 6);
+        Assert.Equal(from.Y + options.Clearance, start.Y, 6);
+    }
+
+    /// <summary>
+    ///     When a face is too short to keep the configured clearance from both ends, anchor selection
+    ///     falls back to that face's own center instead of violating the margin.
+    /// </summary>
+    [Fact]
+    public void ConnectorRouter_Route_ShortFaceForMargin_UsesFaceCenter()
+    {
+        // Arrange: the source face is shorter than twice the requested clearance.
+        var from = Box(0, 0, 60, 10);
+        var to = Box(200, 0, 60, 100);
+        var boxes = new[] { from, to };
+        var options = new ConnectorRouteOptions(Clearance: 12.0);
+
+        // Act: route from the short box into the tall box.
+        var line = ConnectorRouter.Route(boxes, new Connection(from, to), options);
+
+        // Assert: the short source face anchors at its own midpoint.
+        var start = line.Waypoints[0];
+        Assert.Equal(from.X + from.Width, start.X, 6);
+        Assert.Equal(from.Y + (from.Height / 2.0), start.Y, 6);
+    }
+
+    /// <summary>
     ///     A folder's top-face connectable extent excludes the raised tab strip, so a connector
     ///     approaching from above clamps to the first usable point to the right of the tab instead of
     ///     anchoring on the tab itself.
@@ -109,6 +153,30 @@ public sealed class ConnectorRouterTests
         // Assert: the target anchor lands to the right of the tab strip and on the recessed body top.
         var end = line.Waypoints[^1];
         Assert.True(end.X > to.X + 60.0, "Target anchor should clamp to the usable top-face extent right of the tab.");
+        Assert.Equal(to.Y + 24.0, end.Y, 6);
+    }
+
+    /// <summary>
+    ///     The generic face-end clearance composes with a shape's own narrower connectable extent, so a
+    ///     folder top-face anchor stays inside the usable body-top span rather than overriding it.
+    /// </summary>
+    [Fact]
+    public void ConnectorRouter_Route_FolderTopFace_ComposesClearanceWithReducedExtent()
+    {
+        // Arrange: the source overlaps a point already right of the tab, but still inside the reduced
+        // top-face span that should receive the extra clearance inset.
+        var from = Box(50, 0, 30, 30);
+        var to = Box(0, 120, 140, 90, "Utilities", BoxShape.Folder, folderTabWidth: 60.0, folderTabHeight: 24.0);
+        var boxes = new[] { from, to };
+        var options = new ConnectorRouteOptions(Clearance: 12.0);
+
+        // Act: route directly into the folder from above.
+        var line = ConnectorRouter.Route(boxes, new Connection(from, to), options);
+
+        // Assert: the anchor respects both the folder extent ([61, 140]) and the added clearance,
+        // producing the first usable point at X = 61 + 12 = 73 on the recessed body top.
+        var end = line.Waypoints[^1];
+        Assert.Equal(to.X + 73.0, end.X, 6);
         Assert.Equal(to.Y + 24.0, end.Y, 6);
     }
 

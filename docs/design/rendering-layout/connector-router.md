@@ -57,8 +57,11 @@ implementations are:
    router falls back, in order, to the adjacent face that still points most toward the other box on
    the minor axis, then the other adjacent face, and finally the opposite face as a last resort.
    The along-face coordinate is chosen from the overlap-centre rule used previously, then clamped
-   into the nearest usable extent segment on the chosen face and projected inward to the real outline.
-   The chosen `PortSide` is retained so the route exits and enters perpendicular to the face.
+   inward by `ConnectorRouteOptions.Clearance` whenever the face is long enough to keep that margin
+   from both ends. Faces too short for that inset fall back to their own center instead of violating
+   the margin. The result is then clamped into the chosen face's usable connectable extents (again
+   applying the same clearance inset when an extent is long enough) and projected inward to the real
+   outline. The chosen `PortSide` is retained so the route exits and enters perpendicular to the face.
 2. **Obstacle set.** Builds a `Rect` per box, excluding the connection's two endpoint boxes matched
    by reference identity, so the connector is free to leave and enter the boxes it joins.
 3. **Dispatch.** Routes through the router realizing `options.EdgeRouting`. Today `Orthogonal` maps to

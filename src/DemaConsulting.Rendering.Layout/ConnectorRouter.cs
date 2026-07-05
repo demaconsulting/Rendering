@@ -72,14 +72,16 @@ public sealed record ConnectorRouteOptions(
 /// <para>
 /// Source and target anchors are chosen on the box faces that front each other, based on the boxes'
 /// relative placement rather than the direction to a possibly far-off centre, and are aligned to the
-/// overlap of the boxes on the shared edge. Each face is then interpreted through the box shape's own
-/// routing geometry: only its connectable sub-ranges may be used, an unusable natural face falls back
-/// to the next-best adjacent face, and the final anchor is projected inward from the bounding box to
-/// the real outline when the shape is recessed there (for example the body top of a folder below its
-/// tab). Connectors therefore leave and arrive on the sides the two boxes actually present to each
-/// other, without wrapping back across a wide endpoint box or anchoring on a shape's non-connectable
-/// outline detail. The chosen side is passed to the underlying router so the connector exits and
-/// enters perpendicular to the edge.
+/// overlap of the boxes on the shared edge. When a face is long enough, that overlap-based coordinate
+/// is kept at least <see cref="ConnectorRouteOptions.Clearance"/> away from both ends of the face so
+/// a slight shared span near one corner does not pin the connector visually against that corner. Each
+/// face is then interpreted through the box shape's own routing geometry: only its connectable
+/// sub-ranges may be used, an unusable natural face falls back to the next-best adjacent face, and the
+/// final anchor is projected inward from the bounding box to the real outline when the shape is
+/// recessed there (for example the body top of a folder below its tab). Connectors therefore leave and
+/// arrive on the sides the two boxes actually present to each other, without wrapping back across a
+/// wide endpoint box or anchoring on a shape's non-connectable outline detail. The chosen side is
+/// passed to the underlying router so the connector exits and enters perpendicular to the edge.
 /// </para>
 /// <para>
 /// Today the only supported style is <see cref="Rendering.EdgeRouting.Orthogonal"/>, realized by the
@@ -164,7 +166,7 @@ public static class ConnectorRouter
             ArgumentNullException.ThrowIfNull(connection.From);
             ArgumentNullException.ThrowIfNull(connection.To);
 
-            var (sourceAlong, sourceSide, targetAlong, targetSide) = FacingAnchors(connection.From, connection.To);
+            var (sourceAlong, sourceSide, targetAlong, targetSide) = FacingAnchors(connection.From, connection.To, options.Clearance);
             anchors[i] = new FaceAnchors(sourceAlong, sourceSide, targetAlong, targetSide);
         }
 
@@ -231,7 +233,7 @@ public static class ConnectorRouter
         // relative placement. Using the direction to the other box's centre misfires for wide boxes
         // (whose centre can sit far past the near endpoint), forcing the connector to wrap back across a
         // box; deriving the facing sides from the box rectangles avoids that.
-        var (sourceAlong, sourceSide, targetAlong, targetSide) = FacingAnchors(connection.From, connection.To);
+        var (sourceAlong, sourceSide, targetAlong, targetSide) = FacingAnchors(connection.From, connection.To, options.Clearance);
 
         return RouteWithAnchors(
             boxes,
@@ -255,8 +257,8 @@ public static class ConnectorRouter
     {
         var from = connection.From;
         var to = connection.To;
-        var source = ResolveAnchorPoint(from, anchors.SourceSide, anchors.SourceAlong);
-        var target = ResolveAnchorPoint(to, anchors.TargetSide, anchors.TargetAlong);
+        var source = ResolveAnchorPoint(from, anchors.SourceSide, anchors.SourceAlong, options.Clearance);
+        var target = ResolveAnchorPoint(to, anchors.TargetSide, anchors.TargetAlong, options.Clearance);
 
         // The hard obstacle set is every box except this connection's own endpoints, matched by
         // instance identity. The connector must be free to leave and enter the boxes it joins.
@@ -760,12 +762,13 @@ public static class ConnectorRouter
 
     /// <summary>
     /// Returns the local face coordinate to use on <paramref name="side"/> after clamping the naive
-    /// along-face position to the nearest connectable shape extent.
+    /// along-face position to the nearest connectable shape extent and, when possible, insetting that
+    /// extent by <paramref name="clearance"/> at both ends.
     /// </summary>
-    private static double ClampToConnectableExtent(LayoutBox box, PortSide side, double alongAxisCoordinate)
+    private static double ClampToConnectableExtent(LayoutBox box, PortSide side, double alongAxisCoordinate, double clearance)
     {
         var geometry = ResolveShapeGeometry(box);
-        var extents = geometry.GetConnectableExtents(side);
+        var extents = BuildUsableExtents(geometry.GetConnectableExtents(side), clearance);
         if (extents.Count == 0)
         {
             return FaceLength(box, side) / 2.0;
@@ -789,12 +792,13 @@ public static class ConnectorRouter
 
     /// <summary>
     /// Resolves the final anchor point on a box: clamp the local face coordinate into the nearest
-    /// connectable extent, then project it inward from the bounding box to the real drawn outline.
+    /// connectable extent (respecting the requested end clearance whenever that extent is long enough),
+    /// then project it inward from the bounding box to the real drawn outline.
     /// </summary>
-    private static Point2D ResolveAnchorPoint(LayoutBox box, PortSide side, double alongAxisCoordinate)
+    private static Point2D ResolveAnchorPoint(LayoutBox box, PortSide side, double alongAxisCoordinate, double clearance)
     {
         var geometry = ResolveShapeGeometry(box);
-        var clamped = ClampToConnectableExtent(box, side, alongAxisCoordinate);
+        var clamped = ClampToConnectableExtent(box, side, alongAxisCoordinate, clearance);
         var offset = Math.Max(0.0, geometry.ProjectToSurface(side, clamped));
 
         return side switch
@@ -893,16 +897,21 @@ public static class ConnectorRouter
     /// separated; when that face has no connectable extent, the router falls back to the adjacent face
     /// that still points most toward the other box on the minor axis, then the other adjacent face, and
     /// finally the opposite face. The along-face coordinate is still aligned to the overlap of the two
-    /// boxes on that face axis when they overlap, or to this box's own face centre when they do not, so
-    /// the route stays short before any shape-specific clamping is applied.
+    /// boxes on that face axis when they overlap, or to this box's own face centre when they do not,
+    /// but is also kept at least <paramref name="clearance"/> away from the ends of any face long
+    /// enough to allow that margin before any shape-specific clamping is applied.
     /// </summary>
     /// <param name="from">The source box.</param>
     /// <param name="to">The target box.</param>
+    /// <param name="clearance">
+    /// Minimum inset to keep from the ends of a sufficiently long face before the coordinate is
+    /// clamped to any shape-specific connectable extent.
+    /// </param>
     /// <returns>
     /// The source and target local face coordinates, together with the chosen source and target sides.
     /// </returns>
     private static (double SourceAlong, PortSide SourceSide, double TargetAlong, PortSide TargetSide) FacingAnchors(
-        LayoutBox from, LayoutBox to)
+        LayoutBox from, LayoutBox to, double clearance)
     {
         // Signed separation on each axis: positive when the boxes clear each other on that axis,
         // negative when they overlap. Anchor on the axis with the greater separation so the connector
@@ -918,8 +927,8 @@ public static class ConnectorRouter
             var naturalToSide = fromIsLeft ? PortSide.Left : PortSide.Right;
             var sourceSide = ChooseUsableFace(from, to, naturalFromSide);
             var targetSide = ChooseUsableFace(to, from, naturalToSide);
-            var sourceCoordinate = NaiveAnchorCoordinate(from, to, sourceSide);
-            var targetCoordinate = NaiveAnchorCoordinate(to, from, targetSide);
+            var sourceCoordinate = NaiveAnchorCoordinate(from, to, sourceSide, clearance);
+            var targetCoordinate = NaiveAnchorCoordinate(to, from, targetSide, clearance);
             return (ToLocalAlong(from, sourceSide, sourceCoordinate), sourceSide, ToLocalAlong(to, targetSide, targetCoordinate), targetSide);
         }
 
@@ -929,35 +938,44 @@ public static class ConnectorRouter
         var naturalTargetSide = fromIsAbove ? PortSide.Top : PortSide.Bottom;
         var sourceTopBottomSide = ChooseUsableFace(from, to, naturalSourceSide);
         var targetTopBottomSide = ChooseUsableFace(to, from, naturalTargetSide);
-        var sourceCoordinateOnFallback = NaiveAnchorCoordinate(from, to, sourceTopBottomSide);
-        var targetCoordinateOnFallback = NaiveAnchorCoordinate(to, from, targetTopBottomSide);
+        var sourceCoordinateOnFallback = NaiveAnchorCoordinate(from, to, sourceTopBottomSide, clearance);
+        var targetCoordinateOnFallback = NaiveAnchorCoordinate(to, from, targetTopBottomSide, clearance);
         return (ToLocalAlong(from, sourceTopBottomSide, sourceCoordinateOnFallback), sourceTopBottomSide, ToLocalAlong(to, targetTopBottomSide, targetCoordinateOnFallback), targetTopBottomSide);
     }
 
     /// <summary>
     /// Returns the naive absolute coordinate on <paramref name="box"/>'s chosen face before shape
     /// extents are applied: the overlap centre on the face axis when the two boxes overlap there, or
-    /// this box's own face centre when they do not.
+    /// this box's own face centre when they do not, with an added inward clamp that keeps sufficiently
+    /// long faces away from their corners by <paramref name="clearance"/>.
     /// </summary>
-    private static double NaiveAnchorCoordinate(LayoutBox box, LayoutBox other, PortSide side) =>
+    private static double NaiveAnchorCoordinate(LayoutBox box, LayoutBox other, PortSide side, double clearance) =>
         side is PortSide.Left or PortSide.Right
-            ? AnchorCoordinate(box.Y, box.Y + box.Height, other.Y, other.Y + other.Height)
-            : AnchorCoordinate(box.X, box.X + box.Width, other.X, other.X + other.Width);
+            ? AnchorCoordinate(box.Y, box.Y + box.Height, other.Y, other.Y + other.Height, clearance)
+            : AnchorCoordinate(box.X, box.X + box.Width, other.X, other.X + other.Width, clearance);
 
     /// <summary>
     /// Returns the anchor coordinate for a box face spanning [<paramref name="lo"/>, <paramref name="hi"/>]
-    /// against the facing box's span [<paramref name="otherLo"/>, <paramref name="otherHi"/>] on the same
-    /// axis: the centre of their overlap when the spans overlap (keeping both ends aligned on a single
-    /// coordinate for a short, straight hop across the shared span), or this box's own centre when they
-    /// don't overlap at all. The "own centre" fallback matters because a shared "gap midpoint" between
-    /// two far-apart, differently sized boxes can fall entirely outside one (or both) box's own span;
-    /// clamping that midpoint into the box's range would then pin the anchor to whichever edge happens to
-    /// be nearest, rather than the natural middle of the face every other connector uses.
+    /// against the facing box's span [<paramref name="otherLo"/>, <paramref name="otherHi"/>] on the
+    /// same axis. The starting point is the centre of the two spans' overlap when they overlap
+    /// (keeping both ends aligned on a single coordinate for a short, straight hop across the shared
+    /// span), or this box's own centre when they do not. When the face is longer than twice
+    /// <paramref name="clearance"/>, that coordinate is then clamped inward so it stays at least that
+    /// far from either end of the face; otherwise the face centre is used directly instead of
+    /// violating the requested margin.
     /// </summary>
-    private static double AnchorCoordinate(double lo, double hi, double otherLo, double otherHi)
+    private static double AnchorCoordinate(double lo, double hi, double otherLo, double otherHi, double clearance)
     {
+        var faceCentre = (lo + hi) / 2.0;
+        var inset = Math.Max(0.0, clearance);
+        if ((hi - lo) <= 2.0 * inset)
+        {
+            return faceCentre;
+        }
+
         var overlapLo = Math.Max(lo, otherLo);
         var overlapHi = Math.Min(hi, otherHi);
-        return overlapLo <= overlapHi ? (overlapLo + overlapHi) / 2.0 : (lo + hi) / 2.0;
+        var coordinate = overlapLo <= overlapHi ? (overlapLo + overlapHi) / 2.0 : faceCentre;
+        return Math.Clamp(coordinate, lo + inset, hi - inset);
     }
 }
