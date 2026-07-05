@@ -304,6 +304,11 @@ nodes.AddRange(lines);
 var tree = new LayoutTree(360, 80, nodes);
 ```
 
+For folder-shaped boxes, `FolderTabWidth` and `FolderTabHeight` may be supplied together or
+individually on each `LayoutBox`. If one value is omitted, `ConnectorRouter` falls back the
+missing dimension before choosing anchors so routes still avoid the tab strip and land on the
+recessed body top that the renderers draw.
+
 ## Packing boxes into a container
 
 When you want to arrange peer boxes inside a container — the members of a package, the contents of a

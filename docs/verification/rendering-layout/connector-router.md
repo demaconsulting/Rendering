@@ -36,8 +36,12 @@ out-of-order batch result, or non-argument-null exception for invalid input cons
   the route starts and ends on the box faces that point at the opposing box.
 - **Shape-aware anchors** (`Rendering-Layout-ConnectorRouter-ShapeAwareAnchors`):
   `Route_FolderTopFace_TabExcludedFromConnectableExtent` confirms a folder top-face anchor never lands
-  on the tab strip, `Route_FolderTopFace_ProjectsAnchorToRecessedBodyTop` confirms the final anchor is
-  projected down to the folder body's recessed top edge, and
+  on the tab strip, `Route_FolderTopFace_WidthOnlyHint_UsesFallbackTabHeight` confirms a width-only
+  folder hint still uses the generic tab-height fallback,
+  `Route_FolderTopFace_HeightOnlyHint_UsesFallbackTabWidth` confirms a height-only folder hint still
+  uses the generic tab-width fallback,
+  `Route_FolderTopFace_ProjectsAnchorToRecessedBodyTop` confirms the final anchor is projected down
+  to the folder body's recessed top edge, and
   `Route_FaceSelectionFallback_EmptyNaturalFaceUsesAdjacentFace` confirms anchor selection falls back
   to the next-best usable face when the natural face has no usable extent.
 - **Shared-face distribution across usable extents**
@@ -66,6 +70,8 @@ out-of-order batch result, or non-argument-null exception for invalid input cons
   Route_TargetToTheRight_AnchorsFaceEachOther, Route_TargetBelow_AnchorsFaceEachOther
 - **`Rendering-Layout-ConnectorRouter-ShapeAwareAnchors`**:
   Route_FolderTopFace_TabExcludedFromConnectableExtent,
+  Route_FolderTopFace_WidthOnlyHint_UsesFallbackTabHeight,
+  Route_FolderTopFace_HeightOnlyHint_UsesFallbackTabWidth,
   Route_FolderTopFace_ProjectsAnchorToRecessedBodyTop,
   Route_FaceSelectionFallback_EmptyNaturalFaceUsesAdjacentFace
 - **`Rendering-Layout-ConnectorRouter-SharedFaceDistribution`**:

@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering;
+using DemaConsulting.Rendering.Abstractions;
 using DemaConsulting.Rendering.Layout;
 
 namespace DemaConsulting.Rendering.Layout.Tests;
@@ -108,6 +109,55 @@ public sealed class ConnectorRouterTests
         // Assert: the target anchor lands to the right of the tab strip and on the recessed body top.
         var end = line.Waypoints[^1];
         Assert.True(end.X > to.X + 60.0, "Target anchor should clamp to the usable top-face extent right of the tab.");
+        Assert.Equal(to.Y + 24.0, end.Y, 6);
+    }
+
+    /// <summary>
+    ///     When only the folder-tab width is supplied, the router still applies its generic tab-height
+    ///     fallback so the anchor remains off the tab and lands on the recessed body top.
+    /// </summary>
+    [Fact]
+    public void Route_FolderTopFace_WidthOnlyHint_UsesFallbackTabHeight()
+    {
+        // Arrange: the source overlaps only the explicit tab width while the height must come from the fallback.
+        var from = Box(40, 0, 40, 40);
+        var to = Box(0, 120, 140, 90, "Utilities", BoxShape.Folder, folderTabWidth: 60.0);
+        var boxes = new[] { from, to };
+        var expectedTabHeight = BoxMetrics.FolderTabHeight(Themes.Light);
+
+        // Act: route directly into the folder from above.
+        var line = ConnectorRouter.Route(boxes, new Connection(from, to), new ConnectorRouteOptions());
+
+        // Assert: the target anchor still avoids the tab and projects onto the recessed body top.
+        var end = line.Waypoints[^1];
+        Assert.True(end.X > to.X + 60.0, "Target anchor should remain to the right of the explicit tab width.");
+        Assert.Equal(to.Y + expectedTabHeight, end.Y, 6);
+    }
+
+    /// <summary>
+    ///     When only the folder-tab height is supplied, the router still applies its generic tab-width
+    ///     fallback so the top-face anchor avoids the drawn tab and projects onto the recessed body top.
+    /// </summary>
+    [Fact]
+    public void Route_FolderTopFace_HeightOnlyHint_UsesFallbackTabWidth()
+    {
+        // Arrange: the source overlaps the fallback tab region while the width must come from the fallback formula.
+        var from = Box(40, 0, 40, 40);
+        var to = Box(0, 120, 140, 90, "Utilities", BoxShape.Folder, folderTabHeight: 24.0);
+        var boxes = new[] { from, to };
+        var expectedTabWidth = Math.Min(
+            to.Width * NotationMetrics.FolderTabMaxWidthFraction,
+            Math.Max(
+                NotationMetrics.FolderTabMinWidth,
+                (to.Label?.Length ?? 4) * Themes.Light.FontSizeBody * NotationMetrics.FolderLabelCharWidthFactor +
+                (2.0 * Themes.Light.LabelPadding)));
+
+        // Act: route directly into the folder from above.
+        var line = ConnectorRouter.Route(boxes, new Connection(from, to), new ConnectorRouteOptions());
+
+        // Assert: the target anchor stays to the right of the fallback tab and reaches the recessed body top.
+        var end = line.Waypoints[^1];
+        Assert.True(end.X > to.X + expectedTabWidth, "Target anchor should remain to the right of the fallback tab width.");
         Assert.Equal(to.Y + 24.0, end.Y, 6);
     }
 

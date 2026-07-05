@@ -42,7 +42,9 @@ implementations are:
 - **Note** — one full-length extent per face for now; zero projection.
 - **Folder** — full-length left, right, and bottom extents; top extent only to the right of the
   raised tab, and a positive top-face projection equal to the resolved tab height so the anchor
-  touches the recessed body top.
+  touches the recessed body top. `FolderTabWidth` and `FolderTabHeight` are resolved
+  independently, so when only one hint is supplied the router computes the missing companion
+  dimension from its generic fallback before extents and projection are evaluated.
 
 ### ConnectorRouter Methods
 

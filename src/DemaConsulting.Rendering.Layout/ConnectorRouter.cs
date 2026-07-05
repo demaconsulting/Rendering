@@ -2,6 +2,7 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
+using DemaConsulting.Rendering.Abstractions;
 using DemaConsulting.Rendering.Layout.Engine;
 
 namespace DemaConsulting.Rendering.Layout;
@@ -686,9 +687,42 @@ public static class ConnectorRouter
         public FolderGeometry(LayoutBox box)
             : base(box)
         {
-            _tabHeight = Math.Max(0.0, box.FolderTabHeight ?? 0.0);
-            _tabWidth = Math.Max(0.0, box.FolderTabWidth ?? 0.0);
+            _tabHeight = ResolveFolderTabHeight(box);
+            _tabWidth = ResolveFolderTabWidth(box);
         }
+
+        /// <summary>
+        /// Resolves the folder-tab width used by routing, honoring a caller-supplied hint and
+        /// otherwise falling back to the router's generic folder-tab width formula.
+        /// </summary>
+        /// <param name="box">Box whose folder-tab width is being resolved.</param>
+        /// <returns>The non-negative folder-tab width, in logical pixels.</returns>
+        private static double ResolveFolderTabWidth(LayoutBox box)
+        {
+            if (box.FolderTabWidth.HasValue)
+            {
+                return Math.Max(0.0, box.FolderTabWidth.Value);
+            }
+
+            return Math.Min(
+                box.Width * NotationMetrics.FolderTabMaxWidthFraction,
+                Math.Max(
+                    NotationMetrics.FolderTabMinWidth,
+                    (box.Label?.Length ?? 4) * Themes.Light.FontSizeBody *
+                    NotationMetrics.FolderLabelCharWidthFactor +
+                    (2.0 * Themes.Light.LabelPadding)));
+        }
+
+        /// <summary>
+        /// Resolves the folder-tab height used by routing, honoring a caller-supplied hint and
+        /// otherwise falling back to the router's generic folder-tab height formula.
+        /// </summary>
+        /// <param name="box">Box whose folder-tab height is being resolved.</param>
+        /// <returns>The non-negative folder-tab height, in logical pixels.</returns>
+        private static double ResolveFolderTabHeight(LayoutBox box) =>
+            box.FolderTabHeight.HasValue
+                ? Math.Max(0.0, box.FolderTabHeight.Value)
+                : BoxMetrics.FolderTabHeight(Themes.Light);
 
         public override IReadOnlyList<(double Lo, double Hi)> GetConnectableExtents(PortSide side)
         {

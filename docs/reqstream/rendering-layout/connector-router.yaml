@@ -34,6 +34,8 @@ sections:
           one has no usable range, and must touch the drawn outline rather than an enclosing rectangle.
         tests:
           - Route_FolderTopFace_TabExcludedFromConnectableExtent
+          - Route_FolderTopFace_WidthOnlyHint_UsesFallbackTabHeight
+          - Route_FolderTopFace_HeightOnlyHint_UsesFallbackTabWidth
           - Route_FolderTopFace_ProjectsAnchorToRecessedBodyTop
           - Route_FaceSelectionFallback_EmptyNaturalFaceUsesAdjacentFace
 
