@@ -92,6 +92,27 @@ public class LayoutGraphTests
     }
 
     /// <summary>
+    ///     Proves that assigning <see langword="null"/> to <see cref="LayoutGraphNode.Compartments"/> is
+    ///     coerced to an empty list rather than leaving the non-nullable property null, so downstream
+    ///     algorithms and renderers can always safely iterate it.
+    /// </summary>
+    [Fact]
+    public void LayoutGraphNode_Compartments_NullAssignmentCoercedToEmpty()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        var node = graph.AddNode("a", 80, 40);
+        node.Compartments = [new LayoutCompartment("Attributes", ["value : int"])];
+
+        // Act
+        node.Compartments = null!;
+
+        // Assert
+        Assert.NotNull(node.Compartments);
+        Assert.Empty(node.Compartments);
+    }
+
+    /// <summary>
     ///     Proves that AddNode rejects a null identifier.
     /// </summary>
     [Fact]

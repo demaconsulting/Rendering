@@ -71,6 +71,9 @@ public sealed class LayoutGraphNode : PropertyHolder
     /// </summary>
     private LayoutGraph? _children;
 
+    /// <summary>Backing store for <see cref="Compartments"/>; never <see langword="null"/>.</summary>
+    private IReadOnlyList<LayoutCompartment> _compartments = [];
+
     /// <summary>
     /// Initializes a new instance of the <see cref="LayoutGraphNode"/> class.
     /// </summary>
@@ -116,9 +119,13 @@ public sealed class LayoutGraphNode : PropertyHolder
     /// <summary>
     /// Gets or sets the ordered list of compartments (for example an attributes or ports section)
     /// displayed below the node's label when it is placed as a <see cref="LayoutBox"/>. Empty by
-    /// default.
+    /// default; assigning <see langword="null"/> is coerced to an empty list.
     /// </summary>
-    public IReadOnlyList<LayoutCompartment> Compartments { get; set; } = [];
+    public IReadOnlyList<LayoutCompartment> Compartments
+    {
+        get => _compartments;
+        set => _compartments = value ?? [];
+    }
 
     /// <summary>
     /// Gets or sets the height, in logical pixels, of the title band a hierarchical layout engine

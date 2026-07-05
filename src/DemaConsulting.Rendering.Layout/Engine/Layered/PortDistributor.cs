@@ -15,7 +15,6 @@ internal sealed class PortDistributor : ILayoutStage
     public void Apply(LayeredGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
-        var n = graph.N;
         var nodes = graph.Nodes;
         var augNodes = graph.AugNodes;
         var augEdges = graph.AugEdges;
@@ -97,7 +96,7 @@ internal sealed class PortDistributor : ILayoutStage
                     .OrderBy(ei => augY[augEdges[ei].Source] + (augNodes[augEdges[ei].Source].Height / 2.0))
                     .ThenBy(ei => ei)
                     .ToList();
-                var node = nodes[ni < n ? ni : 0];
+                var node = nodes[ni];
                 if (ShapeAnchorSupport.IsPlainRectangle(node))
                 {
                     DistributePorts(sorted, augY[ni], node.Height, augPortYTgt);

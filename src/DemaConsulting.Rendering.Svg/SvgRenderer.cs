@@ -424,29 +424,38 @@ public sealed class SvgRenderer : IRenderer
 
     /// <summary>
     /// Resolves the rounded-corner radius for a box, preferring a caller-supplied placed-box value so
-    /// routing and rendering can agree on the exact outline geometry.
+    /// routing and rendering can agree on the exact outline geometry. A negative caller-supplied value
+    /// is clamped to zero.
     /// </summary>
     private static double ResolveRoundedCornerRadius(LayoutBox box, Theme theme) =>
-        box.RoundedCornerRadius ?? NotationMetrics.RoundedRectRadius(theme);
+        box.RoundedCornerRadius.HasValue
+            ? Math.Max(0.0, box.RoundedCornerRadius.Value)
+            : NotationMetrics.RoundedRectRadius(theme);
 
     /// <summary>
     /// Resolves the folder tab width for a box, preferring a caller-supplied placed-box value so
-    /// routing and rendering can agree on the exact top-face geometry.
+    /// routing and rendering can agree on the exact top-face geometry. A negative caller-supplied value
+    /// is clamped to zero.
     /// </summary>
     private static double ResolveFolderTabWidth(LayoutBox box, Theme theme) =>
-        box.FolderTabWidth ?? Math.Min(
-            box.Width * NotationMetrics.FolderTabMaxWidthFraction,
-            Math.Max(
-                NotationMetrics.FolderTabMinWidth,
-                (box.Label?.Length ?? 4) * theme.FontSizeBody * NotationMetrics.FolderLabelCharWidthFactor +
-                (2.0 * theme.LabelPadding)));
+        box.FolderTabWidth.HasValue
+            ? Math.Max(0.0, box.FolderTabWidth.Value)
+            : Math.Min(
+                box.Width * NotationMetrics.FolderTabMaxWidthFraction,
+                Math.Max(
+                    NotationMetrics.FolderTabMinWidth,
+                    (box.Label?.Length ?? 4) * theme.FontSizeBody * NotationMetrics.FolderLabelCharWidthFactor +
+                    (2.0 * theme.LabelPadding)));
 
     /// <summary>
     /// Resolves the folder tab height for a box, preferring a caller-supplied placed-box value so
-    /// routing and rendering can agree on the exact top-face projection offset.
+    /// routing and rendering can agree on the exact top-face projection offset. A negative
+    /// caller-supplied value is clamped to zero.
     /// </summary>
     private static double ResolveFolderTabHeight(LayoutBox box, Theme theme) =>
-        box.FolderTabHeight ?? BoxMetrics.FolderTabHeight(theme);
+        box.FolderTabHeight.HasValue
+            ? Math.Max(0.0, box.FolderTabHeight.Value)
+            : BoxMetrics.FolderTabHeight(theme);
 
     /// <summary>
     /// Resolves the top Y coordinate (unscaled) of the title/label area for a box. For a

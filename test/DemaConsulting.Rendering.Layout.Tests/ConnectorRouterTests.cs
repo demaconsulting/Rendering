@@ -801,7 +801,6 @@ public sealed class ConnectorRouterTests
         var from = Box(0, 0, 60, 60);
         var to = Box(200, 0, 60, 60);
 
-
         // Act / Assert
         Assert.Throws<ArgumentNullException>(
             () => ConnectorRouter.Route(null!, new[] { new Connection(from, to) }, new ConnectorRouteOptions()));
