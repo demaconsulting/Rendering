@@ -141,7 +141,11 @@ internal sealed class LayeredGraph
     /// the along-axis must instead be the node height, so <see cref="AxisTransform.NormalizeInputAxes"/>
     /// calls this seam before the stages run. It is never invoked for the
     /// <see cref="LayoutDirection.Right"/>/<see cref="LayoutDirection.Left"/> paths, which keeps those
-    /// outputs byte-identical.
+    /// outputs byte-identical. Every other <see cref="LayerNode"/> field (<see cref="LayerNode.Shape"/>,
+    /// <see cref="LayerNode.RoundedCornerRadius"/>, <see cref="LayerNode.FolderTabWidth"/>,
+    /// <see cref="LayerNode.FolderTabHeight"/>, <see cref="LayerNode.Label"/>,
+    /// <see cref="LayerNode.RealWidth"/>, <see cref="LayerNode.RealHeight"/>) is preserved unchanged by
+    /// the swap, since only the abstract along/cross axes need to reorient for Down/Up flow.
     /// </remarks>
     public void SwapNodeAxes()
     {
@@ -150,7 +154,7 @@ internal sealed class LayeredGraph
         {
             // S2234: width and height are deliberately swapped so the stages space layers by height.
 #pragma warning disable S2234
-            swapped[i] = new LayerNode(Nodes[i].Height, Nodes[i].Width);
+            swapped[i] = Nodes[i] with { Width = Nodes[i].Height, Height = Nodes[i].Width };
 #pragma warning restore S2234
         }
 

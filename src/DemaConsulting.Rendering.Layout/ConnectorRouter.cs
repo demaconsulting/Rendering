@@ -450,7 +450,12 @@ public static class ConnectorRouter
     /// distribution already used. When that inset would collapse every segment to a point, the original
     /// extents are used instead so a reduced-but-still-usable face does not become artificially empty.
     /// </summary>
-    private static IReadOnlyList<(double Lo, double Hi)> BuildUsableExtents(
+    /// <remarks>
+    /// Also consumed internally by the <c>LayeredPipeline</c> unit's <c>PortDistributor</c> stage so
+    /// shaped nodes routed through <c>LayeredLayoutAlgorithm</c> get the same connectable-extent
+    /// restriction as <see cref="ConnectorRouter"/>-routed edges.
+    /// </remarks>
+    internal static IReadOnlyList<(double Lo, double Hi)> BuildUsableExtents(
         IReadOnlyList<(double Lo, double Hi)> extents,
         double clearance)
     {
@@ -486,7 +491,10 @@ public static class ConnectorRouter
     /// <summary>
     /// Returns the total length covered by a set of local face extents.
     /// </summary>
-    private static double TotalExtentLength(IReadOnlyList<(double Lo, double Hi)> extents)
+    /// <remarks>
+    /// Also consumed internally by the <c>LayeredPipeline</c> unit's <c>PortDistributor</c> stage.
+    /// </remarks>
+    internal static double TotalExtentLength(IReadOnlyList<(double Lo, double Hi)> extents)
     {
         var total = 0.0;
         foreach (var (lo, hi) in extents)
@@ -501,7 +509,10 @@ public static class ConnectorRouter
     /// Returns the local face coordinate lying <paramref name="distance"/> units along the concatenated
     /// union of <paramref name="extents"/>.
     /// </summary>
-    private static double CoordinateAtDistance(IReadOnlyList<(double Lo, double Hi)> extents, double distance)
+    /// <remarks>
+    /// Also consumed internally by the <c>LayeredPipeline</c> unit's <c>PortDistributor</c> stage.
+    /// </remarks>
+    internal static double CoordinateAtDistance(IReadOnlyList<(double Lo, double Hi)> extents, double distance)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(distance);
 
@@ -553,7 +564,13 @@ public static class ConnectorRouter
     /// the face (for example a sloped or curved shoulder) without changing the router's calling
     /// contract.
     /// </remarks>
-    private interface IBoxShapeGeometry
+    /// <remarks>
+    /// Also consumed internally by the <c>LayeredPipeline</c> unit's <c>PortDistributor</c> and
+    /// <c>LongEdgeJoiner</c> stages so shaped nodes routed through <c>LayeredLayoutAlgorithm</c> get the
+    /// same connectable-extent restriction and inward surface projection as
+    /// <see cref="ConnectorRouter"/>-routed edges.
+    /// </remarks>
+    internal interface IBoxShapeGeometry
     {
         /// <summary>
         /// Returns the local along-face sub-ranges, in logical pixels, where connectors may anchor on
@@ -574,7 +591,7 @@ public static class ConnectorRouter
     /// <summary>
     /// Shared base for the shipped box-shape geometries.
     /// </summary>
-    private abstract class BoxShapeGeometryBase : IBoxShapeGeometry
+    internal abstract class BoxShapeGeometryBase : IBoxShapeGeometry
     {
         /// <summary>
         /// Gets the width of the owning box, used when resolving top and bottom face extents.
@@ -629,7 +646,7 @@ public static class ConnectorRouter
     /// Rectangle geometry: every face is fully usable and the bounding box already lies on the drawn
     /// outline.
     /// </summary>
-    private sealed class RectangleGeometry : BoxShapeGeometryBase
+    internal sealed class RectangleGeometry : BoxShapeGeometryBase
     {
         public RectangleGeometry(LayoutBox box)
             : base(box)
@@ -644,7 +661,7 @@ public static class ConnectorRouter
     /// <summary>
     /// Rounded-rectangle geometry: each face is usable only between the two corner arcs.
     /// </summary>
-    private sealed class RoundedRectangleGeometry : BoxShapeGeometryBase
+    internal sealed class RoundedRectangleGeometry : BoxShapeGeometryBase
     {
         private readonly double _cornerRadius;
 
@@ -672,7 +689,7 @@ public static class ConnectorRouter
     /// connectable extent. The remaining extents lie exactly on the bounding box, matching the
     /// rounded-rectangle pattern, so no surface projection offset is needed.
     /// </summary>
-    private sealed class NoteGeometry : BoxShapeGeometryBase
+    internal sealed class NoteGeometry : BoxShapeGeometryBase
     {
         private readonly double _fold;
 
@@ -715,7 +732,7 @@ public static class ConnectorRouter
     /// excluded from the connectable extent and the remaining top-face anchors project down to the
     /// body's recessed top edge.
     /// </summary>
-    private sealed class FolderGeometry : BoxShapeGeometryBase
+    internal sealed class FolderGeometry : BoxShapeGeometryBase
     {
         private readonly double _tabHeight;
         private readonly double _tabWidth;
@@ -786,7 +803,11 @@ public static class ConnectorRouter
     /// Resolves the shape geometry object used to interpret a box's connectable face extents and real
     /// outline projection.
     /// </summary>
-    private static IBoxShapeGeometry ResolveShapeGeometry(LayoutBox box) => box.Shape switch
+    /// <remarks>
+    /// Also consumed internally by the <c>LayeredPipeline</c> unit's <c>PortDistributor</c> and
+    /// <c>LongEdgeJoiner</c> stages via <see cref="Engine.Layered.ShapeAnchorSupport.BuildAdapterBox"/>.
+    /// </remarks>
+    internal static IBoxShapeGeometry ResolveShapeGeometry(LayoutBox box) => box.Shape switch
     {
         BoxShape.Folder => new FolderGeometry(box),
         BoxShape.RoundedRectangle => new RoundedRectangleGeometry(box),

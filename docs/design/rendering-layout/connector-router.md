@@ -110,6 +110,14 @@ them:
 - **External application code** — any caller that supplies its own placed `LayoutBox` list (for
   example from a containment or free-form placement produced outside the layered pipeline) and needs
   routed `LayoutLine` connectors to drop into a `LayoutTree`.
+- **LayeredPipeline** — the `PortDistributor` and `LongEdgeJoiner` stages internally consume
+  `ConnectorRouter`'s (internal, widened-accessibility) shape-geometry resolution
+  (`ResolveShapeGeometry` and its supporting extent-math helpers) for same-scope (leaf) edges routed
+  through `LayeredLayoutAlgorithm`'s own pipeline, so a shaped node gets the same connectable-extent
+  restriction and inward surface projection whether it is routed by `ConnectorRouter` (cross-container
+  edges) or by the layered pipeline (same-scope edges). See _Layered Pipeline Unit Design_'s
+  "Layered Pipeline Dependencies" section for the reverse-direction documentation of this cross-unit
+  dependency.
 
 ### ConnectorRouter Interactions
 

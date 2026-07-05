@@ -63,3 +63,23 @@ sections:
         tests:
           - Apply_NullGraph_Throws
           - Apply_NullOptions_Throws
+
+      - id: Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting
+        title: >-
+          LayeredLayoutAlgorithm shall project a same-scope connector's endpoint onto a shaped node's
+          real outline and shall exclude the shape's non-connectable face regions from candidate
+          endpoints, matching ConnectorRouter's shape-geometry rules for the node's BoxShape.
+        justification: |
+          A node's Shape previously only affected the rendered outline of the placed box; the routed
+          connector endpoint still landed on the plain bounding-box face regardless of BoxShape, which
+          looked visually inconsistent with an equivalent cross-container edge routed by
+          ConnectorRouter (for example a BoxShape.Folder package's connector floating above the
+          recessed body instead of touching it). This is genuinely new, observable behavior of the
+          public algorithm output, not merely an internal pipeline-stage detail.
+        tests:
+          - Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop
+          - Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop
+          - Apply_RightDirection_FolderTarget_LeftFaceUnaffectedByTab
+          - Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab
+          - Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone
+          - Apply_RectangleChain_MatchesPreShapeAwarenessOutput

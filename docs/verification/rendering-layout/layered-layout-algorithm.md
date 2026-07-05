@@ -25,8 +25,8 @@ production code paths.
 A verification run passes when every named scenario below asserts without unexpected exception, and
 the referenced tests cover each `Rendering-Layout-LayeredAlgorithm-*` requirement. Any drift in the
 stable identifier (`"layered"`), in the one-box-per-node / one-line-per-edge placement contract, in
-empty-graph handling, in flow-direction honoring, or in the argument-null validation behavior
-constitutes a failure.
+empty-graph handling, in flow-direction honoring, in shape-aware endpoint projection/exclusion, or in
+the argument-null validation behavior constitutes a failure.
 
 ### Test Scenarios
 
@@ -47,6 +47,16 @@ constitutes a failure.
 - **Validation** (`Rendering-Layout-LayeredAlgorithm-Validation`): `Apply_NullGraph_Throws` confirms
   a null graph argument is rejected with an argument-null error, and `Apply_NullOptions_Throws`
   confirms a null options argument is likewise rejected with an argument-null error.
+- **Shape-aware routing** (`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`):
+  `Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop` and
+  `Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop` confirm a `BoxShape.Folder` node's
+  routed endpoint on its real Top face is projected inward to the recessed body outline;
+  `Apply_RightDirection_FolderTarget_LeftFaceUnaffectedByTab` and
+  `Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab` confirm the folder tab never spuriously
+  affects a face other than the real Top face; `Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone`
+  confirms a `BoxShape.Note`'s folded-corner strip is excluded from the connector's landing zone; and
+  `Apply_RectangleChain_MatchesPreShapeAwarenessOutput` pins the exact placement and routing of a
+  plain-`Rectangle` chain to prove the new shape-aware code never engages for the default shape.
 
 ### Requirements Coverage
 
@@ -61,3 +71,10 @@ constitutes a failure.
   Apply_DownDirectionOnGraphScope_IsHonored, Apply_DefaultDirection_FlowsLeftToRight
 - **`Rendering-Layout-LayeredAlgorithm-Validation`**:
   Apply_NullGraph_Throws, Apply_NullOptions_Throws
+- **`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`**:
+  Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop,
+  Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop,
+  Apply_RightDirection_FolderTarget_LeftFaceUnaffectedByTab,
+  Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab,
+  Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone,
+  Apply_RectangleChain_MatchesPreShapeAwarenessOutput

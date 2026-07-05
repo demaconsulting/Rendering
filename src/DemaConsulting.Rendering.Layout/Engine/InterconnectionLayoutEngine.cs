@@ -11,9 +11,60 @@ namespace DemaConsulting.Rendering.Layout.Engine;
 /// <summary>
 /// A node to be placed by the <see cref="InterconnectionLayoutEngine"/>, identified by its size.
 /// </summary>
-/// <param name="Width">Width of the node's bounding box in logical pixels.</param>
-/// <param name="Height">Height of the node's bounding box in logical pixels.</param>
-internal readonly record struct LayerNode(double Width, double Height);
+/// <param name="Width">
+/// Width of the node's bounding box in logical pixels. For <see cref="LayoutDirection.Down"/>/
+/// <see cref="LayoutDirection.Up"/> flow, <see cref="Layered.LayeredGraph.SwapNodeAxes"/> swaps this
+/// with <see cref="Height"/> so the abstract along/cross axes line up with layer progression; see
+/// <see cref="RealWidth"/> for the caller's true, never-swapped width.
+/// </param>
+/// <param name="Height">
+/// Height of the node's bounding box in logical pixels. See the <see cref="Width"/> remarks for the
+/// Down/Up axis-swap caveat; see <see cref="RealHeight"/> for the caller's true, never-swapped height.
+/// </param>
+/// <param name="Shape">
+/// The box shape used for shape-aware port distribution and connector-endpoint projection. Defaults to
+/// <see cref="BoxShape.Rectangle"/>, which keeps every existing 2-arg call site's full-face, zero-offset
+/// behavior unchanged.
+/// </param>
+/// <param name="RoundedCornerRadius">
+/// Corner radius hint for <see cref="BoxShape.RoundedRectangle"/> nodes, or <see langword="null"/> to
+/// use the shape's default. Ignored for other shapes.
+/// </param>
+/// <param name="FolderTabWidth">
+/// Folder-tab width hint for <see cref="BoxShape.Folder"/> nodes, or <see langword="null"/> to fall back
+/// to the router's generic folder-tab width formula (which also consults <see cref="Label"/>). Ignored
+/// for other shapes.
+/// </param>
+/// <param name="FolderTabHeight">
+/// Folder-tab height hint for <see cref="BoxShape.Folder"/> nodes, or <see langword="null"/> to use the
+/// shape's default tab height. Ignored for other shapes.
+/// </param>
+/// <param name="Label">
+/// The node's label, threaded through so <see cref="BoxShape.Folder"/>'s label-length tab-width fallback
+/// computes the same tab width the router and renderer use when no explicit <see cref="FolderTabWidth"/>
+/// hint is set.
+/// </param>
+/// <param name="RealWidth">
+/// The caller's true, never-swapped bounding-box width in logical pixels, needed because
+/// <see cref="Width"/> may have been swapped with <see cref="Height"/> by
+/// <see cref="Layered.LayeredGraph.SwapNodeAxes"/> for Down/Up flow. Shape geometry (for example
+/// <see cref="BoxShape.Note"/>'s fold size, which combines both real dimensions) requires the real,
+/// never-swapped values.
+/// </param>
+/// <param name="RealHeight">
+/// The caller's true, never-swapped bounding-box height in logical pixels. See the
+/// <see cref="RealWidth"/> remarks.
+/// </param>
+internal readonly record struct LayerNode(
+    double Width,
+    double Height,
+    BoxShape Shape = BoxShape.Rectangle,
+    double? RoundedCornerRadius = null,
+    double? FolderTabWidth = null,
+    double? FolderTabHeight = null,
+    string? Label = null,
+    double RealWidth = 0.0,
+    double RealHeight = 0.0);
 
 /// <summary>
 /// A directed edge (from a source node to a target node, by index) used for layering.

@@ -44,7 +44,16 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         {
             var node = graphNodes[i];
             indexOf[node] = i;
-            engineNodes[i] = new LayerNode(node.Width, node.Height);
+            engineNodes[i] = new LayerNode(
+                node.Width,
+                node.Height,
+                node.Shape,
+                node.RoundedCornerRadius,
+                node.FolderTabWidth,
+                node.FolderTabHeight,
+                node.Label,
+                RealWidth: node.Width,
+                RealHeight: node.Height);
         }
 
         // Map edges to index pairs, dropping any that reference nodes outside this graph.
