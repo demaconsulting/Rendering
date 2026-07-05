@@ -256,16 +256,18 @@ internal static class GalleryDiagrams
     }
 
     /// <summary>
-    ///     A cross-container edge landing on a <see cref="BoxShape.Folder"/> container's top face,
-    ///     demonstrating shape-aware connector anchoring: the router keeps the connector off the
-    ///     folder's tab (the small raised label strip at the top-left) and projects the anchor down to
-    ///     the folder's actual recessed outline instead of the plain bounding rectangle, so the line
-    ///     visibly touches the drawn shape rather than floating above it.
+    ///     An edge landing on a <see cref="BoxShape.Folder"/> container's top face, demonstrating
+    ///     shape-aware connector anchoring: the router keeps the connector off the folder's tab (the
+    ///     small raised label strip at the top-left) and projects the anchor down to the folder's
+    ///     actual recessed outline instead of the plain bounding rectangle, so the line visibly touches
+    ///     the drawn shape rather than floating above it.
     /// </summary>
     /// <remarks>
-    ///     A downward flow direction places the external <c>Client</c> node above the <c>Utilities</c>
-    ///     folder, forcing the cross-container edge to approach the folder from directly above — the
-    ///     one relationship where the tab's presence actually matters.
+    ///     The edge connects directly to the folder node itself (a direct root member, not a
+    ///     descendant), so it belongs to the root's own leaf view and its ranking honors the downward
+    ///     flow direction below, reliably placing <c>Client</c> above the folder — the one relationship
+    ///     where the tab's presence actually matters. A cross-container edge into a descendant would be
+    ///     excluded from that view and ranked only by insertion order, not by flow direction.
     /// </remarks>
     /// <returns>A compound graph with an external node connected into a folder container from above.</returns>
     public static LayoutGraph FolderTopFaceAnchor()
@@ -284,9 +286,11 @@ internal static class GalleryDiagrams
 
         var client = AddLabelled(graph, "client", "Client");
 
-        // A cross-container edge added at the lowest common ancestor (the root), referencing a
-        // descendant node inside the folder container.
-        Connect(graph, "client-glob-matcher", client, globMatcher);
+        // Connect directly to the folder node itself (a direct root member, not a descendant), so this
+        // edge belongs to the root's own leaf view and its ranking honors the Direction override above,
+        // reliably placing Client above the folder. A cross-container edge into a descendant would be
+        // excluded from that view and ranked only by insertion order, not by Direction.
+        Connect(graph, "client-utilities", client, pkg);
 
         return graph;
     }
