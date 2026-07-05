@@ -356,6 +356,10 @@ internal static class OrthogonalEdgeRouter
         const double SoftObstacleBaseCost = 10.0;
         const double SoftObstaclePerUnitLengthCost = 1.0;
 
+        // Resolved once outside the neighbor loop so a null softObstacles argument does not allocate a
+        // fresh empty array on every A* iteration.
+        var resolvedSoftObstacles = softObstacles ?? [];
+
         while (open.Count > 0)
         {
             var (ci, cj, cd) = open.Dequeue();
@@ -380,7 +384,7 @@ internal static class OrthogonalEdgeRouter
                     : Math.Abs(ys[nj] - ys[cj]);
                 var bandMultiplier = SegmentCostMultiplier(xs, ys, ci, cj, ni, nj, costBands);
                 var turnCost = cd != Dir.None && cd != nd ? TurnPenalty : 0.0;
-                var softOverlap = SoftObstacleOverlapLength(xs, ys, ci, cj, ni, nj, softObstacles ?? []);
+                var softOverlap = SoftObstacleOverlapLength(xs, ys, ci, cj, ni, nj, resolvedSoftObstacles);
                 var softCost = softOverlap > 0.0
                     ? SoftObstacleBaseCost + (softOverlap * SoftObstaclePerUnitLengthCost)
                     : 0.0;

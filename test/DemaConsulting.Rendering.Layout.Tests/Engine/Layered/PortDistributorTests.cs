@@ -119,11 +119,17 @@ public sealed class PortDistributorTests
         var graph = BuildPortedGraph(nodes, [new(0, 1)], LayoutDirection.Down);
 
         var tgt = graph.AugEdges[0].Target;
-        var localX = graph.AugPortYTgt[0] - graph.AugY[tgt];
+
+        // Note: Down flow swaps internal axes so layers stack along the internal Y axis; the resulting
+        // offset therefore corresponds to the real-world horizontal (X) position along the folder's top
+        // face, even though it is read from the AugPortYTgt/AugY fields.
+        var portOffsetAlongTopFace = graph.AugPortYTgt[0] - graph.AugY[tgt];
 
         // Assert: the port lands to the right of the tab (plus its small anti-shoulder margin), never
         // inside the tab-excluded strip a plain rectangle's full-span band would have allowed.
-        Assert.True(localX > 60.0, $"Expected port beyond the 60-wide tab, got local X {localX}.");
+        Assert.True(
+            portOffsetAlongTopFace > 60.0,
+            $"Expected port beyond the 60-wide tab, got offset {portOffsetAlongTopFace}.");
     }
 
     /// <summary>
@@ -145,12 +151,15 @@ public sealed class PortDistributorTests
         var graph = BuildPortedGraph(nodes, [new(0, 1)]);
 
         var src = graph.AugEdges[0].Source;
-        var localY = graph.AugPortYSrc[0] - graph.AugY[src];
+
+        // Note: Right flow uses the internal axes without swapping, so this offset corresponds
+        // directly to the real-world vertical (Y) position along the note's right face.
+        var portOffsetAlongRightFace = graph.AugPortYSrc[0] - graph.AugY[src];
 
         // Assert: the port lands below the folded-corner strip, never within it.
         Assert.True(
-            localY > NotationMetrics.NoteFoldMaxSize,
-            $"Expected port below the fold ({NotationMetrics.NoteFoldMaxSize}), got local Y {localY}.");
+            portOffsetAlongRightFace > NotationMetrics.NoteFoldMaxSize,
+            $"Expected port below the fold ({NotationMetrics.NoteFoldMaxSize}), got offset {portOffsetAlongRightFace}.");
     }
 
     /// <summary>
