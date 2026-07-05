@@ -29,8 +29,8 @@ leaf algorithm applied directly to guarantee byte-identical behavior for existin
 A verification run passes when every named scenario below asserts without unexpected exception, and
 the referenced tests cover each `Rendering-Layout-DefaultRegistry-*` and
 `Rendering-Layout-LayoutEngine-*` requirement. Any drift in the bundled algorithm set, in the
-default algorithm identifier (`"hierarchical"`), in the resolution precedence (graph over options
-over default), in the flat-graph equivalence guarantee, in nested composition, or in the argument-
+default algorithm identifier (`"hierarchical"`), in the resolution against an explicit graph-level
+declaration, in the flat-graph equivalence guarantee, in nested composition, or in the argument-
 null validation behavior constitutes a failure.
 
 ### Test Scenarios
@@ -46,13 +46,12 @@ null validation behavior constitutes a failure.
   `Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly` confirms an undeclared flat graph is
   laid out through the hierarchical engine to a result identical to the layered leaf algorithm.
 - **Resolution** (`Rendering-Layout-LayoutEngine-Resolution`):
-  `Layout_OptionsDeclareLayered_MatchesLayeredAlgorithmExactly` and
-  `Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly` confirm an explicit options
-  declaration selects that algorithm; `Layout_GraphDeclarationOverridesOptions` confirms a graph-level
-  declaration takes precedence over the options.
+  `Layout_GraphDeclaresLayered_MatchesLayeredAlgorithmExactly` and
+  `Layout_GraphDeclaresContainment_MatchesContainmentAlgorithmExactly` confirm an explicit graph-level
+  declaration selects that algorithm, applied via the resolved algorithm's `Apply`.
 - **Flat equivalence** (`Rendering-Layout-LayoutEngine-FlatEquivalence`):
   `Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly` and
-  `Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly` deep-compare the facade's output
+  `Layout_GraphDeclaresContainment_MatchesContainmentAlgorithmExactly` deep-compare the facade's output
   bit-for-bit with the leaf algorithm applied directly, proving the facade changes no existing output.
 - **Nested composition** (`Rendering-Layout-LayoutEngine-NestedComposition`):
   `Layout_NestedGraphNoAlgorithmDeclared_ProducesComposedTree` confirms an undeclared nested graph is
@@ -61,9 +60,8 @@ null validation behavior constitutes a failure.
   `Layout_CustomRegistry_ResolvesRegisteredAlgorithm` confirms a caller-supplied registry's algorithm is
   resolved and applied; `Layout_UnregisteredAlgorithm_Throws` confirms an unknown identifier surfaces a
   key-not-found error.
-- **Validation** (`Rendering-Layout-LayoutEngine-Validation`): `Layout_NullGraph_Throws`,
-  `Layout_NullOptions_Throws`, and `Layout_NullRegistry_Throws` confirm null arguments are rejected with
-  an argument-null error.
+- **Validation** (`Rendering-Layout-LayoutEngine-Validation`): `Layout_NullGraph_Throws` and
+  `Layout_NullRegistry_Throws` confirm null arguments are rejected with an argument-null error.
 
 ### Requirements Coverage
 
@@ -74,14 +72,14 @@ null validation behavior constitutes a failure.
 - **`Rendering-Layout-LayoutEngine-DefaultAlgorithm`**:
   DefaultAlgorithmId_IsHierarchical, Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly
 - **`Rendering-Layout-LayoutEngine-Resolution`**:
-  Layout_OptionsDeclareLayered_MatchesLayeredAlgorithmExactly,
-  Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly, Layout_GraphDeclarationOverridesOptions
+  Layout_GraphDeclaresLayered_MatchesLayeredAlgorithmExactly,
+  Layout_GraphDeclaresContainment_MatchesContainmentAlgorithmExactly
 - **`Rendering-Layout-LayoutEngine-FlatEquivalence`**:
   Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly,
-  Layout_OptionsDeclareContainment_MatchesContainmentAlgorithmExactly
+  Layout_GraphDeclaresContainment_MatchesContainmentAlgorithmExactly
 - **`Rendering-Layout-LayoutEngine-NestedComposition`**:
   Layout_NestedGraphNoAlgorithmDeclared_ProducesComposedTree
 - **`Rendering-Layout-LayoutEngine-CustomRegistry`**:
   Layout_CustomRegistry_ResolvesRegisteredAlgorithm, Layout_UnregisteredAlgorithm_Throws
 - **`Rendering-Layout-LayoutEngine-Validation`**:
-  Layout_NullGraph_Throws, Layout_NullOptions_Throws, Layout_NullRegistry_Throws
+  Layout_NullGraph_Throws, Layout_NullRegistry_Throws
