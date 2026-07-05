@@ -255,6 +255,42 @@ internal static class GalleryDiagrams
         return graph;
     }
 
+    /// <summary>
+    ///     A cross-container edge landing on a <see cref="BoxShape.Folder"/> container's top face,
+    ///     demonstrating shape-aware connector anchoring: the router keeps the connector off the
+    ///     folder's tab (the small raised label strip at the top-left) and projects the anchor down to
+    ///     the folder's actual recessed outline instead of the plain bounding rectangle, so the line
+    ///     visibly touches the drawn shape rather than floating above it.
+    /// </summary>
+    /// <remarks>
+    ///     A downward flow direction places the external <c>Client</c> node above the <c>Utilities</c>
+    ///     folder, forcing the cross-container edge to approach the folder from directly above — the
+    ///     one relationship where the tab's presence actually matters.
+    /// </remarks>
+    /// <returns>A compound graph with an external node connected into a folder container from above.</returns>
+    public static LayoutGraph FolderTopFaceAnchor()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        var pkg = graph.AddNode("utilities", 10, 10);
+        pkg.Label = "Utilities";
+        pkg.Shape = BoxShape.Folder;
+        pkg.Keyword = "package";
+
+        var globMatcher = AddLabelled(pkg.Children, "glob-matcher", "GlobMatcher");
+        var pathHelpers = AddLabelled(pkg.Children, "path-helpers", "PathHelpers");
+        Connect(pkg.Children, "glob-matcher-path-helpers", globMatcher, pathHelpers);
+
+        var client = AddLabelled(graph, "client", "Client");
+
+        // A cross-container edge added at the lowest common ancestor (the root), referencing a
+        // descendant node inside the folder container.
+        Connect(graph, "client-glob-matcher", client, globMatcher);
+
+        return graph;
+    }
+
     /// <summary>Adds a labelled leaf node of the standard showcase size to the given graph.</summary>
     private static LayoutGraphNode AddLabelled(LayoutGraph graph, string id, string label)
     {
