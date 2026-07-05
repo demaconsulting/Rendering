@@ -118,6 +118,74 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a container's own <see cref="LayoutGraphNode.TitleHeight"/> override replaces the
+    ///     engine's generic default title-band height, both in the container's effective size and in
+    ///     the vertical offset applied to its nested children — so a caller can match a specific theme's
+    ///     actual title-area height (for example when the container also carries a keyword line) instead
+    ///     of being limited to the engine's generic default band.
+    /// </summary>
+    [Fact]
+    public void Apply_ContainerWithTitleHeightOverride_ReplacesDefaultTitleBand()
+    {
+        // Arrange: two otherwise-identical single-child containers, one with a TitleHeight override.
+        var defaultGraph = new LayoutGraph();
+        var defaultGroup = defaultGraph.AddNode("group", 10, 10);
+        defaultGroup.Label = "Group";
+        defaultGroup.Children.AddNode("child", 80, 40);
+
+        var overrideGraph = new LayoutGraph();
+        var overrideGroup = overrideGraph.AddNode("group", 10, 10);
+        overrideGroup.Label = "Group";
+        overrideGroup.TitleHeight = 100.0;
+        overrideGroup.Children.AddNode("child", 80, 40);
+
+        // Act
+        var defaultTree = new HierarchicalLayoutAlgorithm().Apply(defaultGraph, LayoutOptions.ForAlgorithm("layered"));
+        var overrideTree = new HierarchicalLayoutAlgorithm().Apply(overrideGraph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the override container is exactly (100 - 24) taller than the default container, and
+        // its nested child is offset down by that same difference.
+        var defaultContainer = Assert.Single(defaultTree.Nodes.OfType<LayoutBox>());
+        var overrideContainer = Assert.Single(overrideTree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(defaultContainer.Height + 76.0, overrideContainer.Height, precision: 6);
+
+        var defaultChild = Assert.Single(defaultContainer.Children.OfType<LayoutBox>());
+        var overrideChild = Assert.Single(overrideContainer.Children.OfType<LayoutBox>());
+        var defaultOffsetFromTop = defaultChild.Y - defaultContainer.Y;
+        var overrideOffsetFromTop = overrideChild.Y - overrideContainer.Y;
+        Assert.Equal(defaultOffsetFromTop + 76.0, overrideOffsetFromTop, precision: 6);
+    }
+
+    /// <summary>
+    ///     Proves that a container's own <see cref="LayoutGraphNode.TitleHeight"/> override applies only
+    ///     while it carries a <see cref="LayoutGraphNode.Label"/>: an unlabelled container reserves no
+    ///     title band regardless of the override, matching the engine's existing label-gated behavior.
+    /// </summary>
+    [Fact]
+    public void Apply_UnlabelledContainerWithTitleHeightOverride_ReservesNoTitleBand()
+    {
+        // Arrange: two otherwise-identical unlabelled single-child containers; only one sets an
+        // (ignored) TitleHeight override.
+        var plainGraph = new LayoutGraph();
+        var plainGroup = plainGraph.AddNode("group", 10, 10);
+        plainGroup.Children.AddNode("child", 80, 40);
+
+        var overrideGraph = new LayoutGraph();
+        var overrideGroup = overrideGraph.AddNode("group", 10, 10);
+        overrideGroup.TitleHeight = 100.0;
+        overrideGroup.Children.AddNode("child", 80, 40);
+
+        // Act
+        var plainTree = new HierarchicalLayoutAlgorithm().Apply(plainGraph, LayoutOptions.ForAlgorithm("layered"));
+        var overrideTree = new HierarchicalLayoutAlgorithm().Apply(overrideGraph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: both containers are sized identically, since neither reserves a title band.
+        var plainContainer = Assert.Single(plainTree.Nodes.OfType<LayoutBox>());
+        var overrideContainer = Assert.Single(overrideTree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(plainContainer.Height, overrideContainer.Height, precision: 6);
+    }
+
+    /// <summary>
     ///     Proves that a containment-packed root can hold a container whose children are laid out with a
     ///     per-node layered override, composing without error.
     /// </summary>

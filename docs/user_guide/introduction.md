@@ -205,6 +205,18 @@ per-compartment row heights in `DemaConsulting.Rendering.Abstractions`); no leaf
 to fit its own appearance. The [gallery's "Box appearance" diagram](../gallery/gallery.md) shows a
 complete, rendered example.
 
+When a container node (one with `Children`) also carries a `Label`, `HierarchicalLayoutAlgorithm`
+reserves a title band above its children so the label never overlaps the nested content. By default
+that band is a generic fixed height, sized for a plain label with no keyword; if the container also
+sets `Keyword`, or is rendered with a theme whose fonts are larger than the default assumes, set
+`TitleHeight` explicitly — typically to `BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword:
+group.Keyword is not null)` — so the reserved band matches what the renderer will actually draw:
+
+```csharp
+group.Keyword = "package";
+group.TitleHeight = BoxMetrics.TitleAreaHeight(Themes.Light, hasLabel: true, hasKeyword: true);
+```
+
 ## Configuring layout with options
 
 Options are set with typed keys from `CoreOptions`. Unknown or not-yet-honored options default

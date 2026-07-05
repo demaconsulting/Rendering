@@ -39,8 +39,10 @@ the responsibility of a hierarchical layout engine (a later delivery).
 - `LayoutGraphNode` (sealed class extending `PropertyHolder`) — `Id`, `Width`, `Height`, `Label`,
   `Shape` (the `BoxShape` outline, defaulting to `Rectangle`), `Keyword` (an optional italicized
   keyword line shown above the title), `Compartments` (an ordered, read-only list of
-  `LayoutCompartment` feature sections, defaulting to empty), `Children` (the lazily-created nested
-  child subgraph), and `HasChildren` (whether the node holds at least one child).
+  `LayoutCompartment` feature sections, defaulting to empty), `TitleHeight` (an optional override, in
+  logical pixels, of the title band a hierarchical layout engine reserves above this node's children
+  when it is a labelled container), `Children` (the lazily-created nested child subgraph), and
+  `HasChildren` (whether the node holds at least one child).
 - `LayoutGraphEdge` (sealed class extending `PropertyHolder`) — `Id`, `Source`, `Target`,
   `TargetEnd`, `LineStyle`, `Label`.
 
@@ -74,6 +76,14 @@ and `HierarchicalLayoutAlgorithm` copy these three properties, unchanged, onto t
 (or view node), so a caller selects the full appearance of a box once, on the input graph, rather
 than after layout.
 
+`double? LayoutGraphNode.TitleHeight { get; set; }` — an optional override, in logical pixels, of the
+title band `HierarchicalLayoutAlgorithm` reserves above this node's children when the node is a
+labelled container. `null` (the default) selects the engine's own generic default band height;
+setting it — typically to a theme's own computed title-area height when the container also carries a
+`Keyword` — lets the reserved band match what the renderer will actually draw instead of being limited
+to the engine's generic default. Ignored for a leaf node (one with no children) and for a container
+with no `Label`.
+
 ### Layout Graph Error Handling
 
 Invalid inputs are rejected at their entry point rather than deferred to layout time. The
@@ -106,6 +116,10 @@ the appropriate ancestor container.
   node's placed appearance unchanged when none of the three are set; a layout algorithm shall copy
   each of the three properties unchanged onto the placed box (or, for `HierarchicalLayoutAlgorithm`,
   onto the corresponding view node) rather than substituting a default.
+- `TitleHeight` shall default to `null`, so that a container node reserves `HierarchicalLayoutAlgorithm`'s
+  generic default title-band height unless a caller explicitly overrides it; the override shall apply
+  only while the container also carries a `Label`, matching the existing label-gated title-band
+  behavior.
 - An edge shall reside in the container at or above the *lowest common ancestor* (LCA) of its two
   endpoints. An edge whose endpoints live in different descendant containers (a *cross-container*
   edge) shall therefore be added to an ancestor container while its `Source` and `Target` reference
@@ -152,3 +166,4 @@ carries an `EndMarkerStyle` and `LineStyle` from the Layout Tree unit's enumerat
 | Rendering-Model-LayoutGraph-ScopedIdentifiers | Per-`LayoutGraph` id-uniqueness reused by `Children` |
 | Rendering-Model-LayoutGraph-CrossContainerEdge | `LayoutGraphEdge` endpoints referencing descendant nodes |
 | Rendering-Model-LayoutGraph-BoxAppearance | `LayoutGraphNode.Shape` / `.Keyword` / `.Compartments` |
+| Rendering-Model-LayoutGraph-ContainerTitleHeight | `LayoutGraphNode.TitleHeight` |

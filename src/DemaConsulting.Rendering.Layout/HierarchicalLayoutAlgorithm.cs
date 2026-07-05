@@ -115,11 +115,23 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     private const double ContainerPadding = 12.0;
 
     /// <summary>
-    /// Height, in logical pixels, of the title band reserved at the top of a container that carries a
-    /// <see cref="LayoutGraphNode.Label"/>. The children are offset below this band so the label and the
-    /// nested content never overlap; a container with no label reserves no band.
+    /// Default height, in logical pixels, of the title band reserved at the top of a container that
+    /// carries a <see cref="LayoutGraphNode.Label"/> and does not set its own
+    /// <see cref="LayoutGraphNode.TitleHeight"/>. The children are offset below this band so the label
+    /// and the nested content never overlap; a container with no label reserves no band.
     /// </summary>
-    private const double ContainerTitleHeight = 24.0;
+    private const double DefaultContainerTitleHeight = 24.0;
+
+    /// <summary>
+    /// Resolves the title-band height reserved above a container's children: the node's own
+    /// <see cref="LayoutGraphNode.TitleHeight"/> override when set (so a caller can match a specific
+    /// theme's actual title-area height, including a keyword line), otherwise
+    /// <see cref="DefaultContainerTitleHeight"/>; zero for a node with no label.
+    /// </summary>
+    /// <param name="node">The container node whose title-band height is resolved.</param>
+    /// <returns>The title-band height in logical pixels.</returns>
+    private static double ResolveTitleHeight(LayoutGraphNode node) =>
+        node.Label is null ? 0.0 : node.TitleHeight ?? DefaultContainerTitleHeight;
 
     /// <summary>
     /// The leaf-algorithm provider used to resolve the per-scope layout algorithm by identifier. It is
@@ -279,7 +291,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
             // Size the container to enclose its sub-layout plus a padding inset on every side and, when
             // the container is labelled, a title band above the children.
-            var titleHeight = node.Label is null ? 0.0 : ContainerTitleHeight;
+            var titleHeight = ResolveTitleHeight(node);
             effectiveSize[node] = (
                 sub.Width + (2 * ContainerPadding),
                 sub.Height + (2 * ContainerPadding) + titleHeight);
@@ -372,7 +384,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
             if (subLayouts.TryGetValue(node, out var sub))
             {
                 // Offset the nested content to the container's padded interior, below any title band.
-                var titleHeight = node.Label is null ? 0.0 : ContainerTitleHeight;
+                var titleHeight = ResolveTitleHeight(node);
                 var offsetX = box.X + ContainerPadding;
                 var offsetY = box.Y + ContainerPadding + titleHeight;
                 var children = new List<LayoutNode>(sub.Nodes.Count);

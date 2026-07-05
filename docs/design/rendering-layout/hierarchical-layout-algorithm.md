@@ -16,16 +16,20 @@ when a caller selects it by name.
 ### HierarchicalLayoutAlgorithm Data Model
 
 The class is sealed and stateless with respect to any single layout. It exposes the `AlgorithmId`
-constant (`"hierarchical"`) and returns it from `Id`. Two private constants govern container framing:
-`ContainerPadding` (`12.0` logical pixels) is the inset kept on every side between a container border
-and its children's sub-layout, and `ContainerTitleHeight` (`24.0` logical pixels) is the title band
-reserved above the children of a container that carries a `Label` (a container with no label reserves
-no band). The engine holds a single field, a `LayoutAlgorithmRegistry` used to resolve the per-scope
-leaf algorithm by identifier. A default constructor builds a default registry containing the
-bundled `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm`; an injecting constructor accepts a
-caller-supplied registry (rejecting null). The engine treats a scope that explicitly selects its own
-`"hierarchical"` identifier as selecting the default leaf algorithm, so recursion always terminates in a
-bundled leaf algorithm.
+constant (`"hierarchical"`) and returns it from `Id`. A private constant and a per-node override
+together govern container framing: `ContainerPadding` (`12.0` logical pixels) is the inset kept on
+every side between a container border and its children's sub-layout, and `DefaultContainerTitleHeight`
+(`24.0` logical pixels) is the *default* title band reserved above the children of a container that
+carries a `Label` (a container with no label reserves no band regardless of any override). A container
+node's own `LayoutGraphNode.TitleHeight` — when set — replaces `DefaultContainerTitleHeight` for that
+node, resolved by the private `ResolveTitleHeight` helper; this lets a caller reserve a title band that
+matches a specific theme's actual title-area height (including a keyword line) instead of being
+limited to the generic default. The engine holds a single field, a `LayoutAlgorithmRegistry` used to
+resolve the per-scope leaf algorithm by identifier. A default constructor builds a default registry
+containing the bundled `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm`; an injecting
+constructor accepts a caller-supplied registry (rejecting null). The engine treats a scope that
+explicitly selects its own `"hierarchical"` identifier as selecting the default leaf algorithm, so
+recursion always terminates in a bundled leaf algorithm.
 
 ### HierarchicalLayoutAlgorithm Methods
 

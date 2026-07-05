@@ -121,6 +121,17 @@ public sealed class LayoutGraphNode : PropertyHolder
     public IReadOnlyList<LayoutCompartment> Compartments { get; set; } = [];
 
     /// <summary>
+    /// Gets or sets the height, in logical pixels, of the title band a hierarchical layout engine
+    /// reserves above this node's children when it acts as a labelled container. <see langword="null"/>
+    /// (the default) selects the engine's own generic default band height; set this explicitly — for
+    /// example to a theme's computed title-area height — when the container also carries a
+    /// <see cref="Keyword"/> or a larger title font than the generic default assumes, so the reserved
+    /// band matches what the renderer will actually draw. Ignored for a leaf node (one with no
+    /// children).
+    /// </summary>
+    public double? TitleHeight { get; set; }
+
+    /// <summary>
     /// Gets the child subgraph nested inside this node, turning the node into a container of nodes and
     /// contained edges.
     /// </summary>
