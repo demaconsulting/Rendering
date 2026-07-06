@@ -97,16 +97,29 @@ public abstract class SkiaRasterRenderer : IRenderer
     }
 
     /// <summary>
-    /// Creates an <see cref="SKPaint"/> configured for text rendering with the Noto Sans typeface
-    /// matching the requested weight and style. The caller is responsible for disposing the
+    /// Creates an <see cref="SKPaint"/> configured for text rendering (color and antialiasing
+    /// only). Font identity (typeface and size) is carried separately by an <see cref="SKFont"/>
+    /// created with <see cref="CreateFont"/>. The caller is responsible for disposing the
     /// returned paint.
     /// </summary>
     /// <param name="color">Fill color for the text glyphs.</param>
+    /// <returns>A new <see cref="SKPaint"/> ready for use with <c>canvas.DrawText</c>.</returns>
+    private static SKPaint CreateTextPaint(SKColor color) =>
+        new()
+        {
+            Color = color,
+            IsAntialias = true,
+        };
+
+    /// <summary>
+    /// Creates an <see cref="SKFont"/> using the Noto Sans typeface matching the requested weight
+    /// and style, at the requested size. The caller is responsible for disposing the returned font.
+    /// </summary>
     /// <param name="fontSize">Font size in scaled pixels.</param>
     /// <param name="bold">When <see langword="true"/>, selects the bold typeface variant.</param>
     /// <param name="italic">When <see langword="true"/>, selects the italic typeface variant.</param>
-    /// <returns>A new <see cref="SKPaint"/> ready for use with <c>canvas.DrawText</c>.</returns>
-    private static SKPaint CreateTextPaint(SKColor color, float fontSize, bool bold, bool italic)
+    /// <returns>A new <see cref="SKFont"/> ready for use with <c>canvas.DrawText</c>.</returns>
+    private static SKFont CreateFont(float fontSize, bool bold, bool italic)
     {
         var typeface = (bold, italic) switch
         {
@@ -115,13 +128,7 @@ public abstract class SkiaRasterRenderer : IRenderer
             (false, true) => ItalicTypeface.Value,
             _ => RegularTypeface.Value,
         };
-        return new SKPaint
-        {
-            Color = color,
-            TextSize = fontSize,
-            IsAntialias = true,
-            Typeface = typeface,
-        };
+        return new SKFont(typeface, fontSize);
     }
 
     /// <summary>
@@ -130,21 +137,21 @@ public abstract class SkiaRasterRenderer : IRenderer
     /// Returns <paramref name="maxFontSize"/> unchanged when the text already fits or
     /// when there is no meaningful width constraint.
     /// </summary>
-    /// <param name="paint">Paint whose <see cref="SKPaint.TextSize"/> is temporarily set
+    /// <param name="font">Font whose <see cref="SKFont.Size"/> is temporarily set
     /// to <paramref name="maxFontSize"/> to measure the text width.</param>
     /// <param name="text">Text whose rendered width is measured.</param>
     /// <param name="availableWidth">Maximum allowed width in scaled pixels. 0 or negative disables shrinking.</param>
     /// <param name="maxFontSize">Preferred (maximum) font size in scaled pixels.</param>
     /// <returns>Font size in scaled pixels, guaranteed to be &gt; 0.</returns>
-    private static float FitFontSize(SKPaint paint, string text, float availableWidth, float maxFontSize)
+    private static float FitFontSize(SKFont font, string text, float availableWidth, float maxFontSize)
     {
-        paint.TextSize = maxFontSize;
+        font.Size = maxFontSize;
         if (availableWidth <= 0 || string.IsNullOrEmpty(text))
         {
             return maxFontSize;
         }
 
-        var measuredWidth = paint.MeasureText(text);
+        var measuredWidth = font.MeasureText(text);
         if (measuredWidth <= availableWidth)
         {
             return maxFontSize;
@@ -387,16 +394,16 @@ public abstract class SkiaRasterRenderer : IRenderer
         var xRight = (float)((box.X + box.Width) * scale);
         var yBottom = (float)((box.Y + box.Height) * scale);
 
-        var path = new SKPath();
-        path.MoveTo(x, yBody);
-        path.LineTo(x, yTab);
-        path.LineTo(xTabRight, yTab);
-        path.LineTo(xTabRight, yBody);
-        path.LineTo(xRight, yBody);
-        path.LineTo(xRight, yBottom);
-        path.LineTo(x, yBottom);
-        path.Close();
-        return path;
+        var builder = new SKPathBuilder();
+        builder.MoveTo(x, yBody);
+        builder.LineTo(x, yTab);
+        builder.LineTo(xTabRight, yTab);
+        builder.LineTo(xTabRight, yBody);
+        builder.LineTo(xRight, yBody);
+        builder.LineTo(xRight, yBottom);
+        builder.LineTo(x, yBottom);
+        builder.Close();
+        return builder.Detach();
     }
 
     /// <summary>
@@ -463,20 +470,22 @@ public abstract class SkiaRasterRenderer : IRenderer
         var yFold = (float)((box.Y + fold) * scale);
         var yBottom = (float)((box.Y + box.Height) * scale);
 
-        using var body = new SKPath();
-        body.MoveTo(x, y);
-        body.LineTo(xFold, y);
-        body.LineTo(xRight, yFold);
-        body.LineTo(xRight, yBottom);
-        body.LineTo(x, yBottom);
-        body.Close();
+        var bodyBuilder = new SKPathBuilder();
+        bodyBuilder.MoveTo(x, y);
+        bodyBuilder.LineTo(xFold, y);
+        bodyBuilder.LineTo(xRight, yFold);
+        bodyBuilder.LineTo(xRight, yBottom);
+        bodyBuilder.LineTo(x, yBottom);
+        bodyBuilder.Close();
+        using var body = bodyBuilder.Detach();
         canvas.DrawPath(body, fillPaint);
         canvas.DrawPath(body, strokePaint);
 
-        using var corner = new SKPath();
-        corner.MoveTo(xFold, y);
-        corner.LineTo(xFold, yFold);
-        corner.LineTo(xRight, yFold);
+        var cornerBuilder = new SKPathBuilder();
+        cornerBuilder.MoveTo(xFold, y);
+        cornerBuilder.LineTo(xFold, yFold);
+        cornerBuilder.LineTo(xRight, yFold);
+        using var corner = cornerBuilder.Detach();
         canvas.DrawPath(corner, strokePaint);
     }
 
@@ -497,22 +506,22 @@ public abstract class SkiaRasterRenderer : IRenderer
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
         if (box.Keyword != null)
         {
-            using var kwPaint = CreateTextPaint(strokeColor, (float)theme.FontSizeBody * scale, bold: false, italic: true);
-            kwPaint.TextAlign = SKTextAlign.Center;
+            using var kwPaint = CreateTextPaint(strokeColor);
+            using var kwFont = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: true);
             var kwY = (float)((cursorY + theme.FontSizeBody) * scale);
-            canvas.DrawText("\u00AB" + box.Keyword + "\u00BB", centerX, kwY, kwPaint);
+            canvas.DrawText("\u00AB" + box.Keyword + "\u00BB", centerX, kwY, SKTextAlign.Center, kwFont, kwPaint);
             cursorY += theme.FontSizeBody + theme.LabelPadding;
         }
 
         // Bold name label, shrink-to-fit
         if (box.Label != null)
         {
-            using var textPaint = CreateTextPaint(strokeColor, (float)theme.FontSizeTitle * scale, bold: true, italic: false);
-            textPaint.TextAlign = SKTextAlign.Center;
+            using var textPaint = CreateTextPaint(strokeColor);
+            using var textFont = CreateFont((float)theme.FontSizeTitle * scale, bold: true, italic: false);
             var availableWidth = (float)((box.Width - 2 * theme.LabelPadding) * scale);
-            textPaint.TextSize = FitFontSize(textPaint, box.Label, availableWidth, textPaint.TextSize);
+            textFont.Size = FitFontSize(textFont, box.Label, availableWidth, textFont.Size);
             var textY = (float)((cursorY + theme.FontSizeTitle) * scale);
-            canvas.DrawText(box.Label, centerX, textY, textPaint);
+            canvas.DrawText(box.Label, centerX, textY, SKTextAlign.Center, textFont, textPaint);
         }
     }
 
@@ -558,22 +567,22 @@ public abstract class SkiaRasterRenderer : IRenderer
             // Draw the optional bold compartment title
             if (compartment.Title != null)
             {
-                using var titlePaint = CreateTextPaint(strokeColor, (float)theme.FontSizeBody * scale, bold: true, italic: true);
-                titlePaint.TextAlign = SKTextAlign.Left;
+                using var titlePaint = CreateTextPaint(strokeColor);
+                using var titleFont = CreateFont((float)theme.FontSizeBody * scale, bold: true, italic: true);
                 var titleX = (float)((box.X + theme.LabelPadding) * scale);
                 var titleY = (float)((compartmentY + theme.LabelPadding + theme.FontSizeBody) * scale);
-                canvas.DrawText(compartment.Title, titleX, titleY, titlePaint);
+                canvas.DrawText(compartment.Title, titleX, titleY, SKTextAlign.Left, titleFont, titlePaint);
                 compartmentY += theme.LabelPadding + theme.FontSizeBody + theme.LabelPadding;
             }
 
             // Draw each body row at body font size, left-aligned with LabelPadding indent
             foreach (var row in compartment.Rows)
             {
-                using var rowPaint = CreateTextPaint(strokeColor, (float)theme.FontSizeBody * scale, bold: false, italic: false);
-                rowPaint.TextAlign = SKTextAlign.Left;
+                using var rowPaint = CreateTextPaint(strokeColor);
+                using var rowFont = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: false);
                 var rowX = (float)((box.X + theme.LabelPadding) * scale);
                 var rowY = (float)((compartmentY + theme.LabelPadding + theme.FontSizeBody) * scale);
-                canvas.DrawText(row, rowX, rowY, rowPaint);
+                canvas.DrawText(row, rowX, rowY, SKTextAlign.Left, rowFont, rowPaint);
                 compartmentY += theme.LabelPadding + theme.FontSizeBody;
             }
 
@@ -706,14 +715,14 @@ public abstract class SkiaRasterRenderer : IRenderer
     /// <returns>The polyline path.</returns>
     private static SKPath BuildSimpleLinePath(IReadOnlyList<Point2D> waypoints, float scale)
     {
-        var path = new SKPath();
-        path.MoveTo((float)(waypoints[0].X * scale), (float)(waypoints[0].Y * scale));
+        var builder = new SKPathBuilder();
+        builder.MoveTo((float)(waypoints[0].X * scale), (float)(waypoints[0].Y * scale));
         for (var i = 1; i < waypoints.Count; i++)
         {
-            path.LineTo((float)(waypoints[i].X * scale), (float)(waypoints[i].Y * scale));
+            builder.LineTo((float)(waypoints[i].X * scale), (float)(waypoints[i].Y * scale));
         }
 
-        return path;
+        return builder.Detach();
     }
 
     /// <summary>
@@ -780,9 +789,9 @@ public abstract class SkiaRasterRenderer : IRenderer
         EndMarkerStyle sourceEnd,
         EndMarkerStyle targetEnd)
     {
-        var path = new SKPath();
+        var builder = new SKPathBuilder();
         var first = waypoints[0];
-        path.MoveTo((float)(first.X * scale), (float)(first.Y * scale));
+        builder.MoveTo((float)(first.X * scale), (float)(first.Y * scale));
 
         for (var i = 1; i < waypoints.Count; i++)
         {
@@ -790,7 +799,7 @@ public abstract class SkiaRasterRenderer : IRenderer
             var isInterior = i < waypoints.Count - 1;
             if (!isInterior)
             {
-                path.LineTo((float)(cur.X * scale), (float)(cur.Y * scale));
+                builder.LineTo((float)(cur.X * scale), (float)(cur.Y * scale));
                 continue;
             }
 
@@ -806,7 +815,7 @@ public abstract class SkiaRasterRenderer : IRenderer
 
             if (inLen < 0.001 || outLen < 0.001)
             {
-                path.LineTo((float)(cur.X * scale), (float)(cur.Y * scale));
+                builder.LineTo((float)(cur.X * scale), (float)(cur.Y * scale));
                 continue;
             }
 
@@ -828,7 +837,7 @@ public abstract class SkiaRasterRenderer : IRenderer
 
             if (r <= 0.0)
             {
-                path.LineTo((float)(cur.X * scale), (float)(cur.Y * scale));
+                builder.LineTo((float)(cur.X * scale), (float)(cur.Y * scale));
                 continue;
             }
 
@@ -840,13 +849,13 @@ public abstract class SkiaRasterRenderer : IRenderer
             var cross = inNx * outNy - inNy * outNx;
             var dir = cross > 0 ? SKPathDirection.Clockwise : SKPathDirection.CounterClockwise;
 
-            path.LineTo((float)(shortEndX * scale), (float)(shortEndY * scale));
-            path.ArcTo(
+            builder.LineTo((float)(shortEndX * scale), (float)(shortEndY * scale));
+            builder.ArcTo(
                 (float)(r * scale), (float)(r * scale), 0, SKPathArcSize.Small, dir,
                 (float)(shortStartX * scale), (float)(shortStartY * scale));
         }
 
-        return path;
+        return builder.Detach();
     }
 
     /// <summary>Returns the Euclidean distance between two points.</summary>
@@ -1109,21 +1118,21 @@ public abstract class SkiaRasterRenderer : IRenderer
         float tipX, float tipY, float dx, float dy, float px, float py, float scale, bool close)
     {
         var vertices = NotationMetrics.TriangleVertices();
-        var p = new SKPath();
+        var builder = new SKPathBuilder();
         var v0 = MarkerPoint(tipX, tipY, dx, dy, px, py, vertices[0], scale);
-        p.MoveTo(v0.X, v0.Y);
+        builder.MoveTo(v0.X, v0.Y);
         for (var i = 1; i < vertices.Count; i++)
         {
             var v = MarkerPoint(tipX, tipY, dx, dy, px, py, vertices[i], scale);
-            p.LineTo(v.X, v.Y);
+            builder.LineTo(v.X, v.Y);
         }
 
         if (close)
         {
-            p.Close();
+            builder.Close();
         }
 
-        return p;
+        return builder.Detach();
     }
 
     /// <summary>
@@ -1133,17 +1142,17 @@ public abstract class SkiaRasterRenderer : IRenderer
         float tipX, float tipY, float dx, float dy, float px, float py, float scale)
     {
         var vertices = NotationMetrics.DiamondVertices();
-        var p = new SKPath();
+        var builder = new SKPathBuilder();
         var v0 = MarkerPoint(tipX, tipY, dx, dy, px, py, vertices[0], scale);
-        p.MoveTo(v0.X, v0.Y);
+        builder.MoveTo(v0.X, v0.Y);
         for (var i = 1; i < vertices.Count; i++)
         {
             var v = MarkerPoint(tipX, tipY, dx, dy, px, py, vertices[i], scale);
-            p.LineTo(v.X, v.Y);
+            builder.LineTo(v.X, v.Y);
         }
 
-        p.Close();
-        return p;
+        builder.Close();
+        return builder.Detach();
     }
 
     /// <summary>
@@ -1188,11 +1197,11 @@ public abstract class SkiaRasterRenderer : IRenderer
         var scaledX = (float)(midX * scale);
         var scaledY = (float)(midY * scale);
 
-        using var textPaint = CreateTextPaint(strokeColor, (float)theme.FontSizeBody * scale, bold: false, italic: false);
-        textPaint.TextAlign = SKTextAlign.Center;
+        using var textPaint = CreateTextPaint(strokeColor);
+        using var textFont = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: false);
 
         // Measure the text so the background rectangle fits snugly around it
-        var textWidth = textPaint.MeasureText(label);
+        var textWidth = textFont.MeasureText(label);
         var textHeight = (float)theme.FontSizeBody * scale;
         var padding = (float)theme.LabelPadding * scale * 0.5f;
         var bgRect = new SKRect(
@@ -1210,7 +1219,7 @@ public abstract class SkiaRasterRenderer : IRenderer
             canvas.DrawRect(bgRect, bgPaint);
         }
 
-        canvas.DrawText(label, scaledX, scaledY, textPaint);
+        canvas.DrawText(label, scaledX, scaledY, SKTextAlign.Center, textFont, textPaint);
     }
 
     /// <summary>
@@ -1224,12 +1233,12 @@ public abstract class SkiaRasterRenderer : IRenderer
         var theme = options.Theme;
         var scale = (float)options.Scale;
 
-        using var paint = CreateTextPaint(
-            SKColor.Parse(theme.StrokeColor),
+        using var paint = CreateTextPaint(SKColor.Parse(theme.StrokeColor));
+        using var font = CreateFont(
             (float)label.FontSize * scale,
             bold: label.Weight == FontWeight.Bold,
             italic: label.Style == FontStyle.Italic);
-        paint.TextAlign = label.Align switch
+        var align = label.Align switch
         {
             TextAlign.Center => SKTextAlign.Center,
             TextAlign.Right => SKTextAlign.Right,
@@ -1237,9 +1246,9 @@ public abstract class SkiaRasterRenderer : IRenderer
         };
 
         var availableWidth = (float)(label.MaxWidth * scale);
-        paint.TextSize = FitFontSize(paint, label.Text, availableWidth, paint.TextSize);
+        font.Size = FitFontSize(font, label.Text, availableWidth, font.Size);
 
-        canvas.DrawText(label.Text, (float)(label.X * scale), (float)(label.Y * scale), paint);
+        canvas.DrawText(label.Text, (float)(label.X * scale), (float)(label.Y * scale), align, font, paint);
     }
 
     /// <summary>
@@ -1284,9 +1293,9 @@ public abstract class SkiaRasterRenderer : IRenderer
                 _ => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, SKTextAlign.Left)
             };
 
-            using var textPaint = CreateTextPaint(strokeColor, (float)theme.FontSizeBody * scale, bold: false, italic: false);
-            textPaint.TextAlign = align;
-            canvas.DrawText(port.Label, (float)(labelX * scale), (float)(labelY * scale), textPaint);
+            using var textPaint = CreateTextPaint(strokeColor);
+            using var font = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: false);
+            canvas.DrawText(port.Label, (float)(labelX * scale), (float)(labelY * scale), align, font, textPaint);
         }
     }
 
@@ -1341,12 +1350,13 @@ public abstract class SkiaRasterRenderer : IRenderer
             case BadgeShape.Diamond:
                 {
                     // Open rotated-square diamond with vertices at the compass cardinal points
-                    using var p = new SKPath();
-                    p.MoveTo(cx, cy - r);       // top
-                    p.LineTo(cx + r, cy);       // right
-                    p.LineTo(cx, cy + r);       // bottom
-                    p.LineTo(cx - r, cy);       // left
-                    p.Close();
+                    var diamondBuilder = new SKPathBuilder();
+                    diamondBuilder.MoveTo(cx, cy - r);       // top
+                    diamondBuilder.LineTo(cx + r, cy);       // right
+                    diamondBuilder.LineTo(cx, cy + r);       // bottom
+                    diamondBuilder.LineTo(cx - r, cy);       // left
+                    diamondBuilder.Close();
+                    using var p = diamondBuilder.Detach();
                     canvas.DrawPath(p, strokePaint);
                     break;
                 }
@@ -1367,11 +1377,11 @@ public abstract class SkiaRasterRenderer : IRenderer
         // Draw the optional label to the right of the bounding circle
         if (badge.Label != null)
         {
-            using var textPaint = CreateTextPaint(strokeColor, (float)theme.FontSizeBody * scale, bold: false, italic: false);
-            textPaint.TextAlign = SKTextAlign.Left;
+            using var textPaint = CreateTextPaint(strokeColor);
+            using var font = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: false);
             var labelX = (float)((badge.CentreX + badge.Size / 2.0 + theme.LabelPadding) * scale);
             var labelY = (float)((badge.CentreY + theme.FontSizeBody / 2.0) * scale);
-            canvas.DrawText(badge.Label, labelX, labelY, textPaint);
+            canvas.DrawText(badge.Label, labelX, labelY, SKTextAlign.Left, font, textPaint);
         }
     }
 
@@ -1416,8 +1426,8 @@ public abstract class SkiaRasterRenderer : IRenderer
         // Draw the optional label; position and rotation depends on band orientation
         if (band.Label != null)
         {
-            using var textPaint = CreateTextPaint(strokeColor, (float)theme.FontSizeBody * scale, bold: false, italic: false);
-            textPaint.TextAlign = SKTextAlign.Center;
+            using var textPaint = CreateTextPaint(strokeColor);
+            using var font = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: false);
 
             if (band.Orientation == BandOrientation.Horizontal)
             {
@@ -1427,7 +1437,7 @@ public abstract class SkiaRasterRenderer : IRenderer
                 canvas.Save();
                 canvas.Translate(labelCx, labelCy);
                 canvas.RotateDegrees(-90);
-                canvas.DrawText(band.Label, 0, 0, textPaint);
+                canvas.DrawText(band.Label, 0, 0, SKTextAlign.Center, font, textPaint);
                 canvas.Restore();
             }
             else
@@ -1435,7 +1445,7 @@ public abstract class SkiaRasterRenderer : IRenderer
                 // Horizontal text at the top of the band
                 var textX = (float)((band.X + band.Width / 2.0) * scale);
                 var textY = (float)((band.Y + theme.LabelPadding + theme.FontSizeBody) * scale);
-                canvas.DrawText(band.Label, textX, textY, textPaint);
+                canvas.DrawText(band.Label, textX, textY, SKTextAlign.Center, font, textPaint);
             }
         }
 
@@ -1487,12 +1497,12 @@ public abstract class SkiaRasterRenderer : IRenderer
         }
 
         // Draw the header label centered within the header box
-        using (var textPaint = CreateTextPaint(strokeColor, (float)theme.FontSizeBody * scale, bold: true, italic: false))
+        using (var textPaint = CreateTextPaint(strokeColor))
+        using (var font = CreateFont((float)theme.FontSizeBody * scale, bold: true, italic: false))
         {
-            textPaint.TextAlign = SKTextAlign.Center;
             var textX = (float)(lifeline.CentreX * scale);
             var textY = (float)((lifeline.TopY + (lifeline.HeaderHeight + theme.FontSizeBody) / 2.0) * scale);
-            canvas.DrawText(lifeline.Label, textX, textY, textPaint);
+            canvas.DrawText(lifeline.Label, textX, textY, SKTextAlign.Center, font, textPaint);
         }
 
         // Dashed vertical stem from the bottom of the header box to BottomY
@@ -1608,9 +1618,10 @@ public abstract class SkiaRasterRenderer : IRenderer
                 }
 
                 // Draw cell text, horizontally aligned per cell spec and vertically centered
-                using (var textPaint = CreateTextPaint(strokeColor, (float)theme.FontSizeBody * scale, bold: row.IsHeader, italic: false))
+                using (var textPaint = CreateTextPaint(strokeColor))
+                using (var font = CreateFont((float)theme.FontSizeBody * scale, bold: row.IsHeader, italic: false))
                 {
-                    textPaint.TextAlign = cell.Align switch
+                    var align = cell.Align switch
                     {
                         TextAlign.Center => SKTextAlign.Center,
                         TextAlign.Right => SKTextAlign.Right,
@@ -1626,7 +1637,7 @@ public abstract class SkiaRasterRenderer : IRenderer
 
                     // Vertically center the baseline within the row
                     var textY = currentY + (rowHeight + theme.FontSizeBody) / 2.0;
-                    canvas.DrawText(cell.Text, (float)(textX * scale), (float)(textY * scale), textPaint);
+                    canvas.DrawText(cell.Text, (float)(textX * scale), (float)(textY * scale), align, font, textPaint);
                 }
 
                 currentX += cell.Width;
