@@ -108,19 +108,24 @@ public static class CoreOptions
         new("rendering.edgerouting", Rendering.EdgeRouting.Orthogonal);
 
     /// <summary>
-    /// Advisory: desired spacing, in logical pixels, between adjacent nodes within a layer. Accepted
-    /// but not yet honored by the bundled layered algorithm, which uses fixed engine metrics. Would
-    /// cascade per scope by nearest-ancestor override, consistent with every other property in this
-    /// catalog, once an algorithm honors it.
+    /// Advisory: minimum spacing, in logical pixels, between adjacent nodes within a layer, mirroring
+    /// ELK's <c>spacing.nodeNode</c>. As with ELK's option, this is a floor enforced by the layout
+    /// engine's compaction step, not an exact/desired gap — nodes may end up further apart when other
+    /// placement constraints require it. Accepted but not yet honored by the bundled layered algorithm,
+    /// which uses a fixed engine constant instead. Would cascade per scope by nearest-ancestor override,
+    /// consistent with every other property in this catalog, once an algorithm honors it.
     /// </summary>
     public static readonly LayoutProperty<double> NodeSpacing =
         new("rendering.spacing.node", 20.0);
 
     /// <summary>
-    /// Advisory: desired spacing, in logical pixels, between adjacent layers. Accepted but not yet
-    /// honored by the bundled layered algorithm, which uses fixed engine metrics. Would cascade per
-    /// scope by nearest-ancestor override, consistent with every other property in this catalog, once
-    /// an algorithm honors it.
+    /// Advisory: minimum spacing, in logical pixels, between adjacent layers, mirroring ELK's
+    /// <c>spacing.nodeNodeBetweenLayers</c>. As with ELK's option, this is a floor, not an exact/desired
+    /// gap — the bundled layered algorithm's connector routing may already require a larger corridor
+    /// width than this value, in which case the routing-derived minimum takes precedence. Accepted but
+    /// not yet honored by the bundled layered algorithm, which uses a fixed engine constant instead.
+    /// Would cascade per scope by nearest-ancestor override, consistent with every other property in
+    /// this catalog, once an algorithm honors it.
     /// </summary>
     public static readonly LayoutProperty<double> LayerSpacing =
         new("rendering.spacing.layer", 40.0);

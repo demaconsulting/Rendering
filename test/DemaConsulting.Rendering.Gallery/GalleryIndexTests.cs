@@ -5,7 +5,7 @@
 namespace DemaConsulting.Rendering.Gallery;
 
 /// <summary>
-///     Exercises the <c>gallery.md</c> index generator. The generated Markdown is validated on every
+///     Exercises the <c>README.md</c> index generator. The generated Markdown is validated on every
 ///     run (a smoke test of the generator), but only written to disk in "regenerate the committed
 ///     showcase" mode — selected by <c>RENDERING_GALLERY_DIR</c> — so ordinary test runs never write a
 ///     Markdown file into the build output where the lint gate would pick it up.

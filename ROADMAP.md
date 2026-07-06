@@ -10,21 +10,31 @@ attach to entries here until they are actually implemented).
 
 All six `CoreOptions` properties now cascade correctly through the layout hierarchy (nearest-ancestor
 inheritance via `PropertyHolder.OverlayOnto`, landed alongside this file). The following properties are
-accepted and cascade correctly, but are not yet *read* by any bundled algorithm's layout logic:
+accepted and cascade correctly, but are not yet *read* by any bundled algorithm's layout logic. Effort
+below is ranked from easiest to hardest — it is not uniform across the three, despite all three sharing
+the same already-working cascading mechanism:
 
-- **`CoreOptions.HierarchyHandling`** — only `HierarchyHandling.SeparateChildren` exists and is
-  implicitly what the bundled `HierarchicalLayoutAlgorithm` does; no algorithm branches on this
-  property's value. Additional modes (e.g. an ELK-style "include children in the parent's own
-  layout space" mode) are not implemented.
-- **`CoreOptions.NodeSpacing`** — advisory; the bundled `layered` algorithm uses fixed engine
-  metrics instead of this value.
-- **`CoreOptions.LayerSpacing`** — advisory; same as `NodeSpacing`, fixed engine metrics are used
-  instead.
-
-Because these properties are ordinary `LayoutProperty<T>` values stored via `PropertyHolder`, the
-generalized cascading mechanism already applies to them automatically — implementing any of the
-above only requires an algorithm to start reading the (already-cascaded) effective value; no new
-option-resolution plumbing is required.
+- **`CoreOptions.NodeSpacing`** (easiest) — advisory; the bundled `layered` algorithm uses a fixed
+  engine constant (`LayeredLayoutMetrics.NodeSpacing`, 30.0) instead of this value. This constant is a
+  pure floor in the Brandes-Köpf compaction step, isolated from connector-routing math, so wiring it up
+  is a small, low-risk change: resolve the cascaded value the same way `LayeredLayoutAlgorithm.
+  ResolveDirection` already does for `Direction`, then thread the resolved `double` down through the
+  pipeline stage(s) that currently reference the constant.
+- **`CoreOptions.LayerSpacing`** (needs a design decision first) — advisory; the bundled `layered`
+  algorithm uses a fixed engine constant (`LayeredLayoutMetrics.CorridorMinWidth`, 70.0) instead. Unlike
+  `NodeSpacing`, there is no clean 1:1 replacement: `CorridorMinWidth` is *derived* from connector-routing
+  slot math (`2×ConnectorClearance + (edgeCount−1)×EdgeSpacing`), not a free-standing spacing value. A
+  user-supplied `LayerSpacing` smaller than what routing needs must not silently override the
+  routing-derived minimum, or connectors will overlap — implementation must decide whether the option
+  acts as an additional floor on top of the routing minimum, a validated hard override, or something
+  else, before any code is written.
+- **`CoreOptions.HierarchyHandling`** (hardest) — only `HierarchyHandling.SeparateChildren` exists and
+  is implicitly what the bundled `HierarchicalLayoutAlgorithm` does; no algorithm branches on this
+  property's value, and no second mode exists yet. Implementing an additional mode (e.g. an ELK-style
+  "include children in the parent's own layout space" mode) is genuine new layout logic in
+  `HierarchicalLayoutAlgorithm` — not a matter of reading an already-cascaded value — and introduces new
+  user-visible layout behavior, so it belongs in a proper planning/implementation pass rather than an
+  opportunistic fix.
 
 ## Process note
 
