@@ -81,6 +81,17 @@ internal sealed class LayeredGraph
     /// </remarks>
     public double BackEdgeEntryApproach { get; set; } = LayeredLayoutMetrics.ConnectorClearance;
 
+    /// <summary>
+    /// Gets or sets the minimum vertical gap enforced between adjacent nodes stacked in the same
+    /// layer by the Brandes-Köpf compaction step, mirroring <see cref="Rendering.CoreOptions.NodeSpacing"/>.
+    /// </summary>
+    /// <remarks>
+    /// The default is <see cref="LayeredLayoutMetrics.NodeSpacing"/>, which exactly reproduces the
+    /// original engine's fixed constant so callers that never set this property see byte-identical
+    /// output to before this property existed.
+    /// </remarks>
+    public double NodeSpacing { get; set; } = LayeredLayoutMetrics.NodeSpacing;
+
     /// <summary>Gets or sets the acyclic edge set after cycle breaking.</summary>
     public List<LayerEdge> Acyclic { get; set; } = [];
 

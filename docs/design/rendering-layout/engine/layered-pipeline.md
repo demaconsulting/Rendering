@@ -22,7 +22,10 @@ dummies), the per-layer node groups, the augmented-node coordinate arrays, the c
 per-sub-edge port positions, the per-sub-edge bend points, and finally the assembled per-edge
 waypoints. The `BackEdgeEntryApproach` parameter (default `ConnectorClearance`) lets a
 decoration-aware caller lengthen a reversed edge's final approach without disturbing default
-geometry. The `SwapNodeAxes` seam swaps each node's width and height for the down/up directions so
+geometry. The `NodeSpacing` parameter (default `LayeredLayoutMetrics.NodeSpacing`) is the minimum gap
+`BrandesKopfPlacer` enforces between same-layer nodes during horizontal compaction; a caller-supplied
+value replaces the pipeline's original fixed constant without disturbing default geometry when left
+at its default. The `SwapNodeAxes` seam swaps each node's width and height for the down/up directions so
 the direction-agnostic stages space layers by the correct extent; it preserves every other
 `LayerNode` field (`Shape`, `RoundedCornerRadius`, `FolderTabWidth`, `FolderTabHeight`, `Label`,
 `RealWidth`, `RealHeight`) unchanged, since only the abstract along/cross axes need to reorient.

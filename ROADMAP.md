@@ -9,17 +9,12 @@ attach to entries here until they are actually implemented).
 ## Unimplemented `CoreOptions` behavior
 
 All six `CoreOptions` properties now cascade correctly through the layout hierarchy (nearest-ancestor
-inheritance via `PropertyHolder.OverlayOnto`, landed alongside this file). The following properties are
-accepted and cascade correctly, but are not yet *read* by any bundled algorithm's layout logic. Effort
-below is ranked from easiest to hardest — it is not uniform across the three, despite all three sharing
-the same already-working cascading mechanism:
+inheritance via `PropertyHolder.OverlayOnto`, landed alongside this file). `CoreOptions.NodeSpacing` is
+now honored by the bundled `layered` algorithm (see below). The following properties are still accepted
+and cascade correctly, but are not yet *read* by any bundled algorithm's layout logic. Effort below is
+ranked from easiest to hardest — it is not uniform across the two, despite both sharing the same
+already-working cascading mechanism:
 
-- **`CoreOptions.NodeSpacing`** (easiest) — advisory; the bundled `layered` algorithm uses a fixed
-  engine constant (`LayeredLayoutMetrics.NodeSpacing`, 30.0) instead of this value. This constant is a
-  pure floor in the Brandes-Köpf compaction step, isolated from connector-routing math, so wiring it up
-  is a small, low-risk change: resolve the cascaded value the same way `LayeredLayoutAlgorithm.
-  ResolveDirection` already does for `Direction`, then thread the resolved `double` down through the
-  pipeline stage(s) that currently reference the constant.
 - **`CoreOptions.LayerSpacing`** (needs a design decision first) — advisory; the bundled `layered`
   algorithm uses a fixed engine constant (`LayeredLayoutMetrics.CorridorMinWidth`, 70.0) instead. Unlike
   `NodeSpacing`, there is no clean 1:1 replacement: `CorridorMinWidth` is *derived* from connector-routing

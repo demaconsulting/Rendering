@@ -281,6 +281,50 @@ public sealed class InterconnectionLayoutEngineTests
     }
 
     /// <summary>
+    ///     Omitting the optional node-spacing argument preserves the engine's original fixed 30.0
+    ///     constant so existing callers see identical geometry to before the parameter existed.
+    /// </summary>
+    [Fact]
+    public void Place_DefaultNodeSpacing_MatchesExplicitEngineConstant()
+    {
+        // Arrange: a fan-out (one source, two same-sized children) stacks its children in the same
+        // layer, so their gap is driven directly by node spacing.
+        var nodes = new List<LayerNode> { new(80, 40), new(80, 40), new(80, 40) };
+        var edges = new List<LayerEdge> { new(0, 1), new(0, 2) };
+
+        // Act
+        var @default = InterconnectionLayoutEngine.Place(nodes, edges, LayoutDirection.Right);
+        var explicitConstant = InterconnectionLayoutEngine.Place(
+            nodes, edges, LayoutDirection.Right, LayeredLayoutMetrics.NodeSpacing);
+
+        // Assert
+        Assert.Equal(explicitConstant.Rects, @default.Rects);
+        Assert.Equal(explicitConstant.TotalWidth, @default.TotalWidth);
+        Assert.Equal(explicitConstant.TotalHeight, @default.TotalHeight);
+    }
+
+    /// <summary>
+    ///     A larger node-spacing value strictly widens the gap between two same-layer siblings — a
+    ///     regression guard against the parameter being silently ignored.
+    /// </summary>
+    [Fact]
+    public void Place_LargerNodeSpacing_WidensSiblingGap()
+    {
+        // Arrange
+        var nodes = new List<LayerNode> { new(80, 40), new(80, 40), new(80, 40) };
+        var edges = new List<LayerEdge> { new(0, 1), new(0, 2) };
+
+        // Act
+        var small = InterconnectionLayoutEngine.Place(nodes, edges, LayoutDirection.Right, nodeSpacing: 40.0);
+        var large = InterconnectionLayoutEngine.Place(nodes, edges, LayoutDirection.Right, nodeSpacing: 100.0);
+
+        // Assert: the gap between the two stacked children (rects 1 and 2) widens with spacing.
+        var smallGap = small.Rects[2].Y - (small.Rects[1].Y + small.Rects[1].Height);
+        var largeGap = large.Rects[2].Y - (large.Rects[1].Y + large.Rects[1].Height);
+        Assert.True(largeGap > smallGap);
+    }
+
+    /// <summary>
     ///     Re-running the engine with identical input produces identical rects, totals, retained
     ///     acyclic edges, layer indices, and connector waypoints.
     /// </summary>

@@ -108,15 +108,17 @@ public static class CoreOptions
         new("rendering.edgerouting", Rendering.EdgeRouting.Orthogonal);
 
     /// <summary>
-    /// Advisory: minimum spacing, in logical pixels, between adjacent nodes within a layer, mirroring
-    /// ELK's <c>spacing.nodeNode</c>. As with ELK's option, this is a floor enforced by the layout
-    /// engine's compaction step, not an exact/desired gap — nodes may end up further apart when other
-    /// placement constraints require it. Accepted but not yet honored by the bundled layered algorithm,
-    /// which uses a fixed engine constant instead. Would cascade per scope by nearest-ancestor override,
-    /// consistent with every other property in this catalog, once an algorithm honors it.
+    /// Minimum spacing, in logical pixels, between adjacent nodes within a layer, mirroring ELK's
+    /// <c>spacing.nodeNode</c>. As with ELK's option, this is a floor enforced by the layout engine's
+    /// compaction step, not an exact/desired gap — nodes may end up further apart when other placement
+    /// constraints require it. Honored by the bundled <c>layered</c> algorithm. The default,
+    /// <c>30.0</c>, matches both ELK's own default and the value the engine used internally before this
+    /// property was honored, so a graph that never sets this property renders identically to before.
+    /// Cascades per scope by nearest-ancestor override, consistent with every other property in this
+    /// catalog.
     /// </summary>
     public static readonly LayoutProperty<double> NodeSpacing =
-        new("rendering.spacing.node", 20.0);
+        new("rendering.spacing.node", 30.0);
 
     /// <summary>
     /// Advisory: minimum spacing, in logical pixels, between adjacent layers, mirroring ELK's

@@ -14,7 +14,8 @@ namespace DemaConsulting.Rendering.Layout;
 /// This is the reference <see cref="ILayoutAlgorithm"/> implementation; it wraps the reusable layered
 /// pipeline under <c>Engine/Layered/</c>. It honors <see cref="CoreOptions.Direction"/> so the layers
 /// progress right, left, down, or up (a downward flow lays action-flow and state-transition diagrams
-/// out top-to-bottom).
+/// out top-to-bottom), and <see cref="CoreOptions.NodeSpacing"/> so the minimum gap between nodes
+/// stacked in the same layer can be widened or narrowed from the engine's default.
 /// </summary>
 public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
 {
@@ -68,7 +69,8 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         }
 
         var direction = ToEngineDirection(ResolveDirection(graph, options));
-        var result = InterconnectionLayoutEngine.Place(engineNodes, engineEdges, direction);
+        var nodeSpacing = ResolveNodeSpacing(graph, options);
+        var result = InterconnectionLayoutEngine.Place(engineNodes, engineEdges, direction, nodeSpacing);
 
         var nodes = new List<LayoutNode>(count + graph.Edges.Count);
 
@@ -166,6 +168,26 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         return options.TryGet(CoreOptions.Direction, out var fromOptions)
             ? fromOptions
             : CoreOptions.Direction.DefaultValue;
+    }
+
+    /// <summary>
+    /// Resolves the minimum spacing between adjacent nodes stacked in the same layer: an explicit
+    /// <see cref="CoreOptions.NodeSpacing"/> on the graph takes precedence, then one on the options,
+    /// falling back to the property default when neither declares one.
+    /// </summary>
+    /// <param name="graph">The graph whose explicit node-spacing declaration takes precedence.</param>
+    /// <param name="options">The options consulted when the graph declares no node spacing.</param>
+    /// <returns>The minimum node-to-node gap, in logical pixels, to lay the graph out with.</returns>
+    private static double ResolveNodeSpacing(LayoutGraph graph, LayoutOptions options)
+    {
+        if (graph.TryGet(CoreOptions.NodeSpacing, out var fromGraph))
+        {
+            return fromGraph;
+        }
+
+        return options.TryGet(CoreOptions.NodeSpacing, out var fromOptions)
+            ? fromOptions
+            : CoreOptions.NodeSpacing.DefaultValue;
     }
 
     /// <summary>
