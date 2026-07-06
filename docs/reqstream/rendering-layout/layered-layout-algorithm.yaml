@@ -53,6 +53,22 @@ sections:
           - Apply_DownDirectionOnGraphScope_IsHonored
           - Apply_DefaultDirection_FlowsLeftToRight
 
+      - id: Rendering-Layout-LayeredAlgorithm-NodeSpacing
+        title: >-
+          LayeredLayoutAlgorithm shall use the node-spacing option to control the minimum gap between
+          same-layer nodes, reading the selection from the graph in preference to the options and
+          falling back to the property default, which matches the engine's original fixed constant.
+        justification: |
+          CoreOptions.NodeSpacing previously cascaded correctly but was never read by any bundled
+          algorithm, so a caller's requested spacing had no observable effect on the placed layout.
+          Honoring it lets callers widen or narrow the gap between sibling nodes without altering the
+          default rendering of any existing diagram, since the property's default now matches the
+          engine's pre-existing fixed constant.
+        tests:
+          - Apply_DefaultNodeSpacing_MatchesPriorEngineBehavior
+          - Apply_LargerNodeSpacing_WidensGapBetweenSiblings
+          - Apply_NodeSpacingOnGraphScope_TakesPrecedenceOverOptions
+
       - id: Rendering-Layout-LayeredAlgorithm-Validation
         title: >-
           LayeredLayoutAlgorithm shall reject a null graph or null options argument with an

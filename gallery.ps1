@@ -9,7 +9,7 @@
 #   and simply assert. This script points the RENDERING_GALLERY_DIR environment
 #   variable at the committed docs/gallery/ folder and runs ONLY the gallery
 #   project, so the same facts (re)write the committed SVG/PNG images and the
-#   browsable docs/gallery/gallery.md index.
+#   browsable docs/gallery/README.md index.
 #
 # USAGE:
 #   pwsh ./gallery.ps1

@@ -101,6 +101,19 @@ sections:
         tests:
           - Place_DefaultDirection_MatchesRightFlow
 
+      - id: Rendering-Layout-InterconnectionEngine-NodeSpacing
+        title: >-
+          InterconnectionLayoutEngine shall accept an optional node-spacing value controlling the
+          minimum gap between same-layer nodes, defaulting to the engine's original fixed constant so
+          existing callers see identical geometry when the argument is omitted.
+        justification: |
+          The public LayeredLayoutAlgorithm resolves a caller-requested node spacing and must thread it
+          through this facade to the pipeline stage that enforces the minimum gap; the default must
+          preserve prior behavior for every caller that predates this parameter.
+        tests:
+          - Place_DefaultNodeSpacing_MatchesExplicitEngineConstant
+          - Place_LargerNodeSpacing_WidensSiblingGap
+
       - id: Rendering-Layout-InterconnectionEngine-Deterministic
         title: >-
           Given identical input, InterconnectionLayoutEngine shall produce identical geometry and

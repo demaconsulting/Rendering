@@ -36,13 +36,18 @@ per node followed by `LayoutLine` per edge).
    taking an explicit value on the graph in preference to one on the options and falling back to the
    property default (`Right`), then maps the public `LayoutFlowDirection` to the engine's internal
    direction. This mirrors how the algorithm resolves its other well-known options.
-4. **Placement.** Calls `InterconnectionLayoutEngine.Place` with the resolved direction to obtain the
-   `LayerResult`. For a downward or upward flow the engine transposes the layout so the layers
-   progress top-to-bottom (or bottom-to-top); `Right` is the default and is byte-identical to the
-   original left-to-right placement.
-5. **Box emission.** Emits one `LayoutBox` per input node, in input order, at the placed rectangle,
+4. **Node-spacing resolution.** Resolves the requested minimum same-layer node gap from
+   `CoreOptions.NodeSpacing` using the same graph-then-options-then-default precedence as direction
+   resolution, and passes the resolved value to `InterconnectionLayoutEngine.Place`. The property's
+   default matches the engine's original fixed constant, so an unset option reproduces the algorithm's
+   prior behavior exactly.
+5. **Placement.** Calls `InterconnectionLayoutEngine.Place` with the resolved direction and node
+   spacing to obtain the `LayerResult`. For a downward or upward flow the engine transposes the layout
+   so the layers progress top-to-bottom (or bottom-to-top); `Right` is the default and is
+   byte-identical to the original left-to-right placement.
+6. **Box emission.** Emits one `LayoutBox` per input node, in input order, at the placed rectangle,
    carrying the node label.
-6. **Route resolution.** Builds a `(source, target)` to polyline lookup from the engine's acyclic
+7. **Route resolution.** Builds a `(source, target)` to polyline lookup from the engine's acyclic
    edge set, then emits one `LayoutLine` per input edge. `ResolveRoute` returns the forward polyline
    when present, reverses the polyline of a reversed back edge, and otherwise falls back to a
    straight segment between the two node centers (for a self-loop or duplicate edge the engine
@@ -65,5 +70,6 @@ the Engine subsystem. It is the entry point resolved by renderers through the la
 | Rendering-Layout-LayeredAlgorithm-PlacesAndRoutes | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-EmptyGraph | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-Direction | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-NodeSpacing | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-Validation | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting | LayeredLayoutAlgorithm behavior described above |

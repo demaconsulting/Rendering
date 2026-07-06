@@ -116,6 +116,6 @@ By contributing to this project, you agree that your contributions will be licen
 [link-security]: https://sonarcloud.io/dashboard?id=demaconsulting_Rendering
 [link-nuget]: https://www.nuget.org/packages/DemaConsulting.Rendering
 [link-elk]: https://eclipse.dev/elk/
-[link-gallery]: https://github.com/demaconsulting/Rendering/blob/main/docs/gallery/gallery.md
+[link-gallery]: https://github.com/demaconsulting/Rendering/blob/main/docs/gallery/README.md
 [link-user-guide]: https://github.com/demaconsulting/Rendering/blob/main/docs/user_guide/introduction.md
 [link-contributing]: https://github.com/demaconsulting/Rendering/blob/main/CONTRIBUTING.md

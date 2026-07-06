@@ -486,4 +486,87 @@ public class LayeredLayoutAlgorithmTests
         Assert.Equal(170.0, lines[0].Waypoints[^1].X, 6);
         Assert.Equal(40.0, lines[0].Waypoints[^1].Y, 6);
     }
+
+    /// <summary>
+    ///     Proves that the default (unset) <see cref="CoreOptions.NodeSpacing"/> reproduces the engine's
+    ///     original fixed 30.0 constant exactly — a regression pin against the option's introduction
+    ///     silently changing default output for callers that never set it. Uses a two-child fan-out
+    ///     (both children the same size) so the sibling gap is driven purely by node spacing; the
+    ///     Brandes-Köpf balanced-layout averaging this pinned value reflects is an internal detail this
+    ///     test does not need to reproduce by hand, only pin against regressions.
+    /// </summary>
+    [Fact]
+    public void Apply_DefaultNodeSpacing_MatchesPriorEngineBehavior()
+    {
+        var tree = new LayeredLayoutAlgorithm().Apply(BuildFanOut(), new LayoutOptions());
+
+        Assert.Equal(-5.0, SiblingGap(tree), 6);
+    }
+
+    /// <summary>
+    ///     Proves that a larger <see cref="CoreOptions.NodeSpacing"/> strictly widens the gap between
+    ///     siblings stacked in the same layer — a regression guard against the option being silently
+    ///     ignored (which would return the same gap regardless of the requested value).
+    /// </summary>
+    [Fact]
+    public void Apply_LargerNodeSpacing_WidensGapBetweenSiblings()
+    {
+        var smallOptions = new LayoutOptions();
+        smallOptions.Set(CoreOptions.NodeSpacing, 40.0);
+        var smallGap = SiblingGap(new LayeredLayoutAlgorithm().Apply(BuildFanOut(), smallOptions));
+
+        var largeOptions = new LayoutOptions();
+        largeOptions.Set(CoreOptions.NodeSpacing, 100.0);
+        var largeGap = SiblingGap(new LayeredLayoutAlgorithm().Apply(BuildFanOut(), largeOptions));
+
+        Assert.True(largeGap > smallGap);
+    }
+
+    /// <summary>
+    ///     Proves that node spacing is honored when carried on the graph scope, mirroring how the
+    ///     algorithm resolves its other well-known options: an explicit value on the graph takes
+    ///     precedence over a conflicting value on the options.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeSpacingOnGraphScope_TakesPrecedenceOverOptions()
+    {
+        var graphWithOverride = BuildFanOut();
+        graphWithOverride.Set(CoreOptions.NodeSpacing, 100.0);
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.NodeSpacing, 40.0);
+        var overriddenGap = SiblingGap(new LayeredLayoutAlgorithm().Apply(graphWithOverride, options));
+
+        var graphOnly = BuildFanOut();
+        graphOnly.Set(CoreOptions.NodeSpacing, 100.0);
+        var graphOnlyGap = SiblingGap(new LayeredLayoutAlgorithm().Apply(graphOnly, new LayoutOptions()));
+
+        var optionsOnlyGap = SiblingGap(new LayeredLayoutAlgorithm().Apply(BuildFanOut(), options));
+
+        // The graph's 100.0 wins over the options' 40.0, matching a graph-only resolution...
+        Assert.Equal(graphOnlyGap, overriddenGap, 6);
+
+        // ...and differs from what the options' 40.0 alone would have produced.
+        Assert.NotEqual(optionsOnlyGap, overriddenGap);
+    }
+
+    /// <summary>Gets the vertical gap between the two stacked sibling boxes in a <see cref="BuildFanOut"/> tree.</summary>
+    private static double SiblingGap(LayoutTree tree)
+    {
+        var boxes = tree.Nodes.OfType<LayoutBox>().OrderBy(b => b.Y).ToList();
+        var sibling1 = boxes[1];
+        var sibling2 = boxes[2];
+        return sibling2.Y - (sibling1.Y + sibling1.Height);
+    }
+
+    /// <summary>Builds a three-node fan-out graph: one source with two same-sized children.</summary>
+    private static LayoutGraph BuildFanOut()
+    {
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("source", 80, 40);
+        var child1 = graph.AddNode("child1", 80, 40);
+        var child2 = graph.AddNode("child2", 80, 40);
+        graph.AddEdge("e1", source, child1);
+        graph.AddEdge("e2", source, child2);
+        return graph;
+    }
 }

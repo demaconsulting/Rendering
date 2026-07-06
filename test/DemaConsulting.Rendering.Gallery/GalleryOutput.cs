@@ -17,7 +17,7 @@ namespace DemaConsulting.Rendering.Gallery;
 ///     <para>
 ///     Setting <c>RENDERING_GALLERY_DIR</c> to the committed <c>docs/gallery</c> folder (as the
 ///     <c>-Gallery</c> invocation does) switches the same facts into "regenerate the committed showcase"
-///     mode, in which the browsable <c>gallery.md</c> index is (re)written alongside the images.
+///     mode, in which the browsable <c>README.md</c> index is (re)written alongside the images.
 ///     </para>
 /// </remarks>
 internal static class GalleryOutput

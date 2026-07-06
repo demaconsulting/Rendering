@@ -7,7 +7,7 @@ using System.Text;
 namespace DemaConsulting.Rendering.Gallery;
 
 /// <summary>
-///     Generates the browsable <c>gallery.md</c> index from the <see cref="GalleryCatalog"/>. The output
+///     Generates the browsable <c>README.md</c> index from the <see cref="GalleryCatalog"/>. The output
 ///     is kept markdownlint-clean (blank-line-separated headings and paragraphs, lines wrapped to 120
 ///     columns, alt text on every image) so the committed index passes the repository's lint gate.
 /// </summary>
@@ -17,7 +17,7 @@ internal static class GalleryIndex
     private const int MaxLineLength = 120;
 
     /// <summary>Builds the full Markdown text of the gallery index from the catalog.</summary>
-    /// <returns>The complete <c>gallery.md</c> document, ending with a single newline.</returns>
+    /// <returns>The complete <c>README.md</c> document, ending with a single newline.</returns>
     public static string Build()
     {
         var builder = new StringBuilder();
@@ -49,13 +49,13 @@ internal static class GalleryIndex
     }
 
     /// <summary>
-    ///     Writes the generated index to <c>gallery.md</c> in the given directory.
+    ///     Writes the generated index to <c>README.md</c> in the given directory.
     /// </summary>
-    /// <param name="directory">The directory that receives <c>gallery.md</c>.</param>
+    /// <param name="directory">The directory that receives <c>README.md</c>.</param>
     /// <returns>The absolute path of the written index file.</returns>
     public static string Write(string directory)
     {
-        var path = Path.Combine(directory, "gallery.md");
+        var path = Path.Combine(directory, "README.md");
         File.WriteAllText(path, Build(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         return path;
     }

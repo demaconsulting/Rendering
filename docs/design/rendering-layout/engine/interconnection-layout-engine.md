@@ -23,13 +23,16 @@ with `ConnectorWaypoints`.
 
 #### InterconnectionLayoutEngine Methods
 
-`Place(nodes, edges, direction)` builds a `LayeredGraph` from the inputs, assembles a
+`Place(nodes, edges, direction, nodeSpacing)` builds a `LayeredGraph` from the inputs, assembles a
 `LayeredLayoutPipeline` with the default stages for the requested `direction` (defaulting to Right),
-and runs it. It then reads the placed coordinates, column extents, layer assignments, and waypoints
-from the graph state and assembles the `LayerResult`. Because the pipeline drops self-loops,
-de-duplicates identical directed pairs, and reverses back edges, `ConnectorWaypoints` holds one
-polyline per acyclic edge; consumers key a `(source, target)` lookup on `AcyclicEdges` (reversing the
-polyline for a reversed back edge) to recover each input edge's route.
+and runs it. The optional `nodeSpacing` argument (defaulting to the engine's original fixed constant)
+is stored on the `LayeredGraph` and consumed by the Brandes-Köpf placement stage as the minimum gap
+between same-layer nodes; omitting it reproduces the engine's original geometry exactly. It then reads
+the placed coordinates, column extents, layer assignments, and waypoints from the graph state and
+assembles the `LayerResult`. Because the pipeline drops self-loops, de-duplicates identical directed
+pairs, and reverses back edges, `ConnectorWaypoints` holds one polyline per acyclic edge; consumers key
+a `(source, target)` lookup on `AcyclicEdges` (reversing the polyline for a reversed back edge) to
+recover each input edge's route.
 
 The reported total dimensions are direction-aware. The pipeline's axis-transform stage places the
 nodes along the requested direction, so a top-to-bottom (Down) or bottom-to-top (Up) flow transposes
@@ -65,4 +68,5 @@ strategy to obtain a placement result.
 | Rendering-Layout-InterconnectionEngine-Direction-RequestedFlow | See above |
 | Rendering-Layout-InterconnectionEngine-Direction-TransposedTotals | See above |
 | Rendering-Layout-InterconnectionEngine-Direction-DefaultsToRight | See above |
+| Rendering-Layout-InterconnectionEngine-NodeSpacing | See above |
 | Rendering-Layout-InterconnectionEngine-Deterministic | InterconnectionLayoutEngine behavior described above |

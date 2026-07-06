@@ -126,11 +126,17 @@ internal static class InterconnectionLayoutEngine
     /// <see cref="LayoutDirection.Right"/>, which is byte-identical to the original engine; the other
     /// directions are realized by the pipeline's <see cref="AxisTransform"/> stage.
     /// </param>
+    /// <param name="nodeSpacing">
+    /// The minimum vertical gap enforced between adjacent nodes stacked in the same layer. Defaults to
+    /// <see cref="Layered.LayeredLayoutMetrics.NodeSpacing"/>, which is byte-identical to the original
+    /// engine's fixed constant.
+    /// </param>
     /// <returns>Placement result with rects, layer assignments, and connector waypoints.</returns>
     public static LayerResult Place(
         IReadOnlyList<LayerNode> nodes,
         IReadOnlyList<LayerEdge> edges,
-        LayoutDirection direction = LayoutDirection.Right)
+        LayoutDirection direction = LayoutDirection.Right,
+        double nodeSpacing = Layered.LayeredLayoutMetrics.NodeSpacing)
     {
         ArgumentNullException.ThrowIfNull(nodes);
         ArgumentNullException.ThrowIfNull(edges);
@@ -141,7 +147,7 @@ internal static class InterconnectionLayoutEngine
             return new LayerResult([], 2.0 * Padding, 2.0 * Padding, [], []);
         }
 
-        var graph = new LayeredGraph(nodes, edges, direction);
+        var graph = new LayeredGraph(nodes, edges, direction) { NodeSpacing = nodeSpacing };
         var pipeline = LayeredLayoutPipeline.Builder()
             .Direction(direction)
             .Hierarchy(Layered.HierarchyHandling.Flat)

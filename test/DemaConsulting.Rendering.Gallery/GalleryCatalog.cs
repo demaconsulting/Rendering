@@ -6,7 +6,7 @@ namespace DemaConsulting.Rendering.Gallery;
 
 /// <summary>
 ///     One generated showcase image: its stable output filename plus the alt text and caption used in
-///     the browsable <c>gallery.md</c> index.
+///     the browsable <c>README.md</c> index.
 /// </summary>
 /// <param name="FileName">Stable output filename (for example <c>layered-pipeline.svg</c>).</param>
 /// <param name="Alt">Alt text for the Markdown image link.</param>
@@ -15,7 +15,7 @@ internal sealed record GalleryImage(string FileName, string Alt, string Caption)
 
 /// <summary>
 ///     A titled group of related showcase images with a short introduction, rendered as one section of
-///     the <c>gallery.md</c> index.
+///     the <c>README.md</c> index.
 /// </summary>
 /// <param name="Title">Section heading.</param>
 /// <param name="Intro">One-paragraph description of what the section demonstrates.</param>

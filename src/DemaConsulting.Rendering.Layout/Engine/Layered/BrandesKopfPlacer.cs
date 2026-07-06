@@ -15,7 +15,8 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
     public void Apply(LayeredGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
-        var (augX, augY, columnX, maxColWidth) = AssignCoordinatesAug(graph.AugNodes, graph.Groups, graph.AugEdges);
+        var (augX, augY, columnX, maxColWidth) = AssignCoordinatesAug(
+            graph.AugNodes, graph.Groups, graph.AugEdges, graph.NodeSpacing);
         graph.AugX = augX;
         graph.AugY = augY;
         graph.ColumnX = columnX;
@@ -41,7 +42,8 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
     private static (double[] AugX, double[] AugY, double[] ColumnX, double[] MaxColWidth) AssignCoordinatesAug(
         List<AugNode> augNodes,
         List<List<int>> groups,
-        List<AugEdge> augEdges)
+        List<AugEdge> augEdges,
+        double nodeSpacing)
     {
         var layerCount = groups.Count;
         var numAug = augNodes.Count;
@@ -91,7 +93,7 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
         }
 
         // Assign Y coordinates using the Brandes-Köpf balanced four-layout algorithm.
-        var augY = BkAssignYCoordinates(augNodes, groups, augEdges);
+        var augY = BkAssignYCoordinates(augNodes, groups, augEdges, nodeSpacing);
 
         return (augX, augY, columnX, maxColWidth);
     }
@@ -115,7 +117,8 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
     private static double[] BkAssignYCoordinates(
         List<AugNode> augNodes,
         List<List<int>> groups,
-        List<AugEdge> augEdges)
+        List<AugEdge> augEdges,
+        double nodeSpacing)
     {
         var numAug = augNodes.Count;
 
@@ -153,7 +156,8 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
                 rightNeighborEdges, leftNeighborEdges);
 
             // Step 4: horizontal compaction — assigns absolute Y to each block root.
-            var blockY = BkHorizontalCompaction(augNodes, groups, root, align, innerShift, posInLayer, vDown);
+            var blockY = BkHorizontalCompaction(
+                augNodes, groups, root, align, innerShift, posInLayer, vDown, nodeSpacing);
 
             // Compute absolute Y for every node in this layout.
             var y = new double[numAug];
@@ -659,7 +663,7 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
 
     /// <summary>
     /// Assigns an absolute Y coordinate (blockY) to each block root by compacting blocks
-    /// in the vertical direction, respecting per-node heights and <see cref="NodeSpacing"/> gaps.
+    /// in the vertical direction, respecting per-node heights and <paramref name="nodeSpacing"/> gaps.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -681,7 +685,8 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
         int[] align,
         double[] innerShift,
         int[] posInLayer,
-        bool vDown)
+        bool vDown,
+        double nodeSpacing)
     {
         var maxLayer = groups.Count - 1;
         var blockY = new double[augNodes.Count];
@@ -717,7 +722,7 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
                         var requiredY = blockY[aboveRoot]
                             + innerShift[above]
                             + augNodes[above].Height
-                            + NodeSpacing
+                            + nodeSpacing
                             - innerShift[current];
                         blockY[v] = Math.Max(blockY[v], requiredY);
                     }
@@ -733,7 +738,7 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
 
                         var requiredY = blockY[belowRoot]
                             + innerShift[below]
-                            - NodeSpacing
+                            - nodeSpacing
                             - augNodes[current].Height
                             - innerShift[current];
                         blockY[v] = Math.Min(blockY[v], requiredY);
