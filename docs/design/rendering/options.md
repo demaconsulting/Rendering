@@ -26,7 +26,8 @@ by each property's identifier.
 - `PropertyHolder` (class implementing `IPropertyHolder`) — dictionary-backed store.
 - `LayoutOptions` (sealed class extending `PropertyHolder`) — with a `ForAlgorithm(string)` factory.
 - `CoreOptions` (static class) — well-known keys `Algorithm`, `HierarchyHandling`, `Direction`,
-  `EdgeRouting`, `NodeSpacing`, `LayerSpacing`.
+  `EdgeRouting`, `NodeSpacing`, `LayerSpacing`, `MergeParallelEdges`,
+  `AssumedFontSize`.
 - `LayoutFlowDirection` (enum) — `Right`, `Left`, `Down`, `Up`.
 - `HierarchyHandling` (enum) — `SeparateChildren` (the only shipped mode). Mirrors ELK's
   `elk.hierarchyHandling`; selects how a hierarchical layout engine treats a container node's nested
@@ -102,12 +103,20 @@ passes it to a layout facade.
 - `OverlayOnto` shall merge by raw key rather than by enumerating known `LayoutProperty<T>` constants,
   so the cascading primitive remains correct for options this unit has never heard of (including
   future, not-yet-declared properties).
+- `CoreOptions.MergeParallelEdges` shall default to `true`, exactly reproducing the layered
+  algorithm's pre-existing unconditional parallel-edge deduplication so an existing caller that never
+  sets this key sees byte-identical output.
+- `CoreOptions.AssumedFontSize` shall default to `12.0`, matching the bundled themes'
+  `Theme.FontSizeBody`, so a text-aware layout decision made once at layout time (before any theme is
+  available) uses a reasonable font size by default.
 
 ### Options Interactions
 
 `LayoutGraph`, `LayoutGraphNode`, and `LayoutGraphEdge` (in the Layout Graph unit) all derive from
 `PropertyHolder`, so configuration can be attached to the whole graph or to a single element.
-`LayoutOptions` is passed to a layout algorithm alongside a `LayoutGraph`.
+`LayoutOptions` is passed to a layout algorithm alongside a `LayoutGraph`. `LayeredLayoutAlgorithm`
+(in `DemaConsulting.Rendering.Layout`) computes `LayoutBox.ContentInset*` (see the Layout Tree unit)
+using its own self-contained `PortLabelWidthEstimator` heuristic.
 
 ### Requirements Traceability
 
@@ -118,3 +127,5 @@ passes it to a layout facade.
 | Rendering-Model-Options-Contains | `PropertyHolder.Contains` |
 | Rendering-Model-Options-TryGet | `PropertyHolder.TryGet` |
 | Rendering-Model-Options-Cascade | `PropertyHolder.OverlayOnto` |
+| Rendering-Model-Options-MergeParallelEdges | `CoreOptions.MergeParallelEdges` |
+| Rendering-Model-Options-AssumedFontSize | `CoreOptions.AssumedFontSize` |

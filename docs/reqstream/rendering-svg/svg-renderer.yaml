@@ -149,6 +149,113 @@ sections:
         tests:
           - SvgRenderer_Render_SinglePort_ProducesRect
 
+      - id: Rendering-Svg-SvgRenderer-PortGlyphOutline
+        title: >-
+          SvgRenderer shall draw a contrasting stroke (Theme.BackgroundColor) around a port glyph's
+          rect element, distinct from the glyph's own fill (Theme.StrokeColor).
+        justification: |
+          A port glyph's solid fill and a connector arrowhead marker's solid fill both use the same
+          stroke color and can land within a few pixels of each other at a box edge, so without a
+          contrasting outline the two shapes visually merge into a single indistinguishable blob.
+          Outlining the port glyph in the background color keeps it visually distinct from an
+          adjacent arrowhead.
+        tests:
+          - SvgRenderer_RenderPort_Rect_HasStrokeDistinctFromFill
+
+      - id: Rendering-Svg-SvgRenderer-RenderPortLabel
+        title: >-
+          SvgRenderer shall render a port's label as a text element positioned immediately next to
+          the port glyph and reading inward toward the box interior: rightward from a left-side
+          port, leftward from a right-side port, below a top-side port, and above a bottom-side
+          port.
+        justification: |
+          A named port's label must remain legible and clearly attached to its glyph without ever
+          reading outward, off the box, regardless of which of the four faces the layout engine
+          anchored it on.
+        tests:
+          - SvgRenderer_RenderPort_LeftRightLabel_ReadsInward
+          - SvgRenderer_RenderPort_TopBottomLabel_ReadsInward
+
+      - id: Rendering-Svg-SvgRenderer-PortLabelSqueeze
+        title: >-
+          SvgRenderer shall bound a rendered port label's width to LayoutPort.MaxLabelWidth via the
+          same FitTextLength squeeze mechanism used for box titles, rather than always drawing the
+          label at its natural full text width.
+        justification: |
+          A port's ExternalLabel previously rendered at natural full text width with no bound
+          relative to the box width or the opposite port's label region, so an excessively long
+          port label could visually overlap the opposite port's label. Squeezing via
+          textLength/lengthAdjust (the same mechanism already used for box titles) compresses the
+          label instead, and a MaxLabelWidth defaulting to positive infinity leaves every port with
+          no explicit bound rendering exactly as before.
+        tests:
+          - SvgRenderer_RenderPort_LongLabelWithMaxLabelWidth_AppliesTextLengthConstraint
+
+      - id: Rendering-Svg-SvgRenderer-PortLabelAccurateFit
+        title: >-
+          SvgRenderer shall decide whether a port label needs a textLength squeeze using the same
+          shared PortLabelWidthEstimator the layout engine uses to size LayoutPort.MaxLabelWidth,
+          rather than the coarser flat-multiplier heuristic used for box titles and other labels, so
+          a port label whose MaxLabelWidth already covers its measured natural width never emits a
+          textLength attribute at all.
+        justification: |
+          FitTextLength's original coarse `text.Length * fontSize * 0.6` estimate could disagree
+          with the layout engine's own PortLabelWidthEstimator-based sizing of MaxLabelWidth, so a
+          port label the layout engine had already sized to fit exactly could still be squeezed
+          unnecessarily at render time. Reconciling the two estimators for port labels specifically
+          (the only call site with a layout-time counterpart to reconcile against) closes that gap
+          without changing the coarser heuristic's behavior for box titles or generic/connector
+          labels, which have no analogous layout-time estimator.
+        tests:
+          - SvgRenderer_RenderPort_LabelWidthEqualsMaxLabelWidth_NoTextLengthConstraint
+
+      - id: Rendering-Svg-SvgRenderer-ContentInset
+        title: >-
+          SvgRenderer shall start box title and compartment row content at box.X plus
+          Theme.LabelPadding plus box.ContentInsetLeft, rather than assuming a fixed
+          box.X + Theme.LabelPadding start, so a reserved left-side port-label margin pushes
+          content inward instead of colliding with it.
+        justification: |
+          A left-side port's label is drawn just inside the box's left edge; without honoring the
+          auto-computed ContentInsetLeft margin, compartment or title text starting at the
+          previous fixed offset would overlap the port label.
+        tests:
+          - SvgRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowTextRight
+
+      - id: Rendering-Svg-SvgRenderer-TitleCentersOnBoxWidth
+        title: >-
+          SvgRenderer shall horizontally center a box's keyword line and bold name title on the
+          box's full geometric width (box.X + box.Width / 2.0), regardless of any asymmetric
+          box.ContentInsetLeft/ContentInsetRight the box declares.
+        justification: |
+          A box's title occupies its own row above the title area (ResolveTitleAreaTop), while
+          left/right port labels are drawn at the box's vertical center (RenderPort) — a different
+          row — so the title never needs to dodge sideways around a side-port label's inset. An
+          earlier revision centered the title on the inset-adjusted content area instead, which
+          visibly shifted and squeezed titles on boxes with an asymmetric left/right port-label
+          inset even though no actual title/port-label collision was possible; this requirement
+          restores full geometric centering. box.ContentInsetTop still legitimately widens the
+          title's vertical (Y) start position when a top-side port shares the title's row, which is
+          unaffected by this requirement.
+        tests:
+          - SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter
+
+      - id: Rendering-Svg-SvgRenderer-CanvasGrowsForLabels
+        title: >-
+          SvgRenderer shall grow the rendered canvas width/height, after connector-label placement
+          is finalized, to include the full bounding-box extent of every placed connector label,
+          rather than sizing the canvas purely from box+routing geometry before label placement
+          runs.
+        justification: |
+          ConnectorLabelPlacer nudges colliding midpoint labels perpendicular to their line, with
+          fallback stacking; because the prior canvas size was computed from box+routing geometry
+          before this nudging ran, a label could be nudged completely outside the canvas and render
+          invisibly clipped. Deferring the canvas-size computation until every label's final
+          position (and estimated extent) is known lets the canvas grow to keep every label fully
+          visible.
+        tests:
+          - SvgRenderer_Render_ManyCollidingConnectorLabels_AllLabelsWithinViewBox
+
       - id: Rendering-Svg-SvgRenderer-RenderBadge
         title: >-
           SvgRenderer shall render filled-circle badge nodes as circle elements.

@@ -27,7 +27,8 @@ correctness of the JPEG and WEBP renderers.
 - **Mocking**: none required; renderers are pure and deterministic.
 - **Isolation**: each test renders into its own `MemoryStream`.
 - **Test project**: `DemaConsulting.Rendering.Skia.Tests` (`PngRendererTests.cs`,
-  `PngRendererPortedTests.cs`, `PngEndMarkerTests.cs`, `SkiaFormatRendererTests.cs`).
+  `PngRendererPortedTests.cs`, `PngEndMarkerTests.cs`, `SkiaFormatRendererTests.cs`,
+  `SkiaTypefacesTests.cs`, `SkiaPortAndContentInsetTests.cs`).
 
 ## Acceptance Criteria
 

@@ -15,7 +15,9 @@ pixel-level behaviour and differ only in the final encode step.
 `SkiaRasterRenderer` is the abstract `IRenderer` implementation that provides the common SkiaSharp
 rasterization path for every raster format. Concrete renderers supply the encoded image format, quality,
 media type, and file extensions; the base class owns argument validation, bitmap allocation, canvas
-initialization, node drawing, connector-label finalization, and stream encoding.
+initialization, node drawing, connector-label finalization, and stream encoding. The internal
+`SkiaTypefaces` helper resolves the shared, lazily-loaded embedded Noto Sans typeface instances that
+every drawing call site in this unit measures and draws against.
 
 ### SkiaRasterRenderer Data Model
 
@@ -29,13 +31,33 @@ initialization, node drawing, connector-label finalization, and stream encoding.
 
 ### SkiaRasterRenderer Methods
 
-- **`Render(LayoutTree, RenderOptions, Stream)`** - validates its arguments, allocates an `SKBitmap`
-  sized from `LayoutTree.Width`/`LayoutTree.Height` scaled by `RenderOptions.Scale` (minimum one by one
-  pixel), clears the bitmap to `RenderOptions.Theme.BackgroundColor`, draws every node, draws connector
-  labels in a final pass, and writes the encoded bytes to the stream without closing or flushing it.
+- **`Render(LayoutTree, RenderOptions, Stream)`** - validates its arguments, resolves every connector
+  label's placement (position and estimated half-width/half-height) via `ConnectorLabelPlacer.Place`
+  *before* allocating the bitmap, then allocates an `SKBitmap` sized from `LayoutTree.Width`/
+  `LayoutTree.Height` scaled by `RenderOptions.Scale` and grown further to include the full
+  bounding-box extent of every placed connector label (minimum one by one pixel either way), clears
+  the bitmap to `RenderOptions.Theme.BackgroundColor`, draws every node, draws connector labels in a
+  final pass at the positions already computed, and writes the encoded bytes to the stream without
+  closing or flushing it. Sizing the bitmap only after label placement is known prevents a label
+  nudged during collision avoidance from landing outside the bitmap and being invisibly clipped.
 - **Node drawing helpers** - draw boxes, labels, lines, ports, badges, bands, lifelines, activations,
   and grids using the render theme, the embedded Noto Sans typefaces, shared notation metrics, and
-  shared box metrics.
+  shared box metrics. Port drawing mirrors `SvgRenderer`'s inward-reading placement exactly: each
+  port's label is drawn immediately next to its glyph, reading rightward for a left-side port,
+  leftward for a right-side port, below for a top-side port, and above for a bottom-side port, with
+  its rendered width bounded to `LayoutPort.MaxLabelWidth` via the same font-size-shrink squeeze
+  mechanism `RenderBoxTitle` uses, so an excessively long port label compresses instead of visually
+  overlapping the opposite port's label region. The port glyph square is filled with
+  `Theme.StrokeColor` and outlined with a second stroke-only `SKPaint` pass in
+  `Theme.BackgroundColor` (1.0 logical px, pre-scale) so the glyph remains visually distinct from a
+  solid-filled connector arrowhead marker that may land on/near the same box edge. Box title and
+  compartment content start at `box.X + Theme.LabelPadding + box.ContentInsetLeft` (and reduce
+  available width by `box.ContentInsetRight`) instead of the fixed pre-port offset, so a non-zero
+  reserved port-label margin never overlaps rendered content; the title's horizontal center,
+  however, is always the box's full geometric center (`box.X + box.Width / 2.0`), regardless of any
+  asymmetric `ContentInsetLeft`/`ContentInsetRight` — the title occupies its own row above the
+  title area, while left/right port labels are drawn at the box's vertical center (a different
+  row), so the title never needs to dodge sideways around a side-port label's inset.
 - **Connector helpers** - build connector end markers from `NotationMetrics` so raster markers match
   the SVG renderer. Hollow marker interiors and midpoint-label backplates use `Theme.BackgroundColor`
   so they occlude connector strokes with the same background used for the bitmap.
@@ -110,3 +132,9 @@ members.
 | Rendering-Skia-SkiaRasterRenderer-ThemeColours | Box and grid fill selection from `Theme.DepthFillColors` |
 | Rendering-Skia-SkiaRasterRenderer-EndMarkers | End-marker drawing helpers that use `NotationMetrics` |
 | Rendering-Skia-SkiaRasterRenderer-EmptyTree | Minimum bitmap width and height enforcement in `Render` |
+| Rendering-Skia-SkiaRasterRenderer-PortAndContentInset | Port label placement, `ContentInsetLeft`-aware start |
+| Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels | `Render` grows the bitmap to fit every placed label |
+| Rendering-Skia-SkiaRasterRenderer-TitleCentersOnBoxWidth | `RenderBoxTitle` centers on full box width |
+| Rendering-Skia-SkiaRasterRenderer-PortGlyphOutline | `RenderPort` outlines the port glyph in `theme.BackgroundColor` |
+| Rendering-Skia-SkiaRasterRenderer-PortLabelSqueeze | `RenderPort` bounds label width to `port.MaxLabelWidth` |
+| Rendering-Skia-SkiaRasterRenderer-SharedTypefaces | `SkiaTypefaces.Resolve` and its lazily-loaded typeface fields |

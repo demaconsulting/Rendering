@@ -19,7 +19,9 @@ either the stored value or the property's declared default is returned as specif
 ### Options Unit Test Environment
 
 - **Framework**: xUnit v3, run through the standard `dotnet test` runner.
-- **Test project**: `DemaConsulting.Rendering.Tests`, source file `PropertyHolderTests.cs`.
+- **Test project**: `DemaConsulting.Rendering.Tests`, source file `PropertyHolderTests.cs`
+  (`PropertyHolder`/cascading tests) and `CoreOptionsTests.cs` (`CoreOptions.MergeParallelEdges` /
+  `AssumedFontSize` key tests).
 - **Runtime**: any target framework built by the solution (`net8.0`, `net9.0`, or `net10.0`).
 - **Dependencies**: none beyond the standard test runner; no external services, network, filesystem,
   or configuration is required.
@@ -75,6 +77,22 @@ pass through unchanged, and a null parent is rejected.
 
 **Covers**: `Rendering-Model-Options-Cascade`.
 
+#### MergeParallelEdges defaults true and cascades
+
+Tests `MergeParallelEdges_DefaultValue_IsTrue` and `MergeParallelEdges_SetOnGraph_ReadsBackExplicitValue`
+confirm the unset default is `true` (reproducing the layered algorithm's original unconditional
+deduplication) and that an explicit `false` set on a graph reads back correctly.
+
+**Covers**: `Rendering-Model-Options-MergeParallelEdges`.
+
+#### AssumedFontSize defaults to 12 and is settable
+
+Tests `AssumedFontSize_DefaultValue_Is12` and `AssumedFontSize_SetOnOptions_ReadsBackExplicitValue`
+confirm the unset default is `12.0` (matching the bundled themes' `FontSizeBody`) and that an explicit
+value set on an options bag reads back correctly.
+
+**Covers**: `Rendering-Model-Options-AssumedFontSize`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-Options-Default`**: Get_UnsetProperty_ReturnsDefault
@@ -84,3 +102,7 @@ pass through unchanged, and a null parent is rejected.
 - **`Rendering-Model-Options-Cascade`**: OverlayOnto_EmptyHolderOntoPopulatedParent_ReturnsParentValuesUnchanged,
   OverlayOnto_HolderOverridesProperty_HolderValueWins, OverlayOnto_ValueOnlyOnParent_PassesThrough,
   OverlayOnto_CustomPropertyNotInCoreOptions_IsMerged, OverlayOnto_NullParent_ThrowsArgumentNullException
+- **`Rendering-Model-Options-MergeParallelEdges`**: MergeParallelEdges_DefaultValue_IsTrue,
+  MergeParallelEdges_SetOnGraph_ReadsBackExplicitValue
+- **`Rendering-Model-Options-AssumedFontSize`**: AssumedFontSize_DefaultValue_Is12,
+  AssumedFontSize_SetOnOptions_ReadsBackExplicitValue

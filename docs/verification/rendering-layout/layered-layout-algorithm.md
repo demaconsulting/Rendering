@@ -47,6 +47,61 @@ the argument-null validation behavior constitutes a failure.
 - **Validation** (`Rendering-Layout-LayeredAlgorithm-Validation`): `Apply_NullGraph_Throws` confirms
   a null graph argument is rejected with an argument-null error, and `Apply_NullOptions_Throws`
   confirms a null options argument is likewise rejected with an argument-null error.
+- **Merge parallel edges** (`Rendering-Layout-LayeredAlgorithm-MergeParallelEdges`):
+  `Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_EmitsExactlyOneLine` confirms three parallel
+  edges collapse to exactly one `LayoutLine` at the default; `Apply_ParallelEdges_MergeParallelEdgesFalse_RetainsEveryEdge`
+  confirms setting the option to `false` retains all three as independently-labeled lines;
+  `Apply_MergeParallelEdges_GraphOverridesOptions` confirms a graph-scope value takes precedence over
+  an options-scope value; `Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_OmitsLabelOnCollapse`
+  confirms the merged line's label is `null` (omitted) when 3 labeled parallel edges collapse into
+  it, rather than keeping any single surviving edge's label; and
+  `Apply_SingleEdge_MergeParallelEdgesDefaultTrue_KeepsOwnLabel` confirms a genuinely
+  non-duplicated single edge still keeps its own label.
+- **Port emission** (`Rendering-Layout-LayeredAlgorithm-PortEmission`):
+  `Apply_EdgeWithPortEndpoint_EmitsLayoutPortWithExternalLabel` confirms an edge whose endpoint is a
+  named `LayoutGraphPort` emits exactly one `LayoutPort` at the routed anchor, carrying the port's
+  `ExternalLabel`; `Apply_EdgeWithPortEndpoint_ComputesFiniteMaxLabelWidth` confirms the emitted
+  port's `MaxLabelWidth` is finite and bounded to roughly half the owning box's placed width.
+- **Content inset** (`Rendering-Layout-LayeredAlgorithm-ContentInset`):
+  `Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft` confirms a node with a labeled left-side
+  port receives a positive `ContentInsetLeft` while its other sides and a port-free sibling box stay
+  zero.
+- **Auto-grow minimum size** (`Rendering-Layout-LayeredAlgorithm-AutoGrowMinimumSize`):
+  `Apply_NodeAlreadyLargeEnough_SizeUnchanged` confirms a node whose caller-supplied size already
+  meets the computed minimum is left completely unchanged (no shrinking, ever);
+  `Apply_NodeWithTopAndBottomPorts_TooSmall_AutoGrowsHeight` confirms an undersized node with a
+  title and both a top and a bottom port is grown taller than its caller-supplied height, and that
+  its `ContentInsetTop` is widened enough that a renderer's title-start position clears the top
+  port's own rendered label; `Apply_AutoGrownNode_DoesNotOverlapSiblings` confirms a grown node's
+  placed rectangle never overlaps an already-placed sibling; and
+  `Apply_NoNodeNeedsGrowth_PassTwoSkipped_LayoutUnaffected` confirms a layout where no node needs
+  growth is completely unaffected by the auto-grow mechanism (pass 2 never runs).
+- **Parallel-label spacing** (`Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing`):
+  `Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine` lays out 3 independent labeled parallel
+  connectors between the same two boxes (`MergeParallelEdges = false`) and asserts, for each line,
+  that `ConnectorLabelPlacer.Place`'s chosen label Y coordinate matches that line's own straight
+  Y-coordinate (confirming the first-pass, no-nudge placement succeeds for every label instead of
+  one colliding and being displaced far from its own line), and that adjacent parallel lanes end up
+  spaced at least a full `ConnectorLabelPlacer.EstimateLabelHeight` apart.
+  `Apply_ThreeParallelLabeledEdges_Down_BoxWidthGrowsAndLabelsLandOnTheirOwnLine` is the vertical-flow
+  (`Direction.Down`) mirror: it lays out the same 3 parallel labeled connectors but attaching to the
+  Top/Bottom faces (where `PortDistributor` spreads anchors horizontally instead of vertically), and
+  asserts both boxes' Width (not Height) auto-grows past the caller-supplied size, that each label's
+  chosen X coordinate matches its own line's straight X coordinate, and that adjacent parallel lanes
+  end up spaced at least the widest label's `ConnectorLabelPlacer.EstimateLabelWidth` apart —
+  confirming the auto-grow floor correctly grows the axis `PortDistributor` actually spreads anchors
+  along for a Top/Bottom face, not just a Left/Right one.
+- **Port-label width floor** (`Rendering-Layout-LayeredAlgorithm-PortLabelWidthFloor`):
+  `Apply_NodeWithLongLeftPortLabel_GrowsWidthEnoughToAvoidSqueeze` reproduces the
+  `ports-showcase-horizontal` gallery repro directly: a small caller-supplied box receives a long
+  left-port `ExternalLabel`, and the test asserts both that the box's `Width` grows past its
+  caller-supplied size and that the emitted `LayoutPort.MaxLabelWidth` is at least the label's own
+  width as measured by the same shared `Rendering.Abstractions.PortLabelWidthEstimator.MeasureWidth`
+  the production code uses (i.e. no squeeze is needed).
+  `Apply_NodeWithLongLeftAndRightPortLabels_BothSidesAvoidSqueeze` confirms the `Math.Max` composition
+  across both sides: a node with long labeled ports on both its left and right faces grows wide
+  enough that both sides' `MaxLabelWidth` independently satisfy the no-squeeze bound, proving neither
+  side's floor starves the other.
 - **Shape-aware routing** (`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`):
   `Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop` and
   `Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop` confirm a `BoxShape.Folder` node's
@@ -71,6 +126,26 @@ the argument-null validation behavior constitutes a failure.
   Apply_DownDirectionOnGraphScope_IsHonored, Apply_DefaultDirection_FlowsLeftToRight
 - **`Rendering-Layout-LayeredAlgorithm-Validation`**:
   Apply_NullGraph_Throws, Apply_NullOptions_Throws
+- **`Rendering-Layout-LayeredAlgorithm-MergeParallelEdges`**:
+  Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_EmitsExactlyOneLine,
+  Apply_ParallelEdges_MergeParallelEdgesFalse_RetainsEveryEdge,
+  Apply_MergeParallelEdges_GraphOverridesOptions,
+  Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_OmitsLabelOnCollapse,
+  Apply_SingleEdge_MergeParallelEdgesDefaultTrue_KeepsOwnLabel
+- **`Rendering-Layout-LayeredAlgorithm-PortEmission`**:
+  Apply_EdgeWithPortEndpoint_EmitsLayoutPortWithExternalLabel,
+  Apply_EdgeWithPortEndpoint_ComputesFiniteMaxLabelWidth
+- **`Rendering-Layout-LayeredAlgorithm-ContentInset`**:
+  Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft
+- **`Rendering-Layout-LayeredAlgorithm-AutoGrowMinimumSize`**:
+  Apply_NodeAlreadyLargeEnough_SizeUnchanged, Apply_NodeWithTopAndBottomPorts_TooSmall_AutoGrowsHeight,
+  Apply_AutoGrownNode_DoesNotOverlapSiblings, Apply_NoNodeNeedsGrowth_PassTwoSkipped_LayoutUnaffected
+- **`Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing`**:
+  Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine,
+  Apply_ThreeParallelLabeledEdges_Down_BoxWidthGrowsAndLabelsLandOnTheirOwnLine
+- **`Rendering-Layout-LayeredAlgorithm-PortLabelWidthFloor`**:
+  Apply_NodeWithLongLeftPortLabel_GrowsWidthEnoughToAvoidSqueeze,
+  Apply_NodeWithLongLeftAndRightPortLabels_BothSidesAvoidSqueeze
 - **`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`**:
   Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop,
   Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop,

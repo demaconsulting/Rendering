@@ -38,3 +38,55 @@ sections:
           keeps both labels readable, and both renderers share the placer so their layouts match.
         tests:
           - Place_CollidingLabels_AreSeparated
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent
+        title: >-
+          The connector-label placer shall expose each placed label's estimated half-width and
+          half-height alongside its centre, so a caller can compute the label's full rendered
+          bounding box after every overlap-avoidance nudge/fallback has been applied.
+        justification: |
+          A renderer's final canvas/bitmap size was previously computed from box+routing geometry
+          before label placement ran, so a label nudged to avoid an overlap could land completely
+          outside those bounds and render invisibly clipped. A renderer can only grow its canvas to
+          include every placed label's full extent if the placer exposes that extent, not merely each
+          label's centre point.
+        tests:
+          - Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight
+          - Place_LongerLabel_HasLargerHalfWidth
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight
+        title: >-
+          The connector-label placer shall expose a public EstimateLabelHeight(fontSize) helper
+          returning the full label bounding-box height (twice the halfHeight Place computes
+          internally), so other layout stages can size themselves against the exact same
+          label-height formula this placer uses when testing for overlap, without duplicating its
+          internal constants.
+        justification: |
+          A layout algorithm sizing a node so that 2+ parallel labeled connector anchors on the same
+          face are spaced far enough apart for ConnectorLabelPlacer's first-pass (no-nudge)
+          placement to succeed for every label must use exactly the same label-height formula this
+          placer applies internally; exposing it as a public helper keeps HeightFactor/Gap a single
+          source of truth instead of a duplicated magic-number formula in a second project.
+        tests:
+          - EstimateLabelHeight_MatchesPlaceHalfHeightDoubled
+          - EstimateLabelHeight_IsMonotonicInFontSize
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelWidth
+        title: >-
+          The connector-label placer shall expose a public EstimateLabelWidth(text, fontSize) helper
+          returning the full label bounding-box width for the given label text (twice the halfWidth
+          Place computes internally for that label), so other layout stages can size themselves
+          against the exact same label-width formula this placer uses when testing for overlap,
+          without duplicating its internal constants.
+        justification: |
+          A layout algorithm sizing a node so that 2+ parallel labeled connector anchors sharing a
+          Top/Bottom face (where anchors are spread horizontally, not vertically) are spaced far
+          enough apart for ConnectorLabelPlacer's first-pass (no-nudge) placement to succeed for
+          every label must compare against each label's actual rendered width, not a fixed
+          per-font-size constant, since — unlike label height — label width varies with the label
+          text. Exposing it as a public helper keeps CharWidthFactor/Gap a single source of truth
+          instead of a duplicated magic-number formula in a second project.
+        tests:
+          - EstimateLabelWidth_MatchesPlaceHalfWidthDoubled
+          - EstimateLabelWidth_IsMonotonicInFontSize
+          - EstimateLabelWidth_IsMonotonicInTextLength

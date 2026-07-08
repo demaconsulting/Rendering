@@ -62,6 +62,11 @@ words:
   - hierarchyhandling
   - facade
   - browsable
+  - mergeparalleledges
+  - assumedfontsize
+  - textmeasurer
+  - abcdeabcde
+  - settability
   # Non-ASCII terms retained verbatim in extracted source comments
   - façade
   - Köpf

@@ -112,6 +112,41 @@ sections:
           - Apply_ContainerWithTitleHeightOverride_ReplacesDefaultTitleBand
           - Apply_UnlabelledContainerWithTitleHeightOverride_ReservesNoTitleBand
 
+      - id: Rendering-Model-LayoutGraph-Ports
+        title: >-
+          A graph node shall be able to carry a lazily-allocated collection of named
+          LayoutGraphPort instances, each with a unique identifier within its owning node, and shall
+          report whether it currently carries any ports; an edge shall be able to reference a port
+          (via the shared ILayoutConnectable interface) as its source or target instead of a node.
+        justification: |
+          Modeling a physical wiring/interconnection diagram (for example a motor's power, encoder,
+          and sensor connections) needs a first-class, independently-labeled attachment point on a
+          node's boundary, distinct from the node itself and from any one edge's own midpoint label —
+          mirroring the Eclipse Layout Kernel's ElkPort/ElkConnectableShape design. Lazy allocation
+          mirrors the existing Children/HasChildren pattern so a leaf node with no ports allocates
+          nothing.
+        tests:
+          - LayoutGraphNode_HasPorts_NoPortsAdded_ReturnsFalse
+          - Ports_AddPort_AppendsPortAndReturnsIt
+          - Ports_AddPort_DuplicateId_ThrowsArgumentException
+          - Ports_AddPort_SameIdOnDifferentNodes_Allowed
+          - Ports_AddPort_NullId_ThrowsArgumentNullException
+          - Ports_AddPort_EmptyId_ThrowsArgumentException
+          - AddEdge_PortToNode_ConnectsPortAsSource
+
+      - id: Rendering-Model-LayoutGraph-PortLabels
+        title: >-
+          A LayoutGraphPort shall carry two independently settable, optional labels — ExternalLabel
+          and InternalLabel — defaulting to null, and shall carry no Side property (side placement is
+          always a computed layout-engine output, never a caller input).
+        justification: |
+          A boundary/delegation port (a physical bulkhead-connector pattern) needs two independent
+          names, one per face; deferring any caller-settable Side keeps the promise the engine can
+          actually keep, since no bundled algorithm currently gives a caller control over layer
+          assignment or left-right/top-bottom ordering.
+        tests:
+          - Port_Labels_DefaultNullAndIndependentlySettable
+
       - id: Rendering-Model-LayoutGraph-ShapeGeometryHints
         title: >-
           A graph node shall be able to carry optional resolved shape-geometry hints for a rounded

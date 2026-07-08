@@ -55,8 +55,48 @@ different Y so the two do not overlap.
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap`.
 
+#### Placement exposes each label's extent
+
+Test `Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight` asserts a placed label's `HalfWidth`
+and `HalfHeight` are both positive, and `Place_LongerLabel_HasLargerHalfWidth` asserts a longer
+`MidpointLabel` string yields a larger `HalfWidth` than a shorter one, confirming the extent is
+genuinely derived from the label's estimated rendered size (not a fixed placeholder), which a
+caller needs to compute the label's full bounding box for canvas-growth purposes.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent`.
+
+#### EstimateLabelHeight matches Place's internal formula and grows with font size
+
+Test `EstimateLabelHeight_MatchesPlaceHalfHeightDoubled` places a labeled line via `Place`, then
+asserts `EstimateLabelHeight(fontSize)` equals exactly twice that placement's `HalfHeight`,
+confirming the public helper returns the same full label-height formula `Place` uses internally
+(not an independently-drifting approximation). Test `EstimateLabelHeight_IsMonotonicInFontSize`
+asserts a larger `fontSize` yields a larger estimated height.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight`.
+
+#### EstimateLabelWidth matches Place's internal formula and grows with font size and text length
+
+Test `EstimateLabelWidth_MatchesPlaceHalfWidthDoubled` places a labeled line via `Place`, then
+asserts `EstimateLabelWidth(text, fontSize)` equals exactly twice that placement's `HalfWidth`,
+confirming the public helper returns the same full label-width formula `Place` uses internally
+(not an independently-drifting approximation). Test `EstimateLabelWidth_IsMonotonicInFontSize`
+asserts a larger `fontSize` yields a larger estimated width for the same text, and test
+`EstimateLabelWidth_IsMonotonicInTextLength` asserts a longer label string yields a larger
+estimated width for the same font size — confirming the estimate is genuinely text-dependent,
+unlike `EstimateLabelHeight`, which is a pure function of font size alone.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelWidth`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled`**: Place_LineWithoutLabel_IsOmitted
 - **`Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment`**: Place_SingleLine_UsesLongestSegmentMidpoint
 - **`Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap`**: Place_CollidingLabels_AreSeparated
+- **`Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent`**:
+  Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight, Place_LongerLabel_HasLargerHalfWidth
+- **`Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight`**:
+  EstimateLabelHeight_MatchesPlaceHalfHeightDoubled, EstimateLabelHeight_IsMonotonicInFontSize
+- **`Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelWidth`**:
+  EstimateLabelWidth_MatchesPlaceHalfWidthDoubled, EstimateLabelWidth_IsMonotonicInFontSize,
+  EstimateLabelWidth_IsMonotonicInTextLength

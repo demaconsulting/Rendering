@@ -59,8 +59,13 @@ applies every stage in order. `Run` rejects a null graph with `ArgumentNullExcep
 The default stage sequence added by `AddDefaultStages` runs in this order:
 
 1. **CycleBreaker.** Detects cycle-causing edges by depth-first back-edge detection and reverses
-   them to produce an acyclic edge set, recording which retained edges were reversed. Self-loops and
-   duplicate directed edges are dropped.
+   them to produce an acyclic edge set, recording which retained edges were reversed. Self-loops are
+   always dropped. Duplicate directed edges (after back-edge reversal) are dropped only when
+   `LayeredGraph.MergeParallelEdges` is `true` (the default, exactly reproducing the original
+   unconditional deduplication); when `false`, every parallel edge instance is retained in
+   `graph.Acyclic`, and `graph.AcyclicOriginalIndex` records each retained acyclic edge's index back
+   into the original input edge list so later stages and the public algorithm can still recover which
+   original edge produced which routed polyline.
 2. **LayerAssigner.** Assigns each node the longest-path layer index, so every edge runs from a
    strictly lower layer to a strictly higher layer and no same-layer connection is possible.
 3. **LongEdgeSplitter.** For each edge spanning more than one layer, inserts one zero-size dummy node
@@ -138,6 +143,7 @@ public layout result contract.
 | Rendering-Layout-LayeredPipeline-Directions | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-OrthogonalConnectors | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-CycleBreaking | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-MergeParallelEdges | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-LayerAssignment | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-LongEdgeSplitting | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-CrossingMinimization | Layered pipeline behavior described above |

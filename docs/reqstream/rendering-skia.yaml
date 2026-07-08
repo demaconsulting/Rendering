@@ -29,6 +29,8 @@ sections:
           - Rendering-Skia-SkiaRasterRenderer-ThemeColours
           - Rendering-Skia-SkiaRasterRenderer-EndMarkers
           - Rendering-Skia-SkiaRasterRenderer-EmptyTree
+          - Rendering-Skia-SkiaRasterRenderer-PortAndContentInset
+          - Rendering-Skia-SkiaRasterRenderer-SharedTypefaces
           - Rendering-Skia-PngRenderer-EmitsPng
           - Rendering-Skia-JpegRenderer-EmitsJpeg
           - Rendering-Skia-WebpRenderer-EmitsWebp

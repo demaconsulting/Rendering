@@ -79,4 +79,141 @@ public sealed class ConnectorLabelPlacerTests
         Assert.Equal(0, posA.Y, precision: 3);
         Assert.NotEqual(posB.Y, posA.Y, precision: 3);
     }
+
+    /// <summary>
+    ///     A placed label's <see cref="LabelPlacement.HalfWidth"/>/<see cref="LabelPlacement.HalfHeight"/>
+    ///     are both positive, so a renderer can compute the label's full bounding-box extent (not just
+    ///     its centre) to grow a canvas/bitmap around it.
+    /// </summary>
+    [Fact]
+    public void Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight()
+    {
+        var line = new LayoutLine(
+            [new Point2D(0, 0), new Point2D(200, 0)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            MidpointLabel: "[guard]");
+
+        var result = ConnectorLabelPlacer.Place([line], fontSize: 12);
+
+        var placement = result[line];
+        Assert.True(placement.HalfWidth > 0);
+        Assert.True(placement.HalfHeight > 0);
+    }
+
+    /// <summary>
+    ///     A longer label produces a larger <see cref="LabelPlacement.HalfWidth"/>, confirming the
+    ///     exposed size actually reflects the label's estimated text width rather than a fixed
+    ///     placeholder.
+    /// </summary>
+    [Fact]
+    public void Place_LongerLabel_HasLargerHalfWidth()
+    {
+        var shortLine = new LayoutLine(
+            [new Point2D(0, 0), new Point2D(200, 0)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            MidpointLabel: "a");
+        var longLine = new LayoutLine(
+            [new Point2D(0, 100), new Point2D(200, 100)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            MidpointLabel: "a much longer label string");
+
+        var result = ConnectorLabelPlacer.Place([shortLine, longLine], fontSize: 12);
+
+        Assert.True(result[longLine].HalfWidth > result[shortLine].HalfWidth);
+    }
+
+    /// <summary>
+    ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelHeight"/> returns the full (not
+    ///     half) label bounding-box height matching the formula <see cref="ConnectorLabelPlacer.Place"/>
+    ///     uses internally
+    ///     for <c>halfHeight</c> (<c>fontSize * 1.3 + 2 * Gap</c>, doubled), so other layout stages can
+    ///     size themselves against the exact same value this placer uses when testing for overlap.
+    /// </summary>
+    [Fact]
+    public void EstimateLabelHeight_MatchesPlaceHalfHeightDoubled()
+    {
+        const double fontSize = 12.0;
+        var line = new LayoutLine(
+            [new Point2D(0, 0), new Point2D(200, 0)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            MidpointLabel: "label");
+
+        var result = ConnectorLabelPlacer.Place([line], fontSize);
+        var expectedHeight = result[line].HalfHeight * 2.0;
+
+        Assert.Equal(expectedHeight, ConnectorLabelPlacer.EstimateLabelHeight(fontSize), 6);
+    }
+
+    /// <summary>
+    ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelHeight"/> grows monotonically with
+    ///     font size.
+    /// </summary>
+    [Fact]
+    public void EstimateLabelHeight_IsMonotonicInFontSize()
+    {
+        var small = ConnectorLabelPlacer.EstimateLabelHeight(10.0);
+        var large = ConnectorLabelPlacer.EstimateLabelHeight(20.0);
+
+        Assert.True(large > small);
+    }
+
+    /// <summary>
+    ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelWidth"/> returns the full (not
+    ///     half) label bounding-box width matching the formula <see cref="ConnectorLabelPlacer.Place"/>
+    ///     uses internally for <c>halfWidth</c> (<c>text.Length * fontSize * 0.6 + 2 * Gap</c>,
+    ///     doubled), so other layout stages can size themselves against the exact same value this
+    ///     placer uses when testing for overlap.
+    /// </summary>
+    [Fact]
+    public void EstimateLabelWidth_MatchesPlaceHalfWidthDoubled()
+    {
+        const double fontSize = 12.0;
+        const string text = "primary";
+        var line = new LayoutLine(
+            [new Point2D(0, 0), new Point2D(200, 0)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            MidpointLabel: text);
+
+        var result = ConnectorLabelPlacer.Place([line], fontSize);
+        var expectedWidth = result[line].HalfWidth * 2.0;
+
+        Assert.Equal(expectedWidth, ConnectorLabelPlacer.EstimateLabelWidth(text, fontSize), 6);
+    }
+
+    /// <summary>
+    ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelWidth"/> grows monotonically with
+    ///     font size, for a fixed label text.
+    /// </summary>
+    [Fact]
+    public void EstimateLabelWidth_IsMonotonicInFontSize()
+    {
+        var small = ConnectorLabelPlacer.EstimateLabelWidth("label", 10.0);
+        var large = ConnectorLabelPlacer.EstimateLabelWidth("label", 20.0);
+
+        Assert.True(large > small);
+    }
+
+    /// <summary>
+    ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelWidth"/> grows monotonically with
+    ///     label text length, for a fixed font size — unlike <see cref="ConnectorLabelPlacer.EstimateLabelHeight"/>,
+    ///     which is a pure function of font size alone.
+    /// </summary>
+    [Fact]
+    public void EstimateLabelWidth_IsMonotonicInTextLength()
+    {
+        var shorter = ConnectorLabelPlacer.EstimateLabelWidth("audit", 12.0);
+        var longer = ConnectorLabelPlacer.EstimateLabelWidth("primary", 12.0);
+
+        Assert.True(longer > shorter);
+    }
 }

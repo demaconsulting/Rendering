@@ -83,6 +83,21 @@ sections:
           - CycleBreaker_Apply_GraphWithCycle_ProducesAcyclicEdgeSet
           - CycleBreaker_Apply_SelfLoopsAndDuplicates_AreRemoved
 
+      - id: Rendering-Layout-LayeredPipeline-MergeParallelEdges
+        title: >-
+          The cycle-breaking stage shall honor LayeredGraph.MergeParallelEdges: when true (the
+          default), it deduplicates by (source, target) after back-edge reversal exactly as before
+          this property existed; when false, it retains every parallel edge instance (self-loops are
+          still always dropped) so later stages receive one augmented edge per original edge.
+        justification: |
+          Parallel-edge preservation must start at cycle-breaking, since it is the first stage that
+          discards duplicate node pairs; every later stage (PortDistributor, LongEdgeJoiner,
+          LayeredCorridorRouter) already operates per-edge-index and needs no change once
+          CycleBreaker stops filtering duplicates out.
+        tests:
+          - CycleBreaker_Apply_MergeParallelEdgesFalse_RetainsEveryParallelEdgeInstance
+          - CycleBreaker_Apply_MergeParallelEdgesDefaultTrue_CollapsesDuplicates
+
       - id: Rendering-Layout-LayeredPipeline-LayerAssignment
         title: >-
           The layer-assignment stage shall assign each node the longest-path layer index so that

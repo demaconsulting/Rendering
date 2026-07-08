@@ -68,3 +68,28 @@ sections:
           - OverlayOnto_ValueOnlyOnParent_PassesThrough
           - OverlayOnto_CustomPropertyNotInCoreOptions_IsMerged
           - OverlayOnto_NullParent_ThrowsArgumentNullException
+
+      - id: Rendering-Model-Options-MergeParallelEdges
+        title: >-
+          CoreOptions.MergeParallelEdges shall default to true, exactly reproducing the layered
+          algorithm's original unconditional deduplication of parallel edges, and shall cascade like
+          every other property when explicitly set on a graph or options scope.
+        justification: |
+          A caller of the bundled layered algorithm (for example an interconnection/wiring-diagram
+          view) needs a way to opt out of parallel-edge collapsing without affecting any existing
+          consumer's default rendering, so the default must exactly match today's fixed behavior.
+        tests:
+          - MergeParallelEdges_DefaultValue_IsTrue
+          - MergeParallelEdges_SetOnGraph_ReadsBackExplicitValue
+
+      - id: Rendering-Model-Options-AssumedFontSize
+        title: >-
+          CoreOptions.AssumedFontSize shall default to 12.0, matching the bundled themes' FontSizeBody,
+          and shall cascade like every other property when explicitly set.
+        justification: |
+          A text measurer consulted at layout time needs a font size up front, before any renderer's
+          own theme is available; defaulting to the bundled themes' own body font size keeps the
+          reserved margin accurate for a caller that never overrides either value.
+        tests:
+          - AssumedFontSize_DefaultValue_Is12
+          - AssumedFontSize_SetOnOptions_ReadsBackExplicitValue

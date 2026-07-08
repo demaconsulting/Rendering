@@ -41,17 +41,108 @@ per node followed by `LayoutLine` per edge).
    resolution, and passes the resolved value to `InterconnectionLayoutEngine.Place`. The property's
    default matches the engine's original fixed constant, so an unset option reproduces the algorithm's
    prior behavior exactly.
-5. **Placement.** Calls `InterconnectionLayoutEngine.Place` with the resolved direction and node
-   spacing to obtain the `LayerResult`. For a downward or upward flow the engine transposes the layout
-   so the layers progress top-to-bottom (or bottom-to-top); `Right` is the default and is
+5. **Placement (pass 1).** Calls `InterconnectionLayoutEngine.Place` with the resolved direction and
+   node spacing to obtain the `LayerResult`. For a downward or upward flow the engine transposes the
+   layout so the layers progress top-to-bottom (or bottom-to-top); `Right` is the default and is
    byte-identical to the original left-to-right placement.
-6. **Box emission.** Emits one `LayoutBox` per input node, in input order, at the placed rectangle,
-   carrying the node label.
-7. **Route resolution.** Builds a `(source, target)` to polyline lookup from the engine's acyclic
-   edge set, then emits one `LayoutLine` per input edge. `ResolveRoute` returns the forward polyline
-   when present, reverses the polyline of a reversed back edge, and otherwise falls back to a
-   straight segment between the two node centers (for a self-loop or duplicate edge the engine
+6. **Box emission (provisional).** Emits one `LayoutBox` per input node, in input order, at the
+   placed rectangle, carrying the node label and its auto-computed `ContentInset*` margins (step 9
+   below). If step 10's auto-grow floor determines any node's caller-supplied size is insufficient,
+   this emission is discarded and placement/emission re-runs (pass 2) against the grown sizes.
+7. **Parallel-edge resolution and route lookup.** Resolves `CoreOptions.MergeParallelEdges` (graph
+   in preference to options, default `true`) and builds a route lookup keyed by *engine edge
+   index* — the acyclic edge's own position in the pipeline's edge list — rather than by
+   `(source, target)` node pair, so parallel edges between the same two nodes each recover their own
+   distinct routed polyline instead of colliding on a shared dictionary key. `ResolveRoute` returns
+   the forward polyline when present, reverses the polyline of a reversed back edge, and otherwise
+   falls back to a straight segment between the two node centers (for a self-loop the engine
    dropped) so the connector is still drawn.
+8. **Line emission.** When `MergeParallelEdges` is `true`, a first pass groups the caller's original
+   input edges by `(source, target)` and emits exactly one `LayoutLine` per group. Its midpoint label
+   (and, once per-end names exist, each duplicate edge's own port names) is emitted **only when the
+   group contains exactly one raw input edge**; whenever 2+ raw edges collapse into that one line,
+   the label is omitted entirely rather than keeping any single surviving edge's label — a reader
+   cannot tell which of several collapsed connectors a kept label would have belonged to, so there is
+   nothing meaningful to attach it to once the edges are drawn as one line. This also fixes a
+   pre-existing latent bug where every original input edge emitted its own stacked `LayoutLine`
+   regardless of duplication. When `MergeParallelEdges` is `false`, every input edge is emitted as
+   its own independently-routed `LayoutLine` and keeps its own label.
+9. **Port emission and content-inset computation.** For each emitted edge whose source or target is
+   a `LayoutGraphPort` (not a plain `LayoutGraphNode`), emits a `LayoutPort` at the routed
+   connector's resolved anchor waypoint, carrying the port's `ExternalLabel` as its label
+   unconditionally (this phase does not yet read `InternalLabel` or distinguish an internal/external
+   edge — that is deferred to the hierarchy-aware phase 2), and its `MaxLabelWidth` — computed as
+   roughly half the owning box's placed width minus a small clearance — so a renderer can squeeze an
+   excessively long port label rather than let it visually overlap the opposite port's label (a flat
+   `LayoutPort` has no reference to its owning box, so this bound must be computed here, where the
+   box's placed width is known). `ResolveSide` classifies the anchor against the owning node's placed
+   rectangle (within a small tolerance) to determine which of the four faces the port glyph occupies.
+   For each box, measures port labels via the shared `Rendering.Abstractions.PortLabelWidthEstimator`
+   (also consumed by `Rendering.Svg`'s `SvgRenderer` so layout-time and render-time width estimates
+   never disagree) and `CoreOptions.AssumedFontSize`, then computes `ContentInsetLeft`/`Right` as the widest same-side
+   port label's measured width plus a small clearance, and `ContentInsetTop`/`Bottom` as a flat fixed
+   height (one text line at `AssumedFontSize` plus padding) — zero on any side with no ports. When the
+   node also carries its own title, the top/bottom flat height is widened further (a generous multiple
+   of `AssumedFontSize`/`PortLabelClearance`) so the title — whose rendered start position depends
+   only on the inset, never on the box's overall height — cannot visually overlap the top/bottom
+   port's own rendered label.
+10. **Auto-grow floor (never shrinks).** After pass 1 has revealed every node's `ContentInset*`
+    values, computes the minimum width/height each node actually needs to fit its title plus its
+    reserved insets simultaneously (from `CoreOptions.AssumedFontSize`/`PortLabelClearance`, since
+    this algorithm has no `Theme` dependency to draw exact font metrics from) and compares it against
+    that node's caller-supplied size. It additionally aggregates, per node and per resolved
+    `PortSide`, the total number of connector anchors on that face, whether any of those anchored
+    edges carries a midpoint label, and (since label width — unlike the fixed label-height formula —
+    varies with text) the widest label text sharing that face — unconditionally for every emitted
+    edge endpoint, not only named `LayoutGraphPort`s, since the parallel-label-spacing defect also
+    occurs on plain unnamed edges. Whenever a face has 2+ anchors and at least one is labeled, the
+    floor is widened along the axis that face's `PortDistributor.DistributePorts` call actually
+    spreads anchors along: a `Left`/`Right` face spreads anchors vertically, so the minimum **height**
+    candidate is widened to `ConnectorLabelPlacer.EstimateLabelHeight(assumedFontSize) *
+    (anchorCount - 1) + 2 * ConnectorClearance`; a `Top`/`Bottom` face spreads anchors horizontally,
+    so the minimum **width** candidate is widened to `ConnectorLabelPlacer.EstimateLabelWidth(widest
+    labeled anchor's text, assumedFontSize) * (anchorCount - 1) + 2 * ConnectorClearance` instead —
+    both the exact inverse of `PortDistributor.DistributePorts`'s own even-spacing formula on that
+    face's axis, so that face's anchors end up spaced at least a full label extent (height or width,
+    whichever applies) apart. A node whose caller-supplied size is already large enough (on every
+    computed floor, including this one) is left completely unchanged. Otherwise, engine nodes are
+    cloned with `max(caller-supplied, computed minimum)` for the undersized dimension(s) and the full
+    placement/packing/spacing pass re-runs (pass 2) against the grown sizes, so a grown node never
+    silently overlaps a sibling that was positioned relative to its smaller pass-1 footprint. When no
+    node needs growth, pass 2 is skipped entirely and the pass-1 result is emitted as-is.
+
+    Straight, evenly-spaced parallel connectors between the same two boxes (for example 3
+    independent labeled connectors preserved via `MergeParallelEdges = false`) previously spaced
+    each line only `PortDistributor`'s default lane spacing apart, which for a typical box size was
+    smaller than a label's own bounding-box extent on the axis anchors are spread along
+    (`ConnectorLabelPlacer.EstimateLabelHeight` for a `Left`/`Right` face,
+    `ConnectorLabelPlacer.EstimateLabelWidth` for a `Top`/`Bottom` face, e.g. a downward-flowing
+    diagram); every label after the first then collided with an already-placed label and was nudged
+    perpendicular to its own line by `ConnectorLabelPlacer`'s fallback pass, visually detaching the
+    label from the line it names. This floor grows the node just enough that `PortDistributor`'s own
+    even-spacing formula matches `ConnectorLabelPlacer`'s label-extent formula on that face's axis, so
+    the placer's first-pass (no-nudge) placement succeeds for every label instead, and each label
+    lands directly on its own line, regardless of whether the diagram flows horizontally or
+    vertically.
+
+    A further, independent `minWidth` floor reconciles `MaxLabelWidth` (step 9) with
+    `ContentInsetLeft`/`Right` (also step 9): since `ContentInsetLeft` is already `widest same-side
+    left-port label width + PortLabelClearance` (and likewise for `ContentInsetRight`), and
+    `MaxLabelWidth` is `width / 2 - PortLabelClearance` computed from the box's final placed width,
+    a box that only grew enough to satisfy the title+inset floor (which sums `insetLeft + insetRight`,
+    not `2 *` either individually) could still end up with `MaxLabelWidth` smaller than the very label
+    width `ContentInsetLeft`/`Right` already reserved full room for — needlessly squeezing (via a
+    renderer's `textLength`/`lengthAdjust`) a label the box had physical space for. Requiring
+    `minWidth >= 2 * insetLeft` and `minWidth >= 2 * insetRight` makes `MaxLabelWidth`'s own formula
+    resolve to no less than that side's widest reserved label width once the box has grown to satisfy
+    this floor — without changing `MaxLabelWidth`'s or the inset's formulas, and composing via the
+    same `Math.Max` fold as every other floor so it can only widen, never shrink, the final box. This
+    is `Left`/`Right`-only and orthogonal to the parallel-edge label-spacing floor above (which is
+    driven by anchored-edge midpoint labels via `ConnectorLabelPlacer`, not named-port `ExternalLabel`
+    text via `PortLabelWidthEstimator`); a node with both a wide left-port and a wide right-port label
+    grows to satisfy each side's floor independently (not jointly balanced against
+    `insetLeft + insetRight`), which is deliberately conservative but simple, matching the same
+    per-face (not globally-balanced) pattern the parallel-edge floor already uses.
 
 An empty graph yields an empty `LayoutTree` because `InterconnectionLayoutEngine.Place` returns a
 minimal-size empty result, which produces an empty canvas.
@@ -72,4 +163,10 @@ the Engine subsystem. It is the entry point resolved by renderers through the la
 | Rendering-Layout-LayeredAlgorithm-Direction | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-NodeSpacing | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-Validation | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-MergeParallelEdges | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-PortEmission | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-ContentInset | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-AutoGrowMinimumSize | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-PortLabelWidthFloor | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting | LayeredLayoutAlgorithm behavior described above |

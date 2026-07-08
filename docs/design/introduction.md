@@ -106,7 +106,8 @@ Rendering.Abstractions (System)
 ├── Theme (Unit)                — Theme record and built-in Themes
 ├── NotationMetrics (Unit)      — intrinsic notation geometry shared by renderers
 ├── BoxMetrics (Unit)           — box title-area and folder-tab geometry
-└── ConnectorLabelPlacer (Unit) — collision-aware connector-label placement
+├── ConnectorLabelPlacer (Unit) — collision-aware connector-label placement
+└── PortLabelWidthEstimator (Unit) — shared port-label natural-width estimator (layout + SVG)
 
 Rendering.Layout (System)
 ├── Engine (Subsystem)
@@ -129,7 +130,7 @@ Rendering.Skia (System)
 ├── SkiaRasterRenderer (Unit)   — abstract SkiaSharp rasterizer shared by all formats
 ├── PngRenderer (Unit)          — lossless PNG output
 ├── JpegRenderer (Unit)         — JPEG output
-└── WebpRenderer (Unit)         — WEBP output
+├── WebpRenderer (Unit)          — WEBP output
 
 OTS Software Items
 ├── BuildMark    — build-notes documentation from GitHub Actions metadata

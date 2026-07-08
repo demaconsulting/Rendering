@@ -368,8 +368,8 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
                 continue;
             }
 
-            if (viewOf.TryGetValue(edge.Source, out var viewSource) &&
-                viewOf.TryGetValue(edge.Target, out var viewTarget))
+            if (edge.Source is LayoutGraphNode edgeSourceNode && viewOf.TryGetValue(edgeSourceNode, out var viewSource) &&
+                edge.Target is LayoutGraphNode edgeTargetNode && viewOf.TryGetValue(edgeTargetNode, out var viewTarget))
             {
                 var viewEdge = view.AddEdge(edge.Id, viewSource, viewTarget);
                 viewEdge.TargetEnd = edge.TargetEnd;
@@ -456,8 +456,12 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
         var connections = new List<Connection>(routedEdges.Count);
         foreach (var edge in routedEdges)
         {
-            var from = composed[indexOf[descendantToDirect[edge.Source]]];
-            var to = composed[indexOf[descendantToDirect[edge.Target]]];
+            // ClassifyEdges only ever adds edges with LayoutGraphNode endpoints to routedEdges/leafEdges
+            // (Phase 1 scope excludes port endpoints from this hierarchical algorithm).
+            var sourceNode = (LayoutGraphNode)edge.Source;
+            var targetNode = (LayoutGraphNode)edge.Target;
+            var from = composed[indexOf[descendantToDirect[sourceNode]]];
+            var to = composed[indexOf[descendantToDirect[targetNode]]];
             connections.Add(new Connection(from, to, edge.TargetEnd, edge.LineStyle, edge.Label));
         }
 
@@ -493,9 +497,13 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
         foreach (var edge in graph.Edges)
         {
-            // Skip edges whose endpoints are not both under this scope.
-            if (!descendantToDirect.TryGetValue(edge.Source, out var sourceDirect) ||
-                !descendantToDirect.TryGetValue(edge.Target, out var targetDirect))
+            // Skip edges whose endpoints are not both under this scope. Named-port endpoints are not
+            // yet supported by this hierarchical algorithm (Phase 1 scope is the flat/layered
+            // algorithm only), so an edge touching a port is skipped here too.
+            if (edge.Source is not LayoutGraphNode sourceNode ||
+                edge.Target is not LayoutGraphNode targetNode ||
+                !descendantToDirect.TryGetValue(sourceNode, out var sourceDirect) ||
+                !descendantToDirect.TryGetValue(targetNode, out var targetDirect))
             {
                 continue;
             }
@@ -506,7 +514,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
                 continue;
             }
 
-            var bothDirect = ReferenceEquals(sourceDirect, edge.Source) && ReferenceEquals(targetDirect, edge.Target);
+            var bothDirect = ReferenceEquals(sourceDirect, sourceNode) && ReferenceEquals(targetDirect, targetNode);
             if (bothDirect)
             {
                 // Provisionally a leaf-routed edge; may still be promoted below if either endpoint is
@@ -524,7 +532,8 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
         var leafEdges = new HashSet<LayoutGraphEdge>();
         foreach (var edge in directDirect)
         {
-            if (conflicted.Contains(edge.Source) || conflicted.Contains(edge.Target))
+            if ((edge.Source is LayoutGraphNode sourceNode && conflicted.Contains(sourceNode)) ||
+                (edge.Target is LayoutGraphNode targetNode && conflicted.Contains(targetNode)))
             {
                 routedEdges.Add(edge);
             }

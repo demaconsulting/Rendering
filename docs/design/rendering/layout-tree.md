@@ -26,10 +26,19 @@ the top-left, so a renderer can draw each element directly without resolving nes
   `Warnings`.
 - `LayoutNode` (abstract record) — the discriminated-union root; carries no members.
 - `LayoutBox` (node record) — `X`, `Y`, `Width`, `Height`, `Label`, integer `Depth`, `Shape`,
-  `Compartments`, `Children`, optional `Keyword`, and optional resolved shape-geometry hints
-  `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight`.
+  `Compartments`, `Children`, optional `Keyword`, optional resolved shape-geometry hints
+  `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight`, and `ContentInsetLeft`,
+  `ContentInsetRight`, `ContentInsetTop`, `ContentInsetBottom` (each defaulting to `0.0`) — a
+  per-side reserved margin auto-computed by a layout algorithm from any port labels on that face, so
+  a renderer knows where title/compartment content may start and must stop without colliding with a
+  port label.
 - `LayoutCompartment` (sealed record) — `Title` and text `Rows`.
-- `LayoutPort` (node record) — `CentreX`, `CentreY`, attached `Side`, and `Label`.
+- `LayoutPort` (node record) — `CentreX`, `CentreY`, attached `Side`, `Label`, and `MaxLabelWidth`
+  (defaulting to `double.PositiveInfinity`) — an optional upper bound, computed by a layout
+  algorithm from the owning box's placed width (a flat `LayoutPort` has no reference back to its
+  owning box, so this bound must be precomputed and carried on the port itself), that a renderer
+  uses to squeeze an excessively long port label rather than let it visually overlap the opposite
+  port's label region.
 - `LayoutLine` (node record) — `Waypoints`, `SourceEnd`, `TargetEnd`, `LineStyle`, and
   `MidpointLabel`.
 - `Point2D` (sealed record) — `X` and `Y`.
@@ -75,6 +84,11 @@ Layout Graph unit, not this unit.
 - `LayoutBox` may carry optional resolved shape-geometry hints when routing and rendering need to
   agree on the real outline of a non-rectangular shape; the hints remain geometric values rather than
   resolved drawing commands so the model stays renderer-agnostic.
+- `LayoutBox`'s four `ContentInset*` values shall default to `0.0`, so an existing caller whose boxes
+  have no ports on any face reads back byte-identical geometry; the four values are appended as new
+  optional positional-record parameters after `FolderTabHeight` (the primary constructor's last
+  existing parameter) to preserve source-compatibility of every pre-existing positional `new
+  LayoutBox(...)` call site.
 - `LayoutNode` shall remain an open discriminated union; adding a new node type shall be an additive
   change, and consumers shall skip node types they do not recognize.
 - All node records shall be immutable, so a placed tree can be shared and rendered repeatedly without
@@ -112,7 +126,9 @@ it obtains one from a layout algorithm and passes it to a renderer.
 | Rendering-Model-LayoutTree-AbsoluteCoordinates | Absolute coordinates on every node record |
 | Rendering-Model-LayoutTree-Box | `LayoutBox` record |
 | Rendering-Model-LayoutTree-DepthNotColor | `LayoutBox.Depth` integer |
+| Rendering-Model-LayoutTree-ContentInset | `LayoutBox.ContentInsetLeft/Right/Top/Bottom` |
 | Rendering-Model-LayoutTree-Port | `LayoutPort` record |
+| Rendering-Model-LayoutTree-PortMaxLabelWidth | `LayoutPort.MaxLabelWidth` |
 | Rendering-Model-LayoutTree-Line | `LayoutLine` record |
 | Rendering-Model-LayoutTree-Label | `LayoutLabel` record |
 | Rendering-Model-LayoutTree-Badge | `LayoutBadge` record |

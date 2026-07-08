@@ -49,52 +49,12 @@ namespace DemaConsulting.Rendering.Skia;
 public abstract class SkiaRasterRenderer : IRenderer
 {
     /// <summary>
-    /// Lazily-loaded typeface for regular-weight, upright text. Loaded once from the embedded
-    /// NotoSans-Regular.ttf resource so all renders use the same font regardless of which fonts
-    /// are installed on the host system.
+    /// Stroke width, in logical pixels (before scale), of the contrasting outline drawn around a port
+    /// glyph square. Distinguishes the port glyph from an arrowhead marker that may land on/near the
+    /// same box edge (both are otherwise solid-filled shapes with no border of their own), so the two
+    /// remain visually distinct instead of merging into a single blob.
     /// </summary>
-    private static readonly Lazy<SKTypeface> RegularTypeface = new(() => LoadTypeface("NotoSans-Regular.ttf"));
-
-    /// <summary>
-    /// Lazily-loaded typeface for bold-weight, upright text. Loaded from NotoSans-Bold.ttf.
-    /// </summary>
-    private static readonly Lazy<SKTypeface> BoldTypeface = new(() => LoadTypeface("NotoSans-Bold.ttf"));
-
-    /// <summary>
-    /// Lazily-loaded typeface for regular-weight, italic text. Loaded from NotoSans-Italic.ttf.
-    /// </summary>
-    private static readonly Lazy<SKTypeface> ItalicTypeface = new(() => LoadTypeface("NotoSans-Italic.ttf"));
-
-    /// <summary>
-    /// Lazily-loaded typeface for bold-weight, italic text. Loaded from NotoSans-BoldItalic.ttf.
-    /// </summary>
-    private static readonly Lazy<SKTypeface> BoldItalicTypeface = new(() => LoadTypeface("NotoSans-BoldItalic.ttf"));
-
-    /// <summary>
-    /// Loads a typeface from an embedded assembly resource. The resource is matched by its
-    /// filename suffix (case-insensitive). Falls back to <see cref="SKTypeface.Default"/> if
-    /// the resource is not found, so the renderer remains functional even when the font is not
-    /// embedded (e.g., during development without the downloaded font files).
-    /// </summary>
-    /// <param name="fileName">File name suffix to match in the assembly manifest resource names.</param>
-    /// <returns>
-    /// An <see cref="SKTypeface"/> loaded from the embedded resource, or
-    /// <see cref="SKTypeface.Default"/> if the resource is not found.
-    /// </returns>
-    private static SKTypeface LoadTypeface(string fileName)
-    {
-        var asm = typeof(SkiaRasterRenderer).Assembly;
-        var resourceName = asm.GetManifestResourceNames()
-            .FirstOrDefault(n => n.EndsWith(fileName, StringComparison.OrdinalIgnoreCase));
-        if (resourceName is null)
-        {
-            return SKTypeface.Default;
-        }
-
-        using var stream = asm.GetManifestResourceStream(resourceName)!;
-        using var data = SKData.Create(stream);
-        return SKTypeface.FromData(data) ?? SKTypeface.Default;
-    }
+    private const float PortGlyphStrokeWidth = 1.0f;
 
     /// <summary>
     /// Creates an <see cref="SKPaint"/> configured for text rendering (color and antialiasing
@@ -119,17 +79,8 @@ public abstract class SkiaRasterRenderer : IRenderer
     /// <param name="bold">When <see langword="true"/>, selects the bold typeface variant.</param>
     /// <param name="italic">When <see langword="true"/>, selects the italic typeface variant.</param>
     /// <returns>A new <see cref="SKFont"/> ready for use with <c>canvas.DrawText</c>.</returns>
-    private static SKFont CreateFont(float fontSize, bool bold, bool italic)
-    {
-        var typeface = (bold, italic) switch
-        {
-            (true, true) => BoldItalicTypeface.Value,
-            (true, false) => BoldTypeface.Value,
-            (false, true) => ItalicTypeface.Value,
-            _ => RegularTypeface.Value,
-        };
-        return new SKFont(typeface, fontSize);
-    }
+    private static SKFont CreateFont(float fontSize, bool bold, bool italic) =>
+        new(SkiaTypefaces.Resolve(bold, italic), fontSize);
 
     /// <summary>
     /// Computes a reduced font size that fits <paramref name="text"/> within
@@ -193,9 +144,22 @@ public abstract class SkiaRasterRenderer : IRenderer
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(output);
 
-        // Compute bitmap size, enforcing minimum 1×1 to prevent SKBitmap allocation errors
+        // Resolve every connector label's placement (position and size) before sizing the bitmap: a
+        // label nudged to avoid colliding with another can land outside the box/routing geometry's
+        // extent, so the bitmap must be sized only after label placement is known — a raster bitmap's
+        // dimensions cannot grow once allocated.
+        var lines = CollectLines(layout.Nodes).ToList();
+        var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody);
+
+        // Compute bitmap size, enforcing minimum 1×1 to prevent SKBitmap allocation errors, then grow
+        // to fully include every placed label's bounding box.
         var w = Math.Max(1, (int)Math.Ceiling(layout.Width * options.Scale));
         var h = Math.Max(1, (int)Math.Ceiling(layout.Height * options.Scale));
+        foreach (var placement in labelPositions.Values)
+        {
+            w = Math.Max(w, (int)Math.Ceiling((placement.X + placement.HalfWidth) * options.Scale));
+            h = Math.Max(h, (int)Math.Ceiling((placement.Y + placement.HalfHeight) * options.Scale));
+        }
 
         // Allocate bitmap, canvas and render all nodes
         using var bitmap = new SKBitmap(w, h, SKColorType.Rgba8888, SKAlphaType.Premul);
@@ -212,10 +176,9 @@ public abstract class SkiaRasterRenderer : IRenderer
         }
 
         // Final pass: draw every connector label on top of all wires and boxes, so that no later
-        // wire can draw over an earlier wire's label. Positions are computed up front so that labels
-        // that would collide (for example where two connectors cross) are spread apart.
-        var lines = CollectLines(layout.Nodes).ToList();
-        var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody);
+        // wire can draw over an earlier wire's label. Positions were computed up front (before
+        // sizing the bitmap, above) so that labels that would collide (for example where two
+        // connectors cross) are spread apart.
         foreach (var line in lines)
         {
             if (line.MidpointLabel is not null && labelPositions.TryGetValue(line, out var pos))
@@ -500,8 +463,8 @@ public abstract class SkiaRasterRenderer : IRenderer
     {
         var theme = options.Theme;
         var scale = (float)options.Scale;
-        var centerX = (float)((box.X + box.Width / 2.0) * scale);
-        var cursorY = ResolveTitleAreaTop(box, theme) + theme.LabelPadding;
+        var centerX = (float)((box.X + (box.Width / 2.0)) * scale);
+        var cursorY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + theme.LabelPadding;
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
         if (box.Keyword != null)
@@ -518,7 +481,7 @@ public abstract class SkiaRasterRenderer : IRenderer
         {
             using var textPaint = CreateTextPaint(strokeColor);
             using var textFont = CreateFont((float)theme.FontSizeTitle * scale, bold: true, italic: false);
-            var availableWidth = (float)((box.Width - 2 * theme.LabelPadding) * scale);
+            var availableWidth = (float)((box.Width - (2 * theme.LabelPadding)) * scale);
             textFont.Size = FitFontSize(textFont, box.Label, availableWidth, textFont.Size);
             var textY = (float)((cursorY + theme.FontSizeTitle) * scale);
             canvas.DrawText(box.Label, centerX, textY, SKTextAlign.Center, textFont, textPaint);
@@ -546,7 +509,7 @@ public abstract class SkiaRasterRenderer : IRenderer
 
         // Compartments start below the title area (keyword + label), computed via shared metrics
         var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
-        var compartmentY = ResolveTitleAreaTop(box, theme) + labelAreaHeight;
+        var compartmentY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + labelAreaHeight;
 
         foreach (var compartment in box.Compartments)
         {
@@ -569,7 +532,7 @@ public abstract class SkiaRasterRenderer : IRenderer
             {
                 using var titlePaint = CreateTextPaint(strokeColor);
                 using var titleFont = CreateFont((float)theme.FontSizeBody * scale, bold: true, italic: true);
-                var titleX = (float)((box.X + theme.LabelPadding) * scale);
+                var titleX = (float)((box.X + theme.LabelPadding + box.ContentInsetLeft) * scale);
                 var titleY = (float)((compartmentY + theme.LabelPadding + theme.FontSizeBody) * scale);
                 canvas.DrawText(compartment.Title, titleX, titleY, SKTextAlign.Left, titleFont, titlePaint);
                 compartmentY += theme.LabelPadding + theme.FontSizeBody + theme.LabelPadding;
@@ -580,7 +543,7 @@ public abstract class SkiaRasterRenderer : IRenderer
             {
                 using var rowPaint = CreateTextPaint(strokeColor);
                 using var rowFont = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: false);
-                var rowX = (float)((box.X + theme.LabelPadding) * scale);
+                var rowX = (float)((box.X + theme.LabelPadding + box.ContentInsetLeft) * scale);
                 var rowY = (float)((compartmentY + theme.LabelPadding + theme.FontSizeBody) * scale);
                 canvas.DrawText(row, rowX, rowY, SKTextAlign.Left, rowFont, rowPaint);
                 compartmentY += theme.LabelPadding + theme.FontSizeBody;
@@ -1280,21 +1243,36 @@ public abstract class SkiaRasterRenderer : IRenderer
             canvas.DrawRect(portRect, fillPaint);
         }
 
-        // Draw the optional label offset away from the attached edge
+        // Draw a contrasting outline around the port glyph so it remains visually distinct from an
+        // arrowhead marker that may land on/near the same box edge (both are otherwise solid-filled
+        // shapes with no border of their own, which can otherwise merge into a single indistinguishable
+        // blob). Drawn as a separate stroke-only pass since the fill and stroke use different colors.
+        using (var outlinePaint = new SKPaint())
+        {
+            outlinePaint.Color = SKColor.Parse(theme.BackgroundColor);
+            outlinePaint.Style = SKPaintStyle.Stroke;
+            outlinePaint.StrokeWidth = PortGlyphStrokeWidth * scale;
+            canvas.DrawRect(portRect, outlinePaint);
+        }
+
+        // Draw the optional label inward, toward the box interior, so it reads immediately next to
+        // the port glyph without overlapping the connector approaching from outside the box.
         if (port.Label != null)
         {
             // Offset the label far enough from the port square so it does not overlap
             var offset = NotationMetrics.PortHalfSize + theme.LabelPadding;
             var (labelX, labelY, align) = port.Side switch
             {
-                PortSide.Top => (port.CentreX, port.CentreY - offset, SKTextAlign.Center),
-                PortSide.Bottom => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, SKTextAlign.Center),
-                PortSide.Left => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, SKTextAlign.Right),
-                _ => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, SKTextAlign.Left)
+                PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, SKTextAlign.Center),
+                PortSide.Bottom => (port.CentreX, port.CentreY - offset, SKTextAlign.Center),
+                PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, SKTextAlign.Left),
+                _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, SKTextAlign.Right)
             };
 
             using var textPaint = CreateTextPaint(strokeColor);
             using var font = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: false);
+            var maxLabelWidth = (float)(port.MaxLabelWidth * scale);
+            font.Size = FitFontSize(font, port.Label, maxLabelWidth, font.Size);
             canvas.DrawText(port.Label, (float)(labelX * scale), (float)(labelY * scale), align, font, textPaint);
         }
     }

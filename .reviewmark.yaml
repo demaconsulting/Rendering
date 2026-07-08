@@ -120,6 +120,7 @@ reviews:
       - "docs/verification/rendering/options.md"
       - "src/DemaConsulting.Rendering/Options/**/*.cs"
       - "test/DemaConsulting.Rendering.Tests/PropertyHolderTests.cs"
+      - "test/DemaConsulting.Rendering.Tests/CoreOptionsTests.cs"
     context:
       - "docs/design/rendering.md"
       - "docs/reqstream/rendering.yaml"
@@ -132,6 +133,7 @@ reviews:
       - "docs/verification/rendering/layout-graph.md"
       - "src/DemaConsulting.Rendering/Graph/**/*.cs"
       - "test/DemaConsulting.Rendering.Tests/LayoutGraphTests.cs"
+      - "test/DemaConsulting.Rendering.Tests/LayoutGraphPortTests.cs"
     context:
       - "docs/design/rendering.md"
       - "docs/reqstream/rendering.yaml"
@@ -251,6 +253,18 @@ reviews:
       - "docs/verification/rendering-abstractions/connector-label-placer.md"
       - "src/DemaConsulting.Rendering.Abstractions/ConnectorLabelPlacer.cs"
       - "test/DemaConsulting.Rendering.Abstractions.Tests/ConnectorLabelPlacerTests.cs"
+    context:
+      - "docs/design/rendering-abstractions.md"
+      - "docs/reqstream/rendering-abstractions.yaml"
+
+  - id: Rendering-Abstractions-PortLabelWidthEstimator
+    title: Review that Rendering Abstractions PortLabelWidthEstimator Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-abstractions/port-label-width-estimator.yaml"
+      - "docs/design/rendering-abstractions/port-label-width-estimator.md"
+      - "docs/verification/rendering-abstractions/port-label-width-estimator.md"
+      - "src/DemaConsulting.Rendering.Abstractions/PortLabelWidthEstimator.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/PortLabelWidthEstimatorTests.cs"
     context:
       - "docs/design/rendering-abstractions.md"
       - "docs/reqstream/rendering-abstractions.yaml"
@@ -561,8 +575,11 @@ reviews:
       - "docs/design/rendering-skia/skia-raster-renderer.md"
       - "docs/verification/rendering-skia/skia-raster-renderer.md"
       - "src/DemaConsulting.Rendering.Skia/SkiaRasterRenderer.cs"
+      - "src/DemaConsulting.Rendering.Skia/SkiaTypefaces.cs"
       - "test/DemaConsulting.Rendering.Skia.Tests/PngRendererPortedTests.cs"
       - "test/DemaConsulting.Rendering.Skia.Tests/PngEndMarkerTests.cs"
+      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaPortAndContentInsetTests.cs"
+      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaTypefacesTests.cs"
     context:
       - "docs/design/rendering-skia.md"
       - "docs/reqstream/rendering-skia.yaml"

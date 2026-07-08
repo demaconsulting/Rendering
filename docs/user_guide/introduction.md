@@ -201,9 +201,15 @@ engine.Compartments = [new LayoutCompartment("ports", ["intake", "exhaust"])];
 
 Only the node's `Width`/`Height` affect layout placement — a caller is responsible for sizing a node
 large enough to fit its keyword line and compartment rows (see `BoxMetrics.TitleAreaHeight` and the
-per-compartment row heights in `DemaConsulting.Rendering.Abstractions`); no leaf algorithm grows a box
-to fit its own appearance. The [gallery's "Box appearance" diagram](../gallery/README.md) shows a
-complete, rendered example.
+per-compartment row heights in `DemaConsulting.Rendering.Abstractions`); no leaf algorithm grows a
+box to fit compartment/child content. The one exception is `LayeredLayoutAlgorithm`, which emits a
+node's `Width`/`Height` as `max(caller-supplied, computed minimum)`, growing — never shrinking —
+past a caller-supplied size only far enough to simultaneously fit the node's own title and its
+reserved port-label content insets (`ContentInsetLeft/Right/Top/Bottom`); this floor exists purely
+to prevent a title/port-label collision the caller has no visibility into (the insets are themselves
+auto-computed from port labels), and does not extend to compartment or child sizing, which remains
+entirely caller/child-driven as before. The
+[gallery's "Box appearance" diagram](../gallery/README.md) shows a complete, rendered example.
 
 When a container node (one with `Children`) also carries a `Label`, `HierarchicalLayoutAlgorithm`
 reserves a title band above its children so the label never overlaps the nested content. By default
@@ -240,6 +246,50 @@ options.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
 `Up` flow them top-to-bottom and bottom-to-top — the convention for action flows and state machines. A
 downward flow swaps each node's width and height before layering so layer spacing follows node height.
 As with the algorithm, a declaration on the graph takes precedence over one on the options.
+
+## Parallel edges and named ports
+
+A `LayoutGraphNode` can carry a set of `LayoutGraphPort`s — named attachment points on the node's
+boundary, each implementing `ILayoutConnectable` alongside the node itself, so an edge can target a
+specific port instead of the node as a whole. This lets several connectors land on different, clearly
+labelled locations of the same box rather than all converging on one anchor:
+
+```csharp
+var graph = new LayoutGraph();
+
+var upstream = graph.AddNode("upstream", width: 120, height: 60);
+var hub = graph.AddNode("hub", width: 120, height: 60);
+
+var inPort = hub.Ports.AddPort("in");
+inPort.ExternalLabel = "a rather long incoming data label";
+
+graph.AddEdge("upstream-hub", upstream, inPort);
+```
+
+A port's rendered side (left, right, top, or bottom) is derived from how the algorithm routes its
+connector, not from a settable `Side` property on `LayoutGraphPort` itself.
+
+Two or more edges between the same pair of boxes are parallel edges. By default they collapse to a
+single rendered connector and suppress the collapsed edges' own labels; set `MergeParallelEdges` to
+`false` to keep every parallel edge as its own independently-routed, independently-labelled connector:
+
+```csharp
+graph.Set(CoreOptions.MergeParallelEdges, false);
+```
+
+Each node's `ContentInsetLeft`/`ContentInsetRight` margins (reserved so port labels never overlap
+the box's own content) are auto-computed by a built-in, dependency-free heuristic driven by
+`CoreOptions.AssumedFontSize` — no configuration is required. When 2 or more parallel edges sharing
+a face carry a midpoint label (for example `MergeParallelEdges = false` with several labeled
+connectors between the same pair of boxes), the owning box's size auto-grows — never shrinks — just
+enough that each label lands on its own line instead of being nudged aside to avoid overlapping an
+adjacent label. This auto-grow is axis-aware and follows the flow `Direction`: for a `Right`/`Left`
+flow (connectors attach to the Left/Right faces, spread vertically) the box's **height** grows to
+fit each label's height; for a `Down`/`Up` flow (connectors attach to the Top/Bottom faces, spread
+horizontally) the box's **width** grows to fit each label's actual rendered width instead. The
+[gallery's "Parallel edges and named ports" diagrams](../gallery/README.md) show complete, rendered
+examples of preserved vs. merged parallel edges, horizontal vs. vertical port placement, and the
+horizontal- vs. vertical-flow parallel-edge auto-grow behavior.
 
 ## Option cascading
 

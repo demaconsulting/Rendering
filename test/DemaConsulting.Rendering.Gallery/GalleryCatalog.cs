@@ -46,6 +46,11 @@ internal static class GalleryCatalog
     public const string BoxAppearanceSvg = "box-appearance.svg";
     public const string FolderTopFaceAnchorSvg = "folder-top-face-anchor.svg";
     public const string ShapeGallerySvg = "shape-gallery.svg";
+    public const string ParallelEdgesMergedSvg = "parallel-edges-merged.svg";
+    public const string ParallelEdgesPreservedSvg = "parallel-edges-preserved.svg";
+    public const string ParallelEdgesPreservedVerticalSvg = "parallel-edges-preserved-vertical.svg";
+    public const string PortsShowcaseHorizontalSvg = "ports-showcase-horizontal.svg";
+    public const string PortsShowcaseVerticalSvg = "ports-showcase-vertical.svg";
 
     /// <summary>Gets the browsable sections of the gallery, in display order.</summary>
     public static IReadOnlyList<GallerySection> Sections { get; } =
@@ -167,6 +172,47 @@ internal static class GalleryCatalog
                     + "rounded-rectangle boxes with a keyword and a compartment, a folder holding a "
                     + "nested child, and a note holding free-form text — every shape reserves enough "
                     + "space so its content never overlaps the tab or the folded corner."),
+            ]),
+        new GallerySection(
+            "Parallel edges and named ports",
+            "The layered algorithm's Phase 1 flat-graph support for multiple parallel connectors "
+            + "between the same two boxes, and for named ports attached to a specific, labelled "
+            + "location on a node's boundary. Parallel edges either collapse to one rendered connector "
+            + "(the default) or each keep their own independently-routed line, selected with the "
+            + "MergeParallelEdges option; each node's ContentInset margins are auto-computed from its "
+            + "ports' measured label widths so port text never overlaps the box's own content.",
+            [
+                new GalleryImage(
+                    ParallelEdgesPreservedSvg,
+                    "Three parallel connectors between the same two boxes, independently routed",
+                    "MergeParallelEdges set to false: all three parallel connectors survive, each with "
+                    + "its own label."),
+                new GalleryImage(
+                    ParallelEdgesPreservedVerticalSvg,
+                    "The same three parallel connectors on a downward-flowing pair of boxes",
+                    "The companion vertical-flow case: with a downward Direction the three parallel "
+                    + "connectors anchor on the boxes' top and bottom faces instead of their left and "
+                    + "right faces, and each box's WIDTH (not height) auto-grows to fit the widened "
+                    + "lane spacing, since PortDistributor spreads anchors on a top/bottom face "
+                    + "horizontally."),
+                new GalleryImage(
+                    ParallelEdgesMergedSvg,
+                    "The same three parallel connectors collapsed to a single line",
+                    "The default MergeParallelEdges (true): the three parallel connectors collapse to "
+                    + "a single rendered line, and its midpoint label is omitted entirely (not any "
+                    + "single surviving connector's label) since a reader could not tell which of the "
+                    + "three collapsed connectors a kept label would have belonged to."),
+                new GalleryImage(
+                    PortsShowcaseHorizontalSvg,
+                    "A hub node with a named port on each of its left and right sides",
+                    "Left/right named ports on a rightward-flowing hub node; the long left-side "
+                    + "incoming label auto-computes a widened ContentInsetLeft margin, measured with "
+                    + "the Skia-backed text measurer."),
+                new GalleryImage(
+                    PortsShowcaseVerticalSvg,
+                    "A hub node with a named port on each of its top and bottom sides",
+                    "The companion top/bottom case: a downward-flowing hub node, whose ports anchor on "
+                    + "its top and bottom faces instead."),
             ]),
     ];
 }

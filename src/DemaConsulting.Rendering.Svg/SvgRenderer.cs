@@ -49,6 +49,14 @@ public sealed class SvgRenderer : IRenderer
     /// <summary>SVG text-anchor value for centered alignment.</summary>
     private const string TextAnchorMiddle = "middle";
 
+    /// <summary>
+    /// Stroke width, in logical pixels (before scale), of the contrasting outline drawn around a port
+    /// glyph square. Distinguishes the port glyph from an arrowhead marker that may land on/near the
+    /// same box edge (both are otherwise solid-filled shapes with no border of their own), so the two
+    /// remain visually distinct instead of merging into a single blob.
+    /// </summary>
+    private const double PortGlyphStrokeWidth = 1.0;
+
     /// <inheritdoc/>
     public string MediaType => "image/svg+xml";
 
@@ -75,9 +83,22 @@ public sealed class SvgRenderer : IRenderer
         var sb = new StringBuilder();
         var theme = options.Theme;
 
-        // Compute canvas dimensions, ensuring a minimum 1×1 canvas
+        // Resolve every connector label's placement (position and size) before sizing the canvas: a
+        // label nudged to avoid colliding with another can land outside the box/routing geometry's
+        // extent, so the canvas must be sized only after label placement is known, not before.
+        var lines = CollectLines(layout.Nodes).ToList();
+        var labelPositions = ConnectorLabelPlacer.Place(lines, theme.FontSizeBody);
+
+        // Compute canvas dimensions, ensuring a minimum 1×1 canvas, then grow to fully include every
+        // placed label's bounding box (a label can be nudged beyond the box/routing geometry's
+        // extent that layout.Width/Height was computed from).
         var width = Math.Max(1.0, layout.Width * options.Scale);
         var height = Math.Max(1.0, layout.Height * options.Scale);
+        foreach (var placement in labelPositions.Values)
+        {
+            width = Math.Max(width, (placement.X + placement.HalfWidth) * options.Scale);
+            height = Math.Max(height, (placement.Y + placement.HalfHeight) * options.Scale);
+        }
 
         // Write SVG root element with explicit namespace and viewBox
         sb.Append(CultureInfo.InvariantCulture,
@@ -94,10 +115,9 @@ public sealed class SvgRenderer : IRenderer
         }
 
         // Final pass: draw every connector label on top of all wires and boxes, so that no later
-        // wire can draw over an earlier wire's label. Positions are computed up front so that labels
-        // that would collide (for example where two connectors cross) are spread apart.
-        var lines = CollectLines(layout.Nodes).ToList();
-        var labelPositions = ConnectorLabelPlacer.Place(lines, theme.FontSizeBody);
+        // wire can draw over an earlier wire's label. Positions were computed up front (before
+        // sizing the canvas, above) so that labels that would collide (for example where two
+        // connectors cross) are spread apart.
         foreach (var line in lines)
         {
             if (line.MidpointLabel is not null && labelPositions.TryGetValue(line, out var pos))
@@ -503,8 +523,8 @@ public sealed class SvgRenderer : IRenderer
     /// <param name="scale">Uniform scale factor.</param>
     private static void RenderBoxTitle(StringBuilder sb, LayoutBox box, Theme theme, double scale)
     {
-        var centerX = (box.X + box.Width / 2.0) * scale;
-        var cursorY = ResolveTitleAreaTop(box, theme) + theme.LabelPadding;
+        var centerX = (box.X + (box.Width / 2.0)) * scale;
+        var cursorY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + theme.LabelPadding;
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
         if (box.Keyword != null)
@@ -538,12 +558,26 @@ public sealed class SvgRenderer : IRenderer
     /// <param name="fontSize">Unscaled font size of the text.</param>
     /// <param name="availableWidth">Unscaled width available for the text.</param>
     /// <param name="scale">Uniform scale factor.</param>
+    /// <param name="useAccurateEstimator">
+    /// When <see langword="true"/>, estimates natural width via the shared
+    /// <see cref="PortLabelWidthEstimator"/> — the same per-character estimator the layout engine
+    /// uses to size a port's <see cref="LayoutPort.MaxLabelWidth"/> — so a port label whose
+    /// <see cref="LayoutPort.MaxLabelWidth"/> already covers its measured natural width never emits a
+    /// <c>textLength</c> attribute. When <see langword="false"/> (the default), uses the coarser flat
+    /// <c>length * fontSize * 0.6</c> heuristic, unchanged for box titles and generic/connector
+    /// labels, which have no analogous layout-time estimator to reconcile against.
+    /// </param>
     /// <returns>A leading-space attribute fragment, or an empty string when no constraint is needed.</returns>
-    private static string FitTextLength(string text, double fontSize, double availableWidth, double scale)
+    private static string FitTextLength(
+        string text,
+        double fontSize,
+        double availableWidth,
+        double scale,
+        bool useAccurateEstimator = false)
     {
-        // Rough average glyph-width estimate; matches the layout engine's sizing factor.
-        const double GlyphWidthFactor = 0.6;
-        var estimatedWidth = text.Length * fontSize * GlyphWidthFactor;
+        var estimatedWidth = useAccurateEstimator
+            ? PortLabelWidthEstimator.MeasureWidth(text, fontSize)
+            : text.Length * fontSize * 0.6; // Rough average glyph-width estimate.
         if (availableWidth <= 0 || estimatedWidth <= availableWidth)
         {
             return string.Empty;
@@ -564,7 +598,7 @@ public sealed class SvgRenderer : IRenderer
     {
         // Compartments start below the title area (keyword + label), computed via shared metrics
         var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
-        var compartmentY = ResolveTitleAreaTop(box, theme) + labelAreaHeight;
+        var compartmentY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + labelAreaHeight;
 
         foreach (var compartment in box.Compartments)
         {
@@ -576,7 +610,7 @@ public sealed class SvgRenderer : IRenderer
             // Draw optional bold compartment title
             if (compartment.Title != null)
             {
-                var titleX = (box.X + theme.LabelPadding) * scale;
+                var titleX = (box.X + theme.LabelPadding + box.ContentInsetLeft) * scale;
                 var titleY = (compartmentY + theme.LabelPadding + theme.FontSizeBody / 2.0) * scale;
                 sb.Append(CultureInfo.InvariantCulture,
                     $"""  <text x="{F(titleX)}" y="{F(titleY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" font-weight="bold" font-style="italic" fill="{theme.StrokeColor}" text-anchor="start" dominant-baseline="middle">{EscapeXml(compartment.Title)}</text>""");
@@ -587,7 +621,7 @@ public sealed class SvgRenderer : IRenderer
             // Draw each body row with body font size and left-aligned indent
             foreach (var row in compartment.Rows)
             {
-                var rowX = (box.X + theme.LabelPadding) * scale;
+                var rowX = (box.X + theme.LabelPadding + box.ContentInsetLeft) * scale;
                 var rowY = (compartmentY + theme.LabelPadding + theme.FontSizeBody / 2.0) * scale;
                 sb.Append(CultureInfo.InvariantCulture,
                     $"""  <text x="{F(rowX)}" y="{F(rowY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="start" dominant-baseline="middle">{EscapeXml(row)}</text>""");
@@ -904,23 +938,24 @@ public sealed class SvgRenderer : IRenderer
         var rs = NotationMetrics.PortSize * scale;
 
         sb.Append(CultureInfo.InvariantCulture,
-            $"""  <rect x="{F(rx)}" y="{F(ry)}" width="{F(rs)}" height="{F(rs)}" fill="{theme.StrokeColor}"/>""");
+            $"""  <rect x="{F(rx)}" y="{F(ry)}" width="{F(rs)}" height="{F(rs)}" fill="{theme.StrokeColor}" stroke="{theme.BackgroundColor}" stroke-width="{F(PortGlyphStrokeWidth * scale)}"/>""");
         sb.AppendLine();
 
-        // Optional label offset away from the attached edge
+        // Optional label offset inward, toward the box interior, so it reads immediately next to
+        // the port glyph without overlapping the connector approaching from outside the box.
         if (port.Label != null)
         {
             var offset = NotationMetrics.PortHalfSize + theme.LabelPadding;
             var (labelX, labelY, anchor) = port.Side switch
             {
-                PortSide.Top => (port.CentreX, port.CentreY - offset, TextAnchorMiddle),
-                PortSide.Bottom => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, TextAnchorMiddle),
-                PortSide.Left => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, "end"),
-                _ => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, "start")
+                PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, TextAnchorMiddle),
+                PortSide.Bottom => (port.CentreX, port.CentreY - offset, TextAnchorMiddle),
+                PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, "start"),
+                _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, "end")
             };
 
             sb.Append(CultureInfo.InvariantCulture,
-                $"""  <text x="{F(labelX * scale)}" y="{F(labelY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle">{EscapeXml(port.Label)}</text>""");
+                $"""  <text x="{F(labelX * scale)}" y="{F(labelY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle"{FitTextLength(port.Label, theme.FontSizeBody, port.MaxLabelWidth, scale, useAccurateEstimator: true)}>{EscapeXml(port.Label)}</text>""");
             sb.AppendLine();
         }
     }

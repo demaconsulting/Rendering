@@ -13,17 +13,23 @@ internal sealed class CycleBreaker : ILayoutStage
     public void Apply(LayeredGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
-        var (acyclic, reversed) = BreakCycles(graph.N, graph.Edges);
+        var (acyclic, reversed, originalIndex) = BreakCycles(graph.N, graph.Edges, graph.MergeParallelEdges);
         graph.Acyclic = acyclic;
         graph.AcyclicReversed = reversed;
+        graph.AcyclicOriginalIndex = originalIndex;
     }
 
     /// <summary>
     /// Returns the edge set with cycle-causing back edges reversed, using DFS to classify any
     /// edge to a node still on the recursion stack as a back edge. The second tuple element is a
-    /// parallel flag array marking which retained edges were produced by reversing a back edge.
+    /// parallel flag array marking which retained edges were produced by reversing a back edge. The
+    /// third tuple element is parallel to the first, giving the 0-based index into
+    /// <paramref name="edges"/> that each retained edge originated from.
     /// </summary>
-    private static (List<LayerEdge> Acyclic, bool[] Reversed) BreakCycles(int n, IReadOnlyList<LayerEdge> edges)
+    private static (List<LayerEdge> Acyclic, bool[] Reversed, List<int> OriginalIndex) BreakCycles(
+        int n,
+        IReadOnlyList<LayerEdge> edges,
+        bool mergeParallelEdges)
     {
         var adjacency = new List<int>[n];
         for (var i = 0; i < n; i++)
@@ -73,9 +79,11 @@ internal sealed class CycleBreaker : ILayoutStage
 
         var result = new List<LayerEdge>();
         var reversed = new List<bool>();
+        var originalIndex = new List<int>();
         var seen = new HashSet<(int, int)>();
-        foreach (var e in edges)
+        for (var idx = 0; idx < edges.Count; idx++)
         {
+            var e = edges[idx];
             if (e.Source == e.Target)
             {
                 continue;
@@ -91,13 +99,21 @@ internal sealed class CycleBreaker : ILayoutStage
                 ? (e.Target, e.Source)
                 : (e.Source, e.Target);
 
-            if (from != to && seen.Add((from, to)))
+            if (from == to)
             {
-                result.Add(new LayerEdge(from, to));
-                reversed.Add(isBack);
+                continue;
             }
+
+            if (mergeParallelEdges && !seen.Add((from, to)))
+            {
+                continue;
+            }
+
+            result.Add(new LayerEdge(from, to));
+            reversed.Add(isBack);
+            originalIndex.Add(idx);
         }
 
-        return (result, [.. reversed]);
+        return (result, [.. reversed], originalIndex);
     }
 }

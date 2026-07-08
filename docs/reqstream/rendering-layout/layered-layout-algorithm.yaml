@@ -80,6 +80,143 @@ sections:
           - Apply_NullGraph_Throws
           - Apply_NullOptions_Throws
 
+      - id: Rendering-Layout-LayeredAlgorithm-MergeParallelEdges
+        title: >-
+          LayeredLayoutAlgorithm shall honor CoreOptions.MergeParallelEdges (reading the graph in
+          preference to the options, default true): when true, every input edge sharing a directed
+          node pair collapses to exactly one emitted LayoutLine, omitting its label entirely whenever
+          2+ raw edges collapsed into it (only a pair backed by exactly one raw edge keeps its own
+          label); when false, every parallel edge instance is retained as its own
+          independently-routed LayoutLine.
+        justification: |
+          A physical wiring/interconnection diagram (for example separate power, encoder, and sensor
+          connectors between the same two components) needs every distinct connector to render as its
+          own labeled line; the algorithm previously emitted one LayoutLine per original input edge
+          regardless of duplication, stacking every duplicate edge's label on the same drawn line
+          rather than collapsing to a single line as intended when merging is left at its default. A
+          reader cannot tell which of several collapsed connectors a kept label would have belonged
+          to, so keeping any single surviving edge's label is not an acceptable substitute for that
+          missing information — the label must be omitted, not merely deduplicated.
+        tests:
+          - Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_EmitsExactlyOneLine
+          - Apply_ParallelEdges_MergeParallelEdgesFalse_RetainsEveryEdge
+          - Apply_MergeParallelEdges_GraphOverridesOptions
+          - Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_OmitsLabelOnCollapse
+          - Apply_SingleEdge_MergeParallelEdgesDefaultTrue_KeepsOwnLabel
+
+      - id: Rendering-Layout-LayeredAlgorithm-PortEmission
+        title: >-
+          When an edge endpoint is a LayoutGraphPort, LayeredLayoutAlgorithm shall emit a LayoutPort
+          at the routed connector's resolved anchor coordinate, carrying the port's ExternalLabel as
+          its label and a MaxLabelWidth bounding the label to roughly half the owning box's placed
+          width.
+        justification: |
+          A named port is meaningless without a placed, labeled anchor for a renderer to draw; emitting
+          a LayoutPort at the exact coordinate the corridor router already resolved for that connector
+          keeps the port glyph and connector endpoint visually coincident. A flat LayoutPort has no
+          reference to its owning box, so bounding an excessively long label's rendered width (to
+          prevent it visually overlapping the opposite port's label) must be computed here, where the
+          owning box's placed width is known, and carried on the port itself for a renderer to apply.
+        tests:
+          - Apply_EdgeWithPortEndpoint_EmitsLayoutPortWithExternalLabel
+          - Apply_EdgeWithPortEndpoint_ComputesFiniteMaxLabelWidth
+
+      - id: Rendering-Layout-LayeredAlgorithm-ContentInset
+        title: >-
+          LayeredLayoutAlgorithm shall auto-compute each placed box's ContentInsetLeft/Right (the
+          widest same-side port label's measured width, via CoreOptions.AssumedFontSize, plus a
+          small clearance) and ContentInsetTop/Bottom (a flat fixed height for one text line at
+          AssumedFontSize plus padding, widened further when the box also carries its own title, so
+          the title's rendered start position — which depends only on the inset, never on the box's
+          overall height — cannot visually overlap the top/bottom port's own rendered label), zero on
+          any side with no ports.
+        justification: |
+          A rendered port label needs a reserved margin on its owning box's face so it never collides
+          with that box's own title/compartment content; computing the margin at layout time (rather
+          than leaving it to each renderer) keeps a single LayoutTree correct for every renderer that
+          consumes it, per the single-layout/multi-renderer design. Growing the box's overall height
+          alone cannot create this clearance, since a renderer draws both the title and the port label
+          at positions independent of the box's total height; only widening the inset itself can.
+        tests:
+          - Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft
+
+      - id: Rendering-Layout-LayeredAlgorithm-AutoGrowMinimumSize
+        title: >-
+          LayeredLayoutAlgorithm shall emit each box's Width/Height as the maximum of the
+          caller-supplied size and the minimum size computed to fit that box's title plus its
+          reserved content insets simultaneously, never shrinking below the caller-supplied size, and
+          shall re-run placement/packing/spacing against any grown size so a grown box never overlaps
+          a sibling positioned relative to a smaller pre-growth footprint.
+        justification: |
+          A box with a title and top/bottom port insets can need more room than a caller supplied
+          (for example a small caller-supplied size with a title and both a top and bottom port);
+          silently letting the title and a port label overlap on-screen, or shrinking a caller's
+          explicit size, are both unacceptable, so the algorithm must grow — never shrink — a box to
+          the computed minimum, and must re-place all nodes so a grown box's siblings are never
+          silently overlapped.
+        tests:
+          - Apply_NodeAlreadyLargeEnough_SizeUnchanged
+          - Apply_NodeWithTopAndBottomPorts_TooSmall_AutoGrowsHeight
+          - Apply_AutoGrownNode_DoesNotOverlapSiblings
+          - Apply_NoNodeNeedsGrowth_PassTwoSkipped_LayoutUnaffected
+
+      - id: Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing
+        title: >-
+          LayeredLayoutAlgorithm shall widen the auto-grow minimum-size floor so that, whenever 2+
+          connector anchors share a node's face and at least one of those anchored edges carries a
+          midpoint label, the node grows large enough along the axis PortDistributor spreads that
+          face's anchors along that the even spacing between those anchors is never smaller than a
+          label's own bounding-box extent on that axis: for a Left/Right face (anchors spread
+          vertically), the node's Height is at least large enough that the spacing is never smaller
+          than ConnectorLabelPlacer.EstimateLabelHeight(AssumedFontSize); for a Top/Bottom face
+          (anchors spread horizontally), the node's Width is at least large enough that the spacing
+          is never smaller than ConnectorLabelPlacer.EstimateLabelWidth(text, AssumedFontSize) for
+          the widest labeled anchor's text.
+        justification: |
+          Straight, evenly-spaced parallel connectors between the same two boxes (for example 3
+          independent labeled connectors preserved via MergeParallelEdges = false) previously spaced
+          each line only PortDistributor's default lane spacing apart, which for a typical box size
+          was smaller than a label's own bounding-box extent on the axis anchors are spread along;
+          every label after the first then collided with an already-placed label and was nudged
+          perpendicular to its own line by ConnectorLabelPlacer's fallback pass, visually detaching
+          the label from the line it names. This defect was originally fixed only for a Left/Right
+          face (the only orientation exercised by the shipped gallery/tests at the time), leaving a
+          latent, axis-blind gap for a Top/Bottom face (a downward- or upward-flowing diagram), where
+          PortDistributor spreads anchors horizontally and growing Height does nothing to relieve the
+          crowding. Growing the node just enough that PortDistributor's own even-spacing formula
+          matches ConnectorLabelPlacer's label-extent formula on the correct axis lets the placer's
+          first-pass (no-nudge) placement succeed for every label instead, so each label lands
+          directly on its own line, regardless of whether the diagram flows horizontally or
+          vertically.
+        tests:
+          - Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine
+          - Apply_ThreeParallelLabeledEdges_Down_BoxWidthGrowsAndLabelsLandOnTheirOwnLine
+
+      - id: Rendering-Layout-LayeredAlgorithm-PortLabelWidthFloor
+        title: >-
+          LayeredLayoutAlgorithm shall widen the auto-grow minimum-width floor for any node with a
+          labeled Left and/or Right port so that Width is at least 2 * ContentInsetLeft and at least
+          2 * ContentInsetRight, so that the emitted LayoutPort's MaxLabelWidth (half the placed
+          width minus PortLabelClearance) is never smaller than that side's widest reserved port
+          label width.
+        justification: |
+          ContentInsetLeft/Right already reserve exactly (widest same-side port label width plus
+          PortLabelClearance) on the box's face, but MaxLabelWidth is computed independently from
+          only the box's final placed Width (half of it, minus PortLabelClearance), with no
+          reference to the inset that was grown to fit that same label. Whenever a box only grew
+          enough to satisfy the title+inset floor (which sums insetLeft + insetRight, not
+          2 * either individually), MaxLabelWidth could resolve smaller than the label's own
+          measured width, causing a renderer to squeeze (via textLength/lengthAdjust) a label the
+          box had already reserved full physical room for via its inset — exactly the defect
+          reproduced in the ports-showcase-horizontal gallery diagram. Requiring Width to also be at
+          least double each side's inset makes MaxLabelWidth's own formula naturally resolve to no
+          less than that side's widest label width once the box has grown to satisfy this floor,
+          without needing to change MaxLabelWidth's or the inset's own formulas, and without ever
+          shrinking a box below what any other floor already requires.
+        tests:
+          - Apply_NodeWithLongLeftPortLabel_GrowsWidthEnoughToAvoidSqueeze
+          - Apply_NodeWithLongLeftAndRightPortLabels_BothSidesAvoidSqueeze
+
       - id: Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting
         title: >-
           LayeredLayoutAlgorithm shall project a same-scope connector's endpoint onto a shaped node's

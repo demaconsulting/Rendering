@@ -230,4 +230,79 @@ public sealed class GalleryShowcaseTests
             GalleryDiagrams.ShapeGallery(),
             Themes.Dark);
     }
+
+    /// <summary>
+    ///     Renders the parallel-edges-preserved diagram to SVG, proving that with
+    ///     <see cref="CoreOptions.MergeParallelEdges"/> set to <see langword="false"/> every one of
+    ///     three parallel connectors between the same two boxes survives as its own
+    ///     independently-routed line.
+    /// </summary>
+    [Fact]
+    public void Gallery_ParallelEdgesPreserved_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.ParallelEdgesPreservedSvg,
+            GalleryDiagrams.ParallelEdgesPreserved(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the same three parallel connectors with the default
+    ///     <see cref="CoreOptions.MergeParallelEdges"/> (<see langword="true"/>), proving only the
+    ///     first survives — the companion comparison case to
+    ///     <see cref="Gallery_ParallelEdgesPreserved_RendersSvg"/>.
+    /// </summary>
+    [Fact]
+    public void Gallery_ParallelEdgesMerged_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.ParallelEdgesMergedSvg,
+            GalleryDiagrams.ParallelEdgesMerged(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the vertical-flow parallel-edges-preserved diagram to SVG — the companion to
+    ///     <see cref="Gallery_ParallelEdgesPreserved_RendersSvg"/> — proving that with a downward
+    ///     <see cref="CoreOptions.Direction"/> the three parallel connectors anchor on the boxes' top
+    ///     and bottom faces, and that each box's WIDTH (not height) auto-grows to fit the widened
+    ///     lane spacing on that axis.
+    /// </summary>
+    [Fact]
+    public void Gallery_ParallelEdgesPreservedVertical_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.ParallelEdgesPreservedVerticalSvg,
+            GalleryDiagrams.ParallelEdgesPreservedVertical(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the horizontal ports showcase to SVG, proving named left/right ports on a
+    ///     rightward-flowing node emit a <see cref="LayoutPort"/> glyph and inward-reading label, and
+    ///     that a long left-side label auto-computes a widened <see cref="LayoutBox.ContentInsetLeft"/>
+    ///     margin auto-computed by the built-in heuristic estimator.
+    /// </summary>
+    [Fact]
+    public void Gallery_PortsShowcaseHorizontal_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.PortsShowcaseHorizontalSvg,
+            GalleryDiagrams.PortsShowcaseHorizontal(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the vertical ports showcase to SVG — the companion to
+    ///     <see cref="Gallery_PortsShowcaseHorizontal_RendersSvg"/> — proving named top/bottom ports on
+    ///     a downward-flowing node emit a <see cref="LayoutPort"/> glyph and inward-reading label.
+    /// </summary>
+    [Fact]
+    public void Gallery_PortsShowcaseVertical_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.PortsShowcaseVerticalSvg,
+            GalleryDiagrams.PortsShowcaseVertical(),
+            Themes.Dark);
+    }
 }

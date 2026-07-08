@@ -93,6 +93,54 @@ valid image with the PNG signature is produced, proving the minimum one by one p
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-EmptyTree`.
 
+#### Port glyph/label render on every side, and a reserved inset shifts compartment content
+
+Theory test `PngRenderer_RenderPort_AnySide_ProducesNonBackgroundPixels` (over `PortSide.Left`,
+`Right`, `Top`, `Bottom`) renders a single port on each side of a box and asserts the port's expected
+pixel region contains at least one non-background pixel, confirming the glyph and label draw on every
+side. `PngRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowContentRight` renders the same
+compartment-row scenario twice, once with a positive `ContentInsetLeft` and once with zero, and
+asserts the inset case's row content is shifted right relative to the zero-inset case, confirming the
+raster renderer reads the reserved margin exactly as the SVG renderer does.
+
+**Covers**: `Rendering-Skia-SkiaRasterRenderer-PortAndContentInset`.
+
+#### Port label squeeze, title geometric centering, port outline, and label-aware bitmap growth
+
+`PngRenderer_RenderPort_LongLabelWithMaxLabelWidth_SqueezesToFit` renders the same deliberately long
+port label twice — once with a finite `MaxLabelWidth` and once unconstrained — and asserts the
+constrained render's rightmost non-background pixel falls short of the unconstrained render's,
+confirming the squeeze genuinely compresses the label rather than being a no-op.
+`PngRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter` renders a box whose
+`ContentInsetLeft` differs from `ContentInsetRight` and asserts the title's leftmost rendered pixel
+is identical whether or not the asymmetric insets are present, confirming the title remains at the
+box's full geometric center — an earlier inset-adjusted centering behavior (which visibly shifted
+and squeezed titles even though no title/port-label collision was actually possible) has been
+reverted. `PngRenderer_RenderPort_Rect_HasStrokeDistinctFromFill` renders a single port at a large
+scale and asserts a pixel sampled just inside the glyph's edge (within the outline's stroke band)
+differs from the fill color sampled at the glyph's exact center and matches
+`Theme.BackgroundColor`, confirming the port glyph remains visually distinguishable from a
+solid-filled arrowhead marker that might land on/near the same box edge.
+`PngRenderer_Render_ManyCollidingConnectorLabels_BitmapGrowsToFitAllLabels` renders 3+ parallel
+labeled connectors whose midpoint labels collide and get nudged, and asserts the allocated bitmap's
+dimensions grow enough that every label's rendered pixels remain within the bitmap bounds rather
+than being silently clipped.
+
+**Covers**: `Rendering-Skia-SkiaRasterRenderer-PortLabelSqueeze`,
+`Rendering-Skia-SkiaRasterRenderer-TitleCentersOnBoxWidth`,
+`Rendering-Skia-SkiaRasterRenderer-PortGlyphOutline`,
+`Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels`.
+
+#### Shared typeface resolution is stable and distinct per variant
+
+Test `SkiaTypefaces_Resolve_ReturnsStableDistinctTypefacesPerVariant` resolves each of the four
+bold/italic combinations twice and asserts the same combination returns the same `SKTypeface`
+instance both times (stability), while different combinations return different instances
+(distinctness) — confirming every drawing call site in this unit measures and draws against the
+exact same lazily-loaded typeface objects.
+
+**Covers**: `Rendering-Skia-SkiaRasterRenderer-SharedTypefaces`.
+
 ### Requirements Coverage
 
 - **`Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree`**:
@@ -111,3 +159,16 @@ valid image with the PNG signature is produced, proving the minimum one by one p
   FilledArrow_BaseWidth_MatchesNotationMetrics, OpenChevron_HasFewerInkPixelsThanClosedTriangle,
   PngRenderer_Render_DrawArrowhead_OpenWithCrossbar_ProducesNonEmptyOutput
 - **`Rendering-Skia-SkiaRasterRenderer-EmptyTree`**: PngRenderer_Render_EmptyTree_WritesPngSignature
+- **`Rendering-Skia-SkiaRasterRenderer-PortAndContentInset`**:
+  PngRenderer_RenderPort_AnySide_ProducesNonBackgroundPixels,
+  PngRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowContentRight
+- **`Rendering-Skia-SkiaRasterRenderer-PortLabelSqueeze`**:
+  PngRenderer_RenderPort_LongLabelWithMaxLabelWidth_SqueezesToFit
+- **`Rendering-Skia-SkiaRasterRenderer-TitleCentersOnBoxWidth`**:
+  PngRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter
+- **`Rendering-Skia-SkiaRasterRenderer-PortGlyphOutline`**:
+  PngRenderer_RenderPort_Rect_HasStrokeDistinctFromFill
+- **`Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels`**:
+  PngRenderer_Render_ManyCollidingConnectorLabels_BitmapGrowsToFitAllLabels
+- **`Rendering-Skia-SkiaRasterRenderer-SharedTypefaces`**:
+  SkiaTypefaces_Resolve_ReturnsStableDistinctTypefacesPerVariant

@@ -16,6 +16,7 @@ includes:
   - docs/reqstream/rendering-abstractions/notation-metrics.yaml
   - docs/reqstream/rendering-abstractions/box-metrics.yaml
   - docs/reqstream/rendering-abstractions/connector-label-placer.yaml
+  - docs/reqstream/rendering-abstractions/port-label-width-estimator.yaml
   - docs/reqstream/rendering-layout.yaml
   - docs/reqstream/rendering-layout/engine/engine.yaml
   - docs/reqstream/rendering-layout/engine/orthogonal-edge-router.yaml

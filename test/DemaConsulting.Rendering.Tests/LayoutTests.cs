@@ -77,6 +77,45 @@ public sealed class LayoutTests
     }
 
     /// <summary>
+    ///     A LayoutBox constructed without specifying any content inset defaults all four
+    ///     (<see cref="LayoutBox.ContentInsetLeft"/>, Right, Top, Bottom) to zero.
+    /// </summary>
+    [Fact]
+    public void LayoutBox_ContentInsets_DefaultZero()
+    {
+        // Act: construct a box without specifying any content inset
+        var box = new LayoutBox(0, 0, 100, 60, null, 0, BoxShape.Rectangle, [], []);
+
+        // Assert: all four insets default to zero
+        Assert.Equal(0.0, box.ContentInsetLeft);
+        Assert.Equal(0.0, box.ContentInsetRight);
+        Assert.Equal(0.0, box.ContentInsetTop);
+        Assert.Equal(0.0, box.ContentInsetBottom);
+    }
+
+    /// <summary>
+    ///     A LayoutBox constructed with each content inset set to a distinct value stores each one
+    ///     independently, confirming the four insets are not confused with one another.
+    /// </summary>
+    [Fact]
+    public void LayoutBox_ContentInsets_IndependentlySettable()
+    {
+        // Act: construct a box with four distinct, non-default content insets
+        var box = new LayoutBox(
+            0, 0, 100, 60, null, 0, BoxShape.Rectangle, [], [],
+            ContentInsetLeft: 10.0,
+            ContentInsetRight: 20.0,
+            ContentInsetTop: 30.0,
+            ContentInsetBottom: 40.0);
+
+        // Assert: each inset stores its own distinct value
+        Assert.Equal(10.0, box.ContentInsetLeft);
+        Assert.Equal(20.0, box.ContentInsetRight);
+        Assert.Equal(30.0, box.ContentInsetTop);
+        Assert.Equal(40.0, box.ContentInsetBottom);
+    }
+
+    /// <summary>
     ///     LayoutBox.Depth is stored as an integer with the supplied value, confirming the
     ///     depth-not-color invariant: no color property is present on the node.
     /// </summary>
@@ -141,6 +180,31 @@ public sealed class LayoutTests
         Assert.Equal(150.0, port.CentreY);
         Assert.Equal(PortSide.Right, port.Side);
         Assert.Equal("myPort", port.Label);
+    }
+
+    /// <summary>
+    ///     A LayoutPort constructed without an explicit <see cref="LayoutPort.MaxLabelWidth"/>
+    ///     defaults to <see cref="double.PositiveInfinity"/> (no constraint), preserving the behavior
+    ///     of every pre-existing 4-argument <c>new LayoutPort(x, y, side, label)</c> call site.
+    /// </summary>
+    [Fact]
+    public void LayoutPort_Construction_DefaultsMaxLabelWidthToPositiveInfinity()
+    {
+        var port = new LayoutPort(250.0, 150.0, PortSide.Right, "myPort");
+
+        Assert.Equal(double.PositiveInfinity, port.MaxLabelWidth);
+    }
+
+    /// <summary>
+    ///     A LayoutPort constructed with an explicit <see cref="LayoutPort.MaxLabelWidth"/> stores it
+    ///     as supplied.
+    /// </summary>
+    [Fact]
+    public void LayoutPort_Construction_StoresExplicitMaxLabelWidth()
+    {
+        var port = new LayoutPort(250.0, 150.0, PortSide.Right, "myPort", MaxLabelWidth: 42.0);
+
+        Assert.Equal(42.0, port.MaxLabelWidth);
     }
 
     /// <summary>

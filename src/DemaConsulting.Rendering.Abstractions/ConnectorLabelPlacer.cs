@@ -5,6 +5,34 @@
 namespace DemaConsulting.Rendering.Abstractions;
 
 /// <summary>
+/// A resolved connector midpoint-label placement: the chosen label centre plus the half-width and
+/// half-height (including the internal clearance <see cref="ConnectorLabelPlacer"/> already used to
+/// avoid collisions) of its bounding box, in logical pixels. Exposing the size alongside the
+/// position lets a renderer grow its canvas/bitmap to fully include every placed label, even one
+/// nudged away from its preferred midpoint to avoid a collision.
+/// </summary>
+/// <param name="X">Label centre X coordinate, in logical pixels.</param>
+/// <param name="Y">Label centre Y coordinate, in logical pixels.</param>
+/// <param name="HalfWidth">Half the label's bounding-box width (including clearance), in logical pixels.</param>
+/// <param name="HalfHeight">Half the label's bounding-box height (including clearance), in logical pixels.</param>
+public readonly record struct LabelPlacement(double X, double Y, double HalfWidth, double HalfHeight)
+{
+    /// <summary>
+    /// Deconstructs into just the label centre coordinates, preserving source compatibility with
+    /// call sites written against the previous <c>(double X, double Y)</c> tuple return type (C#
+    /// resolves <see cref="Deconstruct(out double, out double)"/> overloads by arity, so a 2-variable
+    /// deconstruction picks this overload instead of the record's synthesized 4-arg one).
+    /// </summary>
+    /// <param name="x">Receives <see cref="X"/>.</param>
+    /// <param name="y">Receives <see cref="Y"/>.</param>
+    public void Deconstruct(out double x, out double y)
+    {
+        x = X;
+        y = Y;
+    }
+}
+
+/// <summary>
 /// Computes non-overlapping screen positions for connector (midpoint) labels.
 /// </summary>
 /// <remarks>
@@ -32,17 +60,17 @@ public static class ConnectorLabelPlacer
     /// <param name="lines">The lines to place labels for, in render order.</param>
     /// <param name="fontSize">Body font size, in logical pixels, used to estimate label box sizes.</param>
     /// <returns>
-    /// A dictionary mapping each labelled line to its chosen (X, Y) label centre in logical pixels.
-    /// Lines without a label are omitted.
+    /// A dictionary mapping each labelled line to its chosen <see cref="LabelPlacement"/> (label
+    /// centre plus half-width/half-height, in logical pixels). Lines without a label are omitted.
     /// </returns>
-    public static IReadOnlyDictionary<LayoutLine, (double X, double Y)> Place(
+    public static IReadOnlyDictionary<LayoutLine, LabelPlacement> Place(
         IEnumerable<LayoutLine> lines,
         double fontSize)
     {
         ArgumentNullException.ThrowIfNull(lines);
 
         var placed = new List<Bounds>();
-        var result = new Dictionary<LayoutLine, (double X, double Y)>();
+        var result = new Dictionary<LayoutLine, LabelPlacement>();
 
         foreach (var line in lines)
         {
@@ -56,7 +84,7 @@ public static class ConnectorLabelPlacer
 
             var position = ChoosePosition(line.Waypoints, halfWidth, halfHeight, placed);
             placed.Add(new Bounds(position.X - halfWidth, position.Y - halfHeight, position.X + halfWidth, position.Y + halfHeight));
-            result[line] = position;
+            result[line] = new LabelPlacement(position.X, position.Y, halfWidth, halfHeight);
         }
 
         return result;
@@ -68,6 +96,33 @@ public static class ConnectorLabelPlacer
     /// <returns>The approximate text width.</returns>
     private static double EstimateTextWidth(string text, double fontSize) =>
         text.Length * fontSize * CharWidthFactor;
+
+    /// <summary>
+    /// Estimates the full (not half) height of a connector midpoint label's bounding box, including
+    /// the clearance <see cref="Place"/> already adds around every label when testing for overlap.
+    /// Exposed so other layout stages (for example <c>LayeredLayoutAlgorithm</c>'s parallel-edge lane
+    /// spacing) can size themselves against the same label-height formula this placer uses internally,
+    /// without duplicating the <see cref="HeightFactor"/>/<see cref="Gap"/> constants.
+    /// </summary>
+    /// <param name="fontSize">Body font size, in logical pixels.</param>
+    /// <returns>The estimated full label bounding-box height, in logical pixels.</returns>
+    public static double EstimateLabelHeight(double fontSize) =>
+        (fontSize * HeightFactor) + (2.0 * Gap);
+
+    /// <summary>
+    /// Estimates the full (not half) width of a connector midpoint label's bounding box, including
+    /// the clearance <see cref="Place"/> already adds around every label when testing for overlap.
+    /// Exposed so other layout stages (for example <c>LayeredLayoutAlgorithm</c>'s parallel-edge lane
+    /// spacing on a <c>Top</c>/<c>Bottom</c> box face, where anchors are spread horizontally) can size
+    /// themselves against the same label-width formula this placer uses internally, without
+    /// duplicating the <see cref="CharWidthFactor"/>/<see cref="Gap"/> constants. Unlike
+    /// <see cref="EstimateLabelHeight"/>, this varies with the supplied label text.
+    /// </summary>
+    /// <param name="text">The label text.</param>
+    /// <param name="fontSize">Body font size, in logical pixels.</param>
+    /// <returns>The estimated full label bounding-box width, in logical pixels.</returns>
+    public static double EstimateLabelWidth(string text, double fontSize) =>
+        EstimateTextWidth(text, fontSize) + (2.0 * Gap);
 
     /// <summary>
     /// Selects a label position for a single line, preferring the midpoint of the longest segment and

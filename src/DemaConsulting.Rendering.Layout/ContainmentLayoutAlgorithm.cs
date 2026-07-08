@@ -139,8 +139,8 @@ public sealed class ContainmentLayoutAlgorithm : ILayoutAlgorithm
         var connections = new List<Connection>(graph.Edges.Count);
         foreach (var edge in graph.Edges)
         {
-            if (indexOf.TryGetValue(edge.Source, out var s) &&
-                indexOf.TryGetValue(edge.Target, out var t))
+            if (edge.Source is LayoutGraphNode sourceNode && indexOf.TryGetValue(sourceNode, out var s) &&
+                edge.Target is LayoutGraphNode targetNode && indexOf.TryGetValue(targetNode, out var t))
             {
                 connections.Add(new Connection(
                     packedBoxes[s],

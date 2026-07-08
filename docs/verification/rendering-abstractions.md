@@ -2,8 +2,8 @@
 
 This document describes the system-level verification design for the
 `DemaConsulting.Rendering.Abstractions` system and links to the per-unit verification documents for
-its six units. It records the verification strategy, test environment, and acceptance criteria shared
-by every unit, and maps each system-level requirement to named test scenarios. The detailed
+its seven units. It records the verification strategy, test environment, and acceptance criteria
+shared by every unit, and maps each system-level requirement to named test scenarios. The detailed
 per-requirement scenarios live in the unit documents:
 
 - Rendering Contracts Unit Verification
@@ -12,6 +12,7 @@ per-requirement scenarios live in the unit documents:
 - Notation Metrics Unit Verification
 - Box Metrics Unit Verification
 - Connector Label Placer Unit Verification
+- Port Label Width Estimator Unit Verification
 
 ## Verification Approach
 
@@ -19,7 +20,7 @@ The abstractions system is verified through in-process unit tests. The contract 
 (`ILayoutAlgorithm`, `IRenderer`) are exercised through minimal fake implementations that the registry
 tests register and resolve, confirming the identity members of each contract. The registry tests also
 verify extension-based renderer lookup using advertised file-extension aliases. The registries, theme,
-and the three geometry helpers are pure and deterministic, so their tests construct inputs directly
+and the four geometry helpers are pure and deterministic, so their tests construct inputs directly
 and assert on returned values. No external services or filesystem access are involved, and the only
 test doubles are the in-test `FakeAlgorithm` and `FakeRenderer` used to exercise registry lookup.
 
@@ -30,11 +31,12 @@ test doubles are the in-test `FakeAlgorithm` and `FakeRenderer` used to exercise
 - **Dependencies**: none; no external services, network, or filesystem access.
 - **Isolation**: each test constructs its own registry, theme reference, or geometry inputs.
 - **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`RegistryTests.cs`,
-  `ThemeTests.cs`, `NotationMetricsTests.cs`, `BoxMetricsTests.cs`, `ConnectorLabelPlacerTests.cs`).
+  `ThemeTests.cs`, `NotationMetricsTests.cs`, `BoxMetricsTests.cs`, `ConnectorLabelPlacerTests.cs`,
+  `PortLabelWidthEstimatorTests.cs`).
 
 ## Acceptance Criteria
 
-A verification run passes when every scenario in this system document and in the six unit documents
+A verification run passes when every scenario in this system document and in the seven unit documents
 passes without error or unexpected exception. Any wrong returned value, wrong geometry, or unexpected
 exception constitutes a failure.
 
@@ -65,3 +67,5 @@ verification files; the representative system-level scenarios are:
   Box Metrics Unit Verification)
 - **`Rendering-Abstractions-SharedGeometry-ConnectorLabel`**:
   Place_SingleLine_UsesLongestSegmentMidpoint (see Connector Label Placer Unit Verification)
+- **`Rendering-Abstractions-SharedGeometry-PortLabelWidth`**:
+  MeasureWidth_ScalesLinearlyWithFontSize (see Port Label Width Estimator Unit Verification)

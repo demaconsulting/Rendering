@@ -54,6 +54,21 @@ sections:
         tests:
           - LayoutBox_Depth_IsInteger
 
+      - id: Rendering-Model-LayoutTree-ContentInset
+        title: >-
+          A box node shall carry four independently settable ContentInsetLeft/Right/Top/Bottom
+          values, defaulting to zero, reserving a per-side margin a renderer must respect when
+          positioning title, compartment, or child content.
+        justification: |
+          A named port rendered on a box's face needs its label drawn without colliding with the
+          box's own title/compartment content; a reserved, auto-computed margin per side lets a
+          renderer read where content may start and must stop instead of assuming a fixed
+          box.X + Theme.LabelPadding offset that ignores any ports on that face. Defaulting to zero
+          keeps every existing caller's box byte-identical when no port occupies a given side.
+        tests:
+          - LayoutBox_ContentInsets_DefaultZero
+          - LayoutBox_ContentInsets_IndependentlySettable
+
       - id: Rendering-Model-LayoutTree-Port
         title: >-
           A port node shall carry its absolute centre, the box edge it is attached to, and an
@@ -63,6 +78,20 @@ sections:
           offset the port symbol and its label away from the box face correctly.
         tests:
           - LayoutPort_Construction_StoresAllFields
+
+      - id: Rendering-Model-LayoutTree-PortMaxLabelWidth
+        title: >-
+          A port node shall carry an optional maximum label width, defaulting to positive infinity
+          (no bound) so every existing construction call site is unaffected.
+        justification: |
+          A `LayoutPort` has no reference back to its owning box, so a renderer cannot itself bound
+          an excessively long port label's rendered width to avoid it visually overlapping the
+          opposite port's label region; a layout algorithm that already knows the owning box's
+          placed width must precompute that bound and carry it on the port. Defaulting to positive
+          infinity means a port with no explicit bound renders exactly as before (unconstrained).
+        tests:
+          - LayoutPort_Construction_DefaultsMaxLabelWidthToPositiveInfinity
+          - LayoutPort_Construction_StoresExplicitMaxLabelWidth
 
       - id: Rendering-Model-LayoutTree-Line
         title: >-
