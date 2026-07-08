@@ -131,6 +131,20 @@ lifelines, activations, and grids emit their expected SVG element types.
 `Rendering-Svg-SvgRenderer-RenderLifeline`, `Rendering-Svg-SvgRenderer-RenderActivation`,
 `Rendering-Svg-SvgRenderer-RenderGrid`.
 
+#### Port label reads inward on every side, and a reserved inset shifts content
+
+Theory tests `SvgRenderer_RenderPort_LeftRightLabel_ReadsInward` (Left/Right cases) and
+`SvgRenderer_RenderPort_TopBottomLabel_ReadsInward` (Top/Bottom cases) each render a single port and
+assert its label text element is positioned toward the box interior relative to the port glyph's
+center: rightward for a left-side port, leftward for a right-side port, below a top-side port, and
+above a bottom-side port — confirming the label never reads outward off the box on any of the four
+sides. `SvgRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowTextRight` renders a box with a
+positive `ContentInsetLeft` and asserts a compartment row's text starts further right than the
+`Theme.LabelPadding`-only offset used when the inset is zero, confirming the renderer reads the
+reserved margin rather than assuming a fixed offset.
+
+**Covers**: `Rendering-Svg-SvgRenderer-RenderPortLabel`, `Rendering-Svg-SvgRenderer-ContentInset`.
+
 #### Connector end markers
 
 Tests `OpenChevron_IsDefinedAsPolyline` and `OpenChevronLine_ReferencesOpenChevronMarker` assert that
@@ -208,6 +222,10 @@ marker id appears somewhere in the document. This prevents a false pass if the m
 - **`Rendering-Svg-SvgRenderer-RenderLineMidpointLabel`**:
   `SvgRenderer_Render_LineWithMidpointLabel_ProducesTextElement`
 - **`Rendering-Svg-SvgRenderer-RenderNodeKinds`**: `SvgRenderer_Render_SinglePort_ProducesRect`
+- **`Rendering-Svg-SvgRenderer-RenderPortLabel`**: `SvgRenderer_RenderPort_LeftRightLabel_ReadsInward`,
+  `SvgRenderer_RenderPort_TopBottomLabel_ReadsInward`
+- **`Rendering-Svg-SvgRenderer-ContentInset`**:
+  `SvgRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowTextRight`
 - **`Rendering-Svg-SvgRenderer-RenderBadge`**:
   `SvgRenderer_Render_SingleBadge_FilledCircle_ProducesCircle`
 - **`Rendering-Svg-SvgRenderer-BadgeBullseye`**:

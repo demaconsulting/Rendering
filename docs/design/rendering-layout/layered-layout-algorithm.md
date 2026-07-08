@@ -46,12 +46,32 @@ per node followed by `LayoutLine` per edge).
    so the layers progress top-to-bottom (or bottom-to-top); `Right` is the default and is
    byte-identical to the original left-to-right placement.
 6. **Box emission.** Emits one `LayoutBox` per input node, in input order, at the placed rectangle,
-   carrying the node label.
-7. **Route resolution.** Builds a `(source, target)` to polyline lookup from the engine's acyclic
-   edge set, then emits one `LayoutLine` per input edge. `ResolveRoute` returns the forward polyline
-   when present, reverses the polyline of a reversed back edge, and otherwise falls back to a
-   straight segment between the two node centers (for a self-loop or duplicate edge the engine
+   carrying the node label and its auto-computed `ContentInset*` margins (step 9 below).
+7. **Parallel-edge resolution and route lookup.** Resolves `CoreOptions.MergeParallelEdges` (graph
+   in preference to options, default `true`) and builds a route lookup keyed by *engine edge
+   index* — the acyclic edge's own position in the pipeline's edge list — rather than by
+   `(source, target)` node pair, so parallel edges between the same two nodes each recover their own
+   distinct routed polyline instead of colliding on a shared dictionary key. `ResolveRoute` returns
+   the forward polyline when present, reverses the polyline of a reversed back edge, and otherwise
+   falls back to a straight segment between the two node centers (for a self-loop the engine
    dropped) so the connector is still drawn.
+8. **Line emission.** When `MergeParallelEdges` is `true`, a first pass groups the caller's original
+   input edges by `(source, target)` and emits exactly one `LayoutLine` per group, using the first
+   surviving edge's label and route and discarding the rest — fixing a pre-existing latent bug where
+   every original input edge emitted its own stacked `LayoutLine` regardless of duplication. When
+   `false`, every input edge is emitted as its own independently-routed `LayoutLine`.
+9. **Port emission and content-inset computation.** For each emitted edge whose source or target is
+   a `LayoutGraphPort` (not a plain `LayoutGraphNode`), emits a `LayoutPort` at the routed
+   connector's resolved anchor waypoint, carrying the port's `ExternalLabel` as its label
+   unconditionally (this phase does not yet read `InternalLabel` or distinguish an internal/external
+   edge — that is deferred to the hierarchy-aware phase 2). `ResolveSide` classifies the anchor
+   against the owning node's placed rectangle (within a small tolerance) to determine which of the
+   four faces the port glyph occupies. For each box, resolves an `ITextMeasurer` (an explicit
+   `CoreOptions.TextMeasurer` on the graph, then on the options, else a shared
+   `HeuristicTextMeasurer` instance) and `CoreOptions.AssumedFontSize`, then computes
+   `ContentInsetLeft`/`Right` as the widest same-side port label's measured width plus a small
+   clearance, and `ContentInsetTop`/`Bottom` as a flat fixed height (one text line at
+   `AssumedFontSize` plus padding) — zero on any side with no ports.
 
 An empty graph yields an empty `LayoutTree` because `InterconnectionLayoutEngine.Place` returns a
 minimal-size empty result, which produces an empty canvas.
@@ -72,4 +92,7 @@ the Engine subsystem. It is the entry point resolved by renderers through the la
 | Rendering-Layout-LayeredAlgorithm-Direction | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-NodeSpacing | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-Validation | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-MergeParallelEdges | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-PortEmission | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-ContentInset | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting | LayeredLayoutAlgorithm behavior described above |

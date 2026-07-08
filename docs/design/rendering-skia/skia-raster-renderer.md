@@ -35,7 +35,12 @@ initialization, node drawing, connector-label finalization, and stream encoding.
   labels in a final pass, and writes the encoded bytes to the stream without closing or flushing it.
 - **Node drawing helpers** - draw boxes, labels, lines, ports, badges, bands, lifelines, activations,
   and grids using the render theme, the embedded Noto Sans typefaces, shared notation metrics, and
-  shared box metrics.
+  shared box metrics. Port drawing mirrors `SvgRenderer`'s inward-reading placement exactly: each
+  port's label is drawn immediately next to its glyph, reading rightward for a left-side port,
+  leftward for a right-side port, below for a top-side port, and above for a bottom-side port. Box
+  title and compartment content start at `box.X + Theme.LabelPadding + box.ContentInsetLeft` (and
+  reduce available width by `box.ContentInsetRight`) instead of the fixed pre-port offset, so a
+  non-zero reserved port-label margin never overlaps rendered content.
 - **Connector helpers** - build connector end markers from `NotationMetrics` so raster markers match
   the SVG renderer. Hollow marker interiors and midpoint-label backplates use `Theme.BackgroundColor`
   so they occlude connector strokes with the same background used for the bitmap.
@@ -110,3 +115,4 @@ members.
 | Rendering-Skia-SkiaRasterRenderer-ThemeColours | Box and grid fill selection from `Theme.DepthFillColors` |
 | Rendering-Skia-SkiaRasterRenderer-EndMarkers | End-marker drawing helpers that use `NotationMetrics` |
 | Rendering-Skia-SkiaRasterRenderer-EmptyTree | Minimum bitmap width and height enforcement in `Render` |
+| Rendering-Skia-SkiaRasterRenderer-PortAndContentInset | Port label placement, `ContentInsetLeft`-aware start |

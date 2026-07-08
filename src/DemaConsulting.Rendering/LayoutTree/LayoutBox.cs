@@ -63,6 +63,26 @@ public sealed record LayoutCompartment(
 /// outline. <see langword="null"/> means a downstream renderer or router should use its own generic
 /// fallback.
 /// </param>
+/// <param name="ContentInsetLeft">
+/// Reserved margin, in logical pixels, that a renderer must not draw title/compartment content into
+/// on the left side of the box, because the box has at least one port anchored there. Zero (the
+/// default) when the node has no ports on that side.
+/// </param>
+/// <param name="ContentInsetRight">
+/// Reserved margin, in logical pixels, that a renderer must not draw title/compartment content into
+/// on the right side of the box, because the box has at least one port anchored there. Zero (the
+/// default) when the node has no ports on that side.
+/// </param>
+/// <param name="ContentInsetTop">
+/// Reserved margin, in logical pixels, that a renderer must not draw title/compartment content into
+/// on the top side of the box, because the box has at least one port anchored there. Zero (the
+/// default) when the node has no ports on that side.
+/// </param>
+/// <param name="ContentInsetBottom">
+/// Reserved margin, in logical pixels, that a renderer must not draw title/compartment content into
+/// on the bottom side of the box, because the box has at least one port anchored there. Zero (the
+/// default) when the node has no ports on that side.
+/// </param>
 public sealed record LayoutBox(
     double X,
     double Y,
@@ -76,4 +96,8 @@ public sealed record LayoutBox(
     string? Keyword = null,
     double? RoundedCornerRadius = null,
     double? FolderTabWidth = null,
-    double? FolderTabHeight = null) : LayoutNode;
+    double? FolderTabHeight = null,
+    double ContentInsetLeft = 0.0,
+    double ContentInsetRight = 0.0,
+    double ContentInsetTop = 0.0,
+    double ContentInsetBottom = 0.0) : LayoutNode;

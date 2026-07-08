@@ -100,11 +100,36 @@ anchor down to the shape's actual drawn outline, so every connector visibly touc
 
 ![An external node connected into a folder top face, clear of the tab](folder-top-face-anchor.svg)
 
-An edge approaching a folder container from above: the connector avoids the tab and anchors on the folder's
-recessed top edge instead of floating above it.
+An edge approaching a folder container from above: the connector avoids the tab and anchors on the folder's recessed top
+edge instead of floating above it.
 
 ![One of each container shape side by side, each holding content](shape-gallery.svg)
 
 Every Shape value side by side, each with content appropriate to it: rectangle and rounded-rectangle boxes with a
 keyword and a compartment, a folder holding a nested child, and a note holding free-form text — every shape reserves
 enough space so its content never overlaps the tab or the folded corner.
+
+## Parallel edges and named ports
+
+The layered algorithm's Phase 1 flat-graph support for multiple parallel connectors between the same two boxes, and for
+named ports attached to a specific, labelled location on a node's boundary. Parallel edges either collapse to one
+rendered connector (the default) or each keep their own independently-routed line, selected with the MergeParallelEdges
+option; each node's ContentInset margins are auto-computed from its ports' measured label widths so port text never
+overlaps the box's own content.
+
+![Three parallel connectors between the same two boxes, independently routed](parallel-edges-preserved.svg)
+
+MergeParallelEdges set to false: all three parallel connectors survive, each with its own label.
+
+![The same three parallel connectors collapsed to a single line](parallel-edges-merged.svg)
+
+The default MergeParallelEdges (true): only the first of the three parallel connectors survives.
+
+![A hub node with a named port on each of its left and right sides](ports-showcase-horizontal.svg)
+
+Left/right named ports on a rightward-flowing hub node; the long left-side incoming label auto-computes a widened
+ContentInsetLeft margin, measured with the Skia-backed text measurer.
+
+![A hub node with a named port on each of its top and bottom sides](ports-showcase-vertical.svg)
+
+The companion top/bottom case: a downward-flowing hub node, whose ports anchor on its top and bottom faces instead.

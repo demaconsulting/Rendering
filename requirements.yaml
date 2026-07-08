@@ -33,6 +33,7 @@ includes:
   - docs/reqstream/rendering-svg/svg-renderer.yaml
   - docs/reqstream/rendering-skia.yaml
   - docs/reqstream/rendering-skia/skia-raster-renderer.yaml
+  - docs/reqstream/rendering-skia/skia-text-measurer.yaml
   - docs/reqstream/rendering-skia/png-renderer.yaml
   - docs/reqstream/rendering-skia/jpeg-renderer.yaml
   - docs/reqstream/rendering-skia/webp-renderer.yaml

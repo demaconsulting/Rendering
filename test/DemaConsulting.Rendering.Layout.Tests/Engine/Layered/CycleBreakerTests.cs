@@ -53,6 +53,50 @@ public sealed class CycleBreakerTests
         Assert.DoesNotContain(graph.Acyclic, e => e.Source == e.Target);
     }
 
+    /// <summary>
+    ///     When <see cref="LayeredGraph.MergeParallelEdges"/> is <see langword="false"/>, every
+    ///     parallel edge instance is retained (each with its own <see cref="LayeredGraph.AcyclicOriginalIndex"/>
+    ///     entry recovering which input edge it came from), while a self-loop is still dropped.
+    /// </summary>
+    [Fact]
+    public void CycleBreaker_Apply_MergeParallelEdgesFalse_RetainsEveryParallelEdgeInstance()
+    {
+        // Arrange: a self-loop on node 0, three duplicated 0->1 edges, and a 1->2 edge.
+        var nodes = new List<LayerNode> { new(60, 40), new(60, 40), new(60, 40) };
+        var edges = new List<LayerEdge> { new(0, 0), new(0, 1), new(0, 1), new(0, 1), new(1, 2) };
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right) { MergeParallelEdges = false };
+
+        // Act: break cycles without merging parallel edges.
+        new CycleBreaker().Apply(graph);
+
+        // Assert: the self-loop is dropped but all three parallel 0->1 edges survive independently,
+        // each recoverable back to its own original input-edge index.
+        Assert.Equal(4, graph.Acyclic.Count);
+        Assert.DoesNotContain(graph.Acyclic, e => e.Source == e.Target);
+        Assert.Equal([1, 2, 3, 4], graph.AcyclicOriginalIndex);
+    }
+
+    /// <summary>
+    ///     When <see cref="LayeredGraph.MergeParallelEdges"/> is left at its default
+    ///     (<see langword="true"/>), duplicate source-target pairs still collapse to a single
+    ///     retained edge, exactly reproducing the pre-existing (pre-option) behavior.
+    /// </summary>
+    [Fact]
+    public void CycleBreaker_Apply_MergeParallelEdgesDefaultTrue_CollapsesDuplicates()
+    {
+        // Arrange: three duplicated 0->1 edges.
+        var nodes = new List<LayerNode> { new(60, 40), new(60, 40) };
+        var edges = new List<LayerEdge> { new(0, 1), new(0, 1), new(0, 1) };
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right);
+
+        // Act: break cycles with the default merge behavior.
+        new CycleBreaker().Apply(graph);
+
+        // Assert: only the first of the three duplicates is retained.
+        Assert.Single(graph.Acyclic);
+        Assert.Equal([0], graph.AcyclicOriginalIndex);
+    }
+
     /// <summary>Returns true when the edge set induces no directed cycle (Kahn's algorithm).</summary>
     /// <param name="n">Number of nodes.</param>
     /// <param name="edges">Directed edges to test.</param>

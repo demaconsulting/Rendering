@@ -66,3 +66,18 @@ sections:
           so callers never have to special-case an empty layout.
         tests:
           - PngRenderer_Render_EmptyTree_WritesPngSignature
+
+      - id: Rendering-Skia-SkiaRasterRenderer-PortAndContentInset
+        title: >-
+          SkiaRasterRenderer shall draw each port's glyph and label inside the box, immediately
+          next to the glyph, reading inward toward the box interior on every one of the four
+          sides, and shall start box title/compartment content at box.X plus
+          Theme.LabelPadding plus box.ContentInsetLeft (mirroring the SVG renderer) rather than a
+          fixed offset that ignores a reserved port-label margin.
+        justification: |
+          The raster renderer must match the SVG renderer's port-label placement and reserved-margin
+          behavior so both output formats produced from the same LayoutTree read identically to a
+          viewer, per the single-layout/multi-renderer design.
+        tests:
+          - PngRenderer_RenderPort_AnySide_ProducesNonBackgroundPixels
+          - PngRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowContentRight

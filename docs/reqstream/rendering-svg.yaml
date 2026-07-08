@@ -35,6 +35,8 @@ sections:
           - Rendering-Svg-SvgRenderer-RenderLineDashed
           - Rendering-Svg-SvgRenderer-RenderLineMidpointLabel
           - Rendering-Svg-SvgRenderer-RenderNodeKinds
+          - Rendering-Svg-SvgRenderer-RenderPortLabel
+          - Rendering-Svg-SvgRenderer-ContentInset
           - Rendering-Svg-SvgRenderer-RenderBadge
           - Rendering-Svg-SvgRenderer-RenderBand
           - Rendering-Svg-SvgRenderer-RenderLifeline

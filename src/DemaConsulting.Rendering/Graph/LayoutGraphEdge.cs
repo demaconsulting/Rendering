@@ -5,8 +5,10 @@
 namespace DemaConsulting.Rendering;
 
 /// <summary>
-/// A directed edge in an input <see cref="LayoutGraph"/>, connecting a source node to a target node.
-/// The edge carries its own configuration via <see cref="PropertyHolder"/>.
+/// A directed edge in an input <see cref="LayoutGraph"/>, connecting a source
+/// <see cref="ILayoutConnectable"/> (a node or one of its named ports) to a target
+/// <see cref="ILayoutConnectable"/>. The edge carries its own configuration via
+/// <see cref="PropertyHolder"/>.
 /// </summary>
 public sealed class LayoutGraphEdge : PropertyHolder
 {
@@ -14,14 +16,14 @@ public sealed class LayoutGraphEdge : PropertyHolder
     /// Initializes a new instance of the <see cref="LayoutGraphEdge"/> class.
     /// </summary>
     /// <param name="id">Identifier unique within the owning graph.</param>
-    /// <param name="source">The node the edge originates from.</param>
-    /// <param name="target">The node the edge terminates at.</param>
+    /// <param name="source">The node or port the edge originates from.</param>
+    /// <param name="target">The node or port the edge terminates at.</param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="id"/>, <paramref name="source"/>, or <paramref name="target"/> is
     /// <see langword="null"/>.
     /// </exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is empty.</exception>
-    public LayoutGraphEdge(string id, LayoutGraphNode source, LayoutGraphNode target)
+    public LayoutGraphEdge(string id, ILayoutConnectable source, ILayoutConnectable target)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
         ArgumentNullException.ThrowIfNull(source);
@@ -34,11 +36,11 @@ public sealed class LayoutGraphEdge : PropertyHolder
     /// <summary>Gets the identifier, unique within the owning graph.</summary>
     public string Id { get; }
 
-    /// <summary>Gets the node the edge originates from.</summary>
-    public LayoutGraphNode Source { get; }
+    /// <summary>Gets the node or port the edge originates from.</summary>
+    public ILayoutConnectable Source { get; }
 
-    /// <summary>Gets the node the edge terminates at.</summary>
-    public LayoutGraphNode Target { get; }
+    /// <summary>Gets the node or port the edge terminates at.</summary>
+    public ILayoutConnectable Target { get; }
 
     /// <summary>Gets or sets the end-marker style drawn at the target end of the edge.</summary>
     public EndMarkerStyle TargetEnd { get; set; } = EndMarkerStyle.None;

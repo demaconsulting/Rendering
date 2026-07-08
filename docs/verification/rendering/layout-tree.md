@@ -69,6 +69,15 @@ stored as an `int` with value 3, confirming the depth-not-color invariant.
 
 **Covers**: `Rendering-Model-LayoutTree-DepthNotColor`.
 
+#### Content insets default zero and are independently settable
+
+Tests `LayoutBox_ContentInsets_DefaultZero` and `LayoutBox_ContentInsets_IndependentlySettable`
+construct a box without specifying the four `ContentInset*` values and assert they all default to
+`0.0`, then construct a box with distinct explicit values for each side and assert every side reads
+back its own value independently of the others.
+
+**Covers**: `Rendering-Model-LayoutTree-ContentInset`.
+
 #### Port carries all fields
 
 Test `LayoutPort_Construction_StoresAllFields` constructs a port with centre, side, and label set and
@@ -154,6 +163,8 @@ children, so downstream routing and rendering stages can observe the resolved sh
 - **`Rendering-Model-LayoutTree-Box`**: LayoutBox_Construction_StoresAllFields,
   LayoutBox_Children_ContainsNestedNodes
 - **`Rendering-Model-LayoutTree-DepthNotColor`**: LayoutBox_Depth_IsInteger
+- **`Rendering-Model-LayoutTree-ContentInset`**: LayoutBox_ContentInsets_DefaultZero,
+  LayoutBox_ContentInsets_IndependentlySettable
 - **`Rendering-Model-LayoutTree-Port`**: LayoutPort_Construction_StoresAllFields
 - **`Rendering-Model-LayoutTree-Line`**: LayoutLine_Construction_StoresAllFields
 - **`Rendering-Model-LayoutTree-Label`**: LayoutLabel_Construction_StoresAllFields

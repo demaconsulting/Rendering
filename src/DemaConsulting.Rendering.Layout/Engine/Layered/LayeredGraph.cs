@@ -92,8 +92,32 @@ internal sealed class LayeredGraph
     /// </remarks>
     public double NodeSpacing { get; set; } = LayeredLayoutMetrics.NodeSpacing;
 
+    /// <summary>
+    /// Gets or sets whether <see cref="CycleBreaker"/> collapses parallel edges (multiple input
+    /// edges sharing the same directed node pair after cycle-breaking) into a single retained edge,
+    /// mirroring <see cref="Rendering.CoreOptions.MergeParallelEdges"/>.
+    /// </summary>
+    /// <remarks>
+    /// The default, <see langword="true"/>, exactly reproduces the original engine's unconditional
+    /// deduplication, so callers that never set this property see byte-identical output to before
+    /// this property existed. Setting it to <see langword="false"/> retains every parallel edge
+    /// instance (self-loops are still always dropped).
+    /// </remarks>
+    public bool MergeParallelEdges { get; set; } = true;
+
     /// <summary>Gets or sets the acyclic edge set after cycle breaking.</summary>
     public List<LayerEdge> Acyclic { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets, parallel to <see cref="Acyclic"/> (same index order), the 0-based index into the
+    /// input <see cref="Edges"/> list that each surviving <see cref="Acyclic"/> entry originated from.
+    /// </summary>
+    /// <remarks>
+    /// Lets a consumer recover, for every acyclic/routed edge, which original input edge it came
+    /// from — needed when <see cref="MergeParallelEdges"/> is <see langword="false"/> so each of
+    /// several parallel input edges can be matched back to its own independently-routed polyline.
+    /// </remarks>
+    public IReadOnlyList<int> AcyclicOriginalIndex { get; set; } = [];
 
     /// <summary>
     /// Gets or sets, parallel to <see cref="Acyclic"/> (same index order), whether each retained

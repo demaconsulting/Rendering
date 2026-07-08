@@ -19,7 +19,8 @@ exceptions.
 
 - **Framework**: xUnit v3 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
-- **Project**: `test/DemaConsulting.Rendering.Tests/LayoutGraphTests.cs`.
+- **Project**: `test/DemaConsulting.Rendering.Tests/LayoutGraphTests.cs` and
+  `LayoutGraphPortTests.cs` (port-model scenarios).
 - **Target frameworks**: .NET 8, .NET 9, and .NET 10.
 - **Dependencies**: no external services, files, or network access; every test uses only in-memory
   graph objects.
@@ -100,6 +101,26 @@ containment, and hierarchical layout paths all copy those hints onto their place
 
 **Covers**: `Rendering-Model-LayoutGraph-ShapeGeometryHints`.
 
+#### Named ports are a lazily-allocated, per-node-scoped collection
+
+Tests `LayoutGraphNode_HasPorts_NoPortsAdded_ReturnsFalse`, `Ports_AddPort_AppendsPortAndReturnsIt`,
+`Ports_AddPort_DuplicateId_ThrowsArgumentException`, `Ports_AddPort_SameIdOnDifferentNodes_Allowed`,
+`Ports_AddPort_NullId_ThrowsArgumentNullException`, `Ports_AddPort_EmptyId_ThrowsArgumentException`,
+and `AddEdge_PortToNode_ConnectsPortAsSource` (all in `LayoutGraphPortTests.cs`) together confirm a
+fresh node reports no ports, `AddPort` appends and returns a new port, a duplicate id within one
+node's own `Ports` is rejected while the same id on a different node is allowed, a null or empty id is
+rejected, and an edge can reference a port (via `ILayoutConnectable`) as its source exactly like a
+plain node.
+
+**Covers**: `Rendering-Model-LayoutGraph-Ports`.
+
+#### Port labels default null and are independently settable
+
+Test `Port_Labels_DefaultNullAndIndependentlySettable` confirms a freshly-added port's `ExternalLabel`
+and `InternalLabel` both default to `null` and can be set independently of each other.
+
+**Covers**: `Rendering-Model-LayoutGraph-PortLabels`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-LayoutGraph-AddNode`**: AddNode_AppendsNodeAndReturnsIt
@@ -120,3 +141,8 @@ containment, and hierarchical layout paths all copy those hints onto their place
   Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPlacedBox,
   Apply_NodeWithShapeKeywordAndCompartments_PropagatesToPackedBox,
   Apply_NestedGraph_PropagatesContainerAndLeafShapeKeywordCompartments
+- **`Rendering-Model-LayoutGraph-Ports`**: LayoutGraphNode_HasPorts_NoPortsAdded_ReturnsFalse,
+  Ports_AddPort_AppendsPortAndReturnsIt, Ports_AddPort_DuplicateId_ThrowsArgumentException,
+  Ports_AddPort_SameIdOnDifferentNodes_Allowed, Ports_AddPort_NullId_ThrowsArgumentNullException,
+  Ports_AddPort_EmptyId_ThrowsArgumentException, AddEdge_PortToNode_ConnectsPortAsSource
+- **`Rendering-Model-LayoutGraph-PortLabels`**: Port_Labels_DefaultNullAndIndependentlySettable

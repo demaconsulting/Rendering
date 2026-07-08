@@ -99,8 +99,8 @@ public sealed class LayoutGraph : PropertyHolder
     ///     <paramref name="source"/> and/or <paramref name="target"/>.
     /// </remarks>
     /// <param name="id">Identifier unique within this graph.</param>
-    /// <param name="source">The node the edge originates from.</param>
-    /// <param name="target">The node the edge terminates at.</param>
+    /// <param name="source">The node or port the edge originates from.</param>
+    /// <param name="target">The node or port the edge terminates at.</param>
     /// <returns>The newly-created edge.</returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="id"/>, <paramref name="source"/>, or <paramref name="target"/> is
@@ -110,7 +110,7 @@ public sealed class LayoutGraph : PropertyHolder
     /// Thrown when <paramref name="id"/> is empty, or when an edge with the same <paramref name="id"/>
     /// already exists in this graph.
     /// </exception>
-    public LayoutGraphEdge AddEdge(string id, LayoutGraphNode source, LayoutGraphNode target)
+    public LayoutGraphEdge AddEdge(string id, ILayoutConnectable source, ILayoutConnectable target)
     {
         var edge = new LayoutGraphEdge(id, source, target);
         if (!_edgeIds.Add(id))

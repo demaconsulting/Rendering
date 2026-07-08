@@ -99,6 +99,13 @@ internal sealed record LayerResult(
     /// back edge) to recover the route for each of their own input edges.
     /// </remarks>
     public IReadOnlyList<LayerEdge> AcyclicEdges { get; init; } = [];
+
+    /// <summary>
+    /// Gets, parallel to <see cref="AcyclicEdges"/> (same index order), the 0-based index into the
+    /// input <c>edges</c> list passed to <see cref="InterconnectionLayoutEngine.Place"/> that each
+    /// acyclic edge originated from. Populated from <see cref="Layered.LayeredGraph.AcyclicOriginalIndex"/>.
+    /// </summary>
+    public IReadOnlyList<int> AcyclicOriginalIndex { get; init; } = [];
 }
 
 /// <summary>
@@ -131,12 +138,19 @@ internal static class InterconnectionLayoutEngine
     /// <see cref="Layered.LayeredLayoutMetrics.NodeSpacing"/>, which is byte-identical to the original
     /// engine's fixed constant.
     /// </param>
+    /// <param name="mergeParallelEdges">
+    /// Whether parallel edges (edges sharing the same directed node pair) are merged into a single
+    /// acyclic edge, mirroring <see cref="Rendering.CoreOptions.MergeParallelEdges"/>. Defaults to
+    /// <see langword="true"/>, which is byte-identical to the original engine's unconditional
+    /// deduplication.
+    /// </param>
     /// <returns>Placement result with rects, layer assignments, and connector waypoints.</returns>
     public static LayerResult Place(
         IReadOnlyList<LayerNode> nodes,
         IReadOnlyList<LayerEdge> edges,
         LayoutDirection direction = LayoutDirection.Right,
-        double nodeSpacing = Layered.LayeredLayoutMetrics.NodeSpacing)
+        double nodeSpacing = Layered.LayeredLayoutMetrics.NodeSpacing,
+        bool mergeParallelEdges = true)
     {
         ArgumentNullException.ThrowIfNull(nodes);
         ArgumentNullException.ThrowIfNull(edges);
@@ -147,7 +161,7 @@ internal static class InterconnectionLayoutEngine
             return new LayerResult([], 2.0 * Padding, 2.0 * Padding, [], []);
         }
 
-        var graph = new LayeredGraph(nodes, edges, direction) { NodeSpacing = nodeSpacing };
+        var graph = new LayeredGraph(nodes, edges, direction) { NodeSpacing = nodeSpacing, MergeParallelEdges = mergeParallelEdges };
         var pipeline = LayeredLayoutPipeline.Builder()
             .Direction(direction)
             .Hierarchy(Layered.HierarchyHandling.Flat)
@@ -192,6 +206,7 @@ internal static class InterconnectionLayoutEngine
         return new LayerResult(rects, totalWidth, totalHeight, graph.NodeLayers, graph.Waypoints)
         {
             AcyclicEdges = graph.Acyclic,
+            AcyclicOriginalIndex = graph.AcyclicOriginalIndex,
         };
     }
 }

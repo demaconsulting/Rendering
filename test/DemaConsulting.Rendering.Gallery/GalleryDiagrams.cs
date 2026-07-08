@@ -348,7 +348,118 @@ internal static class GalleryDiagrams
     }
 
     /// <summary>
-    ///     Computes the height of a titled compartment (a title row plus one row per line, plus the
+    ///     Two boxes joined by three distinct parallel connectors, each with its own label, laid out
+    ///     with <see cref="CoreOptions.MergeParallelEdges"/> set to <see langword="false"/> so every
+    ///     parallel edge survives as its own independently-routed connector.
+    /// </summary>
+    /// <returns>A two-node graph with three parallel edges and merging disabled.</returns>
+    public static LayoutGraph ParallelEdgesPreserved()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, false);
+
+        var producer = AddLabelled(graph, "producer", "Producer");
+        var consumer = AddLabelled(graph, "consumer", "Consumer");
+
+        Connect(graph, "primary", producer, consumer, "primary");
+        Connect(graph, "retry", producer, consumer, "retry");
+        Connect(graph, "audit", producer, consumer, "audit");
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     The same two boxes and three parallel connectors as <see cref="ParallelEdgesPreserved"/>, but
+    ///     laid out with the default <see cref="CoreOptions.MergeParallelEdges"/> (<see langword="true"/>),
+    ///     so exactly one connector (the first) survives — the companion comparison case.
+    /// </summary>
+    /// <returns>A two-node graph with three parallel edges and the default merge behavior.</returns>
+    public static LayoutGraph ParallelEdgesMerged()
+    {
+        var graph = new LayoutGraph();
+
+        var producer = AddLabelled(graph, "producer", "Producer");
+        var consumer = AddLabelled(graph, "consumer", "Consumer");
+
+        Connect(graph, "primary", producer, consumer, "primary");
+        Connect(graph, "retry", producer, consumer, "retry");
+        Connect(graph, "audit", producer, consumer, "audit");
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     A three-node left-to-right chain exercising named <see cref="LayoutGraphPort"/>s on the
+    ///     left and right sides of the middle node, including a deliberately long left-side label
+    ///     demonstrating the auto-computed <see cref="LayoutBox.ContentInsetLeft"/> reserved margin.
+    ///     Configures the Skia-backed <see cref="ITextMeasurer"/> (via <see cref="Skia.SkiaTextMeasurer"/>)
+    ///     so the reserved margins match real font metrics rather than the dependency-free heuristic
+    ///     fallback.
+    /// </summary>
+    /// <remarks>
+    ///     A port's rendered side is derived purely from where the layered algorithm's own routing
+    ///     anchors the connector on the owning node's placed rectangle (Phase 1 deliberately has no
+    ///     <c>Side</c> property to request a side directly — see <see cref="LayoutGraphPort"/>). Under
+    ///     the default rightward <see cref="CoreOptions.Direction"/>, the layer-progression axis is
+    ///     horizontal, so every inter-layer connector anchors on a left or right face; a companion
+    ///     <see cref="PortsShowcaseVertical"/> uses a downward flow to exercise the top and bottom
+    ///     faces the same way.
+    /// </remarks>
+    /// <returns>A three-node graph with left/right ports on its middle node.</returns>
+    public static LayoutGraph PortsShowcaseHorizontal()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.TextMeasurer, new Skia.SkiaTextMeasurer());
+
+        var upstream = AddLabelled(graph, "upstream", "Upstream");
+        var hub = AddLabelled(graph, "hub", "Hub");
+        var downstream = AddLabelled(graph, "downstream", "Downstream");
+
+        // Left side (incoming): a deliberately long label to demonstrate the auto-computed inset.
+        var inPort = hub.Ports.AddPort("in");
+        inPort.ExternalLabel = "a rather long incoming data label";
+        Connect(graph, "upstream-hub", upstream, inPort, null);
+
+        // Right side (outgoing).
+        var outPort = hub.Ports.AddPort("out");
+        outPort.ExternalLabel = "out";
+        Connect(graph, "hub-downstream", outPort, downstream, null);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     A three-node top-to-bottom chain exercising named <see cref="LayoutGraphPort"/>s on the top
+    ///     and bottom sides of the middle node — the companion to
+    ///     <see cref="PortsShowcaseHorizontal"/>, using a downward <see cref="CoreOptions.Direction"/>
+    ///     so the layer-progression axis (and therefore every inter-layer connector's anchor face) is
+    ///     vertical instead of horizontal.
+    /// </summary>
+    /// <returns>A three-node graph with top/bottom ports on its middle node.</returns>
+    public static LayoutGraph PortsShowcaseVertical()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+        graph.Set(CoreOptions.TextMeasurer, new Skia.SkiaTextMeasurer());
+
+        var monitor = AddLabelled(graph, "monitor", "Monitor");
+        var hub = AddLabelled(graph, "hub", "Hub");
+        var control = AddLabelled(graph, "control", "Control");
+
+        // Top side (incoming).
+        var statusPort = hub.Ports.AddPort("status");
+        statusPort.ExternalLabel = "status";
+        Connect(graph, "monitor-hub", monitor, statusPort, null);
+
+        // Bottom side (outgoing).
+        var ctrlPort = hub.Ports.AddPort("ctrl");
+        ctrlPort.ExternalLabel = "ctrl";
+        Connect(graph, "hub-control", ctrlPort, control, null);
+
+        return graph;
+    }
+
+    /// <summary>Computes the height of a titled compartment (a title row plus one row per line, plus the
     ///     leading title-area gap and the trailing bottom gap), matching the renderer's own layout
     ///     formula so the compartment content never overflows the box.
     /// </summary>
@@ -378,5 +489,22 @@ internal static class GalleryDiagrams
     {
         var edge = graph.AddEdge(id, source, target);
         edge.TargetEnd = EndMarkerStyle.FilledArrow;
+    }
+
+    /// <summary>
+    ///     Adds a directed edge drawn with a filled arrowhead at its target end, between any two
+    ///     <see cref="ILayoutConnectable"/> endpoints (a node or one of its named ports), with an
+    ///     optional connector label.
+    /// </summary>
+    private static void Connect(
+        LayoutGraph graph,
+        string id,
+        ILayoutConnectable source,
+        ILayoutConnectable target,
+        string? label)
+    {
+        var edge = graph.AddEdge(id, source, target);
+        edge.TargetEnd = EndMarkerStyle.FilledArrow;
+        edge.Label = label;
     }
 }

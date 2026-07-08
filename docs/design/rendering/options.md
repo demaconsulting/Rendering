@@ -26,7 +26,15 @@ by each property's identifier.
 - `PropertyHolder` (class implementing `IPropertyHolder`) — dictionary-backed store.
 - `LayoutOptions` (sealed class extending `PropertyHolder`) — with a `ForAlgorithm(string)` factory.
 - `CoreOptions` (static class) — well-known keys `Algorithm`, `HierarchyHandling`, `Direction`,
-  `EdgeRouting`, `NodeSpacing`, `LayerSpacing`.
+  `EdgeRouting`, `NodeSpacing`, `LayerSpacing`, `MergeParallelEdges`, `TextMeasurer`,
+  `AssumedFontSize`.
+- `ITextMeasurer` (interface) — `double MeasureWidth(string text, double fontSize, bool bold, bool
+  italic)`. Declared here (in `DemaConsulting.Rendering`), not in `Abstractions`, because the real
+  project reference graph is `Abstractions -> Rendering`; `CoreOptions.TextMeasurer` (a property of
+  this type) could not reference a type declared in `Abstractions` without inverting that graph.
+  `DemaConsulting.Rendering.Layout` already references `Rendering`, so a consumer there can use the
+  interface without taking on a Skia dependency. `DemaConsulting.Rendering.Skia` ships
+  `SkiaTextMeasurer`, a real-font-metrics implementation.
 - `LayoutFlowDirection` (enum) — `Right`, `Left`, `Down`, `Up`.
 - `HierarchyHandling` (enum) — `SeparateChildren` (the only shipped mode). Mirrors ELK's
   `elk.hierarchyHandling`; selects how a hierarchical layout engine treats a container node's nested
@@ -102,12 +110,25 @@ passes it to a layout facade.
 - `OverlayOnto` shall merge by raw key rather than by enumerating known `LayoutProperty<T>` constants,
   so the cascading primitive remains correct for options this unit has never heard of (including
   future, not-yet-declared properties).
+- `CoreOptions.MergeParallelEdges` shall default to `true`, exactly reproducing the layered
+  algorithm's pre-existing unconditional parallel-edge deduplication so an existing caller that never
+  sets this key sees byte-identical output.
+- `CoreOptions.TextMeasurer` shall default to `null`, so a consumer (`LayeredLayoutAlgorithm`) falls
+  back to its own dependency-free heuristic measurer when a caller never references
+  `DemaConsulting.Rendering.Skia` at all.
+- `CoreOptions.AssumedFontSize` shall default to `12.0`, matching the bundled themes'
+  `Theme.FontSizeBody`, so a text-aware layout decision made once at layout time (before any theme is
+  available) uses a reasonable font size by default.
 
 ### Options Interactions
 
 `LayoutGraph`, `LayoutGraphNode`, and `LayoutGraphEdge` (in the Layout Graph unit) all derive from
 `PropertyHolder`, so configuration can be attached to the whole graph or to a single element.
-`LayoutOptions` is passed to a layout algorithm alongside a `LayoutGraph`.
+`LayoutOptions` is passed to a layout algorithm alongside a `LayoutGraph`. `LayeredLayoutAlgorithm`
+(in `DemaConsulting.Rendering.Layout`) reads `CoreOptions.TextMeasurer`, falling back to its own
+`HeuristicTextMeasurer` when unset, to compute `LayoutBox.ContentInset*` (see the Layout Tree unit).
+`DemaConsulting.Rendering.Skia` supplies `SkiaTextMeasurer`, an `ITextMeasurer` backed by its
+already-embedded Noto Sans typefaces and `SKFont.MeasureText`.
 
 ### Requirements Traceability
 
@@ -118,3 +139,7 @@ passes it to a layout facade.
 | Rendering-Model-Options-Contains | `PropertyHolder.Contains` |
 | Rendering-Model-Options-TryGet | `PropertyHolder.TryGet` |
 | Rendering-Model-Options-Cascade | `PropertyHolder.OverlayOnto` |
+| Rendering-Model-Options-MergeParallelEdges | `CoreOptions.MergeParallelEdges` |
+| Rendering-Model-Options-AssumedFontSize | `CoreOptions.AssumedFontSize` |
+| Rendering-Model-Options-TextMeasurer | `CoreOptions.TextMeasurer` |
+| Rendering-Model-Options-TextMeasurerContract | `ITextMeasurer.MeasureWidth` |

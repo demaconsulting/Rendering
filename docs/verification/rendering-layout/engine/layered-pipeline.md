@@ -68,6 +68,11 @@ failure.
 - **Cycle breaking** (`Rendering-Layout-LayeredPipeline-CycleBreaking`):
   `CycleBreaker_Apply_GraphWithCycle_ProducesAcyclicEdgeSet` and
   `CycleBreaker_Apply_SelfLoopsAndDuplicates_AreRemoved`.
+- **Merge parallel edges** (`Rendering-Layout-LayeredPipeline-MergeParallelEdges`):
+  `CycleBreaker_Apply_MergeParallelEdgesFalse_RetainsEveryParallelEdgeInstance` confirms every
+  parallel edge instance survives into `graph.Acyclic` when the option is `false`, and
+  `CycleBreaker_Apply_MergeParallelEdgesDefaultTrue_CollapsesDuplicates` confirms the default `true`
+  still collapses duplicates exactly as before this property existed.
 - **Layer assignment** (`Rendering-Layout-LayeredPipeline-LayerAssignment`):
   `LayerAssigner_Apply_LinearChain_AssignsMonotonicLayers` and
   `LayerAssigner_Apply_DiamondGraph_AssignsLongestPathLayers`.
@@ -158,6 +163,9 @@ failure.
   AxisTransform_Apply_Left_ProducesOrthogonalWaypoints, AxisTransform_Apply_Up_ProducesOrthogonalWaypoints
 - **`Rendering-Layout-LayeredPipeline-CycleBreaking`**:
   CycleBreaker_Apply_GraphWithCycle_ProducesAcyclicEdgeSet, CycleBreaker_Apply_SelfLoopsAndDuplicates_AreRemoved
+- **`Rendering-Layout-LayeredPipeline-MergeParallelEdges`**:
+  CycleBreaker_Apply_MergeParallelEdgesFalse_RetainsEveryParallelEdgeInstance,
+  CycleBreaker_Apply_MergeParallelEdgesDefaultTrue_CollapsesDuplicates
 - **`Rendering-Layout-LayeredPipeline-LayerAssignment`**:
   LayerAssigner_Apply_LinearChain_AssignsMonotonicLayers, LayerAssigner_Apply_DiamondGraph_AssignsLongestPathLayers
 - **`Rendering-Layout-LayeredPipeline-LongEdgeSplitting`**:

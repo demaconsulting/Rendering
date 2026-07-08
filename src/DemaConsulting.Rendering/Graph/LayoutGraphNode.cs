@@ -63,13 +63,19 @@ namespace DemaConsulting.Rendering;
 ///     bool outsideIsContainer = outside.HasChildren; // false (leaf; no child graph allocated)
 ///     </code>
 /// </example>
-public sealed class LayoutGraphNode : PropertyHolder
+public sealed class LayoutGraphNode : PropertyHolder, ILayoutConnectable
 {
     /// <summary>
     /// Backing store for the lazily-created child subgraph. Remains <see langword="null"/> for a leaf
     /// node so that a non-container node allocates nothing and a flat graph is unchanged.
     /// </summary>
     private LayoutGraph? _children;
+
+    /// <summary>
+    /// Backing store for the lazily-created port collection. Remains <see langword="null"/> for a
+    /// node with no named ports so that a node's port-free flat graph is unchanged.
+    /// </summary>
+    private LayoutGraphPortCollection? _ports;
 
     /// <summary>Backing store for <see cref="Compartments"/>; never <see langword="null"/>.</summary>
     private IReadOnlyList<LayoutCompartment> _compartments = [];
@@ -198,4 +204,29 @@ public sealed class LayoutGraphNode : PropertyHolder
     ///     accessed, and also for a node whose child graph was materialized but never populated.
     /// </remarks>
     public bool HasChildren => _children is { Nodes.Count: > 0 };
+
+    /// <summary>
+    /// Gets the collection of named ports (see <see cref="LayoutGraphPort"/>) owned by this node,
+    /// letting an edge attach to a specific, labelled location on the node's boundary instead of the
+    /// node as a whole.
+    /// </summary>
+    /// <remarks>
+    ///     The port collection is created lazily on first access, so merely reading this property
+    ///     once allocates a (possibly empty) collection. To test whether a node already holds ports
+    ///     without triggering that allocation, use <see cref="HasPorts"/>. Add ports through the
+    ///     returned collection's own factory method, for example
+    ///     <c>node.Ports.AddPort("p1")</c>; identifier uniqueness is scoped to this node's own ports.
+    /// </remarks>
+    public LayoutGraphPortCollection Ports => _ports ??= new LayoutGraphPortCollection();
+
+    /// <summary>
+    /// Gets a value indicating whether this node currently holds at least one named port.
+    /// </summary>
+    /// <remarks>
+    ///     Mirrors <see cref="HasChildren"/>'s lazy-allocation ethos: the check does not allocate the
+    ///     port collection, returning <see langword="false"/> for a node whose <see cref="Ports"/> has
+    ///     never been accessed, and also for a node whose port collection was materialized but never
+    ///     populated.
+    /// </remarks>
+    public bool HasPorts => _ports is { Ports.Count: > 0 };
 }

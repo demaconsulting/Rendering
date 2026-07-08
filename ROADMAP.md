@@ -33,6 +33,23 @@ already-working cascading mechanism:
 
 ## Parallel-edge (multi-edge) support in the layered algorithm
 
+**Phase 1 (flat graphs) is implemented** — `CoreOptions.MergeParallelEdges`, the port model
+(`ILayoutConnectable`/`LayoutGraphPort`/`LayoutGraphNode.Ports`), `ITextMeasurer` (with a
+dependency-free heuristic fallback in `Layout` and a Skia-backed implementation), and the
+`LayoutBox.ContentInset*` reserved-margin mechanism described below all exist and are exercised by
+the `test/DemaConsulting.Rendering.Gallery` "Parallel edges and named ports" section. Phase 2
+(`HierarchyHandling.Recursive` and boundary/delegation ports) remains unimplemented and is tracked
+separately below. One deliberate deviation from the phase-1 acceptance criteria as originally
+written: a *single* gallery diagram cannot exercise all four port sides at once, because (as
+documented under "Named ports" below) a port's rendered side is a purely geometric consequence of
+where the layered algorithm's own routing anchors that connector — there is intentionally no
+caller-settable `Side` — and under a single flow direction every inter-layer connector anchors on
+only one pair of opposite faces (left/right for a rightward/leftward flow, top/bottom for a
+downward/upward flow). The gallery therefore ships two companion diagrams,
+`ports-showcase-horizontal` (rightward flow; left/right ports, including the long-label
+`ContentInsetLeft` case) and `ports-showcase-vertical` (downward flow; top/bottom ports), which
+together exercise all four sides.
+
 The bundled `layered` algorithm's layout pipeline currently treats the input graph as simple:
 when two or more edges share the same directed `(source, target)` node pair, only one is
 retained and routed, and every input edge sharing that pair resolves to the same single routed
@@ -214,12 +231,17 @@ make this workable without breaking the Layout unit's current zero-rendering-dep
   (title auto-fit, badge label sizing) — so a measurer backed by it is exact for Skia's own raster
   output and a good-faith estimate for SVG output (which targets the same nominal font family).
 
-Proposed shape:
+Proposed shape (implemented; `ITextMeasurer` lives in `DemaConsulting.Rendering`, not
+`Abstractions` — see note below):
 
-- Add `ITextMeasurer` to `Abstractions` (which `Layout` already depends on):
-  `double MeasureWidth(string text, double fontSize, bool bold, bool italic)`. `Layout` depends
-  only on the interface, never on SkiaSharp, preserving today's dependency direction and keeping
-  pure-SVG consumers free of the native Skia dependency.
+- Add `ITextMeasurer` to `DemaConsulting.Rendering`:
+  `double MeasureWidth(string text, double fontSize, bool bold, bool italic)`. The originally
+  proposed home, `Abstractions`, turned out to be backwards: the real project reference graph is
+  `Abstractions -> Rendering` (`Abstractions` references `Rendering`, not the reverse), so
+  `CoreOptions` (declared in `Rendering`) cannot reference a type declared in `Abstractions`.
+  `DemaConsulting.Rendering.Layout` already has a `ProjectReference` on `Rendering`, so placing the
+  interface there satisfies the same intent (a dependency-light, Skia-free interface `Layout` can
+  reference) without inverting the reference graph.
 - `DemaConsulting.Rendering.Skia` ships a ready-made implementation backed by its already-embedded
   Noto Sans typefaces and real `SKFont.MeasureText`.
 - Add `CoreOptions.TextMeasurer` (optional; cascades like every other option) so a caller wires it
@@ -361,7 +383,7 @@ same-face crowding (no port-spacing-by-width work):
 
 ### Acceptance criteria
 
-**Phase 1 (flat graphs):**
+**Phase 1 (flat graphs) — implemented:**
 
 - A new `test/DemaConsulting.Rendering.Gallery` example showing two boxes joined by **three or
   more** distinct parallel connectors (mirroring the SysML2Tools wiring-diagram scenario that
@@ -369,16 +391,21 @@ same-face crowding (no port-spacing-by-width work):
   them — each connector must appear as its own visually distinct routed line, not
   stacked/overlapping copies of the same route. A companion case with `MergeParallelEdges` left at
   its default (`true`) must show exactly one line and one label surviving per duplicate pair.
+  Shipped as `parallel-edges-preserved`/`parallel-edges-merged`.
 - Each connector's port must carry its own rendered `ExternalLabel`, distinct from the connector's
   own separate midpoint label — both must be able to be set and rendered simultaneously.
 - The gallery entry must exercise ports on **all four sides**, each labeled inside the box next to
   its port glyph per the "Port label placement per side" decision above, with at least one long
   left/right port label demonstrating that the box's own title/compartment content is pushed in by
-  the auto-computed `ContentInset*` margin rather than colliding with it.
+  the auto-computed `ContentInset*` margin rather than colliding with it. Shipped as the companion
+  pair `ports-showcase-horizontal` (left/right, including the long-label case) and
+  `ports-showcase-vertical` (top/bottom) — see the status note at the top of this section for why a
+  single diagram cannot exercise all four sides at once.
 - The gallery entry must include at least one box using the Skia-backed `ITextMeasurer` (exact
   measurement) and confirm the SVG output of the same `LayoutTree` still reads correctly, verifying
   the single-layout/multi-renderer flow (`LayoutTree tree = LayoutEngine.Layout(graph);` reused
-  across both renderers) is honored.
+  across both renderers) is honored. Both `ports-showcase-*` diagrams set
+  `CoreOptions.TextMeasurer` to `SkiaTextMeasurer` and render to SVG.
 
 **Phase 2 (hierarchy, once `HierarchyHandling.Recursive` exists):**
 

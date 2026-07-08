@@ -7,14 +7,16 @@ SkiaSharp. A shared `SkiaRasterRenderer` base performs all drawing; thin concret
 encoded output format. The system draws a diagram once onto a SkiaSharp bitmap and then encodes it in a
 concrete image format.
 
-The system is composed of one shared base unit and three concrete format units:
+The system is composed of one shared base unit, three concrete format units, and one text-measurement
+unit:
 
 ```text
 Rendering.Skia (System)
 ├── SkiaRasterRenderer (Unit)  — abstract base: rasterizes a LayoutTree to a bitmap and encodes it
 ├── PngRenderer (Unit)         — lossless PNG output
 ├── JpegRenderer (Unit)        — lossy JPEG output
-└── WebpRenderer (Unit)        — WEBP output
+├── WebpRenderer (Unit)        — WEBP output
+└── SkiaTextMeasurer (Unit)    — font-accurate ITextMeasurer, backed by shared SkiaTypefaces loading
 ```
 
 - **SkiaRasterRenderer** — the shared SkiaSharp rasterizer that allocates the bitmap, initializes it
@@ -27,12 +29,23 @@ Rendering.Skia (System)
   Design.
 - **WebpRenderer** — the concrete renderer that emits WEBP output. Detailed in WebpRenderer Unit
   Design.
+- **SkiaTextMeasurer** — implements `ITextMeasurer` (declared in `DemaConsulting.Rendering`) using
+  `SKFont.MeasureText` against the package's embedded Noto Sans typefaces, so
+  `DemaConsulting.Rendering.Layout`'s `LayeredLayoutAlgorithm` can size a port label's reserved
+  `LayoutBox.ContentInset*` margin from real font metrics when a caller opts in via
+  `CoreOptions.TextMeasurer`. The typeface-loading logic it shares with `SkiaRasterRenderer` (four
+  lazily-loaded regular/bold/italic/bold-italic `SKTypeface` instances) is factored into a shared
+  internal `SkiaTypefaces` helper — a behavior-preserving refactor of what were previously
+  `SkiaRasterRenderer`'s own private fields — so both types measure and draw against the exact same
+  typeface instances. Detailed in SkiaTextMeasurer Unit Design.
 
 All drawing logic lives in the abstract `SkiaRasterRenderer`; each concrete renderer supplies only the
 SkiaSharp encoded-image format, encoding quality, media type, and file extensions. This keeps the
 multi-format surface a few lines per format while guaranteeing that PNG, JPEG, and WEBP output share
 the same raster drawing path apart from the final encode step. The three concrete renderers do not
 interact with each other; each is a leaf that inherits its drawing behavior from `SkiaRasterRenderer`.
+`SkiaTextMeasurer` is independent of the concrete renderers and depends only on the shared
+`SkiaTypefaces` helper.
 
 ## External Interfaces
 

@@ -504,7 +504,7 @@ public sealed class SvgRenderer : IRenderer
     private static void RenderBoxTitle(StringBuilder sb, LayoutBox box, Theme theme, double scale)
     {
         var centerX = (box.X + box.Width / 2.0) * scale;
-        var cursorY = ResolveTitleAreaTop(box, theme) + theme.LabelPadding;
+        var cursorY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + theme.LabelPadding;
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
         if (box.Keyword != null)
@@ -521,7 +521,7 @@ public sealed class SvgRenderer : IRenderer
         if (box.Label != null)
         {
             var textY = (cursorY + theme.FontSizeTitle / 2.0) * scale;
-            var availableWidth = box.Width - (2 * theme.LabelPadding);
+            var availableWidth = box.Width - (2 * theme.LabelPadding) - box.ContentInsetLeft - box.ContentInsetRight;
             var fit = FitTextLength(box.Label, theme.FontSizeTitle, availableWidth, scale);
             sb.Append(CultureInfo.InvariantCulture,
                 $"""  <text x="{F(centerX)}" y="{F(textY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeTitle * scale)}" font-weight="bold" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle"{fit}>{EscapeXml(box.Label)}</text>""");
@@ -564,7 +564,7 @@ public sealed class SvgRenderer : IRenderer
     {
         // Compartments start below the title area (keyword + label), computed via shared metrics
         var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
-        var compartmentY = ResolveTitleAreaTop(box, theme) + labelAreaHeight;
+        var compartmentY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + labelAreaHeight;
 
         foreach (var compartment in box.Compartments)
         {
@@ -576,7 +576,7 @@ public sealed class SvgRenderer : IRenderer
             // Draw optional bold compartment title
             if (compartment.Title != null)
             {
-                var titleX = (box.X + theme.LabelPadding) * scale;
+                var titleX = (box.X + theme.LabelPadding + box.ContentInsetLeft) * scale;
                 var titleY = (compartmentY + theme.LabelPadding + theme.FontSizeBody / 2.0) * scale;
                 sb.Append(CultureInfo.InvariantCulture,
                     $"""  <text x="{F(titleX)}" y="{F(titleY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" font-weight="bold" font-style="italic" fill="{theme.StrokeColor}" text-anchor="start" dominant-baseline="middle">{EscapeXml(compartment.Title)}</text>""");
@@ -587,7 +587,7 @@ public sealed class SvgRenderer : IRenderer
             // Draw each body row with body font size and left-aligned indent
             foreach (var row in compartment.Rows)
             {
-                var rowX = (box.X + theme.LabelPadding) * scale;
+                var rowX = (box.X + theme.LabelPadding + box.ContentInsetLeft) * scale;
                 var rowY = (compartmentY + theme.LabelPadding + theme.FontSizeBody / 2.0) * scale;
                 sb.Append(CultureInfo.InvariantCulture,
                     $"""  <text x="{F(rowX)}" y="{F(rowY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="start" dominant-baseline="middle">{EscapeXml(row)}</text>""");
@@ -907,16 +907,17 @@ public sealed class SvgRenderer : IRenderer
             $"""  <rect x="{F(rx)}" y="{F(ry)}" width="{F(rs)}" height="{F(rs)}" fill="{theme.StrokeColor}"/>""");
         sb.AppendLine();
 
-        // Optional label offset away from the attached edge
+        // Optional label offset inward, toward the box interior, so it reads immediately next to
+        // the port glyph without overlapping the connector approaching from outside the box.
         if (port.Label != null)
         {
             var offset = NotationMetrics.PortHalfSize + theme.LabelPadding;
             var (labelX, labelY, anchor) = port.Side switch
             {
-                PortSide.Top => (port.CentreX, port.CentreY - offset, TextAnchorMiddle),
-                PortSide.Bottom => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, TextAnchorMiddle),
-                PortSide.Left => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, "end"),
-                _ => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, "start")
+                PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, TextAnchorMiddle),
+                PortSide.Bottom => (port.CentreX, port.CentreY - offset, TextAnchorMiddle),
+                PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, "start"),
+                _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, "end")
             };
 
             sb.Append(CultureInfo.InvariantCulture,

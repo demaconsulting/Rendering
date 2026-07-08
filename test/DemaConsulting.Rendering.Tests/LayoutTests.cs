@@ -77,6 +77,45 @@ public sealed class LayoutTests
     }
 
     /// <summary>
+    ///     A LayoutBox constructed without specifying any content inset defaults all four
+    ///     (<see cref="LayoutBox.ContentInsetLeft"/>, Right, Top, Bottom) to zero.
+    /// </summary>
+    [Fact]
+    public void LayoutBox_ContentInsets_DefaultZero()
+    {
+        // Act: construct a box without specifying any content inset
+        var box = new LayoutBox(0, 0, 100, 60, null, 0, BoxShape.Rectangle, [], []);
+
+        // Assert: all four insets default to zero
+        Assert.Equal(0.0, box.ContentInsetLeft);
+        Assert.Equal(0.0, box.ContentInsetRight);
+        Assert.Equal(0.0, box.ContentInsetTop);
+        Assert.Equal(0.0, box.ContentInsetBottom);
+    }
+
+    /// <summary>
+    ///     A LayoutBox constructed with each content inset set to a distinct value stores each one
+    ///     independently, confirming the four insets are not confused with one another.
+    /// </summary>
+    [Fact]
+    public void LayoutBox_ContentInsets_IndependentlySettable()
+    {
+        // Act: construct a box with four distinct, non-default content insets
+        var box = new LayoutBox(
+            0, 0, 100, 60, null, 0, BoxShape.Rectangle, [], [],
+            ContentInsetLeft: 10.0,
+            ContentInsetRight: 20.0,
+            ContentInsetTop: 30.0,
+            ContentInsetBottom: 40.0);
+
+        // Assert: each inset stores its own distinct value
+        Assert.Equal(10.0, box.ContentInsetLeft);
+        Assert.Equal(20.0, box.ContentInsetRight);
+        Assert.Equal(30.0, box.ContentInsetTop);
+        Assert.Equal(40.0, box.ContentInsetBottom);
+    }
+
+    /// <summary>
     ///     LayoutBox.Depth is stored as an integer with the supplied value, confirming the
     ///     depth-not-color invariant: no color property is present on the node.
     /// </summary>

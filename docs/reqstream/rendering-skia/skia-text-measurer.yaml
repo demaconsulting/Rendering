@@ -1,0 +1,43 @@
+---
+# DemaConsulting.Rendering.Skia - SkiaTextMeasurer Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the SkiaTextMeasurer unit: the font-accurate ITextMeasurer
+#   implementation backed by the package's embedded Noto Sans typefaces, and the shared
+#   SkiaTypefaces typeface-loading helper it (and SkiaRasterRenderer) both use.
+# - These unit requirements decompose the Rendering-Skia-RenderRasterImage system requirement
+#   declared in rendering-skia.yaml.
+
+sections:
+  - title: SkiaTextMeasurer Requirements
+    requirements:
+      - id: Rendering-Skia-SkiaTextMeasurer-MeasuresRealFontMetrics
+        title: >-
+          SkiaTextMeasurer shall measure a string's width using SKFont.MeasureText against the
+          package's embedded Noto Sans typeface for the requested bold/italic combination, with a
+          longer string or a larger font size always measuring at least as wide, and shall reject
+          a null text argument.
+        justification: |
+          LayeredLayoutAlgorithm's reserved-margin computation (ContentInsetLeft/Right) needs an
+          exact measurement, not an estimate, when a caller opts into the Skia-backed measurer; using
+          the same embedded typefaces and MeasureText call the raster renderer already uses for other
+          purposes (title auto-fit, badge sizing) keeps the reserved margin consistent with what the
+          raster renderer will actually draw.
+        tests:
+          - MeasureWidth_LongerText_MeasuresWider
+          - MeasureWidth_LargerFontSize_MeasuresWider
+          - MeasureWidth_EmptyString_ReturnsZero
+          - MeasureWidth_NullText_ThrowsArgumentNullException
+          - MeasureWidth_Bold_UsesDistinctTypefaceFromRegular
+
+      - id: Rendering-Skia-SkiaTypefaces-SharedResolution
+        title: >-
+          SkiaTypefaces shall resolve a stable, distinct SKTypeface instance per bold/italic
+          variant, shared between SkiaRasterRenderer and SkiaTextMeasurer.
+        justification: |
+          SkiaRasterRenderer's four private lazily-loaded typeface fields were extracted into this
+          shared helper (a behavior-preserving refactor) so SkiaTextMeasurer can measure against the
+          exact same embedded typefaces the raster renderer draws with, without either type owning a
+          duplicate, independently-loaded copy of the font resources.
+        tests:
+          - SkiaTypefaces_Resolve_ReturnsStableDistinctTypefacesPerVariant

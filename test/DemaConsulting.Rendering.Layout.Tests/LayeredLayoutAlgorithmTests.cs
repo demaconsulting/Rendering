@@ -569,4 +569,177 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("e2", source, child2);
         return graph;
     }
+
+    /// <summary>
+    ///     Proves that with the default <see cref="CoreOptions.MergeParallelEdges"/> (<see langword="true"/>),
+    ///     three parallel edges between the same two nodes collapse into exactly one rendered
+    ///     <see cref="LayoutLine"/>, fixing the pre-existing latent bug where every original edge
+    ///     emitted its own stacked line.
+    /// </summary>
+    [Fact]
+    public void Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_EmitsExactlyOneLine()
+    {
+        // Arrange: two nodes joined by three distinct parallel edges.
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 80, 40);
+        var b = graph.AddNode("b", 80, 40);
+        graph.AddEdge("e1", a, b);
+        graph.AddEdge("e2", a, b);
+        graph.AddEdge("e3", a, b);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        // Assert: only one connector survives.
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Single(lines);
+    }
+
+    /// <summary>
+    ///     Proves that with <see cref="CoreOptions.MergeParallelEdges"/> set to <see langword="false"/>,
+    ///     each of three parallel edges between the same two nodes is retained as its own
+    ///     independently-routed <see cref="LayoutLine"/>.
+    /// </summary>
+    [Fact]
+    public void Apply_ParallelEdges_MergeParallelEdgesFalse_RetainsEveryEdge()
+    {
+        // Arrange: two nodes joined by three distinct parallel edges, each with its own label.
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 80, 40);
+        var b = graph.AddNode("b", 80, 40);
+        graph.AddEdge("e1", a, b).Label = "first";
+        graph.AddEdge("e2", a, b).Label = "second";
+        graph.AddEdge("e3", a, b).Label = "third";
+
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.MergeParallelEdges, false);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        // Assert: all three connectors survive, each keeping its own label.
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(3, lines.Count);
+        Assert.Equal(["first", "second", "third"], lines.Select(l => l.MidpointLabel).OrderBy(l => l).ToList());
+    }
+
+    /// <summary>
+    ///     Proves that a per-graph <see cref="CoreOptions.MergeParallelEdges"/> override wins over an
+    ///     options-scope value, consistent with every other resolved option in this algorithm.
+    /// </summary>
+    [Fact]
+    public void Apply_MergeParallelEdges_GraphOverridesOptions()
+    {
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 80, 40);
+        var b = graph.AddNode("b", 80, 40);
+        graph.AddEdge("e1", a, b);
+        graph.AddEdge("e2", a, b);
+        graph.Set(CoreOptions.MergeParallelEdges, false);
+
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.MergeParallelEdges, true);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        Assert.Equal(2, tree.Nodes.OfType<LayoutLine>().Count());
+    }
+
+    /// <summary>
+    ///     Proves that an edge whose endpoint is a named <see cref="LayoutGraphPort"/> emits a
+    ///     <see cref="LayoutPort"/> anchored at the routed connector's endpoint waypoint, carrying the
+    ///     port's <see cref="LayoutGraphPort.ExternalLabel"/> as its label.
+    /// </summary>
+    [Fact]
+    public void Apply_EdgeWithPortEndpoint_EmitsLayoutPortWithExternalLabel()
+    {
+        // Arrange: a source node with a named, labeled port feeding a plain target node.
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("source", 80, 40);
+        var target = graph.AddNode("target", 80, 40);
+        var port = source.Ports.AddPort("out1");
+        port.ExternalLabel = "output";
+        graph.AddEdge("e1", port, target);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        // Assert: exactly one port is emitted, carrying the external label.
+        var ports = tree.Nodes.OfType<LayoutPort>().ToList();
+        var port1 = Assert.Single(ports);
+        Assert.Equal("output", port1.Label);
+
+        // The port anchor lies exactly on the source box's boundary (its right face, since the
+        // port is the edge's source feeding rightward toward the target).
+        var sourceBox = tree.Nodes.OfType<LayoutBox>().OrderBy(b => b.X).First();
+        Assert.Equal(sourceBox.X + sourceBox.Width, port1.CentreX, 6);
+    }
+
+    /// <summary>
+    ///     Proves that a node with a labeled port on its left side gets a non-zero
+    ///     <see cref="LayoutBox.ContentInsetLeft"/> sized to fit the label, while a node with no ports
+    ///     gets a zero inset on every side.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft()
+    {
+        // Arrange: a target node with a long-labeled port on its left (incoming) side.
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("source", 80, 40);
+        var target = graph.AddNode("target", 80, 40);
+        var port = target.Ports.AddPort("in1");
+        port.ExternalLabel = "a rather long incoming label";
+        graph.AddEdge("e1", source, port);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        // Assert: the target box (which receives the port) has a positive left inset, while its
+        // other three sides (and the port-free source box) stay zero.
+        var boxes = tree.Nodes.OfType<LayoutBox>().OrderBy(b => b.X).ToList();
+        var sourceBox = boxes[0];
+        var targetBox = boxes[1];
+        Assert.True(targetBox.ContentInsetLeft > 0);
+        Assert.Equal(0.0, targetBox.ContentInsetTop);
+        Assert.Equal(0.0, targetBox.ContentInsetBottom);
+
+        Assert.Equal(0.0, sourceBox.ContentInsetLeft);
+        Assert.Equal(0.0, sourceBox.ContentInsetRight);
+        Assert.Equal(0.0, sourceBox.ContentInsetTop);
+        Assert.Equal(0.0, sourceBox.ContentInsetBottom);
+    }
+
+    /// <summary>
+    ///     Proves that a caller-supplied <see cref="ITextMeasurer"/> (rather than the built-in
+    ///     heuristic fallback) is consulted to size a port label's reserved content inset.
+    /// </summary>
+    [Fact]
+    public void Apply_CustomTextMeasurer_IsUsedToSizePortLabelInset()
+    {
+        // Arrange: a fixed-width stub measurer so the resulting inset is exactly predictable.
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("source", 80, 40);
+        var target = graph.AddNode("target", 80, 40);
+        var port = target.Ports.AddPort("in1");
+        port.ExternalLabel = "label";
+        graph.AddEdge("e1", source, port);
+
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.TextMeasurer, new StubTextMeasurer(100.0));
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        // Assert: the inset reflects the stub's fixed 100.0 width plus clearance, not the heuristic.
+        var boxes = tree.Nodes.OfType<LayoutBox>().OrderBy(b => b.X).ToList();
+        var targetBox = boxes[1];
+        Assert.True(targetBox.ContentInsetLeft > 100.0);
+    }
+
+    /// <summary>A fixed-width stub <see cref="ITextMeasurer"/> for deterministic inset assertions.</summary>
+    /// <param name="width">The fixed width returned for every call.</param>
+    private sealed class StubTextMeasurer(double width) : ITextMeasurer
+    {
+        public double MeasureWidth(string text, double fontSize, bool bold, bool italic) => width;
+    }
 }

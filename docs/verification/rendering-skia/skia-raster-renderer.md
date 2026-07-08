@@ -93,6 +93,18 @@ valid image with the PNG signature is produced, proving the minimum one by one p
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-EmptyTree`.
 
+#### Port glyph/label render on every side, and a reserved inset shifts compartment content
+
+Theory test `PngRenderer_RenderPort_AnySide_ProducesNonBackgroundPixels` (over `PortSide.Left`,
+`Right`, `Top`, `Bottom`) renders a single port on each side of a box and asserts the port's expected
+pixel region contains at least one non-background pixel, confirming the glyph and label draw on every
+side. `PngRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowContentRight` renders the same
+compartment-row scenario twice, once with a positive `ContentInsetLeft` and once with zero, and
+asserts the inset case's row content is shifted right relative to the zero-inset case, confirming the
+raster renderer reads the reserved margin exactly as the SVG renderer does.
+
+**Covers**: `Rendering-Skia-SkiaRasterRenderer-PortAndContentInset`.
+
 ### Requirements Coverage
 
 - **`Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree`**:
@@ -111,3 +123,6 @@ valid image with the PNG signature is produced, proving the minimum one by one p
   FilledArrow_BaseWidth_MatchesNotationMetrics, OpenChevron_HasFewerInkPixelsThanClosedTriangle,
   PngRenderer_Render_DrawArrowhead_OpenWithCrossbar_ProducesNonEmptyOutput
 - **`Rendering-Skia-SkiaRasterRenderer-EmptyTree`**: PngRenderer_Render_EmptyTree_WritesPngSignature
+- **`Rendering-Skia-SkiaRasterRenderer-PortAndContentInset`**:
+  PngRenderer_RenderPort_AnySide_ProducesNonBackgroundPixels,
+  PngRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowContentRight

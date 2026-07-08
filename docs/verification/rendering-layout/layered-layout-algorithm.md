@@ -47,6 +47,21 @@ the argument-null validation behavior constitutes a failure.
 - **Validation** (`Rendering-Layout-LayeredAlgorithm-Validation`): `Apply_NullGraph_Throws` confirms
   a null graph argument is rejected with an argument-null error, and `Apply_NullOptions_Throws`
   confirms a null options argument is likewise rejected with an argument-null error.
+- **Merge parallel edges** (`Rendering-Layout-LayeredAlgorithm-MergeParallelEdges`):
+  `Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_EmitsExactlyOneLine` confirms three parallel
+  edges collapse to exactly one `LayoutLine` at the default; `Apply_ParallelEdges_MergeParallelEdgesFalse_RetainsEveryEdge`
+  confirms setting the option to `false` retains all three as independently-labeled lines; and
+  `Apply_MergeParallelEdges_GraphOverridesOptions` confirms a graph-scope value takes precedence over
+  an options-scope value.
+- **Port emission** (`Rendering-Layout-LayeredAlgorithm-PortEmission`):
+  `Apply_EdgeWithPortEndpoint_EmitsLayoutPortWithExternalLabel` confirms an edge whose endpoint is a
+  named `LayoutGraphPort` emits exactly one `LayoutPort` at the routed anchor, carrying the port's
+  `ExternalLabel`.
+- **Content inset** (`Rendering-Layout-LayeredAlgorithm-ContentInset`):
+  `Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft` confirms a node with a labeled left-side
+  port receives a positive `ContentInsetLeft` while its other sides and a port-free sibling box stay
+  zero; `Apply_CustomTextMeasurer_IsUsedToSizePortLabelInset` confirms a caller-supplied
+  `ITextMeasurer` (rather than the built-in heuristic) is consulted when sizing the reserved margin.
 - **Shape-aware routing** (`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`):
   `Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop` and
   `Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop` confirm a `BoxShape.Folder` node's
@@ -71,6 +86,14 @@ the argument-null validation behavior constitutes a failure.
   Apply_DownDirectionOnGraphScope_IsHonored, Apply_DefaultDirection_FlowsLeftToRight
 - **`Rendering-Layout-LayeredAlgorithm-Validation`**:
   Apply_NullGraph_Throws, Apply_NullOptions_Throws
+- **`Rendering-Layout-LayeredAlgorithm-MergeParallelEdges`**:
+  Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_EmitsExactlyOneLine,
+  Apply_ParallelEdges_MergeParallelEdgesFalse_RetainsEveryEdge,
+  Apply_MergeParallelEdges_GraphOverridesOptions
+- **`Rendering-Layout-LayeredAlgorithm-PortEmission`**:
+  Apply_EdgeWithPortEndpoint_EmitsLayoutPortWithExternalLabel
+- **`Rendering-Layout-LayeredAlgorithm-ContentInset`**:
+  Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft, Apply_CustomTextMeasurer_IsUsedToSizePortLabelInset
 - **`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`**:
   Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop,
   Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop,

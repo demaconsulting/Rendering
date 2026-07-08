@@ -131,4 +131,50 @@ public static class CoreOptions
     /// </summary>
     public static readonly LayoutProperty<double> LayerSpacing =
         new("rendering.spacing.layer", 40.0);
+
+    /// <summary>
+    /// Whether parallel edges (two or more input edges sharing the same source and target) are
+    /// merged into a single rendered connector. ELK has no directly equivalent option; this is a
+    /// bespoke addition needed because the bundled layout engines historically collapsed parallel
+    /// edges into one routed line as a side effect of their internal cycle-breaking deduplication,
+    /// without exposing any way to opt out. The default, <see langword="true"/>, preserves that
+    /// existing behavior exactly: only the first of any group of parallel edges between the same
+    /// two endpoints is emitted, with its own label. Set to <see langword="false"/> to instead
+    /// retain every parallel edge instance as its own independently-routed connector with its own
+    /// label — self-loops (an edge whose source and target are the same node) are always dropped
+    /// regardless of this setting, since no rendering exists for them. Honored by the bundled
+    /// <c>layered</c> algorithm's cycle-breaking pipeline stage (which retains or discards duplicate
+    /// directed pairs accordingly) and by its connector-route lookup and final line-emission step.
+    /// Cascades per scope by nearest-ancestor override,
+    /// consistent with every other property in this catalog.
+    /// </summary>
+    public static readonly LayoutProperty<bool> MergeParallelEdges =
+        new("rendering.mergeparalleledges", true);
+
+    /// <summary>
+    /// Assumed font size, in logical pixels, used by the bundled <c>layered</c> algorithm when it
+    /// measures port label text to compute a node's <see cref="LayoutBox.ContentInsetLeft"/>,
+    /// <see cref="LayoutBox.ContentInsetRight"/>, <see cref="LayoutBox.ContentInsetTop"/>, and
+    /// <see cref="LayoutBox.ContentInsetBottom"/> reserved margins during layout — before any
+    /// renderer or theme is involved. The default, <c>12.0</c>, matches
+    /// <c>Theme.FontSizeBody</c>'s own built-in default, so a caller that never customizes either
+    /// value gets layout-time measurements consistent with what the default theme actually draws.
+    /// Cascades per scope by nearest-ancestor override, consistent with every other property in
+    /// this catalog.
+    /// </summary>
+    public static readonly LayoutProperty<double> AssumedFontSize =
+        new("rendering.assumedfontsize", 12.0);
+
+    /// <summary>
+    /// Optional <see cref="ITextMeasurer"/> the bundled <c>layered</c> algorithm uses to measure
+    /// port label text widths when computing <see cref="LayoutBox.ContentInsetLeft"/> and
+    /// <see cref="LayoutBox.ContentInsetRight"/>. <see langword="null"/> (the default) selects the
+    /// engine's own dependency-free heuristic estimator, which approximates advance width from
+    /// character count alone; supply a real font-metric-backed implementation (for example a
+    /// SkiaSharp-backed measurer) here to get pixel-accurate reserved margins that match what a
+    /// renderer will actually draw. Cascades per scope by nearest-ancestor override, consistent
+    /// with every other property in this catalog.
+    /// </summary>
+    public static readonly LayoutProperty<ITextMeasurer?> TextMeasurer =
+        new("rendering.textmeasurer", null);
 }

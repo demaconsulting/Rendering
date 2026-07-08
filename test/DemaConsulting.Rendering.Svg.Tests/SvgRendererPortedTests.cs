@@ -300,6 +300,123 @@ public sealed class SvgRendererPortedTests
     }
 
     /// <summary>
+    ///     Proves that a port's label reads inward (into the box interior) rather than outward: for
+    ///     a left-side port the label's text x-coordinate is greater than the port's own x-coordinate
+    ///     (toward the box's right/interior), and for a right-side port the label's x-coordinate is
+    ///     less than the port's own x-coordinate (toward the box's left/interior).
+    /// </summary>
+    [Theory]
+    [InlineData(PortSide.Left, true)]
+    [InlineData(PortSide.Right, false)]
+    public void SvgRenderer_RenderPort_LeftRightLabel_ReadsInward(PortSide side, bool labelXGreaterThanPortX)
+    {
+        // Arrange
+        var renderer = new SvgRenderer();
+        var port = new LayoutPort(100, 50, side, "label");
+        var layout = new LayoutTree(200, 100, [port]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert: locate the <text> element's x attribute and compare against the port's own
+        // (unscaled) x position at the default scale of 1.0.
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var match = System.Text.RegularExpressions.Regex.Match(svgText, """<text x="([\-0-9.]+)""");
+        Assert.True(match.Success);
+        var labelX = double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+
+        if (labelXGreaterThanPortX)
+        {
+            Assert.True(labelX > port.CentreX);
+        }
+        else
+        {
+            Assert.True(labelX < port.CentreX);
+        }
+    }
+
+    /// <summary>
+    ///     Proves that a port's label reads inward for the top/bottom sides too: a top-side port's
+    ///     label y-coordinate is greater than the port's own y (downward, into the box below), and a
+    ///     bottom-side port's label y-coordinate is less than the port's own y (upward, into the box
+    ///     above).
+    /// </summary>
+    [Theory]
+    [InlineData(PortSide.Top, true)]
+    [InlineData(PortSide.Bottom, false)]
+    public void SvgRenderer_RenderPort_TopBottomLabel_ReadsInward(PortSide side, bool labelYGreaterThanPortY)
+    {
+        // Arrange
+        var renderer = new SvgRenderer();
+        var port = new LayoutPort(100, 50, side, "label");
+        var layout = new LayoutTree(200, 100, [port]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var match = System.Text.RegularExpressions.Regex.Match(svgText, """<text x="[\-0-9.]+" y="([\-0-9.]+)""");
+        Assert.True(match.Success);
+        var labelY = double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+
+        if (labelYGreaterThanPortY)
+        {
+            Assert.True(labelY > port.CentreY);
+        }
+        else
+        {
+            Assert.True(labelY < port.CentreY);
+        }
+    }
+
+    /// <summary>
+    ///     Proves that a box's non-zero <see cref="LayoutBox.ContentInsetLeft"/> pushes its
+    ///     compartment row text further right than an otherwise-identical box with no content
+    ///     insets, confirming the renderer reads the inset rather than a fixed label-padding-only
+    ///     offset.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowTextRight()
+    {
+        // Arrange: two identical boxes with a compartment row, one with a left content inset.
+        var renderer = new SvgRenderer();
+        var compartments = new[] { new LayoutCompartment(null, ["row text"]) };
+        var plain = new LayoutBox(0, 0, 200, 100, "Title", 0, BoxShape.Rectangle, compartments, []);
+        var inset = plain with { ContentInsetLeft = 50.0 };
+        var options = new RenderOptions(Themes.Light);
+
+        using var plainOutput = new MemoryStream();
+        renderer.Render(new LayoutTree(200, 100, [plain]), options, plainOutput);
+        plainOutput.Position = 0;
+        var plainSvg = ReadAllText(plainOutput);
+
+        using var insetOutput = new MemoryStream();
+        renderer.Render(new LayoutTree(200, 100, [inset]), options, insetOutput);
+        insetOutput.Position = 0;
+        var insetSvg = ReadAllText(insetOutput);
+
+        // Assert: the inset box's row <text> x-coordinate is further right than the plain box's.
+        var plainX = ExtractLastTextX(plainSvg);
+        var insetX = ExtractLastTextX(insetSvg);
+        Assert.True(insetX > plainX);
+    }
+
+    /// <summary>Extracts the x attribute of the last &lt;text&gt; element in the given SVG markup.</summary>
+    private static double ExtractLastTextX(string svg)
+    {
+        var matches = System.Text.RegularExpressions.Regex.Matches(svg, """<text x="([\-0-9.]+)""");
+        Assert.NotEmpty(matches);
+        return double.Parse(matches[^1].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
     ///     Render a LayoutBadge with FilledCircle shape produces SVG output containing a
     ///     circle element, confirming that filled-circle badges are rendered as SVG circles.
     /// </summary>

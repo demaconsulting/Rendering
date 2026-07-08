@@ -80,6 +80,52 @@ sections:
           - Apply_NullGraph_Throws
           - Apply_NullOptions_Throws
 
+      - id: Rendering-Layout-LayeredAlgorithm-MergeParallelEdges
+        title: >-
+          LayeredLayoutAlgorithm shall honor CoreOptions.MergeParallelEdges (reading the graph in
+          preference to the options, default true): when true, every input edge sharing a directed
+          node pair collapses to exactly one emitted LayoutLine (using the first surviving edge's
+          label and discarding the rest); when false, every parallel edge instance is retained as its
+          own independently-routed LayoutLine.
+        justification: |
+          A physical wiring/interconnection diagram (for example separate power, encoder, and sensor
+          connectors between the same two components) needs every distinct connector to render as its
+          own labeled line; the algorithm previously emitted one LayoutLine per original input edge
+          regardless of duplication, stacking every duplicate edge's label on the same drawn line
+          rather than collapsing to a single line as intended when merging is left at its default.
+        tests:
+          - Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_EmitsExactlyOneLine
+          - Apply_ParallelEdges_MergeParallelEdgesFalse_RetainsEveryEdge
+          - Apply_MergeParallelEdges_GraphOverridesOptions
+
+      - id: Rendering-Layout-LayeredAlgorithm-PortEmission
+        title: >-
+          When an edge endpoint is a LayoutGraphPort, LayeredLayoutAlgorithm shall emit a LayoutPort
+          at the routed connector's resolved anchor coordinate, carrying the port's ExternalLabel as
+          its label.
+        justification: |
+          A named port is meaningless without a placed, labeled anchor for a renderer to draw; emitting
+          a LayoutPort at the exact coordinate the corridor router already resolved for that connector
+          keeps the port glyph and connector endpoint visually coincident.
+        tests:
+          - Apply_EdgeWithPortEndpoint_EmitsLayoutPortWithExternalLabel
+
+      - id: Rendering-Layout-LayeredAlgorithm-ContentInset
+        title: >-
+          LayeredLayoutAlgorithm shall auto-compute each placed box's ContentInsetLeft/Right (the
+          widest same-side port label's measured width, via CoreOptions.TextMeasurer/AssumedFontSize,
+          plus a small clearance) and ContentInsetTop/Bottom (a flat fixed height for one text line at
+          AssumedFontSize plus padding), zero on any side with no ports, using a caller-supplied
+          CoreOptions.TextMeasurer when configured in preference to a dependency-free heuristic.
+        justification: |
+          A rendered port label needs a reserved margin on its owning box's face so it never collides
+          with that box's own title/compartment content; computing the margin at layout time (rather
+          than leaving it to each renderer) keeps a single LayoutTree correct for every renderer that
+          consumes it, per the single-layout/multi-renderer design.
+        tests:
+          - Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft
+          - Apply_CustomTextMeasurer_IsUsedToSizePortLabelInset
+
       - id: Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting
         title: >-
           LayeredLayoutAlgorithm shall project a same-scope connector's endpoint onto a shaped node's

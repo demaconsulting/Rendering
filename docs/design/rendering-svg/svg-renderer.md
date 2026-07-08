@@ -124,7 +124,11 @@ recursively calls `RenderNode` for all `box.Children`.
 
 Writes a `<line>` divider across the full box width at the top of each compartment, followed by an
 optional `font-weight="bold" font-style="italic"` `<text>` title row and zero or more left-aligned
-regular-weight body-font `<text>` rows.
+regular-weight body-font `<text>` rows. Title and row text both start at
+`box.X + Theme.LabelPadding + box.ContentInsetLeft` (instead of the fixed `box.X + Theme.LabelPadding`
+offset used before ports existed) and available width is reduced by `box.ContentInsetRight` as well,
+so a non-zero reserved port-label margin on either side pushes compartment content inward rather than
+overlapping a rendered port label.
 
 **`RenderLine(StringBuilder sb, LayoutLine line, Theme theme, double scale)`**
 
@@ -161,7 +165,15 @@ Writes a `<text>` element with `text-anchor` from `label.Align`, `font-size` fro
 **`RenderPort` / `RenderBadge` / `RenderBand` / `RenderLifeline` / `RenderActivation` /
 `RenderGrid`**
 
-Each typed method writes the SVG elements appropriate to its node kind: an 8x8 `<rect>` for ports;
+`RenderPort` writes the 8x8 port glyph `<rect>` and, when `LayoutPort.Label` is non-null, a
+companion `<text>` element positioned immediately next to the glyph and reading inward toward the
+box interior: to the right of the glyph for a left-side port, to the left of the glyph for a
+right-side port, below the glyph for a top-side port, and above the glyph for a bottom-side port.
+Side classification reuses the same geometric anchor comparison the layout engine used to decide
+where the port's `LayoutPort` node was placed; no further text wrapping, truncation, or ellipsis is
+applied to the label.
+
+Each remaining typed method writes the SVG elements appropriate to its node kind:
 `<circle>`, `<polygon>`, or `<line>` for the badge shapes; a `<rect>` with a rotated or horizontal
 `<text>` for bands; a header `<rect>`, bold `<text>`, and dashed `<line>` stem for lifelines; a white
 `<rect>` border for activations; and per-cell `<rect>` plus `<text>` elements for grids. Fills come
@@ -226,3 +238,5 @@ Any consumer of the rendering library that selects vector output constructs an `
 | Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond | `RenderLine` writes the filled-diamond marker reference |
 | Rendering-Svg-SvgRenderer-EndMarkerCircle | `RenderLine` writes the circle marker reference |
 | Rendering-Svg-SvgRenderer-EndMarkerBar | `RenderLine` writes the bar marker reference |
+| Rendering-Svg-SvgRenderer-RenderPortLabel | `RenderPort` writes an inward-reading label `<text>` |
+| Rendering-Svg-SvgRenderer-ContentInset | `RenderBoxCompartments` starts content at `box.ContentInsetLeft` |

@@ -149,6 +149,33 @@ sections:
         tests:
           - SvgRenderer_Render_SinglePort_ProducesRect
 
+      - id: Rendering-Svg-SvgRenderer-RenderPortLabel
+        title: >-
+          SvgRenderer shall render a port's label as a text element positioned immediately next to
+          the port glyph and reading inward toward the box interior: rightward from a left-side
+          port, leftward from a right-side port, below a top-side port, and above a bottom-side
+          port.
+        justification: |
+          A named port's label must remain legible and clearly attached to its glyph without ever
+          reading outward, off the box, regardless of which of the four faces the layout engine
+          anchored it on.
+        tests:
+          - SvgRenderer_RenderPort_LeftRightLabel_ReadsInward
+          - SvgRenderer_RenderPort_TopBottomLabel_ReadsInward
+
+      - id: Rendering-Svg-SvgRenderer-ContentInset
+        title: >-
+          SvgRenderer shall start box title and compartment row content at box.X plus
+          Theme.LabelPadding plus box.ContentInsetLeft, rather than assuming a fixed
+          box.X + Theme.LabelPadding start, so a reserved left-side port-label margin pushes
+          content inward instead of colliding with it.
+        justification: |
+          A left-side port's label is drawn just inside the box's left edge; without honoring the
+          auto-computed ContentInsetLeft margin, compartment or title text starting at the
+          previous fixed offset would overlap the port label.
+        tests:
+          - SvgRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowTextRight
+
       - id: Rendering-Svg-SvgRenderer-RenderBadge
         title: >-
           SvgRenderer shall render filled-circle badge nodes as circle elements.

@@ -36,7 +36,8 @@ the responsibility of a hierarchical layout engine (a later delivery).
 
 - `LayoutGraph` (sealed class extending `PropertyHolder`) — `Nodes`, `Edges`, `AddNode`, `AddEdge`;
   each instance is a container scope (the root graph, or a node's `Children`).
-- `LayoutGraphNode` (sealed class extending `PropertyHolder`) — `Id`, `Width`, `Height`, `Label`,
+- `LayoutGraphNode` (sealed class extending `PropertyHolder`, implementing `ILayoutConnectable`) —
+  `Id`, `Width`, `Height`, `Label`,
   `Shape` (the `BoxShape` outline, defaulting to `Rectangle`), `Keyword` (an optional italicized
   keyword line shown above the title), `Compartments` (an ordered, read-only list of
   `LayoutCompartment` feature sections, defaulting to empty), `TitleHeight` (an optional override, in
@@ -44,8 +45,19 @@ the responsibility of a hierarchical layout engine (a later delivery).
   when it is a labelled container), `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight`
   (optional resolved shape-geometry hints copied onto placed boxes so routing and rendering can agree
   on the real outline of rounded rectangles and folders), `Children` (the lazily-created nested child
-  subgraph), and `HasChildren` (whether the node holds at least one child).
-- `LayoutGraphEdge` (sealed class extending `PropertyHolder`) — `Id`, `Source`, `Target`,
+  subgraph), `HasChildren` (whether the node holds at least one child), `Ports` (the lazily-created
+  `LayoutGraphPortCollection` of named ports on the node's boundary), and `HasPorts` (whether the
+  node holds at least one port).
+- `ILayoutConnectable` (marker interface) — implemented by both `LayoutGraphNode` and
+  `LayoutGraphPort`, mirroring ELK's `ElkConnectableShape`, so an edge can terminate at either a
+  whole node or a specific named port on a node's boundary.
+- `LayoutGraphPort` (sealed class, implementing `ILayoutConnectable`) — `Id` (unique within its
+  owning node's `Ports` collection), `ExternalLabel` (string?, settable), and `InternalLabel`
+  (string?, settable; read by a future hierarchy-aware phase, unused by any bundled algorithm today).
+  Deliberately carries no `Side` property: placement is always a computed layout-engine output
+  (`LayoutPort.Side`), never a caller input.
+- `LayoutGraphEdge` (sealed class extending `PropertyHolder`) — `Id`, `Source`, `Target`
+  (both typed `ILayoutConnectable`, so either may be a `LayoutGraphNode` or a `LayoutGraphPort`),
   `TargetEnd`, `LineStyle`, `Label`.
 
 ### Layout Graph Key Methods
@@ -68,6 +80,20 @@ guarantees.
 `bool LayoutGraphNode.HasChildren { get; }` — reports whether the node currently holds at least one
 child without forcing the lazy allocation, so consumers can distinguish a container from a leaf and
 skip empty containers.
+
+`LayoutGraphPortCollection LayoutGraphNode.Ports { get; }` — the node's named-port collection,
+created lazily on first access, mirroring `Children`/`HasChildren` exactly.
+`LayoutGraphPort AddPort(string id)` appends a port with the requested identifier (unique within the
+owning node's own `Ports`, though the same identifier may be reused on a different node) and returns
+it for further configuration (`ExternalLabel`, `InternalLabel`).
+
+`bool LayoutGraphNode.HasPorts { get; }` — reports whether the node currently holds at least one port
+without forcing the lazy allocation.
+
+`LayoutGraphEdge AddEdge(string id, ILayoutConnectable source, ILayoutConnectable target)` — the
+same `AddEdge` widened to accept either a `LayoutGraphNode` or a `LayoutGraphPort` (via the shared
+`ILayoutConnectable` interface) as either endpoint, so a port can be connected exactly like a plain
+node.
 
 `BoxShape LayoutGraphNode.Shape { get; set; }`, `string? LayoutGraphNode.Keyword { get; set; }`, and
 `IReadOnlyList<LayoutCompartment> LayoutGraphNode.Compartments { get; set; }` — the node's box
@@ -125,6 +151,13 @@ the appropriate ancestor container.
   reused across different scopes but not twice within one scope.
 - A leaf node shall allocate no child subgraph, so that adding the hierarchy capability leaves a flat
   graph's structure and layout unchanged; `HasChildren` shall not force that allocation.
+- A node with no ports shall allocate no port collection, mirroring the `Children`/`HasChildren`
+  pattern exactly; `HasPorts` shall not force that allocation. A port identifier shall be unique
+  within its owning node's own `Ports` (mirroring per-container node/edge identifier scoping), but the
+  same identifier may be reused on a different node.
+- `LayoutGraphPort` shall carry no `Side` property; a caller cannot request a particular face for a
+  port, because no bundled algorithm today gives a caller control over layer assignment or
+  within-layer ordering — a caller-declared side would be a promise the engine cannot keep.
 - `Shape`, `Keyword`, and `Compartments` shall default to a plain rectangle, no keyword, and no
   compartments respectively, so that adding box-appearance selection to the input graph leaves a
   node's placed appearance unchanged when none of the three are set; a layout algorithm shall copy
@@ -185,3 +218,5 @@ carries an `EndMarkerStyle` and `LineStyle` from the Layout Tree unit's enumerat
 | Rendering-Model-LayoutGraph-BoxAppearance | `LayoutGraphNode.Shape` / `.Keyword` / `.Compartments` |
 | Rendering-Model-LayoutGraph-ContainerTitleHeight | `LayoutGraphNode.TitleHeight` |
 | Rendering-Model-LayoutGraph-ShapeGeometryHints | `LayoutGraphNode` shape-geometry hint properties |
+| Rendering-Model-LayoutGraph-Ports | `LayoutGraphNode.Ports` / `HasPorts` / `ILayoutConnectable` |
+| Rendering-Model-LayoutGraph-PortLabels | `LayoutGraphPort.ExternalLabel` / `.InternalLabel` |
