@@ -42,8 +42,9 @@ Each stage implements `ILayoutStage` (`void Apply(LayeredGraph graph)`) and muta
 place. Stages are stateless and may be shared across pipelines. `LayeredLayoutMetrics` holds the
 shared spacing, clearance, and padding constants — intentionally identical to the constants of the
 previous monolithic engine so the pipeline reproduces its output exactly. The `LayoutDirection` enum
-selects Right, Down, Left, or Up flow; `HierarchyHandling` selects Flat (supported) or Recursive
-(reserved).
+selects Right, Down, Left, or Up flow; `HierarchyHandling` selects `Flat` (a single flat pass) or the
+ELK-style `Recursive` compound-graph mode used for edges whose named boundary port crosses a container
+boundary.
 
 #### Layered Pipeline Assembly
 
