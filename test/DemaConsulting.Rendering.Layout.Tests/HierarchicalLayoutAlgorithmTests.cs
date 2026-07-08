@@ -585,6 +585,132 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a same-scope port edge — one whose direct-member endpoints are both literal,
+    ///     non-nested members of the scope — is routed by the leaf algorithm exactly as it would be in
+    ///     a flat graph, even though the scope also contains an unrelated container node elsewhere.
+    ///     Regression: the algorithm's edge classification used to unconditionally skip (silently
+    ///     drop) any edge touching a <see cref="LayoutGraphPort"/> the instant the scope contained any
+    ///     container node at all, regardless of whether the port edge actually crossed a container
+    ///     boundary.
+    /// </summary>
+    [Fact]
+    public void Apply_SameScopePortEdge_WithUnrelatedContainerElsewhere_RoutesLikePortEdge()
+    {
+        // Arrange: two root-level siblings joined by a port-to-node edge, plus an unrelated container
+        // elsewhere in the scope with its own child and no edges of its own.
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("source", 80, 40);
+        source.Label = "Source";
+        var target = graph.AddNode("target", 80, 40);
+        target.Label = "Target";
+        var port = source.Ports.AddPort("out1");
+        port.ExternalLabel = "output";
+        graph.AddEdge("e1", port, target);
+
+        var unrelated = graph.AddNode("unrelated", 10, 10);
+        unrelated.Label = "Unrelated";
+        unrelated.Children.AddNode("unrelated-child", 60, 40);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        // Assert: exactly one LayoutPort is emitted, carrying the port's external label, and exactly
+        // one LayoutLine connects the two boxes — the connector is routed, not dropped, even though
+        // the scope contains an (unrelated) container.
+        var port1 = Assert.Single(tree.Nodes.OfType<LayoutPort>());
+        Assert.Equal("output", port1.Label);
+        Assert.Single(tree.Nodes.OfType<LayoutLine>());
+
+        // The port anchor lies exactly on the source box's boundary, matching how a flat (no
+        // container) graph with the same port edge would be routed by the leaf algorithm directly.
+        var sourceBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "Source");
+        Assert.True(
+            OnBoxBoundary(port1.CentreX, port1.CentreY, sourceBox),
+            "The port anchor does not lie on the source box's boundary.");
+    }
+
+    /// <summary>
+    ///     Proves that a port edge which genuinely crosses a container boundary — one endpoint's owning
+    ///     node nested inside a container relative to the scope, the other a plain direct member —
+    ///     throws a clear <see cref="NotSupportedException"/> instead of being silently dropped or
+    ///     routed incorrectly as a plain box connector. Full boundary-crossing port support (anchoring,
+    ///     routing) remains a separate, not-yet-designed Phase 2 effort; this proves the interim
+    ///     behavior fails loudly.
+    /// </summary>
+    [Fact]
+    public void Apply_PortEdgeCrossingContainerBoundary_Throws()
+    {
+        // Arrange: a root-level node with a named port, and a separate container with a nested child.
+        // An edge from the outer port directly to the nested child is a genuine boundary-crossing
+        // port edge, added at the root (their lowest common ancestor).
+        var graph = new LayoutGraph();
+        var outer = graph.AddNode("outer", 80, 40);
+        var port = outer.Ports.AddPort("out1");
+
+        var container = graph.AddNode("container", 10, 10);
+        var nested = container.Children.AddNode("nested", 60, 40);
+
+        graph.AddEdge("cross", port, nested);
+
+        // Act / Assert
+        var ex = Assert.Throws<NotSupportedException>(
+            () => new HierarchicalLayoutAlgorithm().Apply(graph, new LayoutOptions()));
+        Assert.Contains("container boundary", ex.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     Proves that a <see cref="LayoutPort"/> emitted by a nested scope's own leaf pass is
+    ///     correctly translated into the ancestor container's absolute coordinates when composed,
+    ///     rather than left at its local (pre-translation) position. Closes a latent gap in the
+    ///     algorithm's node-translation helper, which previously had no case for
+    ///     <see cref="LayoutPort"/> and left it untranslated.
+    /// </summary>
+    [Fact]
+    public void Apply_NestedContainerPortEdge_TranslatesPortIntoAncestorCoordinates()
+    {
+        // Arrange: a container whose own children graph has a port-to-node edge (exercised via the
+        // flat fast path one level down), composed into a root that also has an unrelated sibling
+        // container.
+        var graph = new LayoutGraph();
+        var group = graph.AddNode("group", 10, 10);
+        group.Label = "Group";
+        var c1 = group.Children.AddNode("c1", 80, 40);
+        var c2 = group.Children.AddNode("c2", 80, 40);
+        var port = c1.Ports.AddPort("out1");
+        port.ExternalLabel = "internal";
+        group.Children.AddEdge("c1-c2", port, c2);
+
+        var sibling = graph.AddNode("sibling", 10, 10);
+        sibling.Label = "Sibling";
+        sibling.Children.AddNode("sibling-child", 60, 40);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the "group" container box holds the emitted LayoutPort among its (translated)
+        // children, positioned within the composed container box's absolute bounds.
+        var groupBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "Group");
+        var port1 = Assert.Single(groupBox.Children.OfType<LayoutPort>());
+        Assert.InRange(port1.CentreX, groupBox.X, groupBox.X + groupBox.Width);
+        Assert.InRange(port1.CentreY, groupBox.Y, groupBox.Y + groupBox.Height);
+    }
+
+    /// <summary>
+    ///     Returns true when the point lies (within a small tolerance) on the boundary of the box.
+    /// </summary>
+    private static bool OnBoxBoundary(double x, double y, LayoutBox box)
+    {
+        const double tolerance = 1e-6;
+        var onVerticalEdge =
+            (Math.Abs(x - box.X) < tolerance || Math.Abs(x - (box.X + box.Width)) < tolerance) &&
+            y >= box.Y - tolerance && y <= box.Y + box.Height + tolerance;
+        var onHorizontalEdge =
+            (Math.Abs(y - box.Y) < tolerance || Math.Abs(y - (box.Y + box.Height)) < tolerance) &&
+            x >= box.X - tolerance && x <= box.X + box.Width + tolerance;
+        return onVerticalEdge || onHorizontalEdge;
+    }
+
+    /// <summary>
     ///     Proves that a container node's <see cref="LayoutGraphNode.Shape"/>,
     ///     <see cref="LayoutGraphNode.Keyword"/>, and folder-geometry hints, and a nested leaf's
     ///     <see cref="LayoutGraphNode.Compartments"/> and rounded-corner hint, all survive the

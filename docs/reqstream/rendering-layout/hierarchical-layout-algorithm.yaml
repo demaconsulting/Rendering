@@ -105,6 +105,36 @@ sections:
         tests:
           - Apply_CrossContainerEdge_HonorsScopeEdgeRoutingOverride
 
+      - id: Rendering-Layout-HierarchicalLayout-SameScopePortEdges
+        title: >-
+          HierarchicalLayoutAlgorithm shall route a same-scope edge whose endpoint is a named
+          LayoutGraphPort through the selected leaf algorithm exactly as a flat (container-free) graph
+          would, even when the scope also contains an unrelated container node.
+        justification: |
+          Previously ClassifyEdges unconditionally skipped (silently dropped) any edge touching a
+          LayoutGraphPort the instant the scope contained any container node at all — a
+          previously-undocumented defect, now fixed — regardless of whether the port edge actually
+          crossed a container boundary. A port edge whose direct-member endpoints are both literal,
+          non-nested members of the scope does not cross any boundary and must reach the leaf algorithm,
+          which already resolves a LayoutGraphPort endpoint correctly.
+        tests:
+          - Apply_SameScopePortEdge_WithUnrelatedContainerElsewhere_RoutesLikePortEdge
+          - Apply_NestedContainerPortEdge_TranslatesPortIntoAncestorCoordinates
+
+      - id: Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows
+        title: >-
+          HierarchicalLayoutAlgorithm shall throw NotSupportedException, rather than silently dropping
+          the edge, when a named-port edge genuinely crosses a container boundary.
+        justification: |
+          This scope's cross-container router is built on the box-only ConnectorRouter/Connection and
+          has no port concept, so it cannot anchor or route a port endpoint. Failing loudly with a clear,
+          actionable message is safer than silently dropping the edge (the previous, previously-
+          undocumented defect behavior) or anchoring it incorrectly as a plain box connector. Full
+          boundary-crossing port support (anchoring, routing) remains a separate, not-yet-designed Phase
+          2 effort (see ROADMAP.md).
+        tests:
+          - Apply_PortEdgeCrossingContainerBoundary_Throws
+
       - id: Rendering-Layout-HierarchicalLayout-ValidatesGraph
         title: >-
           HierarchicalLayoutAlgorithm shall reject a null graph argument with an argument-null error.

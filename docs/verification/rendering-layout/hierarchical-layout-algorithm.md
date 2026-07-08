@@ -31,8 +31,9 @@ A verification run passes when every named scenario below asserts without unexpe
 the referenced tests cover each `Rendering-Layout-HierarchicalLayout-*` requirement. Any drift in
 the stable identifier (`"hierarchical"`), in the flat-graph byte-equivalence guarantee, in
 container sizing (padding, title band), in per-scope algorithm resolution, in cross-container
-LCA edge routing, or in the argument-null validation behavior constitutes a failure. Mutation of
-input node sizes also constitutes a failure.
+LCA edge routing, in same-scope named-port edge routing (or its ancestor-coordinate translation), in
+the boundary-crossing port `NotSupportedException` behavior, or in the argument-null validation
+behavior constitutes a failure. Mutation of input node sizes also constitutes a failure.
 
 ### Test Scenarios
 
@@ -80,6 +81,20 @@ input node sizes also constitutes a failure.
   `Apply_CrossContainerEdge_HonorsScopeEdgeRoutingOverride` confirms a cross-container edge is routed
   using the owning scope's own cascaded `CoreOptions.EdgeRouting` override rather than the root
   options.
+- **Same-scope port edges** (`Rendering-Layout-HierarchicalLayout-SameScopePortEdges`):
+  `Apply_SameScopePortEdge_WithUnrelatedContainerElsewhere_RoutesLikePortEdge` confirms a port-to-node
+  edge between two root-level siblings is routed by the leaf algorithm — emitting exactly one
+  `LayoutPort` carrying the port's external label, anchored on the source box's boundary, and exactly
+  one connecting `LayoutLine` — even though the scope also contains an unrelated container node
+  elsewhere with no edges of its own.
+  `Apply_NestedContainerPortEdge_TranslatesPortIntoAncestorCoordinates` confirms a `LayoutPort` emitted
+  by a nested container's own leaf pass is correctly translated into the ancestor's absolute
+  coordinates when composed, landing within the composed container box's bounds.
+- **Boundary port edge throws** (`Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows`):
+  `Apply_PortEdgeCrossingContainerBoundary_Throws` confirms an edge from a root-level named port
+  directly to a node nested inside a separate container — a genuine boundary-crossing port edge —
+  throws `NotSupportedException` with a message identifying named ports crossing a container boundary
+  as not yet supported, rather than the edge being silently dropped.
 - **Validation** (`Rendering-Layout-HierarchicalLayout-ValidatesGraph`,
   `Rendering-Layout-HierarchicalLayout-ValidatesOptions`,
   `Rendering-Layout-HierarchicalLayout-ValidatesRegistry`): `Apply_NullGraph_Throws`,
@@ -107,6 +122,11 @@ input node sizes also constitutes a failure.
   Apply_ThreeLevelEdgeRoutingCascade_ReachesEveryLeafAlgorithmCall
 - **`Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting`**:
   Apply_CrossContainerEdge_HonorsScopeEdgeRoutingOverride
+- **`Rendering-Layout-HierarchicalLayout-SameScopePortEdges`**:
+  Apply_SameScopePortEdge_WithUnrelatedContainerElsewhere_RoutesLikePortEdge,
+  Apply_NestedContainerPortEdge_TranslatesPortIntoAncestorCoordinates
+- **`Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows`**:
+  Apply_PortEdgeCrossingContainerBoundary_Throws
 - **`Rendering-Layout-HierarchicalLayout-ValidatesGraph`**:
   Apply_NullGraph_Throws
 - **`Rendering-Layout-HierarchicalLayout-ValidatesOptions`**:
