@@ -119,7 +119,9 @@ reviews:
       - "docs/design/rendering/options.md"
       - "docs/verification/rendering/options.md"
       - "src/DemaConsulting.Rendering/Options/**/*.cs"
+      - "src/DemaConsulting.Rendering/ITextMeasurer.cs"
       - "test/DemaConsulting.Rendering.Tests/PropertyHolderTests.cs"
+      - "test/DemaConsulting.Rendering.Tests/CoreOptionsTests.cs"
     context:
       - "docs/design/rendering.md"
       - "docs/reqstream/rendering.yaml"
@@ -132,6 +134,7 @@ reviews:
       - "docs/verification/rendering/layout-graph.md"
       - "src/DemaConsulting.Rendering/Graph/**/*.cs"
       - "test/DemaConsulting.Rendering.Tests/LayoutGraphTests.cs"
+      - "test/DemaConsulting.Rendering.Tests/LayoutGraphPortTests.cs"
     context:
       - "docs/design/rendering.md"
       - "docs/reqstream/rendering.yaml"
@@ -375,7 +378,9 @@ reviews:
       - "docs/design/rendering-layout/layered-layout-algorithm.md"
       - "docs/verification/rendering-layout/layered-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/LayeredLayoutAlgorithm.cs"
+      - "src/DemaConsulting.Rendering.Layout/HeuristicTextMeasurer.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/HeuristicTextMeasurerTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
