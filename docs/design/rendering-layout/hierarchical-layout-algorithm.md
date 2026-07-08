@@ -51,26 +51,36 @@ overrides win over the supplied options, exactly like every nested scope), and c
    records both the sub-layout and the container's effective size — the sub-layout size grown by
    `ContainerPadding` on every side plus a title band when the container is labelled.
 3. **Sized view.** The engine builds an internal, side-effect-free *view* graph with the same nodes in
-   the same order (container nodes carrying their effective size, leaves their own size, labels copied),
-   only the edges whose endpoints are both direct members of this scope. Every `CoreOptions` property
-   this scope needs is already present in `effective`, so the view carries no options of its own — the
-   leaf algorithm resolves them from `effective`, not from the view graph. The caller's input graph is
-   never mutated.
+   the same order (container nodes carrying their effective size, leaves their own size, labels copied,
+   and each direct member's named ports copied onto its view counterpart), only the edges whose direct-
+   member endpoints are both under this scope and neither nested inside a container relative to it —
+   including an edge whose endpoint is a named `LayoutGraphPort` rather than the node itself, so a
+   same-scope port edge is routed by the leaf algorithm exactly as it would be in a flat (container-free)
+   graph, regardless of whether the scope also contains an unrelated container elsewhere. Every
+   `CoreOptions` property this scope needs is already present in `effective`, so the view carries no
+   options of its own — the leaf algorithm resolves them from `effective`, not from the view graph. The
+   caller's input graph is never mutated.
 4. **Placement.** The resolved leaf algorithm places the sized view against `effective`, emitting one box
-   per node in input order followed by routed lines for the in-scope edges.
+   per node in input order, followed by routed lines and any named-port anchors (`LayoutPort`) for the
+   in-scope edges.
 5. **Composition.** Each container's placed box receives its recursively laid-out children, translated
    from their local origin to the box's padded (and title-offset) interior via a recursive `Translate`
-   that shifts nested boxes and line waypoints (local-to-absolute translation, following the
-   `ComponentPacker` precedent).
+   that shifts nested boxes, line waypoints, and port anchors (local-to-absolute translation, following
+   the `ComponentPacker` precedent).
 6. **Cross-container (LCA) routing.** Edges whose endpoints resolve to different direct-member
    containers of this scope — mapped from any descendant endpoint up to its owning top-level box — are
    routed at this level with `ConnectorRouter.Route`, steering around the sibling boxes; the
    `EdgeRouting` style is read from this scope's own cascaded `effective` snapshot, so an override set
    on the owning scope's graph is honored rather than falling back to the root options. Edges already
    routed by the leaf algorithm (both endpoints direct) or belonging to a lower scope (both endpoints
-   under one container) are skipped.
+   under one container) are skipped. A genuine cross-container edge whose endpoint is a named
+   `LayoutGraphPort` — this scope's router is built on the box-only `ConnectorRouter`/`Connection` and
+   has no port concept — throws `NotSupportedException` instead of being routed or silently dropped;
+   full boundary-crossing port support (anchoring, routing) is a separate, not-yet-designed Phase 2
+   effort (see ROADMAP.md).
 7. **Assembly.** The engine returns a `LayoutTree` with the leaf algorithm's canvas size for this level
-   and the composed boxes followed by the leaf-routed lines and the cross-container lines.
+   and the composed boxes followed by the leaf-routed lines, any leaf-emitted port anchors, and the
+   cross-container lines.
 
 Every `CoreOptions` property (`Algorithm`, `Direction`, `EdgeRouting`, `HierarchyHandling`,
 `NodeSpacing`, `LayerSpacing`) cascades through this same generalized mechanism, built once on
@@ -99,8 +109,15 @@ input graph and ignores the supplied options would silently break cascading for 
 
 Null `graph`, `options`, or (injecting constructor) `registry` throw `ArgumentNullException`. A scope
 that selects an algorithm identifier absent from the registry surfaces the registry's
-`KeyNotFoundException`. Edges whose endpoints are not under the current scope are skipped rather than
-treated as errors.
+`KeyNotFoundException`. An edge whose endpoint resolves to no node at all under the current scope (an
+out-of-scope reference) is skipped rather than treated as an error. A port edge that genuinely crosses
+a container boundary — one endpoint's owning node nested inside a container relative to this scope
+while the other is not, or an edge otherwise promoted into this scope's router because it shares a box
+with such an edge — throws `NotSupportedException` with a message identifying named ports crossing a
+container boundary as not yet supported; this scope's router has no port concept and full
+boundary-crossing port support remains a separate Phase 2 effort. A same-scope port edge (neither
+endpoint nested relative to this scope) is not an error case: it is routed locally by the leaf
+algorithm exactly as it would be in a flat graph.
 
 ### HierarchicalLayoutAlgorithm Dependencies
 

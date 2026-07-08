@@ -52,6 +52,21 @@ downward/upward flow). The gallery therefore ships two companion diagrams,
 `ContentInsetLeft` case) and `ports-showcase-vertical` (downward flow; top/bottom ports), which
 together exercise all four sides.
 
+**`HierarchicalLayoutAlgorithm` bug fix (same-scope port edges, distinct from Phase 2 below).**
+`HierarchicalLayoutAlgorithm` (the compound/recursive engine, not the flat `layered` algorithm
+itself) previously dropped *every* edge touching a named `LayoutGraphPort` the instant its scope
+contained any container node at all, even when the port edge's own endpoints were both literal,
+non-nested members of that scope (for example two root-level siblings, with some unrelated
+container elsewhere in the same scope) — silently, with no diagnostic. This has been fixed: a
+same-scope port edge now reaches the selected leaf algorithm and is routed exactly as it would be in
+a flat (container-free) graph. A port edge that genuinely crosses a container boundary — one
+endpoint's owning node nested inside a container relative to the scope while the other is not, or an
+edge otherwise sharing a box with such an edge — still has no anchoring/routing design and now fails
+loudly with `NotSupportedException` instead of being silently dropped, pending the
+`HierarchyHandling.Recursive`/boundary-port work described below and in "Phase 2 (hierarchy, once
+`HierarchyHandling.Recursive` exists)" further down this file. Implementing actual
+boundary-crossing port routing/anchoring remains out of scope for this fix.
+
 The bundled `layered` algorithm's layout pipeline currently treats the input graph as simple:
 when two or more edges share the same directed `(source, target)` node pair, only one is
 retained and routed, and every input edge sharing that pair resolves to the same single routed
