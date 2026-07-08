@@ -60,8 +60,7 @@ the argument-null validation behavior constitutes a failure.
 - **Content inset** (`Rendering-Layout-LayeredAlgorithm-ContentInset`):
   `Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft` confirms a node with a labeled left-side
   port receives a positive `ContentInsetLeft` while its other sides and a port-free sibling box stay
-  zero; `Apply_CustomTextMeasurer_IsUsedToSizePortLabelInset` confirms a caller-supplied
-  `ITextMeasurer` (rather than the built-in heuristic) is consulted when sizing the reserved margin.
+  zero.
 - **Shape-aware routing** (`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`):
   `Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop` and
   `Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop` confirm a `BoxShape.Folder` node's
@@ -93,7 +92,7 @@ the argument-null validation behavior constitutes a failure.
 - **`Rendering-Layout-LayeredAlgorithm-PortEmission`**:
   Apply_EdgeWithPortEndpoint_EmitsLayoutPortWithExternalLabel
 - **`Rendering-Layout-LayeredAlgorithm-ContentInset`**:
-  Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft, Apply_CustomTextMeasurer_IsUsedToSizePortLabelInset
+  Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft
 - **`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`**:
   Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop,
   Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop,

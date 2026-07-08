@@ -15,7 +15,9 @@ pixel-level behaviour and differ only in the final encode step.
 `SkiaRasterRenderer` is the abstract `IRenderer` implementation that provides the common SkiaSharp
 rasterization path for every raster format. Concrete renderers supply the encoded image format, quality,
 media type, and file extensions; the base class owns argument validation, bitmap allocation, canvas
-initialization, node drawing, connector-label finalization, and stream encoding.
+initialization, node drawing, connector-label finalization, and stream encoding. The internal
+`SkiaTypefaces` helper resolves the shared, lazily-loaded embedded Noto Sans typeface instances that
+every drawing call site in this unit measures and draws against.
 
 ### SkiaRasterRenderer Data Model
 
@@ -116,3 +118,4 @@ members.
 | Rendering-Skia-SkiaRasterRenderer-EndMarkers | End-marker drawing helpers that use `NotationMetrics` |
 | Rendering-Skia-SkiaRasterRenderer-EmptyTree | Minimum bitmap width and height enforcement in `Render` |
 | Rendering-Skia-SkiaRasterRenderer-PortAndContentInset | Port label placement, `ContentInsetLeft`-aware start |
+| Rendering-Skia-SkiaRasterRenderer-SharedTypefaces | `SkiaTypefaces.Resolve` and its lazily-loaded typeface fields |

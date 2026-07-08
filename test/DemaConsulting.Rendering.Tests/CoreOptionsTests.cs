@@ -56,34 +56,4 @@ public sealed class CoreOptionsTests
 
         Assert.Equal(16.0, options.Get(CoreOptions.AssumedFontSize));
     }
-
-    /// <summary>
-    ///     Proves that <see cref="CoreOptions.TextMeasurer"/> defaults to <see langword="null"/>,
-    ///     selecting the layout engine's own dependency-free heuristic estimator.
-    /// </summary>
-    [Fact]
-    public void TextMeasurer_DefaultValue_IsNull()
-    {
-        Assert.Null(CoreOptions.TextMeasurer.DefaultValue);
-    }
-
-    /// <summary>
-    ///     Proves that <see cref="CoreOptions.TextMeasurer"/> is settable to a caller-supplied
-    ///     <see cref="ITextMeasurer"/> implementation and reads back the same instance.
-    /// </summary>
-    [Fact]
-    public void TextMeasurer_SetOnGraph_ReadsBackSameInstance()
-    {
-        var graph = new LayoutGraph();
-        var measurer = new StubTextMeasurer();
-        graph.Set(CoreOptions.TextMeasurer, measurer);
-
-        Assert.Same(measurer, graph.Get(CoreOptions.TextMeasurer));
-    }
-
-    /// <summary>A no-op stub <see cref="ITextMeasurer"/> used only to prove identity round-tripping.</summary>
-    private sealed class StubTextMeasurer : ITextMeasurer
-    {
-        public double MeasureWidth(string text, double fontSize, bool bold, bool italic) => 0.0;
-    }
 }

@@ -7,7 +7,6 @@ requirement to representative named test scenarios. The detailed per-requirement
 unit documents:
 
 - SkiaRasterRenderer Unit Verification
-- SkiaTextMeasurer Unit Verification
 - PngRenderer Unit Verification
 - JpegRenderer Unit Verification
 - WebpRenderer Unit Verification
@@ -29,7 +28,7 @@ correctness of the JPEG and WEBP renderers.
 - **Isolation**: each test renders into its own `MemoryStream`.
 - **Test project**: `DemaConsulting.Rendering.Skia.Tests` (`PngRendererTests.cs`,
   `PngRendererPortedTests.cs`, `PngEndMarkerTests.cs`, `SkiaFormatRendererTests.cs`,
-  `SkiaTextMeasurerTests.cs`, `SkiaPortAndContentInsetTests.cs`).
+  `SkiaTypefacesTests.cs`, `SkiaPortAndContentInsetTests.cs`).
 
 ## Acceptance Criteria
 

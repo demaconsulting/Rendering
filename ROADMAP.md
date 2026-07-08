@@ -34,9 +34,9 @@ already-working cascading mechanism:
 ## Parallel-edge (multi-edge) support in the layered algorithm
 
 **Phase 1 (flat graphs) is implemented** — `CoreOptions.MergeParallelEdges`, the port model
-(`ILayoutConnectable`/`LayoutGraphPort`/`LayoutGraphNode.Ports`), `ITextMeasurer` (with a
-dependency-free heuristic fallback in `Layout` and a Skia-backed implementation), and the
-`LayoutBox.ContentInset*` reserved-margin mechanism described below all exist and are exercised by
+(`ILayoutConnectable`/`LayoutGraphPort`/`LayoutGraphNode.Ports`), a self-contained per-character
+advance-width heuristic in `Layout` (`PortLabelWidthEstimator`, with no public extension point), and
+the `LayoutBox.ContentInset*` reserved-margin mechanism described below all exist and are exercised by
 the `test/DemaConsulting.Rendering.Gallery` "Parallel edges and named ports" section. Phase 2
 (`HierarchyHandling.Recursive` and boundary/delegation ports) remains unimplemented and is tracked
 separately below. One deliberate deviation from the phase-1 acceptance criteria as originally
@@ -214,7 +214,13 @@ unimplemented scaffolding. **`HierarchyHandling.Recursive` needs to actually be 
 boundary ports can be routed at all** — this is a real, separate, and likely larger prerequisite
 uncovered by this design discussion, not a detail of the port model itself.
 
-### Text measurement: `ITextMeasurer` + `CoreOptions.AssumedFontSize`
+### Text measurement: `PortLabelWidthEstimator` + `CoreOptions.AssumedFontSize` (superseded — see note)
+
+**Note (post-implementation):** the `ITextMeasurer` interface and Skia-backed measurer described
+below were removed after implementation — a materially improved dependency-free heuristic (a
+per-character Noto-Sans advance-width table) closed most of the accuracy gap without an
+abstraction, interface, or extension point. The narrative below is retained as historical design
+rationale for the font-family/measurement-timing reasoning, which still applies.
 
 A single `LayoutTree` is computed once and reused across renderers (`LayoutTree tree =
 LayoutEngine.Layout(graph);` then passed to both the SVG and Skia renderers), so any text-aware
@@ -232,7 +238,7 @@ make this workable without breaking the Layout unit's current zero-rendering-dep
   output and a good-faith estimate for SVG output (which targets the same nominal font family).
 
 Proposed shape (implemented; `ITextMeasurer` lives in `DemaConsulting.Rendering`, not
-`Abstractions` — see note below):
+`Abstractions` — see note below): **(Superseded — see note above.)**
 
 - Add `ITextMeasurer` to `DemaConsulting.Rendering`:
   `double MeasureWidth(string text, double fontSize, bool bold, bool italic)`. The originally
@@ -361,7 +367,7 @@ same-face crowding (no port-spacing-by-width work):
   `SKFont.MeasureText`, dependency-free heuristic fallback in `Layout`) — **small-to-medium**. No
   new native dependency for `Layout` (interface-only), and the Skia side reuses font resources and
   measurement calls that already exist for other purposes; the heuristic fallback is a small,
-  self-contained function.
+  self-contained function. **(Superseded — see note above.)**
 - **Reserved-margin computation** (`ContentInsetLeft/Right/Top/Bottom` on `LayoutBox`, auto-computed
   by `LayeredLayoutAlgorithm` from the measurer for left/right and a flat constant for top/bottom;
   `SvgRenderer`/`SkiaRasterRenderer` reading these insets instead of the current fixed
@@ -401,11 +407,10 @@ same-face crowding (no port-spacing-by-width work):
   pair `ports-showcase-horizontal` (left/right, including the long-label case) and
   `ports-showcase-vertical` (top/bottom) — see the status note at the top of this section for why a
   single diagram cannot exercise all four sides at once.
-- The gallery entry must include at least one box using the Skia-backed `ITextMeasurer` (exact
-  measurement) and confirm the SVG output of the same `LayoutTree` still reads correctly, verifying
-  the single-layout/multi-renderer flow (`LayoutTree tree = LayoutEngine.Layout(graph);` reused
-  across both renderers) is honored. Both `ports-showcase-*` diagrams set
-  `CoreOptions.TextMeasurer` to `SkiaTextMeasurer` and render to SVG.
+- The gallery entry must include at least one box with a long port label and confirm the SVG output
+  of the same `LayoutTree` still reads correctly, verifying the single-layout/multi-renderer flow
+  (`LayoutTree tree = LayoutEngine.Layout(graph);` reused across both renderers) is honored. Both
+  `ports-showcase-*` diagrams render to SVG using the built-in estimator with no configuration.
 
 **Phase 2 (hierarchy, once `HierarchyHandling.Recursive` exists):**
 

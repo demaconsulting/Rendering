@@ -113,10 +113,9 @@ sections:
       - id: Rendering-Layout-LayeredAlgorithm-ContentInset
         title: >-
           LayeredLayoutAlgorithm shall auto-compute each placed box's ContentInsetLeft/Right (the
-          widest same-side port label's measured width, via CoreOptions.TextMeasurer/AssumedFontSize,
-          plus a small clearance) and ContentInsetTop/Bottom (a flat fixed height for one text line at
-          AssumedFontSize plus padding), zero on any side with no ports, using a caller-supplied
-          CoreOptions.TextMeasurer when configured in preference to a dependency-free heuristic.
+          widest same-side port label's measured width, via CoreOptions.AssumedFontSize, plus a
+          small clearance) and ContentInsetTop/Bottom (a flat fixed height for one text line at
+          AssumedFontSize plus padding), zero on any side with no ports.
         justification: |
           A rendered port label needs a reserved margin on its owning box's face so it never collides
           with that box's own title/compartment content; computing the margin at layout time (rather
@@ -124,7 +123,6 @@ sections:
           consumes it, per the single-layout/multi-renderer design.
         tests:
           - Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft
-          - Apply_CustomTextMeasurer_IsUsedToSizePortLabelInset
 
       - id: Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting
         title: >-

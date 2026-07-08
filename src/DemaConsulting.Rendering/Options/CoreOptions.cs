@@ -164,17 +164,4 @@ public static class CoreOptions
     /// </summary>
     public static readonly LayoutProperty<double> AssumedFontSize =
         new("rendering.assumedfontsize", 12.0);
-
-    /// <summary>
-    /// Optional <see cref="ITextMeasurer"/> the bundled <c>layered</c> algorithm uses to measure
-    /// port label text widths when computing <see cref="LayoutBox.ContentInsetLeft"/> and
-    /// <see cref="LayoutBox.ContentInsetRight"/>. <see langword="null"/> (the default) selects the
-    /// engine's own dependency-free heuristic estimator, which approximates advance width from
-    /// character count alone; supply a real font-metric-backed implementation (for example a
-    /// SkiaSharp-backed measurer) here to get pixel-accurate reserved margins that match what a
-    /// renderer will actually draw. Cascades per scope by nearest-ancestor override, consistent
-    /// with every other property in this catalog.
-    /// </summary>
-    public static readonly LayoutProperty<ITextMeasurer?> TextMeasurer =
-        new("rendering.textmeasurer", null);
 }

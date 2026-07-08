@@ -392,9 +392,6 @@ internal static class GalleryDiagrams
     ///     A three-node left-to-right chain exercising named <see cref="LayoutGraphPort"/>s on the
     ///     left and right sides of the middle node, including a deliberately long left-side label
     ///     demonstrating the auto-computed <see cref="LayoutBox.ContentInsetLeft"/> reserved margin.
-    ///     Configures the Skia-backed <see cref="ITextMeasurer"/> (via <see cref="Skia.SkiaTextMeasurer"/>)
-    ///     so the reserved margins match real font metrics rather than the dependency-free heuristic
-    ///     fallback.
     /// </summary>
     /// <remarks>
     ///     A port's rendered side is derived purely from where the layered algorithm's own routing
@@ -409,7 +406,6 @@ internal static class GalleryDiagrams
     public static LayoutGraph PortsShowcaseHorizontal()
     {
         var graph = new LayoutGraph();
-        graph.Set(CoreOptions.TextMeasurer, new Skia.SkiaTextMeasurer());
 
         var upstream = AddLabelled(graph, "upstream", "Upstream");
         var hub = AddLabelled(graph, "hub", "Hub");
@@ -440,7 +436,6 @@ internal static class GalleryDiagrams
     {
         var graph = new LayoutGraph();
         graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
-        graph.Set(CoreOptions.TextMeasurer, new Skia.SkiaTextMeasurer());
 
         var monitor = AddLabelled(graph, "monitor", "Monitor");
         var hub = AddLabelled(graph, "hub", "Hub");

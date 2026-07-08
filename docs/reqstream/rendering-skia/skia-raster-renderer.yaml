@@ -81,3 +81,15 @@ sections:
         tests:
           - PngRenderer_RenderPort_AnySide_ProducesNonBackgroundPixels
           - PngRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowContentRight
+
+      - id: Rendering-Skia-SkiaRasterRenderer-SharedTypefaces
+        title: >-
+          SkiaRasterRenderer shall resolve a stable, distinct SKTypeface instance per bold/italic
+          variant through the internal SkiaTypefaces helper, shared by all drawing code in the unit.
+        justification: |
+          SkiaRasterRenderer's four regular/bold/italic/bold-italic typeface fields are centralized
+          in one internal helper so every drawing call site in the unit measures and draws against
+          the exact same lazily-loaded embedded Noto Sans typeface instances, with no duplicate,
+          independently-loaded copy of the font resources.
+        tests:
+          - SkiaTypefaces_Resolve_ReturnsStableDistinctTypefacesPerVariant

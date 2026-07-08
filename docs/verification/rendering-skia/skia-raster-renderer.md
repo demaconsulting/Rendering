@@ -105,6 +105,16 @@ raster renderer reads the reserved margin exactly as the SVG renderer does.
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-PortAndContentInset`.
 
+#### Shared typeface resolution is stable and distinct per variant
+
+Test `SkiaTypefaces_Resolve_ReturnsStableDistinctTypefacesPerVariant` resolves each of the four
+bold/italic combinations twice and asserts the same combination returns the same `SKTypeface`
+instance both times (stability), while different combinations return different instances
+(distinctness) — confirming every drawing call site in this unit measures and draws against the
+exact same lazily-loaded typeface objects.
+
+**Covers**: `Rendering-Skia-SkiaRasterRenderer-SharedTypefaces`.
+
 ### Requirements Coverage
 
 - **`Rendering-Skia-SkiaRasterRenderer-DrawsLayoutTree`**:
@@ -126,3 +136,5 @@ raster renderer reads the reserved margin exactly as the SVG renderer does.
 - **`Rendering-Skia-SkiaRasterRenderer-PortAndContentInset`**:
   PngRenderer_RenderPort_AnySide_ProducesNonBackgroundPixels,
   PngRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowContentRight
+- **`Rendering-Skia-SkiaRasterRenderer-SharedTypefaces`**:
+  SkiaTypefaces_Resolve_ReturnsStableDistinctTypefacesPerVariant

@@ -708,38 +708,4 @@ public class LayeredLayoutAlgorithmTests
         Assert.Equal(0.0, sourceBox.ContentInsetTop);
         Assert.Equal(0.0, sourceBox.ContentInsetBottom);
     }
-
-    /// <summary>
-    ///     Proves that a caller-supplied <see cref="ITextMeasurer"/> (rather than the built-in
-    ///     heuristic fallback) is consulted to size a port label's reserved content inset.
-    /// </summary>
-    [Fact]
-    public void Apply_CustomTextMeasurer_IsUsedToSizePortLabelInset()
-    {
-        // Arrange: a fixed-width stub measurer so the resulting inset is exactly predictable.
-        var graph = new LayoutGraph();
-        var source = graph.AddNode("source", 80, 40);
-        var target = graph.AddNode("target", 80, 40);
-        var port = target.Ports.AddPort("in1");
-        port.ExternalLabel = "label";
-        graph.AddEdge("e1", source, port);
-
-        var options = new LayoutOptions();
-        options.Set(CoreOptions.TextMeasurer, new StubTextMeasurer(100.0));
-
-        // Act
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
-
-        // Assert: the inset reflects the stub's fixed 100.0 width plus clearance, not the heuristic.
-        var boxes = tree.Nodes.OfType<LayoutBox>().OrderBy(b => b.X).ToList();
-        var targetBox = boxes[1];
-        Assert.True(targetBox.ContentInsetLeft > 100.0);
-    }
-
-    /// <summary>A fixed-width stub <see cref="ITextMeasurer"/> for deterministic inset assertions.</summary>
-    /// <param name="width">The fixed width returned for every call.</param>
-    private sealed class StubTextMeasurer(double width) : ITextMeasurer
-    {
-        public double MeasureWidth(string text, double fontSize, bool bold, bool italic) => width;
-    }
 }

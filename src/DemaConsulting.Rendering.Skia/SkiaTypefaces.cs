@@ -7,10 +7,9 @@ using SkiaSharp;
 namespace DemaConsulting.Rendering.Skia;
 
 /// <summary>
-/// Shared lazily-loaded Noto Sans typefaces, embedded as assembly resources, reused by both
-/// <see cref="SkiaRasterRenderer"/> (for drawing) and <see cref="SkiaTextMeasurer"/> (for
-/// layout-time measurement) so both consult exactly the same font regardless of which fonts are
-/// installed on the host system.
+/// Shared lazily-loaded Noto Sans typefaces, embedded as assembly resources, reused by all drawing
+/// code in <see cref="SkiaRasterRenderer"/> so every call site consults exactly the same font
+/// regardless of which fonts are installed on the host system.
 /// </summary>
 internal static class SkiaTypefaces
 {

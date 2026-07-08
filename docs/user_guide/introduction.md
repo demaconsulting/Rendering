@@ -250,7 +250,6 @@ labelled locations of the same box rather than all converging on one anchor:
 
 ```csharp
 var graph = new LayoutGraph();
-graph.Set(CoreOptions.TextMeasurer, new Skia.SkiaTextMeasurer());
 
 var upstream = graph.AddNode("upstream", width: 120, height: 60);
 var hub = graph.AddNode("hub", width: 120, height: 60);
@@ -272,13 +271,11 @@ single rendered connector and suppress the collapsed edges' own labels; set `Mer
 graph.Set(CoreOptions.MergeParallelEdges, false);
 ```
 
-`CoreOptions.TextMeasurer` selects the `ITextMeasurer` used to size each node's auto-computed
-`ContentInsetLeft`/`ContentInsetRight` margins (reserved so port labels never overlap the box's own
-content); the bundled `SkiaTextMeasurer` (from `DemaConsulting.Rendering.Skia`) measures real font
-metrics, while leaving it unset falls back to a dependency-free heuristic driven by
-`CoreOptions.AssumedFontSize`. The [gallery's "Parallel edges and named ports" diagrams](../gallery/README.md)
-show complete, rendered examples of preserved vs. merged parallel edges and horizontal vs. vertical
-port placement.
+Each node's `ContentInsetLeft`/`ContentInsetRight` margins (reserved so port labels never overlap
+the box's own content) are auto-computed by a built-in, dependency-free heuristic driven by
+`CoreOptions.AssumedFontSize` — no configuration is required. The [gallery's "Parallel edges and
+named ports" diagrams](../gallery/README.md) show complete, rendered examples of preserved vs.
+merged parallel edges and horizontal vs. vertical port placement.
 
 ## Option cascading
 

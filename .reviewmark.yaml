@@ -119,7 +119,6 @@ reviews:
       - "docs/design/rendering/options.md"
       - "docs/verification/rendering/options.md"
       - "src/DemaConsulting.Rendering/Options/**/*.cs"
-      - "src/DemaConsulting.Rendering/ITextMeasurer.cs"
       - "test/DemaConsulting.Rendering.Tests/PropertyHolderTests.cs"
       - "test/DemaConsulting.Rendering.Tests/CoreOptionsTests.cs"
     context:
@@ -378,9 +377,9 @@ reviews:
       - "docs/design/rendering-layout/layered-layout-algorithm.md"
       - "docs/verification/rendering-layout/layered-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/LayeredLayoutAlgorithm.cs"
-      - "src/DemaConsulting.Rendering.Layout/HeuristicTextMeasurer.cs"
+      - "src/DemaConsulting.Rendering.Layout/PortLabelWidthEstimator.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs"
-      - "test/DemaConsulting.Rendering.Layout.Tests/HeuristicTextMeasurerTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/PortLabelWidthEstimatorTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
@@ -566,9 +565,11 @@ reviews:
       - "docs/design/rendering-skia/skia-raster-renderer.md"
       - "docs/verification/rendering-skia/skia-raster-renderer.md"
       - "src/DemaConsulting.Rendering.Skia/SkiaRasterRenderer.cs"
+      - "src/DemaConsulting.Rendering.Skia/SkiaTypefaces.cs"
       - "test/DemaConsulting.Rendering.Skia.Tests/PngRendererPortedTests.cs"
       - "test/DemaConsulting.Rendering.Skia.Tests/PngEndMarkerTests.cs"
       - "test/DemaConsulting.Rendering.Skia.Tests/SkiaPortAndContentInsetTests.cs"
+      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaTypefacesTests.cs"
     context:
       - "docs/design/rendering-skia.md"
       - "docs/reqstream/rendering-skia.yaml"
@@ -606,19 +607,6 @@ reviews:
       - "docs/verification/rendering-skia/webp-renderer.md"
       - "src/DemaConsulting.Rendering.Skia/WebpRenderer.cs"
       - "test/DemaConsulting.Rendering.Skia.Tests/SkiaFormatRendererTests.cs"
-    context:
-      - "docs/design/rendering-skia.md"
-      - "docs/reqstream/rendering-skia.yaml"
-
-  - id: Rendering-Skia-SkiaTextMeasurer
-    title: Review that Rendering Skia SkiaTextMeasurer Implementation is Correct
-    paths:
-      - "docs/reqstream/rendering-skia/skia-text-measurer.yaml"
-      - "docs/design/rendering-skia/skia-text-measurer.md"
-      - "docs/verification/rendering-skia/skia-text-measurer.md"
-      - "src/DemaConsulting.Rendering.Skia/SkiaTextMeasurer.cs"
-      - "src/DemaConsulting.Rendering.Skia/SkiaTypefaces.cs"
-      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaTextMeasurerTests.cs"
     context:
       - "docs/design/rendering-skia.md"
       - "docs/reqstream/rendering-skia.yaml"

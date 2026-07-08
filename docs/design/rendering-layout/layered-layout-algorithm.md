@@ -66,9 +66,8 @@ per node followed by `LayoutLine` per edge).
    unconditionally (this phase does not yet read `InternalLabel` or distinguish an internal/external
    edge — that is deferred to the hierarchy-aware phase 2). `ResolveSide` classifies the anchor
    against the owning node's placed rectangle (within a small tolerance) to determine which of the
-   four faces the port glyph occupies. For each box, resolves an `ITextMeasurer` (an explicit
-   `CoreOptions.TextMeasurer` on the graph, then on the options, else a shared
-   `HeuristicTextMeasurer` instance) and `CoreOptions.AssumedFontSize`, then computes
+   four faces the port glyph occupies. For each box, measures port labels via the self-contained
+   `PortLabelWidthEstimator` heuristic and `CoreOptions.AssumedFontSize`, then computes
    `ContentInsetLeft`/`Right` as the widest same-side port label's measured width plus a small
    clearance, and `ContentInsetTop`/`Bottom` as a flat fixed height (one text line at
    `AssumedFontSize` plus padding) — zero on any side with no ports.

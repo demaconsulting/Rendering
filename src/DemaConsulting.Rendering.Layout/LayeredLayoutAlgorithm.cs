@@ -21,8 +21,8 @@ namespace DemaConsulting.Rendering.Layout;
 /// <see cref="LayoutGraphEdge.Source"/> or <see cref="LayoutGraphEdge.Target"/> is a
 /// <see cref="LayoutGraphPort"/> emits a <see cref="LayoutPort"/> anchored at the routed connector
 /// endpoint, and each node's <see cref="LayoutBox.ContentInsetLeft"/>/Right/Top/Bottom reserve space
-/// for its ports' labels, measured via <see cref="CoreOptions.TextMeasurer"/> (or a dependency-free
-/// heuristic fallback) at <see cref="CoreOptions.AssumedFontSize"/>.
+/// for its ports' labels, measured via a self-contained per-character advance-width heuristic (see
+/// <see cref="PortLabelWidthEstimator"/>) at <see cref="CoreOptions.AssumedFontSize"/>.
 /// </summary>
 public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
 {
@@ -47,9 +47,6 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
     /// anchors ports exactly on a rectangle face.
     /// </summary>
     private const double PortSideTolerance = 0.01;
-
-    /// <summary>Shared default fallback text measurer, reused across calls to avoid re-allocating.</summary>
-    private static readonly HeuristicTextMeasurer SharedHeuristicTextMeasurer = new();
 
     /// <inheritdoc/>
     public string Id => AlgorithmId;
@@ -119,7 +116,6 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         var direction = ToEngineDirection(ResolveDirection(graph, options));
         var nodeSpacing = ResolveNodeSpacing(graph, options);
         var mergeParallelEdges = ResolveMergeParallelEdges(graph, options);
-        var textMeasurer = ResolveTextMeasurer(graph, options);
         var assumedFontSize = ResolveAssumedFontSize(graph, options);
         var result = InterconnectionLayoutEngine.Place(engineNodes, engineEdges, direction, nodeSpacing, mergeParallelEdges);
 
@@ -205,7 +201,7 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
             var rect = result.Rects[i];
             sidePorts.TryGetValue(i, out var bySide);
             var (insetLeft, insetRight, insetTop, insetBottom) =
-                ResolveContentInsets(bySide, textMeasurer, assumedFontSize);
+                ResolveContentInsets(bySide, assumedFontSize);
 
             nodes.Add(new LayoutBox(
                 rect.X,
@@ -380,7 +376,6 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
     /// </summary>
     private static (double Left, double Right, double Top, double Bottom) ResolveContentInsets(
         Dictionary<PortSide, List<string>>? bySide,
-        ITextMeasurer textMeasurer,
         double assumedFontSize)
     {
         if (bySide == null)
@@ -395,7 +390,7 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                 return 0.0;
             }
 
-            var widest = labels.Max(label => textMeasurer.MeasureWidth(label, assumedFontSize, bold: false, italic: false));
+            var widest = labels.Max(label => PortLabelWidthEstimator.MeasureWidth(label, assumedFontSize));
             return widest + PortLabelClearance;
         }
 
@@ -424,30 +419,6 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         return options.TryGet(CoreOptions.MergeParallelEdges, out var fromOptions)
             ? fromOptions
             : CoreOptions.MergeParallelEdges.DefaultValue;
-    }
-
-    /// <summary>
-    /// Resolves the <see cref="ITextMeasurer"/> used to measure port label widths: an explicit
-    /// <see cref="CoreOptions.TextMeasurer"/> on the graph takes precedence, then one on the options,
-    /// falling back to a shared <see cref="HeuristicTextMeasurer"/> instance when neither scope sets
-    /// one.
-    /// </summary>
-    /// <param name="graph">The graph whose explicit declaration takes precedence.</param>
-    /// <param name="options">The options consulted when the graph declares no value.</param>
-    /// <returns>The text measurer to use.</returns>
-    private static ITextMeasurer ResolveTextMeasurer(LayoutGraph graph, LayoutOptions options)
-    {
-        if (graph.TryGet(CoreOptions.TextMeasurer, out var fromGraph) && fromGraph != null)
-        {
-            return fromGraph;
-        }
-
-        if (options.TryGet(CoreOptions.TextMeasurer, out var fromOptions) && fromOptions != null)
-        {
-            return fromOptions;
-        }
-
-        return SharedHeuristicTextMeasurer;
     }
 
     /// <summary>

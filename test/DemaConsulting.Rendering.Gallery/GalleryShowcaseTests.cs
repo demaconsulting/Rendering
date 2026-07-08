@@ -265,7 +265,7 @@ public sealed class GalleryShowcaseTests
     ///     Renders the horizontal ports showcase to SVG, proving named left/right ports on a
     ///     rightward-flowing node emit a <see cref="LayoutPort"/> glyph and inward-reading label, and
     ///     that a long left-side label auto-computes a widened <see cref="LayoutBox.ContentInsetLeft"/>
-    ///     margin measured through the Skia-backed <see cref="ITextMeasurer"/>.
+    ///     margin auto-computed by the built-in heuristic estimator.
     /// </summary>
     [Fact]
     public void Gallery_PortsShowcaseHorizontal_RendersSvg()
