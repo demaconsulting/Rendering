@@ -49,6 +49,14 @@ namespace DemaConsulting.Rendering.Skia;
 public abstract class SkiaRasterRenderer : IRenderer
 {
     /// <summary>
+    /// Stroke width, in logical pixels (before scale), of the contrasting outline drawn around a port
+    /// glyph square. Distinguishes the port glyph from an arrowhead marker that may land on/near the
+    /// same box edge (both are otherwise solid-filled shapes with no border of their own), so the two
+    /// remain visually distinct instead of merging into a single blob.
+    /// </summary>
+    private const float PortGlyphStrokeWidth = 1.0f;
+
+    /// <summary>
     /// Creates an <see cref="SKPaint"/> configured for text rendering (color and antialiasing
     /// only). Font identity (typeface and size) is carried separately by an <see cref="SKFont"/>
     /// created with <see cref="CreateFont"/>. The caller is responsible for disposing the
@@ -455,9 +463,7 @@ public abstract class SkiaRasterRenderer : IRenderer
     {
         var theme = options.Theme;
         var scale = (float)options.Scale;
-        var contentLeft = box.X + theme.LabelPadding + box.ContentInsetLeft;
-        var contentRight = box.X + box.Width - theme.LabelPadding - box.ContentInsetRight;
-        var centerX = (float)(((contentLeft + contentRight) / 2.0) * scale);
+        var centerX = (float)((box.X + (box.Width / 2.0)) * scale);
         var cursorY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + theme.LabelPadding;
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
@@ -475,7 +481,7 @@ public abstract class SkiaRasterRenderer : IRenderer
         {
             using var textPaint = CreateTextPaint(strokeColor);
             using var textFont = CreateFont((float)theme.FontSizeTitle * scale, bold: true, italic: false);
-            var availableWidth = (float)((box.Width - 2 * theme.LabelPadding - box.ContentInsetLeft - box.ContentInsetRight) * scale);
+            var availableWidth = (float)((box.Width - (2 * theme.LabelPadding)) * scale);
             textFont.Size = FitFontSize(textFont, box.Label, availableWidth, textFont.Size);
             var textY = (float)((cursorY + theme.FontSizeTitle) * scale);
             canvas.DrawText(box.Label, centerX, textY, SKTextAlign.Center, textFont, textPaint);
@@ -1235,6 +1241,18 @@ public abstract class SkiaRasterRenderer : IRenderer
             fillPaint.Color = strokeColor;
             fillPaint.Style = SKPaintStyle.Fill;
             canvas.DrawRect(portRect, fillPaint);
+        }
+
+        // Draw a contrasting outline around the port glyph so it remains visually distinct from an
+        // arrowhead marker that may land on/near the same box edge (both are otherwise solid-filled
+        // shapes with no border of their own, which can otherwise merge into a single indistinguishable
+        // blob). Drawn as a separate stroke-only pass since the fill and stroke use different colors.
+        using (var outlinePaint = new SKPaint())
+        {
+            outlinePaint.Color = SKColor.Parse(theme.BackgroundColor);
+            outlinePaint.Style = SKPaintStyle.Stroke;
+            outlinePaint.StrokeWidth = PortGlyphStrokeWidth * scale;
+            canvas.DrawRect(portRect, outlinePaint);
         }
 
         // Draw the optional label inward, toward the box interior, so it reads immediately next to

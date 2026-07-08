@@ -65,6 +65,16 @@ caller needs to compute the label's full bounding box for canvas-growth purposes
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent`.
 
+#### EstimateLabelHeight matches Place's internal formula and grows with font size
+
+Test `EstimateLabelHeight_MatchesPlaceHalfHeightDoubled` places a labeled line via `Place`, then
+asserts `EstimateLabelHeight(fontSize)` equals exactly twice that placement's `HalfHeight`,
+confirming the public helper returns the same full label-height formula `Place` uses internally
+(not an independently-drifting approximation). Test `EstimateLabelHeight_IsMonotonicInFontSize`
+asserts a larger `fontSize` yields a larger estimated height.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled`**: Place_LineWithoutLabel_IsOmitted
@@ -72,3 +82,5 @@ caller needs to compute the label's full bounding box for canvas-growth purposes
 - **`Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap`**: Place_CollidingLabels_AreSeparated
 - **`Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent`**:
   Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight, Place_LongerLabel_HasLargerHalfWidth
+- **`Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight`**:
+  EstimateLabelHeight_MatchesPlaceHalfHeightDoubled, EstimateLabelHeight_IsMonotonicInFontSize

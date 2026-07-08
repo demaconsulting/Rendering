@@ -37,9 +37,9 @@
   <rect x="20.00" y="294.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="80.00" y="307.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Control</text>
   <path d="M 80.00 70.00 L 80.00 140.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <rect x="76.00" y="136.00" width="8.00" height="8.00" fill="#C0C0D8"/>
+  <rect x="76.00" y="136.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
   <text x="80.00" y="162.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">status</text>
   <path d="M 80.00 224.00 L 80.00 294.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <rect x="76.00" y="220.00" width="8.00" height="8.00" fill="#C0C0D8"/>
+  <rect x="76.00" y="220.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
   <text x="80.00" y="214.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">ctrl</text>
 </svg>

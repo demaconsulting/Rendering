@@ -105,22 +105,30 @@ raster renderer reads the reserved margin exactly as the SVG renderer does.
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-PortAndContentInset`.
 
-#### Port label squeeze, title inset-aware centering, and label-aware bitmap growth
+#### Port label squeeze, title geometric centering, port outline, and label-aware bitmap growth
 
 `PngRenderer_RenderPort_LongLabelWithMaxLabelWidth_SqueezesToFit` renders the same deliberately long
 port label twice — once with a finite `MaxLabelWidth` and once unconstrained — and asserts the
 constrained render's rightmost non-background pixel falls short of the unconstrained render's,
 confirming the squeeze genuinely compresses the label rather than being a no-op.
-`PngRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter` renders a box whose
-`ContentInsetLeft` differs from `ContentInsetRight` and asserts the title's rendered horizontal
-position shifts away from the raw box-center toward the smaller-inset side.
+`PngRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter` renders a box whose
+`ContentInsetLeft` differs from `ContentInsetRight` and asserts the title's leftmost rendered pixel
+is identical whether or not the asymmetric insets are present, confirming the title remains at the
+box's full geometric center — an earlier inset-adjusted centering behavior (which visibly shifted
+and squeezed titles even though no title/port-label collision was actually possible) has been
+reverted. `PngRenderer_RenderPort_Rect_HasStrokeDistinctFromFill` renders a single port at a large
+scale and asserts a pixel sampled just inside the glyph's edge (within the outline's stroke band)
+differs from the fill color sampled at the glyph's exact center and matches
+`Theme.BackgroundColor`, confirming the port glyph remains visually distinguishable from a
+solid-filled arrowhead marker that might land on/near the same box edge.
 `PngRenderer_Render_ManyCollidingConnectorLabels_BitmapGrowsToFitAllLabels` renders 3+ parallel
 labeled connectors whose midpoint labels collide and get nudged, and asserts the allocated bitmap's
 dimensions grow enough that every label's rendered pixels remain within the bitmap bounds rather
 than being silently clipped.
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-PortLabelSqueeze`,
-`Rendering-Skia-SkiaRasterRenderer-TitleCentersOnInsetContent`,
+`Rendering-Skia-SkiaRasterRenderer-TitleCentersOnBoxWidth`,
+`Rendering-Skia-SkiaRasterRenderer-PortGlyphOutline`,
 `Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels`.
 
 #### Shared typeface resolution is stable and distinct per variant
@@ -156,8 +164,10 @@ exact same lazily-loaded typeface objects.
   PngRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowContentRight
 - **`Rendering-Skia-SkiaRasterRenderer-PortLabelSqueeze`**:
   PngRenderer_RenderPort_LongLabelWithMaxLabelWidth_SqueezesToFit
-- **`Rendering-Skia-SkiaRasterRenderer-TitleCentersOnInsetContent`**:
-  PngRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter
+- **`Rendering-Skia-SkiaRasterRenderer-TitleCentersOnBoxWidth`**:
+  PngRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter
+- **`Rendering-Skia-SkiaRasterRenderer-PortGlyphOutline`**:
+  PngRenderer_RenderPort_Rect_HasStrokeDistinctFromFill
 - **`Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels`**:
   PngRenderer_Render_ManyCollidingConnectorLabels_BitmapGrowsToFitAllLabels
 - **`Rendering-Skia-SkiaRasterRenderer-SharedTypefaces`**:

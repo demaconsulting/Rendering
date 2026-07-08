@@ -908,5 +908,59 @@ public class LayeredLayoutAlgorithmTests
     /// <summary>Returns whether two placed boxes' rectangles overlap (touching edges are not an overlap).</summary>
     private static bool Overlaps(LayoutBox a, LayoutBox b) =>
         a.X < b.X + b.Width && a.X + a.Width > b.X && a.Y < b.Y + b.Height && a.Y + a.Height > b.Y;
+
+    /// <summary>
+    ///     Proves that 3 parallel labeled connectors between the same two nodes (mirroring the
+    ///     gallery's <c>ParallelEdgesPreserved</c> diagram) are spaced far enough apart that each
+    ///     label's natural midpoint lands directly on its own line — no perpendicular nudge is needed
+    ///     — instead of the labels colliding and being displaced far from their own connector.
+    /// </summary>
+    [Fact]
+    public void Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine()
+    {
+        // Arrange: two boxes joined by three distinct parallel edges, each with its own label, with
+        // MergeParallelEdges disabled so all three survive as independently-routed connectors —
+        // mirrors the gallery's ParallelEdgesPreserved diagram exactly (caller-supplied 120x50 boxes).
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, false);
+        var producer = graph.AddNode("producer", 120, 50);
+        producer.Label = "Producer";
+        var consumer = graph.AddNode("consumer", 120, 50);
+        consumer.Label = "Consumer";
+        graph.AddEdge("primary", producer, consumer).Label = "primary";
+        graph.AddEdge("retry", producer, consumer).Label = "retry";
+        graph.AddEdge("audit", producer, consumer).Label = "audit";
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var lines = tree.Nodes.OfType<LayoutLine>().Where(l => l.MidpointLabel != null).ToList();
+        Assert.Equal(3, lines.Count);
+
+        const double assumedFontSize = 12.0; // CoreOptions.AssumedFontSize default
+        var placements = ConnectorLabelPlacer.Place(lines, assumedFontSize);
+
+        // Assert: every labeled line's chosen label Y coordinate matches its own line's (straight,
+        // horizontal) Y coordinate closely — proving the first-pass (no-nudge) placement succeeded
+        // for all three labels instead of one colliding and being pushed far away from its own line.
+        foreach (var line in lines)
+        {
+            Assert.True(placements.TryGetValue(line, out var placement), $"Expected a placement for label '{line.MidpointLabel}'.");
+            var lineY = line.Waypoints[0].Y;
+            Assert.Equal(lineY, placement.Y, 3);
+        }
+
+        // Assert: the three lines' Y coordinates are themselves distinct (still parallel, non-overlapping
+        // lanes) and, per the fix, spaced at least a full label-height apart.
+        var lineYs = lines.Select(l => l.Waypoints[0].Y).OrderBy(y => y).ToList();
+        var labelHeight = ConnectorLabelPlacer.EstimateLabelHeight(assumedFontSize);
+        for (var i = 1; i < lineYs.Count; i++)
+        {
+            Assert.True(
+                lineYs[i] - lineYs[i - 1] >= labelHeight - 1e-6,
+                $"Expected adjacent parallel lanes to be spaced at least {labelHeight}px apart, was {lineYs[i] - lineYs[i - 1]}.");
+        }
+    }
 }
+
 

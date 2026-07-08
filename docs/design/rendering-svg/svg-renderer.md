@@ -129,14 +129,15 @@ recursively calls `RenderNode` for all `box.Children`.
 **`RenderBoxTitle(StringBuilder sb, LayoutBox box, Theme theme, double scale)`**
 
 Writes the keyword line (when `box.Keyword` is non-null) and the bold name `<text>` label, both
-horizontally centered on the *inset-adjusted content area* — `contentLeft = box.X +
-theme.LabelPadding + box.ContentInsetLeft`, `contentRight = box.X + box.Width -
-theme.LabelPadding - box.ContentInsetRight`, `centerX = (contentLeft + contentRight) / 2.0` — rather
-than the raw box center (`box.X + box.Width / 2.0`). A box with an asymmetric `ContentInsetLeft`
-versus `ContentInsetRight` (for example a wide port label reserved on only one face) therefore
-visually centers its title within the space actually available for content, not within the full
-box width including the reserved margin. Vertical positioning is unaffected by this centering
-change.
+horizontally centered on the box's full geometric width (`centerX = box.X + box.Width / 2.0`),
+regardless of any asymmetric `box.ContentInsetLeft`/`ContentInsetRight` the box declares. The
+title occupies its own row above the title area (`ResolveTitleAreaTop`), while left/right port
+labels are drawn at the box's vertical center (`RenderPort`) — a different row — so the title never
+needs to dodge sideways around a side-port label's reserved inset; an earlier revision centered the
+title on the inset-adjusted content area instead, which visibly shifted and squeezed titles on
+boxes with an asymmetric left/right inset even though no title/port-label collision was actually
+possible. `box.ContentInsetTop` still legitimately widens the title's vertical (Y) start position
+when a top-side port shares the title's row, which is unaffected by this centering behavior.
 
 **`RenderBoxCompartments(StringBuilder sb, LayoutBox box, Theme theme, double scale)`**
 
@@ -183,7 +184,11 @@ Writes a `<text>` element with `text-anchor` from `label.Align`, `font-size` fro
 **`RenderPort` / `RenderBadge` / `RenderBand` / `RenderLifeline` / `RenderActivation` /
 `RenderGrid`**
 
-`RenderPort` writes the 8x8 port glyph `<rect>` and, when `LayoutPort.Label` is non-null, a
+`RenderPort` writes the 8x8 port glyph `<rect>`, filled with `theme.StrokeColor` and outlined with a
+1.0px (logical, pre-scale) `theme.BackgroundColor` stroke so the glyph remains visually distinct
+from a solid-filled connector arrowhead marker that may land on/near the same box edge (both would
+otherwise be plain solid-filled shapes with no border of their own, and would visually merge into
+an indistinguishable blob). When `LayoutPort.Label` is non-null, a
 companion `<text>` element positioned immediately next to the glyph and reading inward toward the
 box interior: to the right of the glyph for a left-side port, to the left of the glyph for a
 right-side port, below the glyph for a top-side port, and above the glyph for a bottom-side port.
@@ -264,5 +269,6 @@ Any consumer of the rendering library that selects vector output constructs an `
 | Rendering-Svg-SvgRenderer-RenderPortLabel | `RenderPort` writes an inward-reading label `<text>` |
 | Rendering-Svg-SvgRenderer-ContentInset | `RenderBoxCompartments` starts content at `box.ContentInsetLeft` |
 | Rendering-Svg-SvgRenderer-CanvasGrowsForLabels | `Render` grows `width`/`height` to fit every placed label |
-| Rendering-Svg-SvgRenderer-TitleCentersOnInsetContent | `RenderBoxTitle` centers on inset-adjusted content |
+| Rendering-Svg-SvgRenderer-TitleCentersOnBoxWidth | `RenderBoxTitle` centers on full box width |
+| Rendering-Svg-SvgRenderer-PortGlyphOutline | `RenderPort` outlines the port glyph in `theme.BackgroundColor` |
 | Rendering-Svg-SvgRenderer-PortLabelSqueeze | `RenderPort` applies `FitTextLength` bounded by `MaxLabelWidth` |

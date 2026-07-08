@@ -145,15 +145,20 @@ reserved margin rather than assuming a fixed offset.
 
 **Covers**: `Rendering-Svg-SvgRenderer-RenderPortLabel`, `Rendering-Svg-SvgRenderer-ContentInset`.
 
-#### Port label squeeze, title inset-aware centering, and label-aware canvas growth
+#### Port label squeeze, title geometric centering, and label-aware canvas growth
 
 `SvgRenderer_RenderPort_LongLabelWithMaxLabelWidth_AppliesTextLengthConstraint` renders a port with
 a deliberately long `ExternalLabel` and a finite `MaxLabelWidth`, and asserts the emitted `<text>`
 element carries a `textLength` attribute bounding it to that width (matching the squeeze mechanism
-already used for box titles). `SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter`
+already used for box titles). `SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter`
 renders a box whose `ContentInsetLeft` differs from `ContentInsetRight` and asserts the title's
-`<text x="...">` shifts away from the raw box-center toward the smaller-inset side, matching the
-inset-adjusted content area rather than the full box width.
+`<text x="...">` remains exactly at the box's full geometric center (`box.X + box.Width / 2.0`),
+unaffected by the asymmetric insets — confirming an earlier inset-adjusted centering behavior (which
+visibly shifted and squeezed titles even though no title/port-label collision was actually possible)
+has been reverted. `SvgRenderer_RenderPort_Rect_HasStrokeDistinctFromFill` renders a single port and
+asserts its glyph `<rect>` carries both a `fill` and a `stroke` attribute with distinct values (the
+stroke matching `Theme.BackgroundColor`), confirming the port glyph remains visually distinguishable
+from a solid-filled arrowhead marker that might land on/near the same box edge.
 `SvgRenderer_Render_ManyCollidingConnectorLabels_AllLabelsWithinViewBox` renders 3+ parallel labeled
 connectors whose midpoint labels collide and get nudged, then parses the rendered `viewBox` and every
 label `<text>` element's approximate position/extent, asserting every label lies fully within the
@@ -161,7 +166,8 @@ final `viewBox` bounds — confirming the canvas grows to include labels nudged 
 box+routing-geometry extent rather than clipping them invisibly.
 
 **Covers**: `Rendering-Svg-SvgRenderer-PortLabelSqueeze`,
-`Rendering-Svg-SvgRenderer-TitleCentersOnInsetContent`,
+`Rendering-Svg-SvgRenderer-TitleCentersOnBoxWidth`,
+`Rendering-Svg-SvgRenderer-PortGlyphOutline`,
 `Rendering-Svg-SvgRenderer-CanvasGrowsForLabels`.
 
 #### Connector end markers
@@ -247,8 +253,10 @@ marker id appears somewhere in the document. This prevents a false pass if the m
   `SvgRenderer_RenderPort_LongLabelWithMaxLabelWidth_AppliesTextLengthConstraint`
 - **`Rendering-Svg-SvgRenderer-ContentInset`**:
   `SvgRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowTextRight`
-- **`Rendering-Svg-SvgRenderer-TitleCentersOnInsetContent`**:
-  `SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter`
+- **`Rendering-Svg-SvgRenderer-TitleCentersOnBoxWidth`**:
+  `SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter`
+- **`Rendering-Svg-SvgRenderer-PortGlyphOutline`**:
+  `SvgRenderer_RenderPort_Rect_HasStrokeDistinctFromFill`
 - **`Rendering-Svg-SvgRenderer-CanvasGrowsForLabels`**:
   `SvgRenderer_Render_ManyCollidingConnectorLabels_AllLabelsWithinViewBox`
 - **`Rendering-Svg-SvgRenderer-RenderBadge`**:

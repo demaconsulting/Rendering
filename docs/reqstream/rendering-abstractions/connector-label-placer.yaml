@@ -53,3 +53,20 @@ sections:
         tests:
           - Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight
           - Place_LongerLabel_HasLargerHalfWidth
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight
+        title: >-
+          The connector-label placer shall expose a public EstimateLabelHeight(fontSize) helper
+          returning the full label bounding-box height (twice the halfHeight Place computes
+          internally), so other layout stages can size themselves against the exact same
+          label-height formula this placer uses when testing for overlap, without duplicating its
+          internal constants.
+        justification: |
+          A layout algorithm sizing a node so that 2+ parallel labeled connector anchors on the same
+          face are spaced far enough apart for ConnectorLabelPlacer's first-pass (no-nudge)
+          placement to succeed for every label must use exactly the same label-height formula this
+          placer applies internally; exposing it as a public helper keeps HeightFactor/Gap a single
+          source of truth instead of a duplicated magic-number formula in a second project.
+        tests:
+          - EstimateLabelHeight_MatchesPlaceHalfHeightDoubled
+          - EstimateLabelHeight_IsMonotonicInFontSize

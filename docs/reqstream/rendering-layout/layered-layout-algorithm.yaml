@@ -160,6 +160,26 @@ sections:
           - Apply_AutoGrownNode_DoesNotOverlapSiblings
           - Apply_NoNodeNeedsGrowth_PassTwoSkipped_LayoutUnaffected
 
+      - id: Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing
+        title: >-
+          LayeredLayoutAlgorithm shall widen the auto-grow minimum-size floor so that, whenever 2+
+          connector anchors share a node's face and at least one of those anchored edges carries a
+          midpoint label, the node's Height is at least large enough that PortDistributor's even
+          spacing between those anchors is never smaller than
+          ConnectorLabelPlacer.EstimateLabelHeight(AssumedFontSize).
+        justification: |
+          Straight, evenly-spaced parallel connectors between the same two boxes (for example 3
+          independent labeled connectors preserved via MergeParallelEdges = false) previously spaced
+          each line only PortDistributor's default lane spacing apart, which for a typical box height
+          was smaller than a label's own bounding-box height; every label after the first then
+          collided with an already-placed label and was nudged perpendicular to its own line by
+          ConnectorLabelPlacer's fallback pass, visually detaching the label from the line it names.
+          Growing the node just enough that PortDistributor's own even-spacing formula matches
+          ConnectorLabelPlacer's label-height formula lets the placer's first-pass (no-nudge)
+          placement succeed for every label instead, so each label lands directly on its own line.
+        tests:
+          - Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine
+
       - id: Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting
         title: >-
           LayeredLayoutAlgorithm shall project a same-scope connector's endpoint onto a shaped node's

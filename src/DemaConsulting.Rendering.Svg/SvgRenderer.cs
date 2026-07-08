@@ -49,6 +49,14 @@ public sealed class SvgRenderer : IRenderer
     /// <summary>SVG text-anchor value for centered alignment.</summary>
     private const string TextAnchorMiddle = "middle";
 
+    /// <summary>
+    /// Stroke width, in logical pixels (before scale), of the contrasting outline drawn around a port
+    /// glyph square. Distinguishes the port glyph from an arrowhead marker that may land on/near the
+    /// same box edge (both are otherwise solid-filled shapes with no border of their own), so the two
+    /// remain visually distinct instead of merging into a single blob.
+    /// </summary>
+    private const double PortGlyphStrokeWidth = 1.0;
+
     /// <inheritdoc/>
     public string MediaType => "image/svg+xml";
 
@@ -515,9 +523,7 @@ public sealed class SvgRenderer : IRenderer
     /// <param name="scale">Uniform scale factor.</param>
     private static void RenderBoxTitle(StringBuilder sb, LayoutBox box, Theme theme, double scale)
     {
-        var contentLeft = box.X + theme.LabelPadding + box.ContentInsetLeft;
-        var contentRight = box.X + box.Width - theme.LabelPadding - box.ContentInsetRight;
-        var centerX = ((contentLeft + contentRight) / 2.0) * scale;
+        var centerX = (box.X + (box.Width / 2.0)) * scale;
         var cursorY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + theme.LabelPadding;
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
@@ -535,7 +541,7 @@ public sealed class SvgRenderer : IRenderer
         if (box.Label != null)
         {
             var textY = (cursorY + theme.FontSizeTitle / 2.0) * scale;
-            var availableWidth = box.Width - (2 * theme.LabelPadding) - box.ContentInsetLeft - box.ContentInsetRight;
+            var availableWidth = box.Width - (2 * theme.LabelPadding);
             var fit = FitTextLength(box.Label, theme.FontSizeTitle, availableWidth, scale);
             sb.Append(CultureInfo.InvariantCulture,
                 $"""  <text x="{F(centerX)}" y="{F(textY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeTitle * scale)}" font-weight="bold" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle"{fit}>{EscapeXml(box.Label)}</text>""");
@@ -918,7 +924,7 @@ public sealed class SvgRenderer : IRenderer
         var rs = NotationMetrics.PortSize * scale;
 
         sb.Append(CultureInfo.InvariantCulture,
-            $"""  <rect x="{F(rx)}" y="{F(ry)}" width="{F(rs)}" height="{F(rs)}" fill="{theme.StrokeColor}"/>""");
+            $"""  <rect x="{F(rx)}" y="{F(ry)}" width="{F(rs)}" height="{F(rs)}" fill="{theme.StrokeColor}" stroke="{theme.BackgroundColor}" stroke-width="{F(PortGlyphStrokeWidth * scale)}"/>""");
         sb.AppendLine();
 
         // Optional label offset inward, toward the box interior, so it reads immediately next to

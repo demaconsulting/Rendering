@@ -127,4 +127,41 @@ public sealed class ConnectorLabelPlacerTests
 
         Assert.True(result[longLine].HalfWidth > result[shortLine].HalfWidth);
     }
+
+    /// <summary>
+    ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelHeight"/> returns the full (not
+    ///     half) label bounding-box height matching the formula <see cref="ConnectorLabelPlacer.Place"/>
+    ///     uses internally
+    ///     for <c>halfHeight</c> (<c>fontSize * 1.3 + 2 * Gap</c>, doubled), so other layout stages can
+    ///     size themselves against the exact same value this placer uses when testing for overlap.
+    /// </summary>
+    [Fact]
+    public void EstimateLabelHeight_MatchesPlaceHalfHeightDoubled()
+    {
+        const double fontSize = 12.0;
+        var line = new LayoutLine(
+            [new Point2D(0, 0), new Point2D(200, 0)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            MidpointLabel: "label");
+
+        var result = ConnectorLabelPlacer.Place([line], fontSize);
+        var expectedHeight = result[line].HalfHeight * 2.0;
+
+        Assert.Equal(expectedHeight, ConnectorLabelPlacer.EstimateLabelHeight(fontSize), 6);
+    }
+
+    /// <summary>
+    ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelHeight"/> grows monotonically with
+    ///     font size.
+    /// </summary>
+    [Fact]
+    public void EstimateLabelHeight_IsMonotonicInFontSize()
+    {
+        var small = ConnectorLabelPlacer.EstimateLabelHeight(10.0);
+        var large = ConnectorLabelPlacer.EstimateLabelHeight(20.0);
+
+        Assert.True(large > small);
+    }
 }

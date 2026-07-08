@@ -89,12 +89,31 @@ per node followed by `LayoutLine` per edge).
     values, computes the minimum width/height each node actually needs to fit its title plus its
     reserved insets simultaneously (from `CoreOptions.AssumedFontSize`/`PortLabelClearance`, since
     this algorithm has no `Theme` dependency to draw exact font metrics from) and compares it against
-    that node's caller-supplied size. A node whose caller-supplied size is already large enough is
+    that node's caller-supplied size. It additionally aggregates, per node and per resolved
+    `PortSide`, the total number of connector anchors on that face and whether any of those anchored
+    edges carries a midpoint label — unconditionally for every emitted edge endpoint, not only named
+    `LayoutGraphPort`s, since the parallel-label-spacing defect also occurs on plain unnamed edges.
+    Whenever a face has 2+ anchors and at least one is labeled, the minimum height candidate is
+    widened to `ConnectorLabelPlacer.EstimateLabelHeight(assumedFontSize) * (anchorCount - 1) + 2 *
+    ConnectorClearance` — the exact inverse of `PortDistributor.DistributePorts`'s own even-spacing
+    formula — so that face's anchors end up spaced at least a full label-height apart. A node whose
+    caller-supplied size is already large enough (on every computed floor, including this one) is
     left completely unchanged. Otherwise, engine nodes are cloned with `max(caller-supplied, computed
     minimum)` for the undersized dimension(s) and the full placement/packing/spacing pass re-runs
     (pass 2) against the grown sizes, so a grown node never silently overlaps a sibling that was
     positioned relative to its smaller pass-1 footprint. When no node needs growth, pass 2 is skipped
     entirely and the pass-1 result is emitted as-is.
+
+    Straight, evenly-spaced parallel connectors between the same two boxes (for example 3
+    independent labeled connectors preserved via `MergeParallelEdges = false`) previously spaced
+    each line only `PortDistributor`'s default lane spacing apart, which for a typical box height was
+    smaller than a label's own bounding-box height (`ConnectorLabelPlacer.EstimateLabelHeight`);
+    every label after the first then collided with an already-placed label and was nudged
+    perpendicular to its own line by `ConnectorLabelPlacer`'s fallback pass, visually detaching the
+    label from the line it names. This floor grows the node just enough that `PortDistributor`'s own
+    even-spacing formula matches `ConnectorLabelPlacer`'s label-height formula, so the placer's
+    first-pass (no-nudge) placement succeeds for every label instead, and each label lands directly
+    on its own line.
 
 An empty graph yields an empty `LayoutTree` because `InterconnectionLayoutEngine.Place` returns a
 minimal-size empty result, which produces an empty canvas.
@@ -119,4 +138,5 @@ the Engine subsystem. It is the entry point resolved by renderers through the la
 | Rendering-Layout-LayeredAlgorithm-PortEmission | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-ContentInset | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-AutoGrowMinimumSize | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting | LayeredLayoutAlgorithm behavior described above |

@@ -185,13 +185,14 @@ public sealed class SkiaPortAndContentInsetTests
     }
 
     /// <summary>
-    ///     Proves that a box title centers on the inset-adjusted content area, not the full box
-    ///     width: when <see cref="LayoutBox.ContentInsetLeft"/> exceeds
-    ///     <see cref="LayoutBox.ContentInsetRight"/>, the title's drawn pixels shift right of true
-    ///     box-center (toward the smaller/un-inset side).
+    ///     Proves that a box title centers on the box's full geometric width, independent of any
+    ///     asymmetric <see cref="LayoutBox.ContentInsetLeft"/>/<see cref="LayoutBox.ContentInsetRight"/>:
+    ///     the title occupies its own row above any left/right port labels (which sit at the box's
+    ///     vertical center), so its drawn pixels start at the same x-coordinate whether or not the box
+    ///     declares asymmetric content insets.
     /// </summary>
     [Fact]
-    public void PngRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter()
+    public void PngRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter()
     {
         // Arrange: two boxes, one with a symmetric (zero) inset and one with a large left inset only,
         // both otherwise identical.
@@ -219,7 +220,50 @@ public sealed class SkiaPortAndContentInsetTests
 
         Assert.True(plainLeftmost >= 0);
         Assert.True(insetLeftmost >= 0);
-        Assert.True(insetLeftmost > plainLeftmost, $"Expected inset title to start further right ({insetLeftmost}) than plain title ({plainLeftmost}).");
+        Assert.Equal(plainLeftmost, insetLeftmost);
+    }
+
+    /// <summary>
+    ///     Proves that a port glyph's rendered square carries a contrasting outline distinct from its
+    ///     fill: a pixel just inside the glyph's edge (within the outline's stroke band) differs from
+    ///     the fill color sampled at the glyph's center, so the port glyph remains visually
+    ///     distinguishable from a solid-filled arrowhead marker that may land on/near the same box
+    ///     edge, rather than the two merging into an indistinguishable blob.
+    /// </summary>
+    [Fact]
+    public void PngRenderer_RenderPort_Rect_HasStrokeDistinctFromFill()
+    {
+        // Arrange: render at a larger scale so the 1px (logical) outline is several pixels wide and
+        // reliably sampled.
+        var renderer = new PngRenderer();
+        var port = new LayoutPort(50, 50, PortSide.Left, "in");
+        var layout = new LayoutTree(100, 100, [port]);
+        var options = new RenderOptions(Themes.Light) with { Scale = 8.0 };
+        using var stream = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, stream);
+
+        // Assert: a pixel near the glyph's edge (inside the outline stroke band) differs from the
+        // fill color sampled at the glyph's exact center, and matches the theme's background color.
+        stream.Position = 0;
+        using var data = SKData.Create(stream);
+        using var bitmap = SKBitmap.Decode(data);
+        Assert.NotNull(bitmap);
+
+        var scale = options.Scale;
+        var centreX = (int)(port.CentreX * scale);
+        var centreY = (int)(port.CentreY * scale);
+        var edgeX = (int)((port.CentreX - NotationMetrics.PortHalfSize) * scale) + 2;
+
+        var fillPixel = bitmap!.GetPixel(centreX, centreY);
+        var edgePixel = bitmap.GetPixel(edgeX, centreY);
+        var strokeColor = SKColor.Parse(Themes.Light.StrokeColor);
+        var backgroundColor = SKColor.Parse(Themes.Light.BackgroundColor);
+
+        Assert.Equal(strokeColor, fillPixel);
+        Assert.NotEqual(fillPixel, edgePixel);
+        Assert.Equal(backgroundColor, edgePixel);
     }
 
     /// <summary>

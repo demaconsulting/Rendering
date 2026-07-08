@@ -95,20 +95,36 @@ sections:
         tests:
           - PngRenderer_RenderPort_LongLabelWithMaxLabelWidth_SqueezesToFit
 
-      - id: Rendering-Skia-SkiaRasterRenderer-TitleCentersOnInsetContent
+      - id: Rendering-Skia-SkiaRasterRenderer-TitleCentersOnBoxWidth
         title: >-
           SkiaRasterRenderer shall horizontally center a box's keyword line and bold name title on
-          the inset-adjusted content area (between box.X + Theme.LabelPadding + ContentInsetLeft
-          and box.X + box.Width - Theme.LabelPadding - ContentInsetRight), not on the box's raw
-          geometric center, whenever ContentInsetLeft and ContentInsetRight differ.
+          the box's full geometric width (box.X + box.Width / 2.0), regardless of any asymmetric
+          box.ContentInsetLeft/ContentInsetRight the box declares.
         justification: |
-          RenderBoxTitle previously computed centerX from the full box width regardless of
-          ContentInsetLeft/Right, so a box with an asymmetric reserved port-label margin on only one
-          face visually centered its title within the full box width, including the reserved margin
-          the title should never occupy, rather than within the space actually available for
-          content.
+          A box's title occupies its own row above the title area (ResolveTitleAreaTop), while
+          left/right port labels are drawn at the box's vertical center (RenderPort) — a different
+          row — so the title never needs to dodge sideways around a side-port label's inset. An
+          earlier revision centered the title on the inset-adjusted content area instead, which
+          visibly shifted and squeezed titles on boxes with an asymmetric left/right port-label
+          inset even though no actual title/port-label collision was possible; this requirement
+          restores full geometric centering, matching the SVG renderer. box.ContentInsetTop still
+          legitimately widens the title's vertical (Y) start position when a top-side port shares
+          the title's row, which is unaffected by this requirement.
         tests:
-          - PngRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter
+          - PngRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter
+
+      - id: Rendering-Skia-SkiaRasterRenderer-PortGlyphOutline
+        title: >-
+          SkiaRasterRenderer shall draw a contrasting stroke (Theme.BackgroundColor) around a port
+          glyph's rendered square, distinct from the glyph's own fill (Theme.StrokeColor).
+        justification: |
+          A port glyph's solid fill and a connector arrowhead marker's solid fill both use the same
+          stroke color and can land within a few pixels of each other at a box edge, so without a
+          contrasting outline the two shapes visually merge into a single indistinguishable blob.
+          Outlining the port glyph in the background color keeps it visually distinct from an
+          adjacent arrowhead, matching the SVG renderer.
+        tests:
+          - PngRenderer_RenderPort_Rect_HasStrokeDistinctFromFill
 
       - id: Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels
         title: >-

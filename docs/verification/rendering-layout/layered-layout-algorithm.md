@@ -76,6 +76,13 @@ the argument-null validation behavior constitutes a failure.
   placed rectangle never overlaps an already-placed sibling; and
   `Apply_NoNodeNeedsGrowth_PassTwoSkipped_LayoutUnaffected` confirms a layout where no node needs
   growth is completely unaffected by the auto-grow mechanism (pass 2 never runs).
+- **Parallel-label spacing** (`Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing`):
+  `Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine` lays out 3 independent labeled parallel
+  connectors between the same two boxes (`MergeParallelEdges = false`) and asserts, for each line,
+  that `ConnectorLabelPlacer.Place`'s chosen label Y coordinate matches that line's own straight
+  Y-coordinate (confirming the first-pass, no-nudge placement succeeds for every label instead of
+  one colliding and being displaced far from its own line), and that adjacent parallel lanes end up
+  spaced at least a full `ConnectorLabelPlacer.EstimateLabelHeight` apart.
 - **Shape-aware routing** (`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`):
   `Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop` and
   `Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop` confirm a `BoxShape.Folder` node's
@@ -114,6 +121,8 @@ the argument-null validation behavior constitutes a failure.
 - **`Rendering-Layout-LayeredAlgorithm-AutoGrowMinimumSize`**:
   Apply_NodeAlreadyLargeEnough_SizeUnchanged, Apply_NodeWithTopAndBottomPorts_TooSmall_AutoGrowsHeight,
   Apply_AutoGrownNode_DoesNotOverlapSiblings, Apply_NoNodeNeedsGrowth_PassTwoSkipped_LayoutUnaffected
+- **`Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing`**:
+  Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine
 - **`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`**:
   Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop,
   Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop,

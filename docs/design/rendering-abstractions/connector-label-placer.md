@@ -12,7 +12,8 @@ deterministic, and both renderers share this logic so their label layouts match.
 
 ### Connector Label Placer Data Model
 
-- `ConnectorLabelPlacer` (static class) — `Place(IEnumerable<LayoutLine>, double)`.
+- `ConnectorLabelPlacer` (static class) — `Place(IEnumerable<LayoutLine>, double)`,
+  `EstimateLabelHeight(double)`.
 - `LabelPlacement` (public `readonly record struct`) — `(double X, double Y, double HalfWidth,
   double HalfHeight)`. Carries the chosen label centre plus that label's estimated half-width/
   half-height, so a caller can compute the label's full rendered bounding box without
@@ -33,6 +34,14 @@ has been applied, which is what a renderer needs to grow its canvas/bitmap bound
 placed label — the final canvas size was previously computed from box+routing geometry before this
 method ran, so a nudged label could land completely outside those bounds and render invisibly
 clipped; a renderer must instead finalize its canvas size only after calling `Place`.
+
+`double EstimateLabelHeight(double fontSize)` — returns the full (not half) estimated label
+bounding-box height (`fontSize * HeightFactor + 2 * Gap`, i.e. twice the `halfHeight` `Place`
+computes internally for every label), so another layout stage can size a node's spacing against the
+exact same label-height formula this placer uses when testing for overlap, without duplicating its
+internal `HeightFactor`/`Gap` constants. `LayeredLayoutAlgorithm` calls this to widen its auto-grow
+minimum-size floor so 2+ labeled parallel connector anchors sharing a node's face are spaced far
+enough apart for `Place`'s first-pass (no-nudge) placement to succeed for every label.
 
 ### Connector Label Placer Error Handling
 
@@ -61,6 +70,9 @@ and performs no logging.
 - **Rendering.Skia raster renderers (`SkiaRasterRenderer`, `PngRenderer`, `JpegRenderer`,
   `WebpRenderer`)** — call `Place` for the same purpose so that the SVG and raster outputs agree on
   label positions.
+- **Rendering.Layout `LayeredLayoutAlgorithm` unit** — calls `EstimateLabelHeight` when computing its
+  auto-grow minimum-size floor, so a node with 2+ labeled parallel connector anchors on the same face
+  grows tall enough that `Place`'s own label-height formula never collides with itself.
 
 ### Connector Label Placer Design Constraints
 
@@ -82,3 +94,4 @@ is called by the renderers (SVG and PNG systems) before drawing connector labels
 | Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment | `ConnectorLabelPlacer.Place` segment choice |
 | Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap | `ConnectorLabelPlacer.Place` overlap avoidance |
 | Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent | `LabelPlacement.HalfWidth`/`HalfHeight` in `Place` |
+| Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight | `ConnectorLabelPlacer.EstimateLabelHeight` |

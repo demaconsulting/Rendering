@@ -98,6 +98,18 @@ public static class ConnectorLabelPlacer
         text.Length * fontSize * CharWidthFactor;
 
     /// <summary>
+    /// Estimates the full (not half) height of a connector midpoint label's bounding box, including
+    /// the clearance <see cref="Place"/> already adds around every label when testing for overlap.
+    /// Exposed so other layout stages (for example <c>LayeredLayoutAlgorithm</c>'s parallel-edge lane
+    /// spacing) can size themselves against the same label-height formula this placer uses internally,
+    /// without duplicating the <see cref="HeightFactor"/>/<see cref="Gap"/> constants.
+    /// </summary>
+    /// <param name="fontSize">Body font size, in logical pixels.</param>
+    /// <returns>The estimated full label bounding-box height, in logical pixels.</returns>
+    public static double EstimateLabelHeight(double fontSize) =>
+        (fontSize * HeightFactor) + (2.0 * Gap);
+
+    /// <summary>
     /// Selects a label position for a single line, preferring the midpoint of the longest segment and
     /// falling back to shorter segments or perpendicular nudges to avoid overlapping placed labels.
     /// </summary>

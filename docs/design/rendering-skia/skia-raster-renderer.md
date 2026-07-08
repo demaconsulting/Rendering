@@ -47,13 +47,17 @@ every drawing call site in this unit measures and draws against.
   leftward for a right-side port, below for a top-side port, and above for a bottom-side port, with
   its rendered width bounded to `LayoutPort.MaxLabelWidth` via the same font-size-shrink squeeze
   mechanism `RenderBoxTitle` uses, so an excessively long port label compresses instead of visually
-  overlapping the opposite port's label region. Box title and compartment content start at
-  `box.X + Theme.LabelPadding + box.ContentInsetLeft` (and reduce available width by
-  `box.ContentInsetRight`) instead of the fixed pre-port offset, so a non-zero reserved port-label
-  margin never overlaps rendered content; the title's horizontal center is likewise computed from
-  that inset-adjusted content area (`contentLeft`/`contentRight` midpoint), not the box's raw
-  geometric center, so an asymmetric `ContentInsetLeft`/`ContentInsetRight` shifts the title toward
-  the smaller-inset side rather than leaving it centered on the full box width.
+  overlapping the opposite port's label region. The port glyph square is filled with
+  `Theme.StrokeColor` and outlined with a second stroke-only `SKPaint` pass in
+  `Theme.BackgroundColor` (1.0 logical px, pre-scale) so the glyph remains visually distinct from a
+  solid-filled connector arrowhead marker that may land on/near the same box edge. Box title and
+  compartment content start at `box.X + Theme.LabelPadding + box.ContentInsetLeft` (and reduce
+  available width by `box.ContentInsetRight`) instead of the fixed pre-port offset, so a non-zero
+  reserved port-label margin never overlaps rendered content; the title's horizontal center,
+  however, is always the box's full geometric center (`box.X + box.Width / 2.0`), regardless of any
+  asymmetric `ContentInsetLeft`/`ContentInsetRight` — the title occupies its own row above the
+  title area, while left/right port labels are drawn at the box's vertical center (a different
+  row), so the title never needs to dodge sideways around a side-port label's inset.
 - **Connector helpers** - build connector end markers from `NotationMetrics` so raster markers match
   the SVG renderer. Hollow marker interiors and midpoint-label backplates use `Theme.BackgroundColor`
   so they occlude connector strokes with the same background used for the bitmap.
@@ -130,6 +134,7 @@ members.
 | Rendering-Skia-SkiaRasterRenderer-EmptyTree | Minimum bitmap width and height enforcement in `Render` |
 | Rendering-Skia-SkiaRasterRenderer-PortAndContentInset | Port label placement, `ContentInsetLeft`-aware start |
 | Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels | `Render` grows the bitmap to fit every placed label |
-| Rendering-Skia-SkiaRasterRenderer-TitleCentersOnInsetContent | `RenderBoxTitle` centers on inset-adjusted content |
+| Rendering-Skia-SkiaRasterRenderer-TitleCentersOnBoxWidth | `RenderBoxTitle` centers on full box width |
+| Rendering-Skia-SkiaRasterRenderer-PortGlyphOutline | `RenderPort` outlines the port glyph in `theme.BackgroundColor` |
 | Rendering-Skia-SkiaRasterRenderer-PortLabelSqueeze | `RenderPort` bounds label width to `port.MaxLabelWidth` |
 | Rendering-Skia-SkiaRasterRenderer-SharedTypefaces | `SkiaTypefaces.Resolve` and its lazily-loaded typeface fields |

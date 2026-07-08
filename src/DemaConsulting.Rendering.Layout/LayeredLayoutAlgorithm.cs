@@ -147,7 +147,9 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                 LayoutGraphPort? SourcePort,
                 LayoutGraphPort? TargetPort,
                 IReadOnlyList<Point2D> Waypoints)> Emissions,
-            Dictionary<int, Dictionary<PortSide, List<string>>> SidePorts) RunLayerPass(LayerNode[] nodesForPass)
+            Dictionary<int, Dictionary<PortSide, List<string>>> SidePorts,
+            Dictionary<int, Dictionary<PortSide, (int Total, bool AnyLabeled)>> FaceAnchors) RunLayerPass(
+            LayerNode[] nodesForPass)
         {
             var passResult = InterconnectionLayoutEngine.Place(
                 nodesForPass, engineEdges, direction, nodeSpacing, mergeParallelEdges);
@@ -225,10 +227,39 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                 }
             }
 
-            return (passResult, routes, emissionsLocal, sidePortsLocal);
+            // Aggregate, per node and side, the total anchor count and whether any anchored edge
+            // carries a label — unconditionally for every emitted edge endpoint, regardless of
+            // whether it resolves to a named LayoutGraphPort (unlike sidePortsLocal above, which only
+            // tracks named ports' labels for content-inset sizing). Used below to derive a minimum
+            // node-size floor so that, when 2+ labels share a face, PortDistributor's even spacing
+            // between anchors on that face is never smaller than a label's own bounding-box height
+            // (see ConnectorLabelPlacer.EstimateLabelHeight), so its first-pass (no-nudge) placement
+            // succeeds for every label instead of visually detaching a label from its own line.
+            var faceAnchorsLocal = new Dictionary<int, Dictionary<PortSide, (int Total, bool AnyLabeled)>>();
+            void RecordAnchor(int nodeIndex, Point2D anchor, bool labeled)
+            {
+                var side = ResolveSide(anchor, passResult.Rects[nodeIndex]);
+                if (!faceAnchorsLocal.TryGetValue(nodeIndex, out var bySide))
+                {
+                    bySide = new Dictionary<PortSide, (int Total, bool AnyLabeled)>();
+                    faceAnchorsLocal[nodeIndex] = bySide;
+                }
+
+                bySide.TryGetValue(side, out var existing);
+                bySide[side] = (existing.Total + 1, existing.AnyLabeled || labeled);
+            }
+
+            foreach (var emission in emissionsLocal)
+            {
+                var labeled = emission.Edge.Label != null;
+                RecordAnchor(emission.Source, emission.Waypoints[0], labeled);
+                RecordAnchor(emission.Target, emission.Waypoints[^1], labeled);
+            }
+
+            return (passResult, routes, emissionsLocal, sidePortsLocal, faceAnchorsLocal);
         }
 
-        var (result, routesByEngineIndex, emissions, sidePorts) = RunLayerPass(engineNodes);
+        var (result, routesByEngineIndex, emissions, sidePorts, faceAnchors) = RunLayerPass(engineNodes);
 
         // Fix 5: grow any node whose caller-supplied size is insufficient to fit its title plus its
         // (now-known) port-driven content insets simultaneously — never shrinking below the
@@ -246,6 +277,28 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
             var minWidth = PortLabelWidthEstimator.MeasureWidth(graphNodes[i].Label ?? string.Empty, assumedFontSize)
                 + (PortLabelClearance * 2) + insetLeft + insetRight;
             var minHeight = assumedFontSize + (PortLabelClearance * 2) + insetTop + insetBottom;
+
+            // Parallel-edge label-spacing floor (Regression 1 fix): when 2+ connector anchors share a
+            // face and at least one carries a label, ensure PortDistributor's even spacing between
+            // those anchors is never smaller than a label's own bounding-box height, so
+            // ConnectorLabelPlacer's first-pass (no-nudge) placement succeeds for every label instead
+            // of nudging it away from its own line. Only ever raises minHeight (never lowers it), and
+            // is a no-op for every face with 0-1 anchors or no labeled anchors.
+            if (faceAnchors.TryGetValue(i, out var byFace))
+            {
+                var labelHeight = ConnectorLabelPlacer.EstimateLabelHeight(assumedFontSize);
+                foreach (var (_, faceInfo) in byFace)
+                {
+                    if (faceInfo.Total < 2 || !faceInfo.AnyLabeled)
+                    {
+                        continue;
+                    }
+
+                    var requiredUsable = labelHeight * (faceInfo.Total - 1);
+                    var minHeightCandidate = requiredUsable + (2.0 * LayeredLayoutMetrics.ConnectorClearance);
+                    minHeight = Math.Max(minHeight, minHeightCandidate);
+                }
+            }
 
             var desiredWidth = Math.Max(engineNodes[i].Width, minWidth);
             var desiredHeight = Math.Max(engineNodes[i].Height, minHeight);
@@ -268,7 +321,7 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         if (grownNodes != null)
         {
             engineNodes = grownNodes;
-            (result, routesByEngineIndex, emissions, sidePorts) = RunLayerPass(engineNodes);
+            (result, routesByEngineIndex, emissions, sidePorts, faceAnchors) = RunLayerPass(engineNodes);
         }
 
         var nodes = new List<LayoutNode>(count + (emissions.Count * 2));

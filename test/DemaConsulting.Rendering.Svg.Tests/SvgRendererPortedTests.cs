@@ -477,13 +477,14 @@ public sealed class SvgRendererPortedTests
     }
 
     /// <summary>
-    ///     Proves that a box title centers on the inset-adjusted content area, not the full box
-    ///     width: when <see cref="LayoutBox.ContentInsetLeft"/> exceeds
-    ///     <see cref="LayoutBox.ContentInsetRight"/>, the title's rendered x-coordinate shifts right
-    ///     of true box-center (toward the smaller/un-inset side), and vice versa.
+    ///     Proves that a box title centers on the box's full geometric width (<c>box.X + box.Width /
+    ///     2.0</c>), independent of any asymmetric <see cref="LayoutBox.ContentInsetLeft"/>/
+    ///     <see cref="LayoutBox.ContentInsetRight"/>: the title occupies its own row above any
+    ///     left/right port labels (which sit at the box's vertical center), so it never needs to
+    ///     dodge sideways around inset-driven content areas.
     /// </summary>
     [Fact]
-    public void SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter()
+    public void SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter()
     {
         // Arrange: a box with a large left inset and no right inset (mirrors a box with a long
         // left-port label and a short/absent right-port label).
@@ -495,13 +496,13 @@ public sealed class SvgRendererPortedTests
         // Act
         renderer.Render(new LayoutTree(200, 100, [box]), options, output);
 
-        // Assert: the title's x-coordinate is to the right of the true (un-inset) box center, since
-        // the content area is shifted right by the larger left inset.
+        // Assert: the title's x-coordinate is exactly the box's full geometric center, unaffected by
+        // the asymmetric content insets.
         output.Position = 0;
         var svgText = ReadAllText(output);
         var titleX = ExtractLastTextX(svgText);
         var trueBoxCenterX = box.X + (box.Width / 2.0);
-        Assert.True(titleX > trueBoxCenterX, $"Expected title x ({titleX}) to be right of true box center ({trueBoxCenterX}).");
+        Assert.Equal(trueBoxCenterX, titleX, precision: 6);
     }
 
     /// <summary>
@@ -531,6 +532,36 @@ public sealed class SvgRendererPortedTests
         var longLabelMatch = System.Text.RegularExpressions.Regex.Match(svgText, """<text[^>]*>a rather long incoming data label<""");
         Assert.True(longLabelMatch.Success, $"Expected to find the long port label's <text> element in: {svgText}");
         Assert.Contains("textLength=", longLabelMatch.Value, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     Proves that a port glyph's <c>&lt;rect&gt;</c> carries a <c>stroke</c> attribute distinct
+    ///     from its <c>fill</c> (<see cref="Theme.BackgroundColor"/> vs <see cref="Theme.StrokeColor"/>),
+    ///     so the port glyph remains visually distinguishable from a solid-filled arrowhead marker
+    ///     that may land on/near the same box edge, rather than the two merging into an
+    ///     indistinguishable blob.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_RenderPort_Rect_HasStrokeDistinctFromFill()
+    {
+        // Arrange
+        var renderer = new SvgRenderer();
+        var port = new LayoutPort(10, 50, PortSide.Left, "in");
+        var layout = new LayoutTree(200, 100, [port]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert: the port's <rect> carries both a fill and a stroke, and the two colors differ.
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var rectMatch = System.Text.RegularExpressions.Regex.Match(
+            svgText, """<rect[^>]*fill="(?<fill>[^"]+)"[^>]*stroke="(?<stroke>[^"]+)"[^>]*/>""");
+        Assert.True(rectMatch.Success, $"Expected to find a port <rect> with both fill and stroke in: {svgText}");
+        Assert.NotEqual(rectMatch.Groups["fill"].Value, rectMatch.Groups["stroke"].Value);
+        Assert.Equal(Themes.Light.BackgroundColor, rectMatch.Groups["stroke"].Value);
     }
 
     /// <summary>
