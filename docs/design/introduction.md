@@ -129,7 +129,8 @@ Rendering.Skia (System)
 ├── SkiaRasterRenderer (Unit)   — abstract SkiaSharp rasterizer shared by all formats
 ├── PngRenderer (Unit)          — lossless PNG output
 ├── JpegRenderer (Unit)         — JPEG output
-└── WebpRenderer (Unit)         — WEBP output
+├── WebpRenderer (Unit)         — WEBP output
+└── SkiaTextMeasurer (Unit)    — font-accurate ITextMeasurer, backed by shared SkiaTypefaces loading
 
 OTS Software Items
 ├── BuildMark    — build-notes documentation from GitHub Actions metadata
