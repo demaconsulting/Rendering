@@ -378,17 +378,24 @@ title and a top/bottom port. Compartment/child content sizing remains entirely c
 Straight, evenly-spaced parallel connectors between the same two boxes (for example 3 independent
 labeled connectors between the same pair, preserved via `CoreOptions.MergeParallelEdges = false`)
 need more than just even lane spacing: `ConnectorLabelPlacer`'s midpoint-label placement estimates
-each label's own bounding-box height from `CoreOptions.AssumedFontSize`, and if `PortDistributor`'s
-lane spacing between adjacent parallel lines is smaller than that label height, every label after
-the first collides with an already-placed label and gets nudged perpendicular to its own line —
-visually detaching the label from the connector it names. `LayeredLayoutAlgorithm`'s auto-grow floor
-(above) now additionally aggregates, per node and per face, the total connector-anchor count and
-whether any anchored edge carries a label (unconditionally, not only for named `LayoutGraphPort`
-endpoints), and widens the minimum-height floor so that whenever 2+ anchors share a face and at
-least one is labeled, the face's anchors end up spaced at least a full
-`ConnectorLabelPlacer.EstimateLabelHeight` apart — matching `PortDistributor`'s own even-spacing
-formula exactly, so `ConnectorLabelPlacer`'s first-pass (no-nudge) placement succeeds for every
-label instead.
+each label's own bounding-box extent from `CoreOptions.AssumedFontSize` (and, for width, the label
+text itself), and if `PortDistributor`'s lane spacing between adjacent parallel lines is smaller
+than that label extent, every label after the first collides with an already-placed label and gets
+nudged perpendicular to its own line — visually detaching the label from the connector it names.
+`LayeredLayoutAlgorithm`'s auto-grow floor (above) additionally aggregates, per node and per face,
+the total connector-anchor count, whether any anchored edge carries a label (unconditionally, not
+only for named `LayoutGraphPort` endpoints), and — since it varies by text — the widest labeled
+anchor's estimated label width, then widens the minimum-size floor along whichever axis
+`PortDistributor` actually spreads that face's anchors along: a `Left`/`Right` face spreads anchors
+vertically, so the minimum-**height** floor is widened to match
+`ConnectorLabelPlacer.EstimateLabelHeight`; a `Top`/`Bottom` face (a downward- or upward-flowing
+diagram) spreads anchors horizontally instead, so the minimum-**width** floor is widened to match
+`ConnectorLabelPlacer.EstimateLabelWidth` for the widest labeled anchor's text — both cases matching
+`PortDistributor`'s own even-spacing formula on the relevant axis exactly, so `ConnectorLabelPlacer`'s
+first-pass (no-nudge) placement succeeds for every label instead, regardless of flow direction. The
+gallery's "Parallel edges and named ports" section ships a `parallel-edges-preserved-vertical`
+example (a downward-flowing companion to `parallel-edges-preserved`) proving the width-growth path
+end to end.
 
 ### Port glyph outline for arrowhead contrast
 

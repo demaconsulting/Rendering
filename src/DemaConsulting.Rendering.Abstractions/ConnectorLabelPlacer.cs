@@ -110,6 +110,21 @@ public static class ConnectorLabelPlacer
         (fontSize * HeightFactor) + (2.0 * Gap);
 
     /// <summary>
+    /// Estimates the full (not half) width of a connector midpoint label's bounding box, including
+    /// the clearance <see cref="Place"/> already adds around every label when testing for overlap.
+    /// Exposed so other layout stages (for example <c>LayeredLayoutAlgorithm</c>'s parallel-edge lane
+    /// spacing on a <c>Top</c>/<c>Bottom</c> box face, where anchors are spread horizontally) can size
+    /// themselves against the same label-width formula this placer uses internally, without
+    /// duplicating the <see cref="CharWidthFactor"/>/<see cref="Gap"/> constants. Unlike
+    /// <see cref="EstimateLabelHeight"/>, this varies with the supplied label text.
+    /// </summary>
+    /// <param name="text">The label text.</param>
+    /// <param name="fontSize">Body font size, in logical pixels.</param>
+    /// <returns>The estimated full label bounding-box width, in logical pixels.</returns>
+    public static double EstimateLabelWidth(string text, double fontSize) =>
+        EstimateTextWidth(text, fontSize) + (2.0 * Gap);
+
+    /// <summary>
     /// Selects a label position for a single line, preferring the midpoint of the longest segment and
     /// falling back to shorter segments or perpendicular nudges to avoid overlapping placed labels.
     /// </summary>

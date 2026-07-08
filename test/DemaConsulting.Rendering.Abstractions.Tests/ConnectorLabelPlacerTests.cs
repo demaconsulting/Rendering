@@ -164,4 +164,56 @@ public sealed class ConnectorLabelPlacerTests
 
         Assert.True(large > small);
     }
+
+    /// <summary>
+    ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelWidth"/> returns the full (not
+    ///     half) label bounding-box width matching the formula <see cref="ConnectorLabelPlacer.Place"/>
+    ///     uses internally for <c>halfWidth</c> (<c>text.Length * fontSize * 0.6 + 2 * Gap</c>,
+    ///     doubled), so other layout stages can size themselves against the exact same value this
+    ///     placer uses when testing for overlap.
+    /// </summary>
+    [Fact]
+    public void EstimateLabelWidth_MatchesPlaceHalfWidthDoubled()
+    {
+        const double fontSize = 12.0;
+        const string text = "primary";
+        var line = new LayoutLine(
+            [new Point2D(0, 0), new Point2D(200, 0)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            MidpointLabel: text);
+
+        var result = ConnectorLabelPlacer.Place([line], fontSize);
+        var expectedWidth = result[line].HalfWidth * 2.0;
+
+        Assert.Equal(expectedWidth, ConnectorLabelPlacer.EstimateLabelWidth(text, fontSize), 6);
+    }
+
+    /// <summary>
+    ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelWidth"/> grows monotonically with
+    ///     font size, for a fixed label text.
+    /// </summary>
+    [Fact]
+    public void EstimateLabelWidth_IsMonotonicInFontSize()
+    {
+        var small = ConnectorLabelPlacer.EstimateLabelWidth("label", 10.0);
+        var large = ConnectorLabelPlacer.EstimateLabelWidth("label", 20.0);
+
+        Assert.True(large > small);
+    }
+
+    /// <summary>
+    ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelWidth"/> grows monotonically with
+    ///     label text length, for a fixed font size — unlike <see cref="ConnectorLabelPlacer.EstimateLabelHeight"/>,
+    ///     which is a pure function of font size alone.
+    /// </summary>
+    [Fact]
+    public void EstimateLabelWidth_IsMonotonicInTextLength()
+    {
+        var shorter = ConnectorLabelPlacer.EstimateLabelWidth("audit", 12.0);
+        var longer = ConnectorLabelPlacer.EstimateLabelWidth("primary", 12.0);
+
+        Assert.True(longer > shorter);
+    }
 }

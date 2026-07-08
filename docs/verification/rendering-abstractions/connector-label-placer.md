@@ -75,6 +75,19 @@ asserts a larger `fontSize` yields a larger estimated height.
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight`.
 
+#### EstimateLabelWidth matches Place's internal formula and grows with font size and text length
+
+Test `EstimateLabelWidth_MatchesPlaceHalfWidthDoubled` places a labeled line via `Place`, then
+asserts `EstimateLabelWidth(text, fontSize)` equals exactly twice that placement's `HalfWidth`,
+confirming the public helper returns the same full label-width formula `Place` uses internally
+(not an independently-drifting approximation). Test `EstimateLabelWidth_IsMonotonicInFontSize`
+asserts a larger `fontSize` yields a larger estimated width for the same text, and test
+`EstimateLabelWidth_IsMonotonicInTextLength` asserts a longer label string yields a larger
+estimated width for the same font size — confirming the estimate is genuinely text-dependent,
+unlike `EstimateLabelHeight`, which is a pure function of font size alone.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelWidth`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled`**: Place_LineWithoutLabel_IsOmitted
@@ -84,3 +97,6 @@ asserts a larger `fontSize` yields a larger estimated height.
   Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight, Place_LongerLabel_HasLargerHalfWidth
 - **`Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight`**:
   EstimateLabelHeight_MatchesPlaceHalfHeightDoubled, EstimateLabelHeight_IsMonotonicInFontSize
+- **`Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelWidth`**:
+  EstimateLabelWidth_MatchesPlaceHalfWidthDoubled, EstimateLabelWidth_IsMonotonicInFontSize,
+  EstimateLabelWidth_IsMonotonicInTextLength

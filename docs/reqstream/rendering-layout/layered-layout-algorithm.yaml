@@ -164,21 +164,33 @@ sections:
         title: >-
           LayeredLayoutAlgorithm shall widen the auto-grow minimum-size floor so that, whenever 2+
           connector anchors share a node's face and at least one of those anchored edges carries a
-          midpoint label, the node's Height is at least large enough that PortDistributor's even
-          spacing between those anchors is never smaller than
-          ConnectorLabelPlacer.EstimateLabelHeight(AssumedFontSize).
+          midpoint label, the node grows large enough along the axis PortDistributor spreads that
+          face's anchors along that the even spacing between those anchors is never smaller than a
+          label's own bounding-box extent on that axis: for a Left/Right face (anchors spread
+          vertically), the node's Height is at least large enough that the spacing is never smaller
+          than ConnectorLabelPlacer.EstimateLabelHeight(AssumedFontSize); for a Top/Bottom face
+          (anchors spread horizontally), the node's Width is at least large enough that the spacing
+          is never smaller than ConnectorLabelPlacer.EstimateLabelWidth(text, AssumedFontSize) for
+          the widest labeled anchor's text.
         justification: |
           Straight, evenly-spaced parallel connectors between the same two boxes (for example 3
           independent labeled connectors preserved via MergeParallelEdges = false) previously spaced
-          each line only PortDistributor's default lane spacing apart, which for a typical box height
-          was smaller than a label's own bounding-box height; every label after the first then
-          collided with an already-placed label and was nudged perpendicular to its own line by
-          ConnectorLabelPlacer's fallback pass, visually detaching the label from the line it names.
-          Growing the node just enough that PortDistributor's own even-spacing formula matches
-          ConnectorLabelPlacer's label-height formula lets the placer's first-pass (no-nudge)
-          placement succeed for every label instead, so each label lands directly on its own line.
+          each line only PortDistributor's default lane spacing apart, which for a typical box size
+          was smaller than a label's own bounding-box extent on the axis anchors are spread along;
+          every label after the first then collided with an already-placed label and was nudged
+          perpendicular to its own line by ConnectorLabelPlacer's fallback pass, visually detaching
+          the label from the line it names. This defect was originally fixed only for a Left/Right
+          face (the only orientation exercised by the shipped gallery/tests at the time), leaving a
+          latent, axis-blind gap for a Top/Bottom face (a downward- or upward-flowing diagram), where
+          PortDistributor spreads anchors horizontally and growing Height does nothing to relieve the
+          crowding. Growing the node just enough that PortDistributor's own even-spacing formula
+          matches ConnectorLabelPlacer's label-extent formula on the correct axis lets the placer's
+          first-pass (no-nudge) placement succeed for every label instead, so each label lands
+          directly on its own line, regardless of whether the diagram flows horizontally or
+          vertically.
         tests:
           - Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine
+          - Apply_ThreeParallelLabeledEdges_Down_BoxWidthGrowsAndLabelsLandOnTheirOwnLine
 
       - id: Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting
         title: >-

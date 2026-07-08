@@ -48,6 +48,7 @@ internal static class GalleryCatalog
     public const string ShapeGallerySvg = "shape-gallery.svg";
     public const string ParallelEdgesMergedSvg = "parallel-edges-merged.svg";
     public const string ParallelEdgesPreservedSvg = "parallel-edges-preserved.svg";
+    public const string ParallelEdgesPreservedVerticalSvg = "parallel-edges-preserved-vertical.svg";
     public const string PortsShowcaseHorizontalSvg = "ports-showcase-horizontal.svg";
     public const string PortsShowcaseVerticalSvg = "ports-showcase-vertical.svg";
 
@@ -186,6 +187,14 @@ internal static class GalleryCatalog
                     "Three parallel connectors between the same two boxes, independently routed",
                     "MergeParallelEdges set to false: all three parallel connectors survive, each with "
                     + "its own label."),
+                new GalleryImage(
+                    ParallelEdgesPreservedVerticalSvg,
+                    "The same three parallel connectors on a downward-flowing pair of boxes",
+                    "The companion vertical-flow case: with a downward Direction the three parallel "
+                    + "connectors anchor on the boxes' top and bottom faces instead of their left and "
+                    + "right faces, and each box's WIDTH (not height) auto-grows to fit the widened "
+                    + "lane spacing, since PortDistributor spreads anchors on a top/bottom face "
+                    + "horizontally."),
                 new GalleryImage(
                     ParallelEdgesMergedSvg,
                     "The same three parallel connectors collapsed to a single line",

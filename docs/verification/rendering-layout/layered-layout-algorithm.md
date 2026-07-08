@@ -83,6 +83,14 @@ the argument-null validation behavior constitutes a failure.
   Y-coordinate (confirming the first-pass, no-nudge placement succeeds for every label instead of
   one colliding and being displaced far from its own line), and that adjacent parallel lanes end up
   spaced at least a full `ConnectorLabelPlacer.EstimateLabelHeight` apart.
+  `Apply_ThreeParallelLabeledEdges_Down_BoxWidthGrowsAndLabelsLandOnTheirOwnLine` is the vertical-flow
+  (`Direction.Down`) mirror: it lays out the same 3 parallel labeled connectors but attaching to the
+  Top/Bottom faces (where `PortDistributor` spreads anchors horizontally instead of vertically), and
+  asserts both boxes' Width (not Height) auto-grows past the caller-supplied size, that each label's
+  chosen X coordinate matches its own line's straight X coordinate, and that adjacent parallel lanes
+  end up spaced at least the widest label's `ConnectorLabelPlacer.EstimateLabelWidth` apart —
+  confirming the auto-grow floor correctly grows the axis `PortDistributor` actually spreads anchors
+  along for a Top/Bottom face, not just a Left/Right one.
 - **Shape-aware routing** (`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`):
   `Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop` and
   `Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop` confirm a `BoxShape.Folder` node's
@@ -122,7 +130,8 @@ the argument-null validation behavior constitutes a failure.
   Apply_NodeAlreadyLargeEnough_SizeUnchanged, Apply_NodeWithTopAndBottomPorts_TooSmall_AutoGrowsHeight,
   Apply_AutoGrownNode_DoesNotOverlapSiblings, Apply_NoNodeNeedsGrowth_PassTwoSkipped_LayoutUnaffected
 - **`Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing`**:
-  Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine
+  Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine,
+  Apply_ThreeParallelLabeledEdges_Down_BoxWidthGrowsAndLabelsLandOnTheirOwnLine
 - **`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`**:
   Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop,
   Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop,

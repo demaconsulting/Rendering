@@ -121,6 +121,12 @@ overlaps the box's own content.
 
 MergeParallelEdges set to false: all three parallel connectors survive, each with its own label.
 
+![The same three parallel connectors on a downward-flowing pair of boxes](parallel-edges-preserved-vertical.svg)
+
+The companion vertical-flow case: with a downward Direction the three parallel connectors anchor on the boxes' top and
+bottom faces instead of their left and right faces, and each box's WIDTH (not height) auto-grows to fit the widened lane
+spacing, since PortDistributor spreads anchors on a top/bottom face horizontally.
+
 ![The same three parallel connectors collapsed to a single line](parallel-edges-merged.svg)
 
 The default MergeParallelEdges (true): the three parallel connectors collapse to a single rendered line, and its

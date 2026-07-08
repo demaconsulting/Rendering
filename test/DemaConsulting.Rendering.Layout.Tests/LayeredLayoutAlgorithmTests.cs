@@ -961,6 +961,76 @@ public class LayeredLayoutAlgorithmTests
                 $"Expected adjacent parallel lanes to be spaced at least {labelHeight}px apart, was {lineYs[i] - lineYs[i - 1]}.");
         }
     }
+
+    /// <summary>
+    ///     Vertical-flow (<see cref="LayoutFlowDirection.Down"/>) mirror of
+    ///     <see cref="Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine"/>: proves that 3
+    ///     parallel labeled connectors attaching to Top/Bottom box faces (where
+    ///     <c>PortDistributor</c> spreads anchors horizontally, not vertically) grow the box's WIDTH
+    ///     — not its height — to fit the widened lane spacing, and that each label's natural midpoint
+    ///     lands directly on its own line's X coordinate with no perpendicular-nudge displacement.
+    /// </summary>
+    [Fact]
+    public void Apply_ThreeParallelLabeledEdges_Down_BoxWidthGrowsAndLabelsLandOnTheirOwnLine()
+    {
+        // Arrange: two boxes joined by three distinct parallel edges, each with its own label, with
+        // MergeParallelEdges disabled so all three survive as independently-routed connectors —
+        // the same scenario as the horizontal test above, but with Direction = Down so the shared
+        // face is Top/Bottom instead of Left/Right (caller-supplied 120x50 boxes).
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, false);
+        var producer = graph.AddNode("producer", 120, 50);
+        producer.Label = "Producer";
+        var consumer = graph.AddNode("consumer", 120, 50);
+        consumer.Label = "Consumer";
+        graph.AddEdge("primary", producer, consumer).Label = "primary";
+        graph.AddEdge("retry", producer, consumer).Label = "retry";
+        graph.AddEdge("audit", producer, consumer).Label = "audit";
+
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        Assert.Equal(2, boxes.Count);
+
+        // Assert: box WIDTH auto-grew past the caller-supplied 120 to fit the widened lane spacing —
+        // the geometrically correct axis for a Top/Bottom face, where PortDistributor spreads anchors
+        // horizontally.
+        foreach (var box in boxes)
+        {
+            Assert.True(box.Width > 120.0, $"Expected box '{box.Label}' width to auto-grow past 120, was {box.Width}.");
+        }
+
+        var lines = tree.Nodes.OfType<LayoutLine>().Where(l => l.MidpointLabel != null).ToList();
+        Assert.Equal(3, lines.Count);
+
+        const double assumedFontSize = 12.0; // CoreOptions.AssumedFontSize default
+        var placements = ConnectorLabelPlacer.Place(lines, assumedFontSize);
+
+        // Assert: every labeled line's chosen label X coordinate matches its own line's (straight,
+        // vertical) X coordinate closely — proving the first-pass (no-nudge) placement succeeded for
+        // all three labels instead of one colliding and being pushed far away from its own line.
+        foreach (var line in lines)
+        {
+            Assert.True(placements.TryGetValue(line, out var placement), $"Expected a placement for label '{line.MidpointLabel}'.");
+            var lineX = line.Waypoints[0].X;
+            Assert.Equal(lineX, placement.X, 3);
+        }
+
+        // Assert: the three lines' X coordinates are themselves distinct (still parallel,
+        // non-overlapping lanes) and, per the fix, spaced at least the widest label's own width apart.
+        var lineXs = lines.Select(l => l.Waypoints[0].X).OrderBy(x => x).ToList();
+        var maxLabelWidth = lines.Max(l => ConnectorLabelPlacer.EstimateLabelWidth(l.MidpointLabel!, assumedFontSize));
+        for (var i = 1; i < lineXs.Count; i++)
+        {
+            Assert.True(
+                lineXs[i] - lineXs[i - 1] >= maxLabelWidth - 1e-6,
+                $"Expected adjacent parallel lanes to be spaced at least {maxLabelWidth}px apart, was {lineXs[i] - lineXs[i - 1]}.");
+        }
+    }
 }
 
 

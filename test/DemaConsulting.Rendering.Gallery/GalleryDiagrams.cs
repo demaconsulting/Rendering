@@ -389,6 +389,32 @@ internal static class GalleryDiagrams
     }
 
     /// <summary>
+    ///     The same three parallel labeled connectors as <see cref="ParallelEdgesPreserved"/>, but laid
+    ///     out with a downward <see cref="CoreOptions.Direction"/> so the connectors attach to the
+    ///     top and bottom box faces instead of the left and right faces — the companion vertical-flow
+    ///     case, following the same horizontal/vertical pairing convention as
+    ///     <see cref="PortsShowcaseHorizontal"/>/<see cref="PortsShowcaseVertical"/>. Proves that box
+    ///     WIDTH (not height) auto-grows to fit the widened parallel-edge lane spacing when the shared
+    ///     face is Top/Bottom, since <c>PortDistributor</c> spreads anchors on that face horizontally.
+    /// </summary>
+    /// <returns>A two-node graph with three parallel edges, merging disabled, and a downward flow.</returns>
+    public static LayoutGraph ParallelEdgesPreservedVertical()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, false);
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        var producer = AddLabelled(graph, "producer", "Producer");
+        var consumer = AddLabelled(graph, "consumer", "Consumer");
+
+        Connect(graph, "primary", producer, consumer, "primary");
+        Connect(graph, "retry", producer, consumer, "retry");
+        Connect(graph, "audit", producer, consumer, "audit");
+
+        return graph;
+    }
+
+    /// <summary>
     ///     A three-node left-to-right chain exercising named <see cref="LayoutGraphPort"/>s on the
     ///     left and right sides of the middle node, including a deliberately long left-side label
     ///     demonstrating the auto-computed <see cref="LayoutBox.ContentInsetLeft"/> reserved margin.

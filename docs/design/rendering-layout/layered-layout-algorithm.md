@@ -90,30 +90,39 @@ per node followed by `LayoutLine` per edge).
     reserved insets simultaneously (from `CoreOptions.AssumedFontSize`/`PortLabelClearance`, since
     this algorithm has no `Theme` dependency to draw exact font metrics from) and compares it against
     that node's caller-supplied size. It additionally aggregates, per node and per resolved
-    `PortSide`, the total number of connector anchors on that face and whether any of those anchored
-    edges carries a midpoint label — unconditionally for every emitted edge endpoint, not only named
-    `LayoutGraphPort`s, since the parallel-label-spacing defect also occurs on plain unnamed edges.
-    Whenever a face has 2+ anchors and at least one is labeled, the minimum height candidate is
-    widened to `ConnectorLabelPlacer.EstimateLabelHeight(assumedFontSize) * (anchorCount - 1) + 2 *
-    ConnectorClearance` — the exact inverse of `PortDistributor.DistributePorts`'s own even-spacing
-    formula — so that face's anchors end up spaced at least a full label-height apart. A node whose
-    caller-supplied size is already large enough (on every computed floor, including this one) is
-    left completely unchanged. Otherwise, engine nodes are cloned with `max(caller-supplied, computed
-    minimum)` for the undersized dimension(s) and the full placement/packing/spacing pass re-runs
-    (pass 2) against the grown sizes, so a grown node never silently overlaps a sibling that was
-    positioned relative to its smaller pass-1 footprint. When no node needs growth, pass 2 is skipped
-    entirely and the pass-1 result is emitted as-is.
+    `PortSide`, the total number of connector anchors on that face, whether any of those anchored
+    edges carries a midpoint label, and (since label width — unlike the fixed label-height formula —
+    varies with text) the widest label text sharing that face — unconditionally for every emitted
+    edge endpoint, not only named `LayoutGraphPort`s, since the parallel-label-spacing defect also
+    occurs on plain unnamed edges. Whenever a face has 2+ anchors and at least one is labeled, the
+    floor is widened along the axis that face's `PortDistributor.DistributePorts` call actually
+    spreads anchors along: a `Left`/`Right` face spreads anchors vertically, so the minimum **height**
+    candidate is widened to `ConnectorLabelPlacer.EstimateLabelHeight(assumedFontSize) *
+    (anchorCount - 1) + 2 * ConnectorClearance`; a `Top`/`Bottom` face spreads anchors horizontally,
+    so the minimum **width** candidate is widened to `ConnectorLabelPlacer.EstimateLabelWidth(widest
+    labeled anchor's text, assumedFontSize) * (anchorCount - 1) + 2 * ConnectorClearance` instead —
+    both the exact inverse of `PortDistributor.DistributePorts`'s own even-spacing formula on that
+    face's axis, so that face's anchors end up spaced at least a full label extent (height or width,
+    whichever applies) apart. A node whose caller-supplied size is already large enough (on every
+    computed floor, including this one) is left completely unchanged. Otherwise, engine nodes are
+    cloned with `max(caller-supplied, computed minimum)` for the undersized dimension(s) and the full
+    placement/packing/spacing pass re-runs (pass 2) against the grown sizes, so a grown node never
+    silently overlaps a sibling that was positioned relative to its smaller pass-1 footprint. When no
+    node needs growth, pass 2 is skipped entirely and the pass-1 result is emitted as-is.
 
     Straight, evenly-spaced parallel connectors between the same two boxes (for example 3
     independent labeled connectors preserved via `MergeParallelEdges = false`) previously spaced
-    each line only `PortDistributor`'s default lane spacing apart, which for a typical box height was
-    smaller than a label's own bounding-box height (`ConnectorLabelPlacer.EstimateLabelHeight`);
-    every label after the first then collided with an already-placed label and was nudged
+    each line only `PortDistributor`'s default lane spacing apart, which for a typical box size was
+    smaller than a label's own bounding-box extent on the axis anchors are spread along
+    (`ConnectorLabelPlacer.EstimateLabelHeight` for a `Left`/`Right` face,
+    `ConnectorLabelPlacer.EstimateLabelWidth` for a `Top`/`Bottom` face, e.g. a downward-flowing
+    diagram); every label after the first then collided with an already-placed label and was nudged
     perpendicular to its own line by `ConnectorLabelPlacer`'s fallback pass, visually detaching the
     label from the line it names. This floor grows the node just enough that `PortDistributor`'s own
-    even-spacing formula matches `ConnectorLabelPlacer`'s label-height formula, so the placer's
-    first-pass (no-nudge) placement succeeds for every label instead, and each label lands directly
-    on its own line.
+    even-spacing formula matches `ConnectorLabelPlacer`'s label-extent formula on that face's axis, so
+    the placer's first-pass (no-nudge) placement succeeds for every label instead, and each label
+    lands directly on its own line, regardless of whether the diagram flows horizontally or
+    vertically.
 
 An empty graph yields an empty `LayoutTree` because `InterconnectionLayoutEngine.Place` returns a
 minimal-size empty result, which produces an empty canvas.

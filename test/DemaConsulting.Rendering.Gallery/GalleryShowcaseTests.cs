@@ -262,6 +262,22 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
+    ///     Renders the vertical-flow parallel-edges-preserved diagram to SVG — the companion to
+    ///     <see cref="Gallery_ParallelEdgesPreserved_RendersSvg"/> — proving that with a downward
+    ///     <see cref="CoreOptions.Direction"/> the three parallel connectors anchor on the boxes' top
+    ///     and bottom faces, and that each box's WIDTH (not height) auto-grows to fit the widened
+    ///     lane spacing on that axis.
+    /// </summary>
+    [Fact]
+    public void Gallery_ParallelEdgesPreservedVertical_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.ParallelEdgesPreservedVerticalSvg,
+            GalleryDiagrams.ParallelEdgesPreservedVertical(),
+            Themes.Dark);
+    }
+
+    /// <summary>
     ///     Renders the horizontal ports showcase to SVG, proving named left/right ports on a
     ///     rightward-flowing node emit a <see cref="LayoutPort"/> glyph and inward-reading label, and
     ///     that a long left-side label auto-computes a widened <see cref="LayoutBox.ContentInsetLeft"/>

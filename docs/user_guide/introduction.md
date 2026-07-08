@@ -279,9 +279,17 @@ graph.Set(CoreOptions.MergeParallelEdges, false);
 
 Each node's `ContentInsetLeft`/`ContentInsetRight` margins (reserved so port labels never overlap
 the box's own content) are auto-computed by a built-in, dependency-free heuristic driven by
-`CoreOptions.AssumedFontSize` — no configuration is required. The [gallery's "Parallel edges and
-named ports" diagrams](../gallery/README.md) show complete, rendered examples of preserved vs.
-merged parallel edges and horizontal vs. vertical port placement.
+`CoreOptions.AssumedFontSize` — no configuration is required. When 2 or more parallel edges sharing
+a face carry a midpoint label (for example `MergeParallelEdges = false` with several labeled
+connectors between the same pair of boxes), the owning box's size auto-grows — never shrinks — just
+enough that each label lands on its own line instead of being nudged aside to avoid overlapping an
+adjacent label. This auto-grow is axis-aware and follows the flow `Direction`: for a `Right`/`Left`
+flow (connectors attach to the Left/Right faces, spread vertically) the box's **height** grows to
+fit each label's height; for a `Down`/`Up` flow (connectors attach to the Top/Bottom faces, spread
+horizontally) the box's **width** grows to fit each label's actual rendered width instead. The
+[gallery's "Parallel edges and named ports" diagrams](../gallery/README.md) show complete, rendered
+examples of preserved vs. merged parallel edges, horizontal vs. vertical port placement, and the
+horizontal- vs. vertical-flow parallel-edge auto-grow behavior.
 
 ## Option cascading
 
