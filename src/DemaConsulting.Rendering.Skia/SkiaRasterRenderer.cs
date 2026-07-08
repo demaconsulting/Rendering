@@ -136,9 +136,22 @@ public abstract class SkiaRasterRenderer : IRenderer
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(output);
 
-        // Compute bitmap size, enforcing minimum 1×1 to prevent SKBitmap allocation errors
+        // Resolve every connector label's placement (position and size) before sizing the bitmap: a
+        // label nudged to avoid colliding with another can land outside the box/routing geometry's
+        // extent, so the bitmap must be sized only after label placement is known — a raster bitmap's
+        // dimensions cannot grow once allocated.
+        var lines = CollectLines(layout.Nodes).ToList();
+        var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody);
+
+        // Compute bitmap size, enforcing minimum 1×1 to prevent SKBitmap allocation errors, then grow
+        // to fully include every placed label's bounding box.
         var w = Math.Max(1, (int)Math.Ceiling(layout.Width * options.Scale));
         var h = Math.Max(1, (int)Math.Ceiling(layout.Height * options.Scale));
+        foreach (var placement in labelPositions.Values)
+        {
+            w = Math.Max(w, (int)Math.Ceiling((placement.X + placement.HalfWidth) * options.Scale));
+            h = Math.Max(h, (int)Math.Ceiling((placement.Y + placement.HalfHeight) * options.Scale));
+        }
 
         // Allocate bitmap, canvas and render all nodes
         using var bitmap = new SKBitmap(w, h, SKColorType.Rgba8888, SKAlphaType.Premul);
@@ -155,10 +168,9 @@ public abstract class SkiaRasterRenderer : IRenderer
         }
 
         // Final pass: draw every connector label on top of all wires and boxes, so that no later
-        // wire can draw over an earlier wire's label. Positions are computed up front so that labels
-        // that would collide (for example where two connectors cross) are spread apart.
-        var lines = CollectLines(layout.Nodes).ToList();
-        var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody);
+        // wire can draw over an earlier wire's label. Positions were computed up front (before
+        // sizing the bitmap, above) so that labels that would collide (for example where two
+        // connectors cross) are spread apart.
         foreach (var line in lines)
         {
             if (line.MidpointLabel is not null && labelPositions.TryGetValue(line, out var pos))
@@ -443,7 +455,9 @@ public abstract class SkiaRasterRenderer : IRenderer
     {
         var theme = options.Theme;
         var scale = (float)options.Scale;
-        var centerX = (float)((box.X + box.Width / 2.0) * scale);
+        var contentLeft = box.X + theme.LabelPadding + box.ContentInsetLeft;
+        var contentRight = box.X + box.Width - theme.LabelPadding - box.ContentInsetRight;
+        var centerX = (float)(((contentLeft + contentRight) / 2.0) * scale);
         var cursorY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + theme.LabelPadding;
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
@@ -1239,6 +1253,8 @@ public abstract class SkiaRasterRenderer : IRenderer
 
             using var textPaint = CreateTextPaint(strokeColor);
             using var font = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: false);
+            var maxLabelWidth = (float)(port.MaxLabelWidth * scale);
+            font.Size = FitFontSize(font, port.Label, maxLabelWidth, font.Size);
             canvas.DrawText(port.Label, (float)(labelX * scale), (float)(labelY * scale), align, font, textPaint);
         }
     }

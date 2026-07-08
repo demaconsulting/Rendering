@@ -624,6 +624,50 @@ public class LayeredLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that with the default <see cref="CoreOptions.MergeParallelEdges"/> (<see langword="true"/>),
+    ///     when 2+ raw parallel edges collapse into a single rendered <see cref="LayoutLine"/>, the
+    ///     midpoint label is omitted entirely — never "first survivor wins" — even when every
+    ///     collapsed edge happened to carry an identical label.
+    /// </summary>
+    [Fact]
+    public void Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_OmitsLabelOnCollapse()
+    {
+        // Arrange: two nodes joined by three labeled parallel edges.
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 80, 40);
+        var b = graph.AddNode("b", 80, 40);
+        graph.AddEdge("e1", a, b).Label = "primary";
+        graph.AddEdge("e2", a, b).Label = "retry";
+        graph.AddEdge("e3", a, b).Label = "audit";
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        // Assert: exactly one line survives, and its label is omitted (not "primary", the first
+        // edge's label).
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        Assert.Null(line.MidpointLabel);
+    }
+
+    /// <summary>
+    ///     Proves that a genuinely single edge between two nodes (nothing collapsed) keeps its own
+    ///     label even when <see cref="CoreOptions.MergeParallelEdges"/> is <see langword="true"/>.
+    /// </summary>
+    [Fact]
+    public void Apply_SingleEdge_MergeParallelEdgesDefaultTrue_KeepsOwnLabel()
+    {
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 80, 40);
+        var b = graph.AddNode("b", 80, 40);
+        graph.AddEdge("e1", a, b).Label = "only";
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        Assert.Equal("only", line.MidpointLabel);
+    }
+
+    /// <summary>
     ///     Proves that a per-graph <see cref="CoreOptions.MergeParallelEdges"/> override wins over an
     ///     options-scope value, consistent with every other resolved option in this algorithm.
     /// </summary>
@@ -708,4 +752,161 @@ public class LayeredLayoutAlgorithmTests
         Assert.Equal(0.0, sourceBox.ContentInsetTop);
         Assert.Equal(0.0, sourceBox.ContentInsetBottom);
     }
+
+    /// <summary>
+    ///     Proves that <see cref="LayoutPort.MaxLabelWidth"/> is computed from the owning box's
+    ///     (post-auto-grow) width — roughly half the box's inner width — rather than left unconstrained,
+    ///     so a renderer can squeeze an overlong port label instead of letting it overlap the opposite
+    ///     port's label region.
+    /// </summary>
+    [Fact]
+    public void Apply_EdgeWithPortEndpoint_ComputesFiniteMaxLabelWidth()
+    {
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("source", 200, 60);
+        var target = graph.AddNode("target", 200, 60);
+        var port = source.Ports.AddPort("out1");
+        port.ExternalLabel = "output";
+        graph.AddEdge("e1", port, target);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var port1 = Assert.Single(tree.Nodes.OfType<LayoutPort>());
+        Assert.False(double.IsPositiveInfinity(port1.MaxLabelWidth));
+
+        var sourceBox = tree.Nodes.OfType<LayoutBox>().OrderBy(b => b.X).First();
+        Assert.True(port1.MaxLabelWidth <= sourceBox.Width / 2.0);
+    }
+
+    /// <summary>
+    ///     Proves that a caller-supplied node size already large enough to fit its title and port
+    ///     insets is left completely unchanged — the auto-grow floor never shrinks a node, and it does
+    ///     not "helpfully" enlarge a node that does not need it.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeAlreadyLargeEnough_SizeUnchanged()
+    {
+        var graph = new LayoutGraph();
+        var node = graph.AddNode("roomy", 400, 300);
+        node.Label = "Roomy";
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var box = Assert.Single(tree.Nodes.OfType<LayoutBox>());
+        Assert.Equal(400.0, box.Width, 3);
+        Assert.Equal(300.0, box.Height, 3);
+    }
+
+    /// <summary>
+    ///     Proves that a node whose caller-supplied size is too small to fit its title plus its top and
+    ///     bottom port-driven content insets simultaneously is auto-grown taller (never below the
+    ///     caller-supplied size) so the title and port labels do not overlap.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeWithTopAndBottomPorts_TooSmall_AutoGrowsHeight()
+    {
+        // Arrange: a small node with both a top and a bottom port, mirroring the gallery's
+        // PortsShowcaseVertical "hub" node (small caller-supplied 120x50 size, title + 2 flat
+        // vertical insets demand more height than that).
+        var graph = new LayoutGraph();
+        var above = graph.AddNode("above", 80, 30);
+        var hub = graph.AddNode("hub", 120, 50);
+        hub.Label = "Hub";
+        var below = graph.AddNode("below", 80, 30);
+        var topPort = hub.Ports.AddPort("status");
+        topPort.ExternalLabel = "status";
+        var bottomPort = hub.Ports.AddPort("ctrl");
+        bottomPort.ExternalLabel = "ctrl";
+        graph.AddEdge("e1", above, topPort);
+        graph.AddEdge("e2", bottomPort, below);
+
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        // Assert: the hub box grew taller than its caller-supplied 50px height.
+        var hubBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Hub");
+        Assert.True(hubBox.Height > 50.0, $"Expected hub height to grow past 50, was {hubBox.Height}.");
+        Assert.True(hubBox.Width >= 120.0);
+
+        // Assert: the top content inset itself (not merely the box's overall height) is deep enough
+        // that a renderer's title start position clears the top port's own label. A renderer draws
+        // the top port's label at a position derived purely from the port's glyph/font size (roughly
+        // PortHalfSize + LabelPadding + FontSizeBody + FontSizeBody/2 below the box's top edge,
+        // independent of box height), so only ContentInsetTop can create real clearance.
+        const double assumedFontSize = 12.0; // CoreOptions.AssumedFontSize default
+        const double portLabelClearance = 4.0; // matches NotationMetrics.PortHalfSize by design
+        var requiredInsetTop = (2.0 * assumedFontSize) + (2.0 * portLabelClearance);
+        Assert.True(
+            hubBox.ContentInsetTop >= requiredInsetTop,
+            $"Expected ContentInsetTop >= {requiredInsetTop} to clear the top port's label, was {hubBox.ContentInsetTop}.");
+    }
+
+    /// <summary>
+    ///     Proves that when auto-growing a node to fit its title/port insets, the packing/spacing stage
+    ///     re-runs with the grown size so the grown node never overlaps an already-placed sibling.
+    /// </summary>
+    [Fact]
+    public void Apply_AutoGrownNode_DoesNotOverlapSiblings()
+    {
+        var graph = new LayoutGraph();
+        var above = graph.AddNode("above", 80, 30);
+        var hub = graph.AddNode("hub", 120, 50);
+        hub.Label = "Hub";
+        var below = graph.AddNode("below", 80, 30);
+        var sibling = graph.AddNode("sibling", 80, 30);
+        var topPort = hub.Ports.AddPort("status");
+        topPort.ExternalLabel = "status";
+        var bottomPort = hub.Ports.AddPort("ctrl");
+        bottomPort.ExternalLabel = "ctrl";
+        graph.AddEdge("e1", above, topPort);
+        graph.AddEdge("e2", bottomPort, below);
+        graph.AddEdge("e3", above, sibling);
+
+        var options = new LayoutOptions();
+        options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        for (var i = 0; i < boxes.Count; i++)
+        {
+            for (var j = i + 1; j < boxes.Count; j++)
+            {
+                Assert.False(Overlaps(boxes[i], boxes[j]), $"{boxes[i].Label} overlaps {boxes[j].Label}");
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Proves that when no node needs auto-growth (the common case), the layout is unaffected by
+    ///     the Fix 5 two-pass mechanism: a diagram with generously-sized nodes and no ports produces
+    ///     the same box placements whether or not the growth check ran.
+    /// </summary>
+    [Fact]
+    public void Apply_NoNodeNeedsGrowth_PassTwoSkipped_LayoutUnaffected()
+    {
+        var graph = BuildFanOut();
+
+        var tree1 = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree2 = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var boxes1 = tree1.Nodes.OfType<LayoutBox>().ToList();
+        var boxes2 = tree2.Nodes.OfType<LayoutBox>().ToList();
+        Assert.Equal(boxes1.Count, boxes2.Count);
+        for (var i = 0; i < boxes1.Count; i++)
+        {
+            Assert.Equal(boxes1[i].X, boxes2[i].X, 6);
+            Assert.Equal(boxes1[i].Y, boxes2[i].Y, 6);
+            Assert.Equal(boxes1[i].Width, boxes2[i].Width, 6);
+            Assert.Equal(boxes1[i].Height, boxes2[i].Height, 6);
+        }
+    }
+
+    /// <summary>Returns whether two placed boxes' rectangles overlap (touching edges are not an overlap).</summary>
+    private static bool Overlaps(LayoutBox a, LayoutBox b) =>
+        a.X < b.X + b.Width && a.X + a.Width > b.X && a.Y < b.Y + b.Height && a.Y + a.Height > b.Y;
 }
+

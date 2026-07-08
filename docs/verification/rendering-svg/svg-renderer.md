@@ -145,6 +145,25 @@ reserved margin rather than assuming a fixed offset.
 
 **Covers**: `Rendering-Svg-SvgRenderer-RenderPortLabel`, `Rendering-Svg-SvgRenderer-ContentInset`.
 
+#### Port label squeeze, title inset-aware centering, and label-aware canvas growth
+
+`SvgRenderer_RenderPort_LongLabelWithMaxLabelWidth_AppliesTextLengthConstraint` renders a port with
+a deliberately long `ExternalLabel` and a finite `MaxLabelWidth`, and asserts the emitted `<text>`
+element carries a `textLength` attribute bounding it to that width (matching the squeeze mechanism
+already used for box titles). `SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter`
+renders a box whose `ContentInsetLeft` differs from `ContentInsetRight` and asserts the title's
+`<text x="...">` shifts away from the raw box-center toward the smaller-inset side, matching the
+inset-adjusted content area rather than the full box width.
+`SvgRenderer_Render_ManyCollidingConnectorLabels_AllLabelsWithinViewBox` renders 3+ parallel labeled
+connectors whose midpoint labels collide and get nudged, then parses the rendered `viewBox` and every
+label `<text>` element's approximate position/extent, asserting every label lies fully within the
+final `viewBox` bounds — confirming the canvas grows to include labels nudged outside the
+box+routing-geometry extent rather than clipping them invisibly.
+
+**Covers**: `Rendering-Svg-SvgRenderer-PortLabelSqueeze`,
+`Rendering-Svg-SvgRenderer-TitleCentersOnInsetContent`,
+`Rendering-Svg-SvgRenderer-CanvasGrowsForLabels`.
+
 #### Connector end markers
 
 Tests `OpenChevron_IsDefinedAsPolyline` and `OpenChevronLine_ReferencesOpenChevronMarker` assert that
@@ -224,8 +243,14 @@ marker id appears somewhere in the document. This prevents a false pass if the m
 - **`Rendering-Svg-SvgRenderer-RenderNodeKinds`**: `SvgRenderer_Render_SinglePort_ProducesRect`
 - **`Rendering-Svg-SvgRenderer-RenderPortLabel`**: `SvgRenderer_RenderPort_LeftRightLabel_ReadsInward`,
   `SvgRenderer_RenderPort_TopBottomLabel_ReadsInward`
+- **`Rendering-Svg-SvgRenderer-PortLabelSqueeze`**:
+  `SvgRenderer_RenderPort_LongLabelWithMaxLabelWidth_AppliesTextLengthConstraint`
 - **`Rendering-Svg-SvgRenderer-ContentInset`**:
   `SvgRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowTextRight`
+- **`Rendering-Svg-SvgRenderer-TitleCentersOnInsetContent`**:
+  `SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter`
+- **`Rendering-Svg-SvgRenderer-CanvasGrowsForLabels`**:
+  `SvgRenderer_Render_ManyCollidingConnectorLabels_AllLabelsWithinViewBox`
 - **`Rendering-Svg-SvgRenderer-RenderBadge`**:
   `SvgRenderer_Render_SingleBadge_FilledCircle_ProducesCircle`
 - **`Rendering-Svg-SvgRenderer-BadgeBullseye`**:

@@ -201,9 +201,15 @@ engine.Compartments = [new LayoutCompartment("ports", ["intake", "exhaust"])];
 
 Only the node's `Width`/`Height` affect layout placement — a caller is responsible for sizing a node
 large enough to fit its keyword line and compartment rows (see `BoxMetrics.TitleAreaHeight` and the
-per-compartment row heights in `DemaConsulting.Rendering.Abstractions`); no leaf algorithm grows a box
-to fit its own appearance. The [gallery's "Box appearance" diagram](../gallery/README.md) shows a
-complete, rendered example.
+per-compartment row heights in `DemaConsulting.Rendering.Abstractions`); no leaf algorithm grows a
+box to fit compartment/child content. The one exception is `LayeredLayoutAlgorithm`, which emits a
+node's `Width`/`Height` as `max(caller-supplied, computed minimum)`, growing — never shrinking —
+past a caller-supplied size only far enough to simultaneously fit the node's own title and its
+reserved port-label content insets (`ContentInsetLeft/Right/Top/Bottom`); this floor exists purely
+to prevent a title/port-label collision the caller has no visibility into (the insets are themselves
+auto-computed from port labels), and does not extend to compartment or child sizing, which remains
+entirely caller/child-driven as before. The
+[gallery's "Box appearance" diagram](../gallery/README.md) shows a complete, rendered example.
 
 When a container node (one with `Children`) also carries a `Label`, `HierarchicalLayoutAlgorithm`
 reserves a title band above its children so the label never overlaps the nested content. By default

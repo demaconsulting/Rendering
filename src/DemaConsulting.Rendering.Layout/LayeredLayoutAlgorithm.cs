@@ -117,79 +117,158 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         var nodeSpacing = ResolveNodeSpacing(graph, options);
         var mergeParallelEdges = ResolveMergeParallelEdges(graph, options);
         var assumedFontSize = ResolveAssumedFontSize(graph, options);
-        var result = InterconnectionLayoutEngine.Place(engineNodes, engineEdges, direction, nodeSpacing, mergeParallelEdges);
 
-        // Build an engine-edge-index -> (waypoints, reversed) lookup from the acyclic edge set the
-        // engine routed. When MergeParallelEdges is true, CycleBreaker has already collapsed parallel
-        // edges into a single acyclic edge per node pair, so only the surviving engine edge resolves
-        // here; the emission loop below independently skips the non-surviving duplicates using the
-        // same first-occurrence rule, so the two decisions always agree.
-        var routesByEngineIndex = new Dictionary<int, (IReadOnlyList<Point2D> Waypoints, bool Reversed)>();
-        for (var k = 0; k < result.AcyclicEdges.Count; k++)
+        // Count how many raw input edges share each (source, target) pair, so the final connector
+        // emission loop can tell whether an emitted line is a genuine single edge or the survivor of
+        // 2+ collapsed parallel edges. Only needed when MergeParallelEdges is true (when it is false,
+        // every edge is emitted independently and always keeps its own label). Independent of node
+        // sizes, so it is computed once and unaffected by the Fix 5 auto-grow re-pass below.
+        var pairCounts = new Dictionary<(int Source, int Target), int>();
+        if (mergeParallelEdges)
         {
-            var originalEngineIndex = result.AcyclicOriginalIndex[k];
-            var acyclic = result.AcyclicEdges[k];
-            var reversed = acyclic.Source != engineEdges[originalEngineIndex].Source;
-            routesByEngineIndex[originalEngineIndex] = (result.ConnectorWaypoints[k], reversed);
+            foreach (var edge in engineEdges)
+            {
+                var key = (edge.Source, edge.Target);
+                pairCounts[key] = pairCounts.TryGetValue(key, out var existing) ? existing + 1 : 1;
+            }
         }
 
-        // First pass: decide which edges are emitted (honoring MergeParallelEdges) and resolve each
-        // emitted edge's normalized (source -> target) waypoints, so port sides/labels can be
-        // aggregated per node before the boxes (which need the resulting content insets) are built.
-        var emittedPairs = new HashSet<(int Source, int Target)>();
-        var emissions = new List<(
-            LayoutGraphEdge Edge,
-            int Source,
-            int Target,
-            LayoutGraphPort? SourcePort,
-            LayoutGraphPort? TargetPort,
-            IReadOnlyList<Point2D> Waypoints)>();
-
-        for (var i = 0; i < engineEdges.Count; i++)
+        // Runs one full engine placement + route-resolution + port-aggregation pass for the given
+        // per-node sizes. Used twice when Fix 5's minimum-size floor grows a node: once with the
+        // caller-supplied sizes (Pass 1), and (only if growth is needed) once more with the grown
+        // sizes (Pass 2), so the packing/spacing stage always sees final sizes and never silently
+        // overlaps a sibling positioned relative to a smaller Pass-1 footprint.
+        (LayerResult Result,
+            Dictionary<int, (IReadOnlyList<Point2D> Waypoints, bool Reversed)> RoutesByEngineIndex,
+            List<(
+                LayoutGraphEdge Edge,
+                int Source,
+                int Target,
+                LayoutGraphPort? SourcePort,
+                LayoutGraphPort? TargetPort,
+                IReadOnlyList<Point2D> Waypoints)> Emissions,
+            Dictionary<int, Dictionary<PortSide, List<string>>> SidePorts) RunLayerPass(LayerNode[] nodesForPass)
         {
-            var s = engineEdges[i].Source;
-            var t = engineEdges[i].Target;
+            var passResult = InterconnectionLayoutEngine.Place(
+                nodesForPass, engineEdges, direction, nodeSpacing, mergeParallelEdges);
 
-            if (mergeParallelEdges && !emittedPairs.Add((s, t)))
+            // Build an engine-edge-index -> (waypoints, reversed) lookup from the acyclic edge set the
+            // engine routed. When MergeParallelEdges is true, CycleBreaker has already collapsed
+            // parallel edges into a single acyclic edge per node pair, so only the surviving engine
+            // edge resolves here; the emission loop below independently skips the non-surviving
+            // duplicates using the same first-occurrence rule, so the two decisions always agree.
+            var routes = new Dictionary<int, (IReadOnlyList<Point2D> Waypoints, bool Reversed)>();
+            for (var k = 0; k < passResult.AcyclicEdges.Count; k++)
+            {
+                var originalEngineIndex = passResult.AcyclicOriginalIndex[k];
+                var acyclic = passResult.AcyclicEdges[k];
+                var reversed = acyclic.Source != engineEdges[originalEngineIndex].Source;
+                routes[originalEngineIndex] = (passResult.ConnectorWaypoints[k], reversed);
+            }
+
+            // Decide which edges are emitted (honoring MergeParallelEdges) and resolve each emitted
+            // edge's normalized (source -> target) waypoints, so port sides/labels can be aggregated
+            // per node before the boxes (which need the resulting content insets) are built.
+            var emittedPairsLocal = new HashSet<(int Source, int Target)>();
+            var emissionsLocal = new List<(
+                LayoutGraphEdge Edge,
+                int Source,
+                int Target,
+                LayoutGraphPort? SourcePort,
+                LayoutGraphPort? TargetPort,
+                IReadOnlyList<Point2D> Waypoints)>();
+
+            for (var i = 0; i < engineEdges.Count; i++)
+            {
+                var s = engineEdges[i].Source;
+                var t = engineEdges[i].Target;
+
+                if (mergeParallelEdges && !emittedPairsLocal.Add((s, t)))
+                {
+                    continue;
+                }
+
+                var waypoints = ResolveRoute(routes, i, s, t, passResult.Rects);
+                emissionsLocal.Add((edgeByEngineIndex[i], s, t, edgeSourcePorts[i], edgeTargetPorts[i], waypoints));
+            }
+
+            // Aggregate, per node and side, the port labels driving that side's content inset.
+            var sidePortsLocal = new Dictionary<int, Dictionary<PortSide, List<string>>>();
+            void RecordPort(int nodeIndex, Point2D anchor, string? label)
+            {
+                var side = ResolveSide(anchor, passResult.Rects[nodeIndex]);
+                if (!sidePortsLocal.TryGetValue(nodeIndex, out var bySide))
+                {
+                    bySide = new Dictionary<PortSide, List<string>>();
+                    sidePortsLocal[nodeIndex] = bySide;
+                }
+
+                if (!bySide.TryGetValue(side, out var labels))
+                {
+                    labels = [];
+                    bySide[side] = labels;
+                }
+
+                labels.Add(label ?? string.Empty);
+            }
+
+            foreach (var emission in emissionsLocal)
+            {
+                if (emission.SourcePort != null)
+                {
+                    RecordPort(emission.Source, emission.Waypoints[0], emission.SourcePort.ExternalLabel);
+                }
+
+                if (emission.TargetPort != null)
+                {
+                    RecordPort(emission.Target, emission.Waypoints[^1], emission.TargetPort.ExternalLabel);
+                }
+            }
+
+            return (passResult, routes, emissionsLocal, sidePortsLocal);
+        }
+
+        var (result, routesByEngineIndex, emissions, sidePorts) = RunLayerPass(engineNodes);
+
+        // Fix 5: grow any node whose caller-supplied size is insufficient to fit its title plus its
+        // (now-known) port-driven content insets simultaneously — never shrinking below the
+        // caller-supplied size. When any node needs growth, engineNodes is rebuilt with the grown
+        // sizes and the engine re-runs its full placement/packing/spacing pass (Pass 2), so a grown
+        // node never silently overlaps a sibling positioned relative to a smaller Pass-1 footprint.
+        // The common case (no node needs growth) skips Pass 2 entirely.
+        LayerNode[]? grownNodes = null;
+        for (var i = 0; i < count; i++)
+        {
+            sidePorts.TryGetValue(i, out var bySide);
+            var (insetLeft, insetRight, insetTop, insetBottom) =
+                ResolveContentInsets(bySide, assumedFontSize, hasTitle: graphNodes[i].Label != null);
+
+            var minWidth = PortLabelWidthEstimator.MeasureWidth(graphNodes[i].Label ?? string.Empty, assumedFontSize)
+                + (PortLabelClearance * 2) + insetLeft + insetRight;
+            var minHeight = assumedFontSize + (PortLabelClearance * 2) + insetTop + insetBottom;
+
+            var desiredWidth = Math.Max(engineNodes[i].Width, minWidth);
+            var desiredHeight = Math.Max(engineNodes[i].Height, minHeight);
+
+            if (desiredWidth <= engineNodes[i].Width && desiredHeight <= engineNodes[i].Height)
             {
                 continue;
             }
 
-            var waypoints = ResolveRoute(routesByEngineIndex, i, s, t, result.Rects);
-            emissions.Add((edgeByEngineIndex[i], s, t, edgeSourcePorts[i], edgeTargetPorts[i], waypoints));
+            grownNodes ??= (LayerNode[])engineNodes.Clone();
+            grownNodes[i] = grownNodes[i] with
+            {
+                Width = desiredWidth,
+                Height = desiredHeight,
+                RealWidth = desiredWidth,
+                RealHeight = desiredHeight,
+            };
         }
 
-        // Aggregate, per node and side, the port labels driving that side's content inset.
-        var sidePorts = new Dictionary<int, Dictionary<PortSide, List<string>>>();
-        void RecordPort(int nodeIndex, Point2D anchor, string? label)
+        if (grownNodes != null)
         {
-            var side = ResolveSide(anchor, result.Rects[nodeIndex]);
-            if (!sidePorts.TryGetValue(nodeIndex, out var bySide))
-            {
-                bySide = new Dictionary<PortSide, List<string>>();
-                sidePorts[nodeIndex] = bySide;
-            }
-
-            if (!bySide.TryGetValue(side, out var labels))
-            {
-                labels = [];
-                bySide[side] = labels;
-            }
-
-            labels.Add(label ?? string.Empty);
-        }
-
-        foreach (var emission in emissions)
-        {
-            if (emission.SourcePort != null)
-            {
-                RecordPort(emission.Source, emission.Waypoints[0], emission.SourcePort.ExternalLabel);
-            }
-
-            if (emission.TargetPort != null)
-            {
-                RecordPort(emission.Target, emission.Waypoints[^1], emission.TargetPort.ExternalLabel);
-            }
+            engineNodes = grownNodes;
+            (result, routesByEngineIndex, emissions, sidePorts) = RunLayerPass(engineNodes);
         }
 
         var nodes = new List<LayoutNode>(count + (emissions.Count * 2));
@@ -201,7 +280,7 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
             var rect = result.Rects[i];
             sidePorts.TryGetValue(i, out var bySide);
             var (insetLeft, insetRight, insetTop, insetBottom) =
-                ResolveContentInsets(bySide, assumedFontSize);
+                ResolveContentInsets(bySide, assumedFontSize, hasTitle: graphNodes[i].Label != null);
 
             nodes.Add(new LayoutBox(
                 rect.X,
@@ -223,15 +302,22 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                 ContentInsetBottom: insetBottom));
         }
 
-        // Emit one connector (and, for a port endpoint, one LayoutPort) per emitted edge.
+        // Emit one connector (and, for a port endpoint, one LayoutPort) per emitted edge. When 2+ raw
+        // edges collapsed into this pair, the midpoint label is omitted entirely (never "first
+        // survivor wins") because it would misleadingly attribute only one of the merged edges'
+        // meanings to the single rendered line.
         foreach (var emission in emissions)
         {
+            var collapsed = mergeParallelEdges &&
+                pairCounts.TryGetValue((emission.Source, emission.Target), out var pairCount) &&
+                pairCount > 1;
+
             nodes.Add(new LayoutLine(
                 emission.Waypoints,
                 EndMarkerStyle.None,
                 emission.Edge.TargetEnd,
                 emission.Edge.LineStyle,
-                emission.Edge.Label));
+                collapsed ? null : emission.Edge.Label));
 
             if (emission.SourcePort != null)
             {
@@ -240,7 +326,8 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                     anchor.X,
                     anchor.Y,
                     ResolveSide(anchor, result.Rects[emission.Source]),
-                    emission.SourcePort.ExternalLabel));
+                    emission.SourcePort.ExternalLabel,
+                    ResolveMaxLabelWidth(result.Rects[emission.Source])));
             }
 
             if (emission.TargetPort != null)
@@ -250,7 +337,8 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                     anchor.X,
                     anchor.Y,
                     ResolveSide(anchor, result.Rects[emission.Target]),
-                    emission.TargetPort.ExternalLabel));
+                    emission.TargetPort.ExternalLabel,
+                    ResolveMaxLabelWidth(result.Rects[emission.Target])));
             }
         }
 
@@ -368,15 +456,29 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
     }
 
     /// <summary>
+    /// Computes the maximum width, in logical pixels, a port label attached to <paramref name="rect"/>
+    /// should be allowed to occupy before a renderer squeezes it to fit — roughly half the box's inner
+    /// width, so a long label on one side cannot visually overlap a label on the opposite side.
+    /// </summary>
+    private static double ResolveMaxLabelWidth(Rect rect) =>
+        Math.Max(0.0, (rect.Width / 2.0) - PortLabelClearance);
+
+    /// <summary>
     /// Computes the four <see cref="LayoutBox.ContentInsetLeft"/>/Right/Top/Bottom margins for a
     /// node from its aggregated per-side port labels: the left/right insets are the widest same-side
     /// label's measured width plus clearance, and the top/bottom insets are a flat
     /// <see cref="CoreOptions.AssumedFontSize"/>-derived height, per ROADMAP. Zero on any side with
-    /// no ports.
+    /// no ports. When <paramref name="hasTitle"/> is <see langword="true"/>, the top/bottom insets
+    /// (when driven by a top/bottom port) are additionally widened enough that a rendered box title,
+    /// which starts drawing immediately after the top inset, cannot visually overlap the top port's
+    /// own label — a renderer draws a port's label at a position derived from the port's glyph and
+    /// font size, independent of the box's total height, so only the inset itself (not a later
+    /// auto-grow of the box's overall height) can create that clearance.
     /// </summary>
     private static (double Left, double Right, double Top, double Bottom) ResolveContentInsets(
         Dictionary<PortSide, List<string>>? bySide,
-        double assumedFontSize)
+        double assumedFontSize,
+        bool hasTitle = false)
     {
         if (bySide == null)
         {
@@ -398,6 +500,25 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         var right = SideWidth(PortSide.Right);
         var top = bySide.ContainsKey(PortSide.Top) ? assumedFontSize + PortLabelClearance : 0.0;
         var bottom = bySide.ContainsKey(PortSide.Bottom) ? assumedFontSize + PortLabelClearance : 0.0;
+
+        if (hasTitle)
+        {
+            // A renderer draws a top/bottom port's label roughly (PortLabelClearance + 1.5 x
+            // assumedFontSize) away from the box edge, regardless of the inset value; the box title
+            // starts immediately after the inset, so the inset itself must be at least that deep (with
+            // margin) for a box that has both a title and a top/bottom port to avoid overlap.
+            var titleClearance = (2.0 * assumedFontSize) + (2.0 * PortLabelClearance);
+            if (top > 0.0)
+            {
+                top = Math.Max(top, titleClearance);
+            }
+
+            if (bottom > 0.0)
+            {
+                bottom = Math.Max(bottom, titleClearance);
+            }
+        }
+
         return (left, right, top, bottom);
     }
 

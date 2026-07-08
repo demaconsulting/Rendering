@@ -417,6 +417,123 @@ public sealed class SvgRendererPortedTests
     }
 
     /// <summary>
+    ///     Proves that when 3+ parallel labeled connectors force the label placer to nudge labels
+    ///     downward to avoid collisions, the SVG renderer grows the canvas (rather than sizing it
+    ///     from the pre-label-placement box/routing geometry alone) so every label stays fully
+    ///     within the final rendered viewBox — none are clipped off-canvas.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_Render_ManyCollidingConnectorLabels_AllLabelsWithinViewBox()
+    {
+        // Arrange: three horizontal lines close enough together (4px apart) that their preferred
+        // midpoint labels collide and must be nudged apart, using a deliberately small declared
+        // canvas height (60) that is too small to fit the nudged labels without growing.
+        var renderer = new SvgRenderer();
+        var lineA = new LayoutLine([new Point2D(0, 20), new Point2D(200, 20)], EndMarkerStyle.None, EndMarkerStyle.FilledArrow, LineStyle.Solid, "primary");
+        var lineB = new LayoutLine([new Point2D(0, 24), new Point2D(200, 24)], EndMarkerStyle.None, EndMarkerStyle.FilledArrow, LineStyle.Solid, "retry");
+        var lineC = new LayoutLine([new Point2D(0, 28), new Point2D(200, 28)], EndMarkerStyle.None, EndMarkerStyle.FilledArrow, LineStyle.Solid, "audit");
+        var layout = new LayoutTree(220, 60, [lineA, lineB, lineC]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert: every <text> element (the 3 midpoint labels) lies within [0, width] x [0, height]
+        // of the rendered viewBox, which must have grown past the declared 220x60 to include them.
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var (width, height) = ExtractSvgSize(svgText);
+        var (xs, ys) = ExtractAllTextPositions(svgText);
+        Assert.Equal(3, xs.Count);
+        for (var i = 0; i < xs.Count; i++)
+        {
+            Assert.InRange(xs[i], 0.0, width);
+            Assert.InRange(ys[i], 0.0, height);
+        }
+
+        // The canvas must actually have grown past the small declared height to accommodate the
+        // stacked labels — otherwise this test would not be exercising the fix.
+        Assert.True(height > 60.0, $"Expected canvas height to grow past 60, was {height}.");
+    }
+
+    /// <summary>Extracts the <c>width</c>/<c>height</c> attribute values of the root <c>&lt;svg&gt;</c> element.</summary>
+    private static (double Width, double Height) ExtractSvgSize(string svg)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(svg, """<svg[^>]*\swidth="([\-0-9.]+)"\s+height="([\-0-9.]+)""");
+        Assert.True(match.Success, $"Expected to find an <svg> root element with width/height in: {svg}");
+        return (
+            double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture),
+            double.Parse(match.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>Extracts every <c>&lt;text&gt;</c> element's x/y attribute values, in document order.</summary>
+    private static (List<double> Xs, List<double> Ys) ExtractAllTextPositions(string svg)
+    {
+        var matches = System.Text.RegularExpressions.Regex.Matches(svg, """<text x="([\-0-9.]+)" y="([\-0-9.]+)""");
+        var xs = matches.Select(m => double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        var ys = matches.Select(m => double.Parse(m.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        return (xs, ys);
+    }
+
+    /// <summary>
+    ///     Proves that a box title centers on the inset-adjusted content area, not the full box
+    ///     width: when <see cref="LayoutBox.ContentInsetLeft"/> exceeds
+    ///     <see cref="LayoutBox.ContentInsetRight"/>, the title's rendered x-coordinate shifts right
+    ///     of true box-center (toward the smaller/un-inset side), and vice versa.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter()
+    {
+        // Arrange: a box with a large left inset and no right inset (mirrors a box with a long
+        // left-port label and a short/absent right-port label).
+        var renderer = new SvgRenderer();
+        var box = new LayoutBox(0, 0, 200, 100, "Hub", 0, BoxShape.Rectangle, [], [], ContentInsetLeft: 60.0, ContentInsetRight: 0.0);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(new LayoutTree(200, 100, [box]), options, output);
+
+        // Assert: the title's x-coordinate is to the right of the true (un-inset) box center, since
+        // the content area is shifted right by the larger left inset.
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var titleX = ExtractLastTextX(svgText);
+        var trueBoxCenterX = box.X + (box.Width / 2.0);
+        Assert.True(titleX > trueBoxCenterX, $"Expected title x ({titleX}) to be right of true box center ({trueBoxCenterX}).");
+    }
+
+    /// <summary>
+    ///     Proves that a long port label bounded by a finite <see cref="LayoutPort.MaxLabelWidth"/> is
+    ///     squeezed to fit (via the same <c>textLength</c> mechanism used for box titles) rather than
+    ///     rendering at its full natural width and overlapping the opposite port's label region.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_RenderPort_LongLabelWithMaxLabelWidth_AppliesTextLengthConstraint()
+    {
+        // Arrange: a left port with a deliberately long label bounded to a narrow MaxLabelWidth, and
+        // a right port with a short label and no meaningful bound (mirrors a box's two opposite ports).
+        var renderer = new SvgRenderer();
+        var leftPort = new LayoutPort(10, 50, PortSide.Left, "a rather long incoming data label", MaxLabelWidth: 40.0);
+        var rightPort = new LayoutPort(190, 50, PortSide.Right, "out");
+        var layout = new LayoutTree(200, 100, [leftPort, rightPort]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert: the long label's <text> element carries a textLength constraint (squeezed),
+        // while the short "out" label does not need one.
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var longLabelMatch = System.Text.RegularExpressions.Regex.Match(svgText, """<text[^>]*>a rather long incoming data label<""");
+        Assert.True(longLabelMatch.Success, $"Expected to find the long port label's <text> element in: {svgText}");
+        Assert.Contains("textLength=", longLabelMatch.Value, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     ///     Render a LayoutBadge with FilledCircle shape produces SVG output containing a
     ///     circle element, confirming that filled-circle badges are rendered as SVG circles.
     /// </summary>

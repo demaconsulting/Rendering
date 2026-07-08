@@ -31,18 +31,29 @@ every drawing call site in this unit measures and draws against.
 
 ### SkiaRasterRenderer Methods
 
-- **`Render(LayoutTree, RenderOptions, Stream)`** - validates its arguments, allocates an `SKBitmap`
-  sized from `LayoutTree.Width`/`LayoutTree.Height` scaled by `RenderOptions.Scale` (minimum one by one
-  pixel), clears the bitmap to `RenderOptions.Theme.BackgroundColor`, draws every node, draws connector
-  labels in a final pass, and writes the encoded bytes to the stream without closing or flushing it.
+- **`Render(LayoutTree, RenderOptions, Stream)`** - validates its arguments, resolves every connector
+  label's placement (position and estimated half-width/half-height) via `ConnectorLabelPlacer.Place`
+  *before* allocating the bitmap, then allocates an `SKBitmap` sized from `LayoutTree.Width`/
+  `LayoutTree.Height` scaled by `RenderOptions.Scale` and grown further to include the full
+  bounding-box extent of every placed connector label (minimum one by one pixel either way), clears
+  the bitmap to `RenderOptions.Theme.BackgroundColor`, draws every node, draws connector labels in a
+  final pass at the positions already computed, and writes the encoded bytes to the stream without
+  closing or flushing it. Sizing the bitmap only after label placement is known prevents a label
+  nudged during collision avoidance from landing outside the bitmap and being invisibly clipped.
 - **Node drawing helpers** - draw boxes, labels, lines, ports, badges, bands, lifelines, activations,
   and grids using the render theme, the embedded Noto Sans typefaces, shared notation metrics, and
   shared box metrics. Port drawing mirrors `SvgRenderer`'s inward-reading placement exactly: each
   port's label is drawn immediately next to its glyph, reading rightward for a left-side port,
-  leftward for a right-side port, below for a top-side port, and above for a bottom-side port. Box
-  title and compartment content start at `box.X + Theme.LabelPadding + box.ContentInsetLeft` (and
-  reduce available width by `box.ContentInsetRight`) instead of the fixed pre-port offset, so a
-  non-zero reserved port-label margin never overlaps rendered content.
+  leftward for a right-side port, below for a top-side port, and above for a bottom-side port, with
+  its rendered width bounded to `LayoutPort.MaxLabelWidth` via the same font-size-shrink squeeze
+  mechanism `RenderBoxTitle` uses, so an excessively long port label compresses instead of visually
+  overlapping the opposite port's label region. Box title and compartment content start at
+  `box.X + Theme.LabelPadding + box.ContentInsetLeft` (and reduce available width by
+  `box.ContentInsetRight`) instead of the fixed pre-port offset, so a non-zero reserved port-label
+  margin never overlaps rendered content; the title's horizontal center is likewise computed from
+  that inset-adjusted content area (`contentLeft`/`contentRight` midpoint), not the box's raw
+  geometric center, so an asymmetric `ContentInsetLeft`/`ContentInsetRight` shifts the title toward
+  the smaller-inset side rather than leaving it centered on the full box width.
 - **Connector helpers** - build connector end markers from `NotationMetrics` so raster markers match
   the SVG renderer. Hollow marker interiors and midpoint-label backplates use `Theme.BackgroundColor`
   so they occlude connector strokes with the same background used for the bitmap.
@@ -118,4 +129,7 @@ members.
 | Rendering-Skia-SkiaRasterRenderer-EndMarkers | End-marker drawing helpers that use `NotationMetrics` |
 | Rendering-Skia-SkiaRasterRenderer-EmptyTree | Minimum bitmap width and height enforcement in `Render` |
 | Rendering-Skia-SkiaRasterRenderer-PortAndContentInset | Port label placement, `ContentInsetLeft`-aware start |
+| Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels | `Render` grows the bitmap to fit every placed label |
+| Rendering-Skia-SkiaRasterRenderer-TitleCentersOnInsetContent | `RenderBoxTitle` centers on inset-adjusted content |
+| Rendering-Skia-SkiaRasterRenderer-PortLabelSqueeze | `RenderPort` bounds label width to `port.MaxLabelWidth` |
 | Rendering-Skia-SkiaRasterRenderer-SharedTypefaces | `SkiaTypefaces.Resolve` and its lazily-loaded typeface fields |

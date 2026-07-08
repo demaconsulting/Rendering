@@ -82,6 +82,50 @@ sections:
           - PngRenderer_RenderPort_AnySide_ProducesNonBackgroundPixels
           - PngRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowContentRight
 
+      - id: Rendering-Skia-SkiaRasterRenderer-PortLabelSqueeze
+        title: >-
+          SkiaRasterRenderer shall bound a rendered port label's width to LayoutPort.MaxLabelWidth
+          using the same font-size-shrink squeeze mechanism used for box titles, rather than always
+          drawing the label at its natural full text width.
+        justification: |
+          A port's ExternalLabel previously rendered at natural full text width with no bound
+          relative to the box width or the opposite port's label region, so an excessively long
+          port label could visually overlap the opposite port's label. A MaxLabelWidth defaulting to
+          positive infinity leaves every port with no explicit bound rendering exactly as before.
+        tests:
+          - PngRenderer_RenderPort_LongLabelWithMaxLabelWidth_SqueezesToFit
+
+      - id: Rendering-Skia-SkiaRasterRenderer-TitleCentersOnInsetContent
+        title: >-
+          SkiaRasterRenderer shall horizontally center a box's keyword line and bold name title on
+          the inset-adjusted content area (between box.X + Theme.LabelPadding + ContentInsetLeft
+          and box.X + box.Width - Theme.LabelPadding - ContentInsetRight), not on the box's raw
+          geometric center, whenever ContentInsetLeft and ContentInsetRight differ.
+        justification: |
+          RenderBoxTitle previously computed centerX from the full box width regardless of
+          ContentInsetLeft/Right, so a box with an asymmetric reserved port-label margin on only one
+          face visually centered its title within the full box width, including the reserved margin
+          the title should never occupy, rather than within the space actually available for
+          content.
+        tests:
+          - PngRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter
+
+      - id: Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels
+        title: >-
+          SkiaRasterRenderer shall grow the allocated bitmap width/height, after connector-label
+          placement is finalized, to include the full bounding-box extent of every placed connector
+          label, rather than sizing the bitmap purely from box+routing geometry before label
+          placement runs.
+        justification: |
+          ConnectorLabelPlacer nudges colliding midpoint labels perpendicular to their line, with
+          fallback stacking; because the prior bitmap size was computed from box+routing geometry
+          before this nudging ran, a label could be nudged completely outside the bitmap and render
+          invisibly clipped. Deferring the bitmap-size computation until every label's final
+          position (and estimated extent) is known lets the bitmap grow to keep every label fully
+          visible.
+        tests:
+          - PngRenderer_Render_ManyCollidingConnectorLabels_BitmapGrowsToFitAllLabels
+
       - id: Rendering-Skia-SkiaRasterRenderer-SharedTypefaces
         title: >-
           SkiaRasterRenderer shall resolve a stable, distinct SKTypeface instance per bold/italic

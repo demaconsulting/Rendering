@@ -38,3 +38,18 @@ sections:
           keeps both labels readable, and both renderers share the placer so their layouts match.
         tests:
           - Place_CollidingLabels_AreSeparated
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent
+        title: >-
+          The connector-label placer shall expose each placed label's estimated half-width and
+          half-height alongside its centre, so a caller can compute the label's full rendered
+          bounding box after every overlap-avoidance nudge/fallback has been applied.
+        justification: |
+          A renderer's final canvas/bitmap size was previously computed from box+routing geometry
+          before label placement ran, so a label nudged to avoid an overlap could land completely
+          outside those bounds and render invisibly clipped. A renderer can only grow its canvas to
+          include every placed label's full extent if the placer exposes that extent, not merely each
+          label's centre point.
+        tests:
+          - Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight
+          - Place_LongerLabel_HasLargerHalfWidth

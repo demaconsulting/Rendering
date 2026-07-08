@@ -121,11 +121,15 @@ dedupes the *emitted line/label count* today.
 
 The fix for both is the same change: when `CoreOptions.MergeParallelEdges` is `true`, the final
 line-emission loop must also dedupe by `(source, target)` — emitting exactly one `LayoutLine` (and,
-once per-end names exist, exactly one pair of `LayoutPort`s) per distinct pair, using the first
-surviving edge's label/port names and discarding the rest — rather than the current behavior of
-emitting one `LayoutLine` per original input edge regardless of duplication. When
-`CoreOptions.MergeParallelEdges` is `false`, every input edge keeps its own line and its own two
-port names, because each now resolves to its own distinct routed polyline.
+once per-end names exist, exactly one pair of `LayoutPort`s) per distinct pair, **omitting the
+midpoint label (and every duplicate edge's per-end port names) entirely whenever 2+ raw edges
+collapse into that one line** — rather than the current behavior of emitting one `LayoutLine` per
+original input edge regardless of duplication. A reader cannot tell which of several collapsed
+connectors a kept label would have belonged to, so "first surviving edge's label wins" is not an
+acceptable substitute for that missing information; only a pair whose `(source, target)` matches
+exactly one raw edge keeps its own label/port names. When `CoreOptions.MergeParallelEdges` is
+`false`, every input edge keeps its own line and its own two port names, because each now resolves
+to its own distinct routed polyline.
 
 ### Named ports: a first-class port object, modeled after ELK's `ElkPort`
 
@@ -290,12 +294,16 @@ correspondingly how much it pushes the box's own title/compartment content inwar
   plus padding) — not a measured width — because a single line's height does not depend on the
   label's text content, so this needs no per-label measurement at all. `ResolveTitleAreaTop`'s
   result shifts down by `ContentInsetTop` when the node has any top-side port, pushing the title
-  band (and everything below it) down to make room.
+  band (and everything below it) down to make room. When the node *also* has its own title, that
+  flat height is widened further (a generous multiple of `AssumedFontSize`/`PortLabelClearance`) so
+  the title's own start position — which depends only on `ContentInsetTop`, never on the box's
+  total height — clears the top port's rendered label; see "Auto-grow to fit title + port insets"
+  below for why growing the box taller alone cannot create that clearance.
 - **Bottom ports.** Mirrors top: label sits centered directly *above* the port glyph, inside the
   box, below the last compartment row (or below the lowest child, for a container).
-  `ContentInsetBottom` is the same flat, fixed height, and whatever computes the box's lowest
-  occupied content row (or child placement, for a container) must stop that far short of the box's
-  bottom edge.
+  `ContentInsetBottom` is the same flat, fixed height (with the same widening when the node also
+  has a title), and whatever computes the box's lowest occupied content row (or child placement,
+  for a container) must stop that far short of the box's bottom edge.
 - Multiple ports on the same face are still arranged left to right in port order within whatever
   space is available; horizontal crowding among labels *on the same face* (many ports, or long
   names collectively wider than the box) is accepted as overflow — see "Long port names" below —
@@ -315,19 +323,25 @@ correspondingly how much it pushes the box's own title/compartment content inwar
 
 ### Long port names
 
-Even with measured reservations, no renderer wraps or truncates *any* text today — every label
-(box title, keyword, midpoint label, port label) is drawn at its natural size. This means an
-excessively long port name is protected from colliding with the *box's own* content (per the
-reserved-margin mechanism above), but can still visually overlap an *adjacent port's* label on the
-same face, or run past the box/connector, exactly as an excessively long box title or keyword
-already can today. Options, roughly in order of preference:
+No renderer wraps or truncates text by adding line breaks or an ellipsis; `box`/keyword titles and
+port labels are instead **squeezed to fit** (SVG `textLength`/`lengthAdjust`, or the Skia
+font-size-shrink equivalent) once they exceed their reserved width, rather than drawn at
+uncontrolled natural size. For port labels, each side's `LayoutPort.MaxLabelWidth` bounds the
+label to roughly half its owning box's inner width, so an excessively long port name can no longer
+visually overlap the *opposite* port's label region on the same axis (this squeeze is computed by
+`LayeredLayoutAlgorithm` at emission time, since a flat `LayoutPort` has no reference to its owning
+box to compute this itself). This does **not** solve same-face crowding: multiple long labels *on
+the same face* can still visually overlap each other, exactly as an excessively long box title or
+keyword already could before squeezing existed. Options for that remaining case, roughly in order
+of preference:
 
 - **Do nothing beyond what other labels already do (recommended starting point).** Accept that
-  same-face crowding can still overflow, consistent with every other unbounded label in the
-  codebase today; the reserved-margin mechanism above already solves the collision that actually
-  motivated this entry (a port label colliding with the box's own title/compartment text). This
-  keeps the initial feature focused and defers a general same-face "text fitting" concern to a
-  separate, dedicated roadmap entry.
+  same-face crowding can still overflow, consistent with every other bounded-but-not-wrapped label
+  in the codebase today; the reserved-margin mechanism above already solves the collision that
+  actually motivated this entry (a port label colliding with the box's own title/compartment text),
+  and the opposite-port squeeze above solves the cross-face collision. This keeps the feature
+  focused and defers a general same-face "text fitting" concern to a separate, dedicated roadmap
+  entry.
 - **Widen port spacing to fit the widest label on a face.** `PortDistributor` would space ports
   apart using `ITextMeasurer`-measured widths rather than the fixed `EdgeSpacing` constant — a
   natural extension of the same measurer this entry already introduces, so no new architectural
@@ -340,6 +354,24 @@ Whichever is chosen, it is layered on top of the port-naming and reserved-margin
 blocker for it — the initial implementation can ship with the "do nothing beyond existing
 behavior" option (same-face crowding only) and revisit if real SysML2Tools port names turn out to
 crowd a single face in practice.
+
+### Auto-grow to fit title + port insets
+
+`LayeredLayoutAlgorithm` never shrinks a caller-supplied box size, but does grow it: after
+computing a node's `ContentInset*` values from its aggregated port labels (per "Reserved title/
+compartment margins for ports on the top/bottom face" above), it also computes the minimum
+width/height actually needed to fit the node's title plus its reserved insets simultaneously
+(using `CoreOptions.AssumedFontSize`/`PortLabelClearance`, since `LayeredLayoutAlgorithm` has no
+`Theme` dependency to draw exact font metrics from), and emits `max(caller-supplied, computed
+minimum)` for both `Width` and `Height`. This runs as a second placement pass — after Pass 1
+reveals which nodes are undersized, engine nodes are cloned with the grown sizes and the full
+layer packing/spacing pass re-runs, so a grown node never silently overlaps a sibling that was
+positioned relative to its smaller Pass-1 footprint. Growing only the box's overall height is not
+by itself sufficient to prevent a title/port-label collision — a rendered port label's own
+position is independent of box height, so the fix widens the underlying `ContentInsetTop`/
+`ContentInsetBottom` values themselves (not just the box height) whenever the node has both a
+title and a top/bottom port. Compartment/child content sizing remains entirely caller/child-driven
+(unaffected by this floor).
 
 ### Approximate complexity
 
@@ -396,8 +428,9 @@ same-face crowding (no port-spacing-by-width work):
   motivated this entry), rendered with `CoreOptions.MergeParallelEdges` set to `false` to preserve
   them — each connector must appear as its own visually distinct routed line, not
   stacked/overlapping copies of the same route. A companion case with `MergeParallelEdges` left at
-  its default (`true`) must show exactly one line and one label surviving per duplicate pair.
-  Shipped as `parallel-edges-preserved`/`parallel-edges-merged`.
+  its default (`true`) must show exactly one line per duplicate pair, with the midpoint label
+  omitted entirely (never a "first surviving edge's label" substitute) whenever 2+ raw edges
+  collapse into that one line. Shipped as `parallel-edges-preserved`/`parallel-edges-merged`.
 - Each connector's port must carry its own rendered `ExternalLabel`, distinct from the connector's
   own separate midpoint label — both must be able to be set and rendered simultaneously.
 - The gallery entry must exercise ports on **all four sides**, each labeled inside the box next to

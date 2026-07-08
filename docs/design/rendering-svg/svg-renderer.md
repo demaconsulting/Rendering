@@ -79,13 +79,19 @@ the box.
 
 **`Render(LayoutTree layout, RenderOptions options, Stream output)`**
 
-Entry point. Validates arguments, computes canvas size clamped to a minimum of 1x1, writes the SVG root
-element with `xmlns`, `width`, `height`, and `viewBox` attributes, then calls `WriteEndMarkerDefs`.
-It recursively renders every top-level node; connector paths are drawn during this pass, but connector
-labels are deferred. After all nodes are drawn, `Render` collects every `LayoutLine`, asks
-`ConnectorLabelPlacer.Place` for collision-aware label positions, renders each non-null connector
-label in a final pass, closes the SVG root, encodes the completed `StringBuilder` as UTF-8, and writes
-all bytes to `output` in a single `Write` call.
+Entry point. Validates arguments, then — before rendering or sizing anything — collects every
+`LayoutLine` and asks `ConnectorLabelPlacer.Place` for collision-aware label positions, including
+each label's final nudged/fallback position and its estimated half-width/half-height. Only *after*
+every label's position is known does `Render` compute the final canvas size: it starts from the
+box+routing-geometry extent (clamped to a minimum of 1x1) and grows `width`/`height` further to
+include the full bounding-box extent of every placed connector label, so a label nudged during
+collision avoidance can never fall outside the rendered canvas and be invisibly clipped. It then
+writes the SVG root element with `xmlns`, `width`, `height`, and `viewBox` attributes sized to that
+final (label-aware) extent, calls `WriteEndMarkerDefs`, recursively renders every top-level node
+(connector paths are drawn during this pass, but connector labels are deferred), renders each
+non-null connector label in a final pass at the positions already computed, closes the SVG root,
+encodes the completed `StringBuilder` as UTF-8, and writes all bytes to `output` in a single
+`Write` call.
 
 **`WriteEndMarkerDefs(StringBuilder sb, Theme theme)`**
 
@@ -119,6 +125,18 @@ rectangle outline adds `rx` / `ry` attributes when `BoxShape.RoundedRectangle` a
 is greater than zero. Calls `RenderBoxTitle` to write the bold `<text>` title with `textLength` from
 `FitTextLength` when `box.Label` is non-null, then `RenderBoxCompartments` for any compartments, then
 recursively calls `RenderNode` for all `box.Children`.
+
+**`RenderBoxTitle(StringBuilder sb, LayoutBox box, Theme theme, double scale)`**
+
+Writes the keyword line (when `box.Keyword` is non-null) and the bold name `<text>` label, both
+horizontally centered on the *inset-adjusted content area* — `contentLeft = box.X +
+theme.LabelPadding + box.ContentInsetLeft`, `contentRight = box.X + box.Width -
+theme.LabelPadding - box.ContentInsetRight`, `centerX = (contentLeft + contentRight) / 2.0` — rather
+than the raw box center (`box.X + box.Width / 2.0`). A box with an asymmetric `ContentInsetLeft`
+versus `ContentInsetRight` (for example a wide port label reserved on only one face) therefore
+visually centers its title within the space actually available for content, not within the full
+box width including the reserved margin. Vertical positioning is unaffected by this centering
+change.
 
 **`RenderBoxCompartments(StringBuilder sb, LayoutBox box, Theme theme, double scale)`**
 
@@ -170,8 +188,13 @@ companion `<text>` element positioned immediately next to the glyph and reading 
 box interior: to the right of the glyph for a left-side port, to the left of the glyph for a
 right-side port, below the glyph for a top-side port, and above the glyph for a bottom-side port.
 Side classification reuses the same geometric anchor comparison the layout engine used to decide
-where the port's `LayoutPort` node was placed; no further text wrapping, truncation, or ellipsis is
-applied to the label.
+where the port's `LayoutPort` node was placed. The label's rendered width is bounded to
+`port.MaxLabelWidth` via `FitTextLength` (the same squeeze mechanism `RenderBoxTitle`/`RenderLabel`
+already apply), adding a `textLength`/`lengthAdjust` attribute when the label would otherwise
+exceed that bound; `MaxLabelWidth` defaults to positive infinity (no squeeze) so a port with no
+computed bound renders exactly as before. This prevents an excessively long port label from
+visually overlapping the opposite port's label region; no further text wrapping, truncation, or
+ellipsis is applied.
 
 Each remaining typed method writes the SVG elements appropriate to its node kind:
 `<circle>`, `<polygon>`, or `<line>` for the badge shapes; a `<rect>` with a rotated or horizontal
@@ -240,3 +263,6 @@ Any consumer of the rendering library that selects vector output constructs an `
 | Rendering-Svg-SvgRenderer-EndMarkerBar | `RenderLine` writes the bar marker reference |
 | Rendering-Svg-SvgRenderer-RenderPortLabel | `RenderPort` writes an inward-reading label `<text>` |
 | Rendering-Svg-SvgRenderer-ContentInset | `RenderBoxCompartments` starts content at `box.ContentInsetLeft` |
+| Rendering-Svg-SvgRenderer-CanvasGrowsForLabels | `Render` grows `width`/`height` to fit every placed label |
+| Rendering-Svg-SvgRenderer-TitleCentersOnInsetContent | `RenderBoxTitle` centers on inset-adjusted content |
+| Rendering-Svg-SvgRenderer-PortLabelSqueeze | `RenderPort` applies `FitTextLength` bounded by `MaxLabelWidth` |

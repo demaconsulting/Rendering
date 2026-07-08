@@ -33,7 +33,12 @@ the top-left, so a renderer can draw each element directly without resolving nes
   a renderer knows where title/compartment content may start and must stop without colliding with a
   port label.
 - `LayoutCompartment` (sealed record) — `Title` and text `Rows`.
-- `LayoutPort` (node record) — `CentreX`, `CentreY`, attached `Side`, and `Label`.
+- `LayoutPort` (node record) — `CentreX`, `CentreY`, attached `Side`, `Label`, and `MaxLabelWidth`
+  (defaulting to `double.PositiveInfinity`) — an optional upper bound, computed by a layout
+  algorithm from the owning box's placed width (a flat `LayoutPort` has no reference back to its
+  owning box, so this bound must be precomputed and carried on the port itself), that a renderer
+  uses to squeeze an excessively long port label rather than let it visually overlap the opposite
+  port's label region.
 - `LayoutLine` (node record) — `Waypoints`, `SourceEnd`, `TargetEnd`, `LineStyle`, and
   `MidpointLabel`.
 - `Point2D` (sealed record) — `X` and `Y`.
@@ -123,6 +128,7 @@ it obtains one from a layout algorithm and passes it to a renderer.
 | Rendering-Model-LayoutTree-DepthNotColor | `LayoutBox.Depth` integer |
 | Rendering-Model-LayoutTree-ContentInset | `LayoutBox.ContentInsetLeft/Right/Top/Bottom` |
 | Rendering-Model-LayoutTree-Port | `LayoutPort` record |
+| Rendering-Model-LayoutTree-PortMaxLabelWidth | `LayoutPort.MaxLabelWidth` |
 | Rendering-Model-LayoutTree-Line | `LayoutLine` record |
 | Rendering-Model-LayoutTree-Label | `LayoutLabel` record |
 | Rendering-Model-LayoutTree-Badge | `LayoutBadge` record |

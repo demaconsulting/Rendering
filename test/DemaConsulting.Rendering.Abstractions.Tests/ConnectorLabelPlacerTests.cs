@@ -79,4 +79,52 @@ public sealed class ConnectorLabelPlacerTests
         Assert.Equal(0, posA.Y, precision: 3);
         Assert.NotEqual(posB.Y, posA.Y, precision: 3);
     }
+
+    /// <summary>
+    ///     A placed label's <see cref="LabelPlacement.HalfWidth"/>/<see cref="LabelPlacement.HalfHeight"/>
+    ///     are both positive, so a renderer can compute the label's full bounding-box extent (not just
+    ///     its centre) to grow a canvas/bitmap around it.
+    /// </summary>
+    [Fact]
+    public void Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight()
+    {
+        var line = new LayoutLine(
+            [new Point2D(0, 0), new Point2D(200, 0)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            MidpointLabel: "[guard]");
+
+        var result = ConnectorLabelPlacer.Place([line], fontSize: 12);
+
+        var placement = result[line];
+        Assert.True(placement.HalfWidth > 0);
+        Assert.True(placement.HalfHeight > 0);
+    }
+
+    /// <summary>
+    ///     A longer label produces a larger <see cref="LabelPlacement.HalfWidth"/>, confirming the
+    ///     exposed size actually reflects the label's estimated text width rather than a fixed
+    ///     placeholder.
+    /// </summary>
+    [Fact]
+    public void Place_LongerLabel_HasLargerHalfWidth()
+    {
+        var shortLine = new LayoutLine(
+            [new Point2D(0, 0), new Point2D(200, 0)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            MidpointLabel: "a");
+        var longLine = new LayoutLine(
+            [new Point2D(0, 100), new Point2D(200, 100)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            MidpointLabel: "a much longer label string");
+
+        var result = ConnectorLabelPlacer.Place([shortLine, longLine], fontSize: 12);
+
+        Assert.True(result[longLine].HalfWidth > result[shortLine].HalfWidth);
+    }
 }

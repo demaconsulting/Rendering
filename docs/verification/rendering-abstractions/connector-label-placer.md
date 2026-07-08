@@ -55,8 +55,20 @@ different Y so the two do not overlap.
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap`.
 
+#### Placement exposes each label's extent
+
+Test `Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight` asserts a placed label's `HalfWidth`
+and `HalfHeight` are both positive, and `Place_LongerLabel_HasLargerHalfWidth` asserts a longer
+`MidpointLabel` string yields a larger `HalfWidth` than a shorter one, confirming the extent is
+genuinely derived from the label's estimated rendered size (not a fixed placeholder), which a
+caller needs to compute the label's full bounding box for canvas-growth purposes.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled`**: Place_LineWithoutLabel_IsOmitted
 - **`Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment`**: Place_SingleLine_UsesLongestSegmentMidpoint
 - **`Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap`**: Place_CollidingLabels_AreSeparated
+- **`Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent`**:
+  Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight, Place_LongerLabel_HasLargerHalfWidth

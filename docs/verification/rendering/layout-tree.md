@@ -85,6 +85,16 @@ asserts that `CentreX`, `CentreY`, `Side`, and `Label` equal the supplied values
 
 **Covers**: `Rendering-Model-LayoutTree-Port`.
 
+#### Port max label width defaults and is settable
+
+Test `LayoutPort_Construction_DefaultsMaxLabelWidthToPositiveInfinity` constructs a port without an
+explicit `MaxLabelWidth` and asserts it defaults to `double.PositiveInfinity` (no bound), preserving
+every existing construction call site's behavior unchanged; test
+`LayoutPort_Construction_StoresExplicitMaxLabelWidth` constructs a port with an explicit finite
+`MaxLabelWidth` and asserts it is stored as supplied.
+
+**Covers**: `Rendering-Model-LayoutTree-PortMaxLabelWidth`.
+
 #### Line carries all fields
 
 Test `LayoutLine_Construction_StoresAllFields` constructs a line with two waypoints, both end-marker
@@ -166,6 +176,7 @@ children, so downstream routing and rendering stages can observe the resolved sh
 - **`Rendering-Model-LayoutTree-ContentInset`**: LayoutBox_ContentInsets_DefaultZero,
   LayoutBox_ContentInsets_IndependentlySettable
 - **`Rendering-Model-LayoutTree-Port`**: LayoutPort_Construction_StoresAllFields
+- **`Rendering-Model-LayoutTree-PortMaxLabelWidth`**: LayoutPort_Construction_DefaultsMaxLabelWidthToPositiveInfinity, LayoutPort_Construction_StoresExplicitMaxLabelWidth
 - **`Rendering-Model-LayoutTree-Line`**: LayoutLine_Construction_StoresAllFields
 - **`Rendering-Model-LayoutTree-Label`**: LayoutLabel_Construction_StoresAllFields
 - **`Rendering-Model-LayoutTree-Badge`**: LayoutBadge_Construction_StoresAllFields

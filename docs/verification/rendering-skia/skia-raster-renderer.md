@@ -105,6 +105,24 @@ raster renderer reads the reserved margin exactly as the SVG renderer does.
 
 **Covers**: `Rendering-Skia-SkiaRasterRenderer-PortAndContentInset`.
 
+#### Port label squeeze, title inset-aware centering, and label-aware bitmap growth
+
+`PngRenderer_RenderPort_LongLabelWithMaxLabelWidth_SqueezesToFit` renders the same deliberately long
+port label twice — once with a finite `MaxLabelWidth` and once unconstrained — and asserts the
+constrained render's rightmost non-background pixel falls short of the unconstrained render's,
+confirming the squeeze genuinely compresses the label rather than being a no-op.
+`PngRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter` renders a box whose
+`ContentInsetLeft` differs from `ContentInsetRight` and asserts the title's rendered horizontal
+position shifts away from the raw box-center toward the smaller-inset side.
+`PngRenderer_Render_ManyCollidingConnectorLabels_BitmapGrowsToFitAllLabels` renders 3+ parallel
+labeled connectors whose midpoint labels collide and get nudged, and asserts the allocated bitmap's
+dimensions grow enough that every label's rendered pixels remain within the bitmap bounds rather
+than being silently clipped.
+
+**Covers**: `Rendering-Skia-SkiaRasterRenderer-PortLabelSqueeze`,
+`Rendering-Skia-SkiaRasterRenderer-TitleCentersOnInsetContent`,
+`Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels`.
+
 #### Shared typeface resolution is stable and distinct per variant
 
 Test `SkiaTypefaces_Resolve_ReturnsStableDistinctTypefacesPerVariant` resolves each of the four
@@ -136,5 +154,11 @@ exact same lazily-loaded typeface objects.
 - **`Rendering-Skia-SkiaRasterRenderer-PortAndContentInset`**:
   PngRenderer_RenderPort_AnySide_ProducesNonBackgroundPixels,
   PngRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowContentRight
+- **`Rendering-Skia-SkiaRasterRenderer-PortLabelSqueeze`**:
+  PngRenderer_RenderPort_LongLabelWithMaxLabelWidth_SqueezesToFit
+- **`Rendering-Skia-SkiaRasterRenderer-TitleCentersOnInsetContent`**:
+  PngRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter
+- **`Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels`**:
+  PngRenderer_Render_ManyCollidingConnectorLabels_BitmapGrowsToFitAllLabels
 - **`Rendering-Skia-SkiaRasterRenderer-SharedTypefaces`**:
   SkiaTypefaces_Resolve_ReturnsStableDistinctTypefacesPerVariant

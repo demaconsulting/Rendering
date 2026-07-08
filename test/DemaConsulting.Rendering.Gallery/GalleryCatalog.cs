@@ -189,8 +189,10 @@ internal static class GalleryCatalog
                 new GalleryImage(
                     ParallelEdgesMergedSvg,
                     "The same three parallel connectors collapsed to a single line",
-                    "The default MergeParallelEdges (true): only the first of the three parallel "
-                    + "connectors survives."),
+                    "The default MergeParallelEdges (true): the three parallel connectors collapse to "
+                    + "a single rendered line, and its midpoint label is omitted entirely (not any "
+                    + "single surviving connector's label) since a reader could not tell which of the "
+                    + "three collapsed connectors a kept label would have belonged to."),
                 new GalleryImage(
                     PortsShowcaseHorizontalSvg,
                     "A hub node with a named port on each of its left and right sides",

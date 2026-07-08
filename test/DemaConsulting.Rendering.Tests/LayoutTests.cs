@@ -183,6 +183,31 @@ public sealed class LayoutTests
     }
 
     /// <summary>
+    ///     A LayoutPort constructed without an explicit <see cref="LayoutPort.MaxLabelWidth"/>
+    ///     defaults to <see cref="double.PositiveInfinity"/> (no constraint), preserving the behavior
+    ///     of every pre-existing 4-argument <c>new LayoutPort(x, y, side, label)</c> call site.
+    /// </summary>
+    [Fact]
+    public void LayoutPort_Construction_DefaultsMaxLabelWidthToPositiveInfinity()
+    {
+        var port = new LayoutPort(250.0, 150.0, PortSide.Right, "myPort");
+
+        Assert.Equal(double.PositiveInfinity, port.MaxLabelWidth);
+    }
+
+    /// <summary>
+    ///     A LayoutPort constructed with an explicit <see cref="LayoutPort.MaxLabelWidth"/> stores it
+    ///     as supplied.
+    /// </summary>
+    [Fact]
+    public void LayoutPort_Construction_StoresExplicitMaxLabelWidth()
+    {
+        var port = new LayoutPort(250.0, 150.0, PortSide.Right, "myPort", MaxLabelWidth: 42.0);
+
+        Assert.Equal(42.0, port.MaxLabelWidth);
+    }
+
+    /// <summary>
     ///     A LayoutPort constructed with explicit CentreX and CentreY stores those values
     ///     without offset, confirming the absolute-coordinate invariant.
     /// </summary>

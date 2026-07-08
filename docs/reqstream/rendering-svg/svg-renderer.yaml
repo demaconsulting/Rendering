@@ -163,6 +163,21 @@ sections:
           - SvgRenderer_RenderPort_LeftRightLabel_ReadsInward
           - SvgRenderer_RenderPort_TopBottomLabel_ReadsInward
 
+      - id: Rendering-Svg-SvgRenderer-PortLabelSqueeze
+        title: >-
+          SvgRenderer shall bound a rendered port label's width to LayoutPort.MaxLabelWidth via the
+          same FitTextLength squeeze mechanism used for box titles, rather than always drawing the
+          label at its natural full text width.
+        justification: |
+          A port's ExternalLabel previously rendered at natural full text width with no bound
+          relative to the box width or the opposite port's label region, so an excessively long
+          port label could visually overlap the opposite port's label. Squeezing via
+          textLength/lengthAdjust (the same mechanism already used for box titles) compresses the
+          label instead, and a MaxLabelWidth defaulting to positive infinity leaves every port with
+          no explicit bound rendering exactly as before.
+        tests:
+          - SvgRenderer_RenderPort_LongLabelWithMaxLabelWidth_AppliesTextLengthConstraint
+
       - id: Rendering-Svg-SvgRenderer-ContentInset
         title: >-
           SvgRenderer shall start box title and compartment row content at box.X plus
@@ -175,6 +190,37 @@ sections:
           previous fixed offset would overlap the port label.
         tests:
           - SvgRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowTextRight
+
+      - id: Rendering-Svg-SvgRenderer-TitleCentersOnInsetContent
+        title: >-
+          SvgRenderer shall horizontally center a box's keyword line and bold name title on the
+          inset-adjusted content area (between box.X + Theme.LabelPadding + ContentInsetLeft and
+          box.X + box.Width - Theme.LabelPadding - ContentInsetRight), not on the box's raw
+          geometric center, whenever ContentInsetLeft and ContentInsetRight differ.
+        justification: |
+          RenderBoxTitle previously computed centerX from the full box width regardless of
+          ContentInsetLeft/Right, so a box with an asymmetric reserved port-label margin on only
+          one face visually centered its title within the full box width, including the reserved
+          margin the title should never occupy, rather than within the space actually available
+          for content.
+        tests:
+          - SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_ShiftsTitleOffBoxCenter
+
+      - id: Rendering-Svg-SvgRenderer-CanvasGrowsForLabels
+        title: >-
+          SvgRenderer shall grow the rendered canvas width/height, after connector-label placement
+          is finalized, to include the full bounding-box extent of every placed connector label,
+          rather than sizing the canvas purely from box+routing geometry before label placement
+          runs.
+        justification: |
+          ConnectorLabelPlacer nudges colliding midpoint labels perpendicular to their line, with
+          fallback stacking; because the prior canvas size was computed from box+routing geometry
+          before this nudging ran, a label could be nudged completely outside the canvas and render
+          invisibly clipped. Deferring the canvas-size computation until every label's final
+          position (and estimated extent) is known lets the canvas grow to keep every label fully
+          visible.
+        tests:
+          - SvgRenderer_Render_ManyCollidingConnectorLabels_AllLabelsWithinViewBox
 
       - id: Rendering-Svg-SvgRenderer-RenderBadge
         title: >-

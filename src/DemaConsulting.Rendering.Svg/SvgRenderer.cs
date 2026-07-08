@@ -75,9 +75,22 @@ public sealed class SvgRenderer : IRenderer
         var sb = new StringBuilder();
         var theme = options.Theme;
 
-        // Compute canvas dimensions, ensuring a minimum 1×1 canvas
+        // Resolve every connector label's placement (position and size) before sizing the canvas: a
+        // label nudged to avoid colliding with another can land outside the box/routing geometry's
+        // extent, so the canvas must be sized only after label placement is known, not before.
+        var lines = CollectLines(layout.Nodes).ToList();
+        var labelPositions = ConnectorLabelPlacer.Place(lines, theme.FontSizeBody);
+
+        // Compute canvas dimensions, ensuring a minimum 1×1 canvas, then grow to fully include every
+        // placed label's bounding box (a label can be nudged beyond the box/routing geometry's
+        // extent that layout.Width/Height was computed from).
         var width = Math.Max(1.0, layout.Width * options.Scale);
         var height = Math.Max(1.0, layout.Height * options.Scale);
+        foreach (var placement in labelPositions.Values)
+        {
+            width = Math.Max(width, (placement.X + placement.HalfWidth) * options.Scale);
+            height = Math.Max(height, (placement.Y + placement.HalfHeight) * options.Scale);
+        }
 
         // Write SVG root element with explicit namespace and viewBox
         sb.Append(CultureInfo.InvariantCulture,
@@ -94,10 +107,9 @@ public sealed class SvgRenderer : IRenderer
         }
 
         // Final pass: draw every connector label on top of all wires and boxes, so that no later
-        // wire can draw over an earlier wire's label. Positions are computed up front so that labels
-        // that would collide (for example where two connectors cross) are spread apart.
-        var lines = CollectLines(layout.Nodes).ToList();
-        var labelPositions = ConnectorLabelPlacer.Place(lines, theme.FontSizeBody);
+        // wire can draw over an earlier wire's label. Positions were computed up front (before
+        // sizing the canvas, above) so that labels that would collide (for example where two
+        // connectors cross) are spread apart.
         foreach (var line in lines)
         {
             if (line.MidpointLabel is not null && labelPositions.TryGetValue(line, out var pos))
@@ -503,7 +515,9 @@ public sealed class SvgRenderer : IRenderer
     /// <param name="scale">Uniform scale factor.</param>
     private static void RenderBoxTitle(StringBuilder sb, LayoutBox box, Theme theme, double scale)
     {
-        var centerX = (box.X + box.Width / 2.0) * scale;
+        var contentLeft = box.X + theme.LabelPadding + box.ContentInsetLeft;
+        var contentRight = box.X + box.Width - theme.LabelPadding - box.ContentInsetRight;
+        var centerX = ((contentLeft + contentRight) / 2.0) * scale;
         var cursorY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + theme.LabelPadding;
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
@@ -921,7 +935,7 @@ public sealed class SvgRenderer : IRenderer
             };
 
             sb.Append(CultureInfo.InvariantCulture,
-                $"""  <text x="{F(labelX * scale)}" y="{F(labelY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle">{EscapeXml(port.Label)}</text>""");
+                $"""  <text x="{F(labelX * scale)}" y="{F(labelY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle"{FitTextLength(port.Label, theme.FontSizeBody, port.MaxLabelWidth, scale)}>{EscapeXml(port.Label)}</text>""");
             sb.AppendLine();
         }
     }

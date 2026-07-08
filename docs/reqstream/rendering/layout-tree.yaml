@@ -79,6 +79,20 @@ sections:
         tests:
           - LayoutPort_Construction_StoresAllFields
 
+      - id: Rendering-Model-LayoutTree-PortMaxLabelWidth
+        title: >-
+          A port node shall carry an optional maximum label width, defaulting to positive infinity
+          (no bound) so every existing construction call site is unaffected.
+        justification: |
+          A `LayoutPort` has no reference back to its owning box, so a renderer cannot itself bound
+          an excessively long port label's rendered width to avoid it visually overlapping the
+          opposite port's label region; a layout algorithm that already knows the owning box's
+          placed width must precompute that bound and carry it on the port. Defaulting to positive
+          infinity means a port with no explicit bound renders exactly as before (unconstrained).
+        tests:
+          - LayoutPort_Construction_DefaultsMaxLabelWidthToPositiveInfinity
+          - LayoutPort_Construction_StoresExplicitMaxLabelWidth
+
       - id: Rendering-Model-LayoutTree-Line
         title: >-
           A connector line node shall carry its ordered waypoints, its source and target end-marker

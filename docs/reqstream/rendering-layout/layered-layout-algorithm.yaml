@@ -84,45 +84,81 @@ sections:
         title: >-
           LayeredLayoutAlgorithm shall honor CoreOptions.MergeParallelEdges (reading the graph in
           preference to the options, default true): when true, every input edge sharing a directed
-          node pair collapses to exactly one emitted LayoutLine (using the first surviving edge's
-          label and discarding the rest); when false, every parallel edge instance is retained as its
-          own independently-routed LayoutLine.
+          node pair collapses to exactly one emitted LayoutLine, omitting its label entirely whenever
+          2+ raw edges collapsed into it (only a pair backed by exactly one raw edge keeps its own
+          label); when false, every parallel edge instance is retained as its own
+          independently-routed LayoutLine.
         justification: |
           A physical wiring/interconnection diagram (for example separate power, encoder, and sensor
           connectors between the same two components) needs every distinct connector to render as its
           own labeled line; the algorithm previously emitted one LayoutLine per original input edge
           regardless of duplication, stacking every duplicate edge's label on the same drawn line
-          rather than collapsing to a single line as intended when merging is left at its default.
+          rather than collapsing to a single line as intended when merging is left at its default. A
+          reader cannot tell which of several collapsed connectors a kept label would have belonged
+          to, so keeping any single surviving edge's label is not an acceptable substitute for that
+          missing information — the label must be omitted, not merely deduplicated.
         tests:
           - Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_EmitsExactlyOneLine
           - Apply_ParallelEdges_MergeParallelEdgesFalse_RetainsEveryEdge
           - Apply_MergeParallelEdges_GraphOverridesOptions
+          - Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_OmitsLabelOnCollapse
+          - Apply_SingleEdge_MergeParallelEdgesDefaultTrue_KeepsOwnLabel
 
       - id: Rendering-Layout-LayeredAlgorithm-PortEmission
         title: >-
           When an edge endpoint is a LayoutGraphPort, LayeredLayoutAlgorithm shall emit a LayoutPort
           at the routed connector's resolved anchor coordinate, carrying the port's ExternalLabel as
-          its label.
+          its label and a MaxLabelWidth bounding the label to roughly half the owning box's placed
+          width.
         justification: |
           A named port is meaningless without a placed, labeled anchor for a renderer to draw; emitting
           a LayoutPort at the exact coordinate the corridor router already resolved for that connector
-          keeps the port glyph and connector endpoint visually coincident.
+          keeps the port glyph and connector endpoint visually coincident. A flat LayoutPort has no
+          reference to its owning box, so bounding an excessively long label's rendered width (to
+          prevent it visually overlapping the opposite port's label) must be computed here, where the
+          owning box's placed width is known, and carried on the port itself for a renderer to apply.
         tests:
           - Apply_EdgeWithPortEndpoint_EmitsLayoutPortWithExternalLabel
+          - Apply_EdgeWithPortEndpoint_ComputesFiniteMaxLabelWidth
 
       - id: Rendering-Layout-LayeredAlgorithm-ContentInset
         title: >-
           LayeredLayoutAlgorithm shall auto-compute each placed box's ContentInsetLeft/Right (the
           widest same-side port label's measured width, via CoreOptions.AssumedFontSize, plus a
           small clearance) and ContentInsetTop/Bottom (a flat fixed height for one text line at
-          AssumedFontSize plus padding), zero on any side with no ports.
+          AssumedFontSize plus padding, widened further when the box also carries its own title, so
+          the title's rendered start position — which depends only on the inset, never on the box's
+          overall height — cannot visually overlap the top/bottom port's own rendered label), zero on
+          any side with no ports.
         justification: |
           A rendered port label needs a reserved margin on its owning box's face so it never collides
           with that box's own title/compartment content; computing the margin at layout time (rather
           than leaving it to each renderer) keeps a single LayoutTree correct for every renderer that
-          consumes it, per the single-layout/multi-renderer design.
+          consumes it, per the single-layout/multi-renderer design. Growing the box's overall height
+          alone cannot create this clearance, since a renderer draws both the title and the port label
+          at positions independent of the box's total height; only widening the inset itself can.
         tests:
           - Apply_NodeWithLeftPort_ComputesNonZeroContentInsetLeft
+
+      - id: Rendering-Layout-LayeredAlgorithm-AutoGrowMinimumSize
+        title: >-
+          LayeredLayoutAlgorithm shall emit each box's Width/Height as the maximum of the
+          caller-supplied size and the minimum size computed to fit that box's title plus its
+          reserved content insets simultaneously, never shrinking below the caller-supplied size, and
+          shall re-run placement/packing/spacing against any grown size so a grown box never overlaps
+          a sibling positioned relative to a smaller pre-growth footprint.
+        justification: |
+          A box with a title and top/bottom port insets can need more room than a caller supplied
+          (for example a small caller-supplied size with a title and both a top and bottom port);
+          silently letting the title and a port label overlap on-screen, or shrinking a caller's
+          explicit size, are both unacceptable, so the algorithm must grow — never shrink — a box to
+          the computed minimum, and must re-place all nodes so a grown box's siblings are never
+          silently overlapped.
+        tests:
+          - Apply_NodeAlreadyLargeEnough_SizeUnchanged
+          - Apply_NodeWithTopAndBottomPorts_TooSmall_AutoGrowsHeight
+          - Apply_AutoGrownNode_DoesNotOverlapSiblings
+          - Apply_NoNodeNeedsGrowth_PassTwoSkipped_LayoutUnaffected
 
       - id: Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting
         title: >-
