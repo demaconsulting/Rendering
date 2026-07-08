@@ -241,6 +241,45 @@ options.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
 downward flow swaps each node's width and height before layering so layer spacing follows node height.
 As with the algorithm, a declaration on the graph takes precedence over one on the options.
 
+## Parallel edges and named ports
+
+A `LayoutGraphNode` can carry a set of `LayoutGraphPort`s — named attachment points on the node's
+boundary, each implementing `ILayoutConnectable` alongside the node itself, so an edge can target a
+specific port instead of the node as a whole. This lets several connectors land on different, clearly
+labelled locations of the same box rather than all converging on one anchor:
+
+```csharp
+var graph = new LayoutGraph();
+graph.Set(CoreOptions.TextMeasurer, new Skia.SkiaTextMeasurer());
+
+var upstream = graph.AddNode("upstream", width: 120, height: 60);
+var hub = graph.AddNode("hub", width: 120, height: 60);
+
+var inPort = hub.Ports.AddPort("in");
+inPort.ExternalLabel = "a rather long incoming data label";
+
+graph.AddEdge("upstream-hub", upstream, inPort);
+```
+
+A port's rendered side (left, right, top, or bottom) is derived from how the algorithm routes its
+connector, not from a settable `Side` property on `LayoutGraphPort` itself.
+
+Two or more edges between the same pair of boxes are parallel edges. By default they collapse to a
+single rendered connector and suppress the collapsed edges' own labels; set `MergeParallelEdges` to
+`false` to keep every parallel edge as its own independently-routed, independently-labelled connector:
+
+```csharp
+graph.Set(CoreOptions.MergeParallelEdges, false);
+```
+
+`CoreOptions.TextMeasurer` selects the `ITextMeasurer` used to size each node's auto-computed
+`ContentInsetLeft`/`ContentInsetRight` margins (reserved so port labels never overlap the box's own
+content); the bundled `SkiaTextMeasurer` (from `DemaConsulting.Rendering.Skia`) measures real font
+metrics, while leaving it unset falls back to a dependency-free heuristic driven by
+`CoreOptions.AssumedFontSize`. The [gallery's "Parallel edges and named ports" diagrams](../gallery/README.md)
+show complete, rendered examples of preserved vs. merged parallel edges and horizontal vs. vertical
+port placement.
+
 ## Option cascading
 
 Every well-known option cascades: it can be set at the free-standing `LayoutOptions`, at a
