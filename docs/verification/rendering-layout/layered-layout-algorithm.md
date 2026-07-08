@@ -91,6 +91,17 @@ the argument-null validation behavior constitutes a failure.
   end up spaced at least the widest label's `ConnectorLabelPlacer.EstimateLabelWidth` apart —
   confirming the auto-grow floor correctly grows the axis `PortDistributor` actually spreads anchors
   along for a Top/Bottom face, not just a Left/Right one.
+- **Port-label width floor** (`Rendering-Layout-LayeredAlgorithm-PortLabelWidthFloor`):
+  `Apply_NodeWithLongLeftPortLabel_GrowsWidthEnoughToAvoidSqueeze` reproduces the
+  `ports-showcase-horizontal` gallery repro directly: a small caller-supplied box receives a long
+  left-port `ExternalLabel`, and the test asserts both that the box's `Width` grows past its
+  caller-supplied size and that the emitted `LayoutPort.MaxLabelWidth` is at least the label's own
+  width as measured by the same shared `Rendering.Abstractions.PortLabelWidthEstimator.MeasureWidth`
+  the production code uses (i.e. no squeeze is needed).
+  `Apply_NodeWithLongLeftAndRightPortLabels_BothSidesAvoidSqueeze` confirms the `Math.Max` composition
+  across both sides: a node with long labeled ports on both its left and right faces grows wide
+  enough that both sides' `MaxLabelWidth` independently satisfy the no-squeeze bound, proving neither
+  side's floor starves the other.
 - **Shape-aware routing** (`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`):
   `Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop` and
   `Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop` confirm a `BoxShape.Folder` node's
@@ -132,6 +143,9 @@ the argument-null validation behavior constitutes a failure.
 - **`Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing`**:
   Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine,
   Apply_ThreeParallelLabeledEdges_Down_BoxWidthGrowsAndLabelsLandOnTheirOwnLine
+- **`Rendering-Layout-LayeredAlgorithm-PortLabelWidthFloor`**:
+  Apply_NodeWithLongLeftPortLabel_GrowsWidthEnoughToAvoidSqueeze,
+  Apply_NodeWithLongLeftAndRightPortLabels_BothSidesAvoidSqueeze
 - **`Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting`**:
   Apply_DownDirection_FolderTarget_ProjectsEndpointToRecessedTop,
   Apply_UpDirection_FolderSource_ProjectsEndpointToRecessedTop,

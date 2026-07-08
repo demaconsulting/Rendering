@@ -34,8 +34,10 @@ already-working cascading mechanism:
 ## Parallel-edge (multi-edge) support in the layered algorithm
 
 **Phase 1 (flat graphs) is implemented** — `CoreOptions.MergeParallelEdges`, the port model
-(`ILayoutConnectable`/`LayoutGraphPort`/`LayoutGraphNode.Ports`), a self-contained per-character
-advance-width heuristic in `Layout` (`PortLabelWidthEstimator`, with no public extension point), and
+(`ILayoutConnectable`/`LayoutGraphPort`/`LayoutGraphNode.Ports`), a shared per-character
+advance-width heuristic (`PortLabelWidthEstimator`, promoted to `Rendering.Abstractions` and made
+public so both `Rendering.Layout`'s `LayeredLayoutAlgorithm` and `Rendering.Svg`'s `SvgRenderer`
+measure port-label width identically), and
 the `LayoutBox.ContentInset*` reserved-margin mechanism described below all exist and are exercised by
 the `test/DemaConsulting.Rendering.Gallery` "Parallel edges and named ports" section. Phase 2
 (`HierarchyHandling.Recursive` and boundary/delegation ports) remains unimplemented and is tracked
@@ -330,7 +332,22 @@ uncontrolled natural size. For port labels, each side's `LayoutPort.MaxLabelWidt
 label to roughly half its owning box's inner width, so an excessively long port name can no longer
 visually overlap the *opposite* port's label region on the same axis (this squeeze is computed by
 `LayeredLayoutAlgorithm` at emission time, since a flat `LayoutPort` has no reference to its owning
-box to compute this itself). This does **not** solve same-face crowding: multiple long labels *on
+box to compute this itself). The auto-grow floor also reconciles this squeeze bound with the
+reserved margin above: since `ContentInsetLeft`/`Right` already equal the widest same-side label
+width plus `PortLabelClearance`, the floor additionally requires the box's `Width` to be at least
+double `ContentInsetLeft` and at least double `ContentInsetRight`, so `MaxLabelWidth` (half the
+placed width minus clearance) can never end up smaller than the very label width the inset already
+reserved full room for — closing a gap this section originally left latent, where a box that grew
+only enough to satisfy the inset (not double it) could still needlessly squeeze a label it had
+already made physical space for. A second, independent gap of the same shape existed at
+*render* time: `SvgRenderer`'s `FitTextLength` originally decided whether to squeeze a port label
+using its own coarse `text.Length * fontSize * 0.6` estimate, which could disagree with the layout
+engine's `PortLabelWidthEstimator`-based sizing of `MaxLabelWidth` — so a label the layout engine
+had already sized to fit exactly could still be squeezed unnecessarily at render time. Promoting
+`PortLabelWidthEstimator` to `Rendering.Abstractions` (shared by both `LayeredLayoutAlgorithm` and
+`SvgRenderer`'s port-label call site) closed that gap too, so a port label whose `MaxLabelWidth`
+already covers its measured natural width now renders with no `textLength` attribute at all. This
+does **not** solve same-face crowding: multiple long labels *on
 the same face* can still visually overlap each other, exactly as an excessively long box title or
 keyword already could before squeezing existed. Options for that remaining case, roughly in order
 of preference:

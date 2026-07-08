@@ -150,7 +150,15 @@ reserved margin rather than assuming a fixed offset.
 `SvgRenderer_RenderPort_LongLabelWithMaxLabelWidth_AppliesTextLengthConstraint` renders a port with
 a deliberately long `ExternalLabel` and a finite `MaxLabelWidth`, and asserts the emitted `<text>`
 element carries a `textLength` attribute bounding it to that width (matching the squeeze mechanism
-already used for box titles). `SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter`
+already used for box titles).
+`SvgRenderer_RenderPort_LabelWidthEqualsMaxLabelWidth_NoTextLengthConstraint` sets a port's
+`MaxLabelWidth` to exactly its label's natural width as measured by the shared
+`PortLabelWidthEstimator.MeasureWidth` (mirroring how `LayeredLayoutAlgorithm` sizes
+`MaxLabelWidth` from the same estimator) and asserts the emitted `<text>` element carries no
+`textLength` attribute at all — confirming `RenderPort`'s accurate-estimator mode agrees with the
+layout engine's own sizing decision instead of the coarser flat-multiplier heuristic disagreeing and
+squeezing a label that already fits exactly.
+`SvgRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter`
 renders a box whose `ContentInsetLeft` differs from `ContentInsetRight` and asserts the title's
 `<text x="...">` remains exactly at the box's full geometric center (`box.X + box.Width / 2.0`),
 unaffected by the asymmetric insets — confirming an earlier inset-adjusted centering behavior (which
@@ -166,6 +174,7 @@ final `viewBox` bounds — confirming the canvas grows to include labels nudged 
 box+routing-geometry extent rather than clipping them invisibly.
 
 **Covers**: `Rendering-Svg-SvgRenderer-PortLabelSqueeze`,
+`Rendering-Svg-SvgRenderer-PortLabelAccurateFit`,
 `Rendering-Svg-SvgRenderer-TitleCentersOnBoxWidth`,
 `Rendering-Svg-SvgRenderer-PortGlyphOutline`,
 `Rendering-Svg-SvgRenderer-CanvasGrowsForLabels`.
@@ -251,6 +260,8 @@ marker id appears somewhere in the document. This prevents a false pass if the m
   `SvgRenderer_RenderPort_TopBottomLabel_ReadsInward`
 - **`Rendering-Svg-SvgRenderer-PortLabelSqueeze`**:
   `SvgRenderer_RenderPort_LongLabelWithMaxLabelWidth_AppliesTextLengthConstraint`
+- **`Rendering-Svg-SvgRenderer-PortLabelAccurateFit`**:
+  `SvgRenderer_RenderPort_LabelWidthEqualsMaxLabelWidth_NoTextLengthConstraint`
 - **`Rendering-Svg-SvgRenderer-ContentInset`**:
   `SvgRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowTextRight`
 - **`Rendering-Svg-SvgRenderer-TitleCentersOnBoxWidth`**:

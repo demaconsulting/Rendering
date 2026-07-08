@@ -2,23 +2,28 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
-namespace DemaConsulting.Rendering.Layout;
+namespace DemaConsulting.Rendering.Abstractions;
 
 /// <summary>
-/// Dependency-free heuristic used by <see cref="LayeredLayoutAlgorithm"/> to estimate the
-/// horizontal advance width of a port label so it can size a node's <see cref="LayoutBox.ContentInsetLeft"/>/
-/// Right/Top/Bottom reserved margins at layout time, before any renderer or theme is involved.
+/// Dependency-free heuristic used to estimate the horizontal advance width of a port label,
+/// shared by <c>Rendering.Layout</c>'s <c>LayeredLayoutAlgorithm</c> (which uses it at layout
+/// time to size a node's <c>ContentInsetLeft</c>/Right/Top/Bottom reserved margins and its
+/// <c>MaxLabelWidth</c> floor) and <c>Rendering.Svg</c>'s <c>SvgRenderer</c> (which uses it at
+/// render time to decide whether a port label needs a <c>textLength</c> squeeze constraint).
 /// </summary>
 /// <remarks>
-/// This is intentionally an internal implementation detail, not an extension point: the only goal
-/// is "good enough to avoid colliding with box content," consistent with the fact that no label
+/// Promoting this estimator to <c>Rendering.Abstractions</c> — alongside <see cref="NotationMetrics"/>,
+/// <see cref="BoxMetrics"/>, and <see cref="ConnectorLabelPlacer"/> — ensures both consumers agree on
+/// what "natural width" means for a given port label, so the layout engine's sizing decision and the
+/// renderer's squeeze decision can never disagree for the same label. This is intentionally still a
+/// "good enough to avoid colliding with box content" heuristic, not an extension point: no label
 /// anywhere in this codebase wraps, truncates, or measures exactly. <see cref="NotoSansRelativeWidths"/>
 /// approximates each character's advance width, in logical pixels, at a nominal 100px font size,
 /// modeled on Noto Sans (the one font family the bundled renderers hardcode) — the values are
 /// reasonable per-character approximations, not exact font-metric measurements, and are not
 /// guaranteed to match any specific Noto Sans version pixel-for-pixel.
 /// </remarks>
-internal static class PortLabelWidthEstimator
+public static class PortLabelWidthEstimator
 {
     /// <summary>
     /// Approximate relative advance width, in logical pixels, of each mapped character at a nominal

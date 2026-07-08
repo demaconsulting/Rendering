@@ -257,6 +257,18 @@ reviews:
       - "docs/design/rendering-abstractions.md"
       - "docs/reqstream/rendering-abstractions.yaml"
 
+  - id: Rendering-Abstractions-PortLabelWidthEstimator
+    title: Review that Rendering Abstractions PortLabelWidthEstimator Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-abstractions/port-label-width-estimator.yaml"
+      - "docs/design/rendering-abstractions/port-label-width-estimator.md"
+      - "docs/verification/rendering-abstractions/port-label-width-estimator.md"
+      - "src/DemaConsulting.Rendering.Abstractions/PortLabelWidthEstimator.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/PortLabelWidthEstimatorTests.cs"
+    context:
+      - "docs/design/rendering-abstractions.md"
+      - "docs/reqstream/rendering-abstractions.yaml"
+
   # =====================================================================
   # Rendering.Layout system (contains the Engine subsystem)
   # =====================================================================
@@ -377,9 +389,7 @@ reviews:
       - "docs/design/rendering-layout/layered-layout-algorithm.md"
       - "docs/verification/rendering-layout/layered-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/LayeredLayoutAlgorithm.cs"
-      - "src/DemaConsulting.Rendering.Layout/PortLabelWidthEstimator.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs"
-      - "test/DemaConsulting.Rendering.Layout.Tests/PortLabelWidthEstimatorTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"

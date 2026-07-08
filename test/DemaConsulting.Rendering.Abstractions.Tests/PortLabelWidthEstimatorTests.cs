@@ -2,11 +2,12 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
-namespace DemaConsulting.Rendering.Layout.Tests;
+namespace DemaConsulting.Rendering.Abstractions.Tests;
 
 /// <summary>
-///     Tests for the dependency-free <see cref="PortLabelWidthEstimator"/> heuristic used by
-///     <see cref="LayeredLayoutAlgorithm"/> to size port-label content insets.
+///     Tests for the dependency-free <see cref="PortLabelWidthEstimator"/> heuristic shared by
+///     <c>LayeredLayoutAlgorithm</c> (layout-time port-label inset/<c>MaxLabelWidth</c> sizing) and
+///     <c>SvgRenderer</c> (render-time port-label <c>textLength</c> squeeze decision).
 /// </summary>
 public sealed class PortLabelWidthEstimatorTests
 {

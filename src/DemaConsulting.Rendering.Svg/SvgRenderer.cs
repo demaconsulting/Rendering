@@ -558,12 +558,26 @@ public sealed class SvgRenderer : IRenderer
     /// <param name="fontSize">Unscaled font size of the text.</param>
     /// <param name="availableWidth">Unscaled width available for the text.</param>
     /// <param name="scale">Uniform scale factor.</param>
+    /// <param name="useAccurateEstimator">
+    /// When <see langword="true"/>, estimates natural width via the shared
+    /// <see cref="PortLabelWidthEstimator"/> — the same per-character estimator the layout engine
+    /// uses to size a port's <see cref="LayoutPort.MaxLabelWidth"/> — so a port label whose
+    /// <see cref="LayoutPort.MaxLabelWidth"/> already covers its measured natural width never emits a
+    /// <c>textLength</c> attribute. When <see langword="false"/> (the default), uses the coarser flat
+    /// <c>length * fontSize * 0.6</c> heuristic, unchanged for box titles and generic/connector
+    /// labels, which have no analogous layout-time estimator to reconcile against.
+    /// </param>
     /// <returns>A leading-space attribute fragment, or an empty string when no constraint is needed.</returns>
-    private static string FitTextLength(string text, double fontSize, double availableWidth, double scale)
+    private static string FitTextLength(
+        string text,
+        double fontSize,
+        double availableWidth,
+        double scale,
+        bool useAccurateEstimator = false)
     {
-        // Rough average glyph-width estimate; matches the layout engine's sizing factor.
-        const double GlyphWidthFactor = 0.6;
-        var estimatedWidth = text.Length * fontSize * GlyphWidthFactor;
+        var estimatedWidth = useAccurateEstimator
+            ? PortLabelWidthEstimator.MeasureWidth(text, fontSize)
+            : text.Length * fontSize * 0.6; // Rough average glyph-width estimate.
         if (availableWidth <= 0 || estimatedWidth <= availableWidth)
         {
             return string.Empty;
@@ -941,7 +955,7 @@ public sealed class SvgRenderer : IRenderer
             };
 
             sb.Append(CultureInfo.InvariantCulture,
-                $"""  <text x="{F(labelX * scale)}" y="{F(labelY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle"{FitTextLength(port.Label, theme.FontSizeBody, port.MaxLabelWidth, scale)}>{EscapeXml(port.Label)}</text>""");
+                $"""  <text x="{F(labelX * scale)}" y="{F(labelY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle"{FitTextLength(port.Label, theme.FontSizeBody, port.MaxLabelWidth, scale, useAccurateEstimator: true)}>{EscapeXml(port.Label)}</text>""");
             sb.AppendLine();
         }
     }

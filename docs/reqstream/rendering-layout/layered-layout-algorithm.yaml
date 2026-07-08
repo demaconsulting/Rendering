@@ -192,6 +192,31 @@ sections:
           - Apply_ThreeParallelLabeledEdges_LabelsLandOnTheirOwnLine
           - Apply_ThreeParallelLabeledEdges_Down_BoxWidthGrowsAndLabelsLandOnTheirOwnLine
 
+      - id: Rendering-Layout-LayeredAlgorithm-PortLabelWidthFloor
+        title: >-
+          LayeredLayoutAlgorithm shall widen the auto-grow minimum-width floor for any node with a
+          labeled Left and/or Right port so that Width is at least 2 * ContentInsetLeft and at least
+          2 * ContentInsetRight, so that the emitted LayoutPort's MaxLabelWidth (half the placed
+          width minus PortLabelClearance) is never smaller than that side's widest reserved port
+          label width.
+        justification: |
+          ContentInsetLeft/Right already reserve exactly (widest same-side port label width plus
+          PortLabelClearance) on the box's face, but MaxLabelWidth is computed independently from
+          only the box's final placed Width (half of it, minus PortLabelClearance), with no
+          reference to the inset that was grown to fit that same label. Whenever a box only grew
+          enough to satisfy the title+inset floor (which sums insetLeft + insetRight, not
+          2 * either individually), MaxLabelWidth could resolve smaller than the label's own
+          measured width, causing a renderer to squeeze (via textLength/lengthAdjust) a label the
+          box had already reserved full physical room for via its inset — exactly the defect
+          reproduced in the ports-showcase-horizontal gallery diagram. Requiring Width to also be at
+          least double each side's inset makes MaxLabelWidth's own formula naturally resolve to no
+          less than that side's widest label width once the box has grown to satisfy this floor,
+          without needing to change MaxLabelWidth's or the inset's own formulas, and without ever
+          shrinking a box below what any other floor already requires.
+        tests:
+          - Apply_NodeWithLongLeftPortLabel_GrowsWidthEnoughToAvoidSqueeze
+          - Apply_NodeWithLongLeftAndRightPortLabels_BothSidesAvoidSqueeze
+
       - id: Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting
         title: >-
           LayeredLayoutAlgorithm shall project a same-scope connector's endpoint onto a shaped node's

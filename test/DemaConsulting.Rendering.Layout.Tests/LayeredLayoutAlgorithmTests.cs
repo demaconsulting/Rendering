@@ -779,6 +779,85 @@ public class LayeredLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a node with a long left-port <see cref="LayoutGraphPort.ExternalLabel"/> is
+    ///     auto-grown wide enough that <see cref="LayoutPort.MaxLabelWidth"/> (half the placed width
+    ///     minus <c>PortLabelClearance</c>) is never smaller than the label's own measured width — i.e.
+    ///     the box that already grew to reserve <see cref="LayoutBox.ContentInsetLeft"/> for the label
+    ///     no longer separately squeezes that same label via <c>textLength</c>/<c>lengthAdjust</c>.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeWithLongLeftPortLabel_GrowsWidthEnoughToAvoidSqueeze()
+    {
+        // Arrange: mirrors the ports-showcase-horizontal gallery repro — a small caller-supplied
+        // target box receiving a long-labeled left (incoming) port.
+        const string label = "a rather long incoming data label";
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("source", 80, 40);
+        var target = graph.AddNode("target", 80, 40);
+        var port = target.Ports.AddPort("in1");
+        port.ExternalLabel = label;
+        graph.AddEdge("e1", source, port);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        // Assert: the target box grew past its caller-supplied 80px width to accommodate the floor.
+        var targetBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == null && b.ContentInsetLeft > 0);
+        Assert.True(targetBox.Width > 80.0, $"Expected target width to grow past 80, was {targetBox.Width}.");
+
+        // Assert: the emitted port's MaxLabelWidth is no longer a squeeze — it is at least as wide as
+        // the label's own measured width, using the same internal estimator production code uses.
+        const double assumedFontSize = 12.0; // CoreOptions.AssumedFontSize default
+        var measuredLabelWidth = PortLabelWidthEstimator.MeasureWidth(label, assumedFontSize);
+        var port1 = Assert.Single(tree.Nodes.OfType<LayoutPort>());
+        Assert.True(
+            port1.MaxLabelWidth >= measuredLabelWidth,
+            $"Expected MaxLabelWidth >= {measuredLabelWidth} (no squeeze), was {port1.MaxLabelWidth}.");
+    }
+
+    /// <summary>
+    ///     Proves that a node with long labeled ports on <em>both</em> its left and right sides grows
+    ///     wide enough that both sides independently satisfy the no-squeeze floor, confirming the
+    ///     <c>Math.Max(minWidth, 2 * insetLeft)</c> / <c>Math.Max(minWidth, 2 * insetRight)</c>
+    ///     composition does not let one side's floor starve the other.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeWithLongLeftAndRightPortLabels_BothSidesAvoidSqueeze()
+    {
+        const string leftLabel = "a rather long incoming data label";
+        const string rightLabel = "an equally long outgoing result label";
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("source", 80, 40);
+        var hub = graph.AddNode("hub", 80, 40);
+        var target = graph.AddNode("target", 80, 40);
+        var inPort = hub.Ports.AddPort("in1");
+        inPort.ExternalLabel = leftLabel;
+        var outPort = hub.Ports.AddPort("out1");
+        outPort.ExternalLabel = rightLabel;
+        graph.AddEdge("e1", source, inPort);
+        graph.AddEdge("e2", outPort, target);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var hubBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.ContentInsetLeft > 0 && b.ContentInsetRight > 0);
+        Assert.True(hubBox.Width > 80.0, $"Expected hub width to grow past 80, was {hubBox.Width}.");
+
+        const double assumedFontSize = 12.0; // CoreOptions.AssumedFontSize default
+        var measuredLeftWidth = PortLabelWidthEstimator.MeasureWidth(leftLabel, assumedFontSize);
+        var measuredRightWidth = PortLabelWidthEstimator.MeasureWidth(rightLabel, assumedFontSize);
+
+        var ports = tree.Nodes.OfType<LayoutPort>().ToList();
+        var inLayoutPort = Assert.Single(ports, p => p.Label == leftLabel);
+        var outLayoutPort = Assert.Single(ports, p => p.Label == rightLabel);
+        Assert.True(
+            inLayoutPort.MaxLabelWidth >= measuredLeftWidth,
+            $"Expected left MaxLabelWidth >= {measuredLeftWidth}, was {inLayoutPort.MaxLabelWidth}.");
+        Assert.True(
+            outLayoutPort.MaxLabelWidth >= measuredRightWidth,
+            $"Expected right MaxLabelWidth >= {measuredRightWidth}, was {outLayoutPort.MaxLabelWidth}.");
+    }
+
+    /// <summary>
     ///     Proves that a caller-supplied node size already large enough to fit its title and port
     ///     insets is left completely unchanged — the auto-grow floor never shrinks a node, and it does
     ///     not "helpfully" enlarge a node that does not need it.

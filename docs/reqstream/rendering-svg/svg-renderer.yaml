@@ -191,6 +191,24 @@ sections:
         tests:
           - SvgRenderer_RenderPort_LongLabelWithMaxLabelWidth_AppliesTextLengthConstraint
 
+      - id: Rendering-Svg-SvgRenderer-PortLabelAccurateFit
+        title: >-
+          SvgRenderer shall decide whether a port label needs a textLength squeeze using the same
+          shared PortLabelWidthEstimator the layout engine uses to size LayoutPort.MaxLabelWidth,
+          rather than the coarser flat-multiplier heuristic used for box titles and other labels, so
+          a port label whose MaxLabelWidth already covers its measured natural width never emits a
+          textLength attribute at all.
+        justification: |
+          FitTextLength's original coarse `text.Length * fontSize * 0.6` estimate could disagree
+          with the layout engine's own PortLabelWidthEstimator-based sizing of MaxLabelWidth, so a
+          port label the layout engine had already sized to fit exactly could still be squeezed
+          unnecessarily at render time. Reconciling the two estimators for port labels specifically
+          (the only call site with a layout-time counterpart to reconcile against) closes that gap
+          without changing the coarser heuristic's behavior for box titles or generic/connector
+          labels, which have no analogous layout-time estimator.
+        tests:
+          - SvgRenderer_RenderPort_LabelWidthEqualsMaxLabelWidth_NoTextLengthConstraint
+
       - id: Rendering-Svg-SvgRenderer-ContentInset
         title: >-
           SvgRenderer shall start box title and compartment row content at box.X plus

@@ -64,12 +64,19 @@ Each node type uses a fixed font weight and style as SVG attributes:
 ### Text Length Shrink-to-Fit
 
 `LayoutBox` labels and `LayoutLabel` nodes are constrained to their available width only when the text
-would otherwise overflow it. `FitTextLength` estimates each label's natural width (character count
-multiplied by font size and an average glyph-width factor) and compares it to the available width:
-`box.Width - 2 * theme.LabelPadding` for box labels, or `MaxWidth` for a `LayoutLabel`. Only when the
-estimate exceeds the available width does the renderer emit `textLength="{availableWidth * scale}"`
-together with `lengthAdjust="spacingAndGlyphs"`, which instructs SVG viewers to compress the glyph
-spacing so the text shrinks into the available area without overflow.
+would otherwise overflow it. `FitTextLength` accepts a `useAccurateEstimator` flag that selects between
+two width-estimation modes: the default (`false`) coarse flat multiplier — character count multiplied
+by font size and an average glyph-width factor — used unchanged for box titles (`RenderBoxTitle`) and
+generic/connector labels (`RenderLabel`); and an accurate mode (`true`), used only by `RenderPort`, that
+measures via the shared `Rendering.Abstractions.PortLabelWidthEstimator.MeasureWidth` — the same
+per-character estimator `Rendering.Layout`'s `LayeredLayoutAlgorithm` uses to size a port's
+`MaxLabelWidth` in the first place, so the layout engine's sizing decision and the renderer's squeeze
+decision can never disagree for the same port label. Either way, `FitTextLength` compares the estimate
+to the available width: `box.Width - 2 * theme.LabelPadding` for box labels, `MaxWidth` for a
+`LayoutLabel`, or `port.MaxLabelWidth` for a port label. Only when the estimate exceeds the available
+width does the renderer emit `textLength="{availableWidth * scale}"` together with
+`lengthAdjust="spacingAndGlyphs"`, which instructs SVG viewers to compress the glyph spacing so the
+text shrinks into the available area without overflow.
 
 When the text already fits, or the available width is non-positive, no `textLength` or `lengthAdjust`
 attribute is emitted, so short labels render at their natural width and are never stretched to fill
@@ -194,10 +201,13 @@ box interior: to the right of the glyph for a left-side port, to the left of the
 right-side port, below the glyph for a top-side port, and above the glyph for a bottom-side port.
 Side classification reuses the same geometric anchor comparison the layout engine used to decide
 where the port's `LayoutPort` node was placed. The label's rendered width is bounded to
-`port.MaxLabelWidth` via `FitTextLength` (the same squeeze mechanism `RenderBoxTitle`/`RenderLabel`
-already apply), adding a `textLength`/`lengthAdjust` attribute when the label would otherwise
-exceed that bound; `MaxLabelWidth` defaults to positive infinity (no squeeze) so a port with no
-computed bound renders exactly as before. This prevents an excessively long port label from
+`port.MaxLabelWidth` via `FitTextLength(useAccurateEstimator: true)` — the accurate
+`PortLabelWidthEstimator`-based mode described above, reconciled with the layout engine's own
+`MaxLabelWidth` sizing so a label the layout engine already sized to fit exactly never receives a
+`textLength` attribute — adding a `textLength`/`lengthAdjust` attribute only when the label's
+accurately-measured width would still exceed that bound; `MaxLabelWidth` defaults to positive infinity
+(no squeeze) so a port with no computed bound renders exactly as before. This prevents an excessively
+long port label from
 visually overlapping the opposite port's label region; no further text wrapping, truncation, or
 ellipsis is applied.
 
@@ -272,3 +282,4 @@ Any consumer of the rendering library that selects vector output constructs an `
 | Rendering-Svg-SvgRenderer-TitleCentersOnBoxWidth | `RenderBoxTitle` centers on full box width |
 | Rendering-Svg-SvgRenderer-PortGlyphOutline | `RenderPort` outlines the port glyph in `theme.BackgroundColor` |
 | Rendering-Svg-SvgRenderer-PortLabelSqueeze | `RenderPort` applies `FitTextLength` bounded by `MaxLabelWidth` |
+| Rendering-Svg-SvgRenderer-PortLabelAccurateFit | `RenderPort` calls `FitTextLength(useAccurateEstimator: true)` |

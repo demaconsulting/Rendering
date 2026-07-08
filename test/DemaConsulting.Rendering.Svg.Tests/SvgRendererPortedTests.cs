@@ -535,6 +535,40 @@ public sealed class SvgRendererPortedTests
     }
 
     /// <summary>
+    ///     Proves that when a port's <see cref="LayoutPort.MaxLabelWidth"/> already equals (or
+    ///     exceeds) the label's natural width as measured by the shared
+    ///     <see cref="PortLabelWidthEstimator"/> — the same estimator the layout engine uses to size
+    ///     <see cref="LayoutPort.MaxLabelWidth"/> in the first place — the rendered <c>&lt;text&gt;</c>
+    ///     element carries no <c>textLength</c> attribute at all. This closes the gap where
+    ///     <c>FitTextLength</c>'s independent heuristic used to disagree with the layout engine's own
+    ///     measurement and squeeze a label that already fit exactly.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_RenderPort_LabelWidthEqualsMaxLabelWidth_NoTextLengthConstraint()
+    {
+        // Arrange: a left port whose MaxLabelWidth is set to the label's own accurately-estimated
+        // natural width (mirrors how LayeredLayoutAlgorithm sizes MaxLabelWidth from the label).
+        const string label = "a rather long incoming data label";
+        var theme = Themes.Light;
+        var naturalWidth = PortLabelWidthEstimator.MeasureWidth(label, theme.FontSizeBody);
+        var renderer = new SvgRenderer();
+        var leftPort = new LayoutPort(10, 50, PortSide.Left, label, MaxLabelWidth: naturalWidth);
+        var layout = new LayoutTree(200, 100, [leftPort]);
+        var options = new RenderOptions(theme);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert: the label's <text> element carries no textLength attribute at all.
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var labelMatch = System.Text.RegularExpressions.Regex.Match(svgText, $"""<text[^>]*>{label}<""");
+        Assert.True(labelMatch.Success, $"Expected to find the port label's <text> element in: {svgText}");
+        Assert.DoesNotContain("textLength=", labelMatch.Value, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     ///     Proves that a port glyph's <c>&lt;rect&gt;</c> carries a <c>stroke</c> attribute distinct
     ///     from its <c>fill</c> (<see cref="Theme.BackgroundColor"/> vs <see cref="Theme.StrokeColor"/>),
     ///     so the port glyph remains visually distinguishable from a solid-filled arrowhead marker

@@ -13,6 +13,7 @@
 #     - notation-metrics.yaml         (shared notation geometry)
 #     - box-metrics.yaml              (box title-area and folder-tab geometry)
 #     - connector-label-placer.yaml   (connector midpoint-label placement)
+#     - port-label-width-estimator.yaml (shared port-label natural-width estimation)
 
 sections:
   - title: Rendering Abstractions Requirements
@@ -124,3 +125,20 @@ sections:
           - Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap
         tests:
           - Place_SingleLine_UsesLongestSegmentMidpoint
+
+      - id: Rendering-Abstractions-SharedGeometry-PortLabelWidth
+        title: >-
+          The abstractions system shall provide single-source port-label natural-width estimation so
+          the layout engine and every renderer agree on when a port label needs a squeeze constraint.
+        justification: |
+          The layout engine sizes a port's MaxLabelWidth from an estimate of the label's natural
+          width; if a renderer's own squeeze decision used a different estimate, the two could
+          disagree even when the layout engine's own measurement says the label fits exactly. A
+          single shared estimator eliminates that class of disagreement.
+        children:
+          - Rendering-Abstractions-PortLabelWidthEstimator-MeasureWidth
+          - Rendering-Abstractions-PortLabelWidthEstimator-EmptyText
+          - Rendering-Abstractions-PortLabelWidthEstimator-UnknownCharacterFallback
+          - Rendering-Abstractions-PortLabelWidthEstimator-RejectNullText
+        tests:
+          - MeasureWidth_ScalesLinearlyWithFontSize

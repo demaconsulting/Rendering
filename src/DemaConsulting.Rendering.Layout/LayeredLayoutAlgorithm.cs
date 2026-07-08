@@ -21,8 +21,9 @@ namespace DemaConsulting.Rendering.Layout;
 /// <see cref="LayoutGraphEdge.Source"/> or <see cref="LayoutGraphEdge.Target"/> is a
 /// <see cref="LayoutGraphPort"/> emits a <see cref="LayoutPort"/> anchored at the routed connector
 /// endpoint, and each node's <see cref="LayoutBox.ContentInsetLeft"/>/Right/Top/Bottom reserve space
-/// for its ports' labels, measured via a self-contained per-character advance-width heuristic (see
-/// <see cref="PortLabelWidthEstimator"/>) at <see cref="CoreOptions.AssumedFontSize"/>.
+/// for its ports' labels, measured via the shared <see cref="PortLabelWidthEstimator"/> (in
+/// <c>Rendering.Abstractions</c>, also consumed by <c>Rendering.Svg</c>'s renderer so layout-time and
+/// render-time measurements never disagree) at <see cref="CoreOptions.AssumedFontSize"/>.
 /// </summary>
 public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
 {
@@ -282,6 +283,18 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
             var minWidth = PortLabelWidthEstimator.MeasureWidth(graphNodes[i].Label ?? string.Empty, assumedFontSize)
                 + (PortLabelClearance * 2) + insetLeft + insetRight;
             var minHeight = assumedFontSize + (PortLabelClearance * 2) + insetTop + insetBottom;
+
+            // Port-label MaxLabelWidth floor (this fix): ResolveMaxLabelWidth halves the box's own placed
+            // width to bound a Left/Right port label independently of ContentInsetLeft/Right, so a box that
+            // only grew enough to fit the *inset* (insetLeft + insetRight + title) can still end up with
+            // ResolveMaxLabelWidth < the label width it already reserved room for via the inset, needlessly
+            // squeezing a label the box has physical space for. Since insetLeft/insetRight are already
+            // (widest same-side label width + PortLabelClearance), requiring width >= 2 * inset makes
+            // ResolveMaxLabelWidth (width/2 - PortLabelClearance) resolve to >= the widest label's own width,
+            // so the label is never squeezed once the box has grown to satisfy this floor. Zero on any side
+            // with no labeled port (inset is 0 there), and composes via Math.Max with every other floor below.
+            minWidth = Math.Max(minWidth, 2.0 * insetLeft);
+            minWidth = Math.Max(minWidth, 2.0 * insetRight);
 
             // Parallel-edge label-spacing floor (Regression 1 fix, now axis-aware): when 2+ connector
             // anchors share a face and at least one carries a label, ensure PortDistributor's even

@@ -1,0 +1,57 @@
+---
+# DemaConsulting.Rendering.Abstractions - Port Label Width Estimator Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the port-label-width-estimator unit: the shared per-character
+#   advance-width heuristic used to estimate a port label's natural rendered width.
+# - These unit requirements decompose the Rendering-Abstractions-SharedGeometry system requirement
+#   declared in rendering-abstractions.yaml.
+
+sections:
+  - title: Port Label Width Estimator Requirements
+    requirements:
+      - id: Rendering-Abstractions-PortLabelWidthEstimator-MeasureWidth
+        title: >-
+          The port label width estimator shall estimate a text string's horizontal advance width by
+          summing each character's mapped (or median-fallback) relative width from a Noto-Sans-modeled
+          table, scaled to the requested font size.
+        justification: |
+          Both the layout engine (sizing a node's content insets and a port's MaxLabelWidth floor) and
+          the SVG renderer (deciding whether a port label needs a textLength squeeze) must agree on
+          what "natural width" means for the same label; a single shared estimator is the only way to
+          guarantee they never disagree.
+        tests:
+          - MeasureWidth_ScalesLinearlyWithFontSize
+          - MeasureWidth_LongerText_MeasuresWider
+          - MeasureWidth_KnownCharacter_MatchesMappedWidth
+
+      - id: Rendering-Abstractions-PortLabelWidthEstimator-EmptyText
+        title: >-
+          The port label width estimator shall estimate an empty string as zero width.
+        justification: |
+          A port with no label reserves no label width; the estimator must not require special-casing
+          by callers for the empty-label case.
+        tests:
+          - MeasureWidth_EmptyString_ReturnsZero
+
+      - id: Rendering-Abstractions-PortLabelWidthEstimator-UnknownCharacterFallback
+        title: >-
+          The port label width estimator shall estimate a character absent from the mapped table using
+          a fixed median-width fallback rather than throwing or measuring as zero.
+        justification: |
+          Port labels are free-form user text and may contain characters outside the mapped Latin/digit/
+          punctuation table (e.g. non-Latin scripts or symbols); a median fallback keeps the estimate
+          reasonable without requiring an exhaustive table.
+        tests:
+          - MeasureWidth_UnmappedCharacter_UsesMedianFallback
+
+      - id: Rendering-Abstractions-PortLabelWidthEstimator-RejectNullText
+        title: >-
+          The port label width estimator shall reject a null text argument with an
+          ArgumentNullException rather than allow an unhandled NullReferenceException.
+        justification: |
+          Failing fast with a documented exception type gives callers a clear, actionable contract
+          instead of an undocumented NullReferenceException, matching the null-argument contract used
+          by the sibling BoxMetrics/NotationMetrics units.
+        tests:
+          - MeasureWidth_NullText_ThrowsArgumentNullException

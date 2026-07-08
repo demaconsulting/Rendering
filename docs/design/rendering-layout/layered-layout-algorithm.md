@@ -77,8 +77,9 @@ per node followed by `LayoutLine` per edge).
    `LayoutPort` has no reference to its owning box, so this bound must be computed here, where the
    box's placed width is known). `ResolveSide` classifies the anchor against the owning node's placed
    rectangle (within a small tolerance) to determine which of the four faces the port glyph occupies.
-   For each box, measures port labels via the self-contained `PortLabelWidthEstimator` heuristic and
-   `CoreOptions.AssumedFontSize`, then computes `ContentInsetLeft`/`Right` as the widest same-side
+   For each box, measures port labels via the shared `Rendering.Abstractions.PortLabelWidthEstimator`
+   (also consumed by `Rendering.Svg`'s `SvgRenderer` so layout-time and render-time width estimates
+   never disagree) and `CoreOptions.AssumedFontSize`, then computes `ContentInsetLeft`/`Right` as the widest same-side
    port label's measured width plus a small clearance, and `ContentInsetTop`/`Bottom` as a flat fixed
    height (one text line at `AssumedFontSize` plus padding) — zero on any side with no ports. When the
    node also carries its own title, the top/bottom flat height is widened further (a generous multiple
@@ -124,6 +125,25 @@ per node followed by `LayoutLine` per edge).
     lands directly on its own line, regardless of whether the diagram flows horizontally or
     vertically.
 
+    A further, independent `minWidth` floor reconciles `MaxLabelWidth` (step 9) with
+    `ContentInsetLeft`/`Right` (also step 9): since `ContentInsetLeft` is already `widest same-side
+    left-port label width + PortLabelClearance` (and likewise for `ContentInsetRight`), and
+    `MaxLabelWidth` is `width / 2 - PortLabelClearance` computed from the box's final placed width,
+    a box that only grew enough to satisfy the title+inset floor (which sums `insetLeft + insetRight`,
+    not `2 *` either individually) could still end up with `MaxLabelWidth` smaller than the very label
+    width `ContentInsetLeft`/`Right` already reserved full room for — needlessly squeezing (via a
+    renderer's `textLength`/`lengthAdjust`) a label the box had physical space for. Requiring
+    `minWidth >= 2 * insetLeft` and `minWidth >= 2 * insetRight` makes `MaxLabelWidth`'s own formula
+    resolve to no less than that side's widest reserved label width once the box has grown to satisfy
+    this floor — without changing `MaxLabelWidth`'s or the inset's formulas, and composing via the
+    same `Math.Max` fold as every other floor so it can only widen, never shrink, the final box. This
+    is `Left`/`Right`-only and orthogonal to the parallel-edge label-spacing floor above (which is
+    driven by anchored-edge midpoint labels via `ConnectorLabelPlacer`, not named-port `ExternalLabel`
+    text via `PortLabelWidthEstimator`); a node with both a wide left-port and a wide right-port label
+    grows to satisfy each side's floor independently (not jointly balanced against
+    `insetLeft + insetRight`), which is deliberately conservative but simple, matching the same
+    per-face (not globally-balanced) pattern the parallel-edge floor already uses.
+
 An empty graph yields an empty `LayoutTree` because `InterconnectionLayoutEngine.Place` returns a
 minimal-size empty result, which produces an empty canvas.
 
@@ -148,4 +168,5 @@ the Engine subsystem. It is the entry point resolved by renderers through the la
 | Rendering-Layout-LayeredAlgorithm-ContentInset | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-AutoGrowMinimumSize | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-PortLabelWidthFloor | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting | LayeredLayoutAlgorithm behavior described above |
