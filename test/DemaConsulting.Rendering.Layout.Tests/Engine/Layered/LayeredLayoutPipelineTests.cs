@@ -9,7 +9,7 @@ namespace DemaConsulting.Rendering.Layout.Tests.Engine.Layered;
 
 /// <summary>
 ///     Tests for <see cref="LayeredLayoutPipeline"/> covering default-stage assembly and
-///     execution, rejection of recursive hierarchy handling, and null-argument validation.
+///     execution, the recursive hierarchy-handling path, and null-argument validation.
 /// </summary>
 public sealed class LayeredLayoutPipelineTests
 {
@@ -38,19 +38,28 @@ public sealed class LayeredLayoutPipelineTests
     }
 
     /// <summary>
-    ///     Building a pipeline with recursive hierarchy handling throws
-    ///     <see cref="NotSupportedException"/> because the mode is not yet implemented.
+    ///     Building a pipeline for recursive hierarchy handling via <c>AddRecursiveStages</c> now
+    ///     succeeds and produces a runnable pipeline that lays out a small graph, replacing the former
+    ///     unconditional <see cref="NotSupportedException"/>: Stage 1 enables the recursive path.
     /// </summary>
     [Fact]
-    public void LayeredLayoutPipeline_Build_RecursiveHierarchy_ThrowsNotSupportedException()
+    public void LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline()
     {
-        // Arrange: a builder configured for recursive hierarchy handling.
-        var builder = LayeredLayoutPipeline.Builder()
+        // Arrange: a builder configured for recursive hierarchy handling with the recursive stages.
+        var nodes = new List<LayerNode> { new(60, 40), new(60, 40) };
+        var edges = new List<LayerEdge> { new(0, 1) };
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right);
+        var pipeline = LayeredLayoutPipeline.Builder()
+            .Direction(LayoutDirection.Right)
             .Hierarchy(global::DemaConsulting.Rendering.Layout.Engine.Layered.HierarchyHandling.Recursive)
-            .AddDefaultStages();
+            .AddRecursiveStages()
+            .Build();
 
-        // Act / Assert: building rejects the unsupported mode.
-        Assert.Throws<NotSupportedException>(() => builder.Build());
+        // Act: the recursive pipeline builds and runs without throwing.
+        pipeline.Run(graph);
+
+        // Assert: it laid the graph out, producing one waypoint list per edge.
+        Assert.Equal(edges.Count, graph.Waypoints.Count);
     }
 
     /// <summary>
