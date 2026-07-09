@@ -30,14 +30,15 @@ internal enum HierarchyCrossingFace
 /// </summary>
 /// <remarks>
 ///     Generalizes <c>LongEdgeSplitter</c>'s zero-size intermediate-layer dummy from "spans layers
-///     within one scope" to "spans layers across nested scopes". In the fully-joint pass this mode is
-///     designed toward, a hierarchy-crossing dummy would participate in the same layer-assignment,
-///     crossing-minimization, and placement pass as ordinary dummies while additionally remembering the
-///     originating <see cref="Port"/> and which <see cref="Face"/> of the container boundary it stands
-///     in for. That descriptor is reserved scaffolding: the current recursive handling reaches the same
-///     general/transitive external result by reconciliation (see <see cref="HierarchyHandling.Recursive"/>)
-///     and does not yet populate hierarchy-crossing dummies into the augmented graph, so this type is
-///     currently exercised only by the ordering primitive's unit tests.
+///     within one scope" to "spans layers across nested scopes". A hierarchy-crossing dummy participates
+///     in the same layer-assignment, crossing-minimization, and placement stages as an ordinary dummy
+///     while additionally remembering the originating <see cref="Port"/> and which <see cref="Face"/> of
+///     the container boundary it stands in for. The recursive layered pipeline
+///     (<c>LayeredLayoutPipeline.RunRecursive</c>) is the producer: <c>MergeRegionGraphAssembler</c>
+///     seeds one crossing dummy per boundary port and the pipeline tags the corresponding
+///     <see cref="AugNode.Crossing"/> after long-edge splitting, then reads the dummies' placed
+///     positions back to propagate a resolved boundary order between nesting levels. The ordering
+///     primitive's unit tests exercise the same descriptor.
 /// </remarks>
 /// <param name="Port">The originating input-graph boundary port this dummy stands in for.</param>
 /// <param name="Face">Which logical face (external/internal) of the boundary crossing this dummy is.</param>
@@ -49,11 +50,12 @@ internal readonly record struct HierarchyCrossing(LayoutGraphPort Port, Hierarch
 /// <param name="Layer">Assigned Sugiyama layer index.</param>
 /// <param name="IsDummy">Whether this node is a zero-size long-edge dummy.</param>
 /// <param name="Crossing">
-/// Reserved scaffolding for the fully-joint flattened pass: when non-<see langword="null"/> it would
-/// mark this node as a hierarchy-crossing dummy standing in for a boundary port. The current
-/// reconciliation-based recursive handling never assigns it, so it is <see langword="null"/> for every
-/// real node and every long-edge dummy, keeping default construction and every existing caller
-/// byte-identical.
+/// When non-<see langword="null"/>, marks this node as a hierarchy-crossing dummy standing in for a
+/// boundary port, recording the originating port and boundary face. The recursive layered pipeline
+/// (<c>LayeredLayoutPipeline.RunRecursive</c>) is the producer, tagging crossing dummies after long-edge
+/// splitting; the ordinary flat pipeline never assigns it, so it is <see langword="null"/> for every
+/// real node and every long-edge dummy on that path, keeping default construction and every existing
+/// flat caller byte-identical.
 /// </param>
 internal sealed record AugNode(
     double Width,

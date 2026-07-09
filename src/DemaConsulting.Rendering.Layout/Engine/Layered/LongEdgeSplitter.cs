@@ -13,7 +13,7 @@ internal sealed class LongEdgeSplitter : ILayoutStage
     public void Apply(LayeredGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
-        var (augNodes, augEdges) = InsertLongEdgeDummies(graph.N, graph.Nodes, graph.NodeLayers, graph.Acyclic);
+        var (augNodes, augEdges) = InsertLongEdgeDummies(graph.N, graph.Nodes, graph.NodeLayers, graph.Acyclic, graph.AugNodes);
         graph.AugNodes = augNodes;
         graph.AugEdges = augEdges;
     }
@@ -23,16 +23,28 @@ internal sealed class LongEdgeSplitter : ILayoutStage
     /// inserting one zero-size dummy node at each intermediate layer, following
     /// ELK's <c>LongEdgeSplitter</c> phase.
     /// </summary>
+    /// <remarks>
+    /// A hierarchy-crossing dummy (a real node carrying a non-<see langword="null"/>
+    /// <see cref="AugNode.Crossing"/>, pre-seeded into <paramref name="priorAug"/> by the recursive
+    /// pipeline) is a zero-size terminal hop across a container boundary, never an intermediate long-edge
+    /// relay: its <see cref="AugNode.Crossing"/> tag is carried forward unchanged so it is never further
+    /// split. For the ordinary flat path <paramref name="priorAug"/> is empty, so every rebuilt node
+    /// keeps the default <see langword="null"/> tag and the output is byte-identical.
+    /// </remarks>
     private static (List<AugNode> AugNodes, List<AugEdge> AugEdges) InsertLongEdgeDummies(
         int n,
         IReadOnlyList<LayerNode> nodes,
         int[] nodeLayers,
-        List<LayerEdge> acyclic)
+        List<LayerEdge> acyclic,
+        IReadOnlyList<AugNode> priorAug)
     {
         var augNodes = new List<AugNode>(n + acyclic.Count);
         for (var i = 0; i < n; i++)
         {
-            augNodes.Add(new AugNode(nodes[i].Width, nodes[i].Height, nodeLayers[i]));
+            // Carry forward any hierarchy-crossing tag a caller pre-seeded for this real node, so a
+            // crossing dummy stays a tagged terminal hop rather than being treated as an ordinary node.
+            var crossing = i < priorAug.Count ? priorAug[i].Crossing : null;
+            augNodes.Add(new AugNode(nodes[i].Width, nodes[i].Height, nodeLayers[i], Crossing: crossing));
         }
 
         var augEdges = new List<AugEdge>(acyclic.Count * 2);

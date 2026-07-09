@@ -46,8 +46,17 @@ namespace DemaConsulting.Rendering.Layout.Engine.Layered;
 /// <see cref="Children"/> (<c>BoundaryPorts[i].Container</c> is <c>Children[i].Container</c>).
 /// </param>
 /// <param name="IncomingBoundary">
-/// The parent boundary port whose internal (delegation) edges cross into this scope, or
-/// <see langword="null"/> for the outermost (root) level.
+/// The first parent boundary port whose internal (delegation) edges cross into this scope, or
+/// <see langword="null"/> for the outermost (root) level. Convenience accessor for the common
+/// single-port case; <see cref="IncomingBoundaries"/> carries every incoming boundary when the owning
+/// container exposes more than one boundary port.
+/// </param>
+/// <param name="IncomingBoundaries">
+/// Every parent boundary port whose internal (delegation) edges cross into this scope — one per
+/// boundary port owned by the container this level was descended into — or an empty list for the
+/// outermost (root) level. A multi-port container contributes one <see cref="MergeRegionLevel"/> whose
+/// incoming boundaries are all of that container's ports, so each port becomes its own inward
+/// hierarchy crossing.
 /// </param>
 /// <param name="EffectiveSize">
 /// The effective bounding-box size lookup used when translating this level's nodes into
@@ -62,6 +71,7 @@ internal sealed record MergeRegionLevel(
     IReadOnlyList<(LayoutGraphNode Container, int NodeIndex, MergeRegionLevel Child)> Children,
     IReadOnlyList<BoundaryPort> BoundaryPorts,
     BoundaryPort? IncomingBoundary,
+    IReadOnlyList<BoundaryPort> IncomingBoundaries,
     IReadOnlyDictionary<LayoutGraphNode, (double Width, double Height)> EffectiveSize);
 
 /// <summary>
@@ -76,6 +86,39 @@ internal sealed record MergeRegionLevel(
 internal sealed record AssembledMergeRegion(
     MergeRegionLevel Root,
     IReadOnlyList<BoundaryPort> AllBoundaryPorts);
+
+/// <summary>
+/// Describes one hierarchy-crossing dummy node inside a level's assembled <see cref="LayeredGraph"/>:
+/// which augmented-node index stands in for the crossing, the boundary port it originates from, and
+/// which logical face of the container boundary it represents.
+/// </summary>
+/// <remarks>
+///     The recursive pipeline uses this record for two purposes: to tag the corresponding
+///     <see cref="AugNode.Crossing"/> after long-edge splitting (so the crossing dummy is a genuinely
+///     honored hierarchy crossing rather than an ordinary node), and — by pairing an
+///     <see cref="HierarchyCrossingFace.External"/> crossing in the parent level with the
+///     <see cref="HierarchyCrossingFace.Internal"/> crossing in the child level that shares the same
+///     <see cref="BoundaryPort.Port"/> — to propagate a resolved boundary order between adjacent
+///     nesting levels.
+/// </remarks>
+/// <param name="NodeIndex">The augmented-node index of the crossing dummy within its level graph.</param>
+/// <param name="Boundary">The boundary port this crossing dummy stands in for.</param>
+/// <param name="Face">Which logical face (external/internal) of the boundary crossing this dummy is.</param>
+internal readonly record struct LevelCrossing(
+    int NodeIndex,
+    BoundaryPort Boundary,
+    HierarchyCrossingFace Face);
+
+/// <summary>
+/// One nesting level's assembled <see cref="LayeredGraph"/> paired with the hierarchy-crossing dummies
+/// seeded into it, so the recursive layered pipeline can both tag those dummies and recover each
+/// crossing's placed coordinate and originating <c>(BoundaryPort, Face)</c> after placement.
+/// </summary>
+/// <param name="Graph">The per-level layered graph built by <see cref="MergeRegionGraphAssembler.BuildLevelGraph"/>.</param>
+/// <param name="Crossings">The hierarchy-crossing dummies seeded into <paramref name="Graph"/>, in creation order.</param>
+internal sealed record LevelLayeredGraph(
+    LayeredGraph Graph,
+    IReadOnlyList<LevelCrossing> Crossings);
 
 /// <summary>
 /// Assembles the combined, hierarchy-aware node/edge model for one merge region from the boundary ports
@@ -133,8 +176,47 @@ internal static class MergeRegionGraphAssembler
         // Accumulate every boundary port discovered at any depth for the decomposition step's lookup,
         // in top-down discovery order (this level's ports precede its descendants').
         var allBoundaryPorts = new List<BoundaryPort>();
-        var root = BuildLevel(scope, boundaryPorts, incomingBoundary: null, effectiveSize, allBoundaryPorts);
+        var root = BuildLevel(scope, boundaryPorts, incomingBoundaries: [], effectiveSize, allBoundaryPorts);
         return new AssembledMergeRegion(root, allBoundaryPorts);
+    }
+
+    /// <summary>
+    /// Builds one <see cref="LevelLayeredGraph"/> per nesting level of <paramref name="region"/>, keyed
+    /// by <see cref="MergeRegionLevel"/>, so the recursive pipeline can lay out every level and later
+    /// recover each level's placed coordinates and hierarchy crossings.
+    /// </summary>
+    /// <param name="region">The assembled merge region whose every level is built.</param>
+    /// <param name="direction">The flow direction each level's graph is laid out along.</param>
+    /// <returns>A lookup from each level to its assembled layered graph and crossing bookkeeping.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="region"/> is <see langword="null"/>.</exception>
+    public static IReadOnlyDictionary<MergeRegionLevel, LevelLayeredGraph> BuildAllLevelGraphs(
+        AssembledMergeRegion region,
+        LayoutDirection direction)
+    {
+        ArgumentNullException.ThrowIfNull(region);
+
+        var result = new Dictionary<MergeRegionLevel, LevelLayeredGraph>();
+        BuildAllLevelGraphs(region.Root, direction, result);
+        return result;
+    }
+
+    /// <summary>
+    /// Recursively populates <paramref name="sink"/> with the assembled layered graph of
+    /// <paramref name="level"/> and every descendant level.
+    /// </summary>
+    /// <param name="level">The level to build a graph for.</param>
+    /// <param name="direction">The flow direction each level's graph is laid out along.</param>
+    /// <param name="sink">The accumulating level-to-graph lookup.</param>
+    private static void BuildAllLevelGraphs(
+        MergeRegionLevel level,
+        LayoutDirection direction,
+        Dictionary<MergeRegionLevel, LevelLayeredGraph> sink)
+    {
+        sink[level] = BuildLevelGraph(level, direction);
+        foreach (var (_, _, child) in level.Children)
+        {
+            BuildAllLevelGraphs(child, direction, sink);
+        }
     }
 
     /// <summary>
@@ -154,9 +236,9 @@ internal static class MergeRegionGraphAssembler
     /// </remarks>
     /// <param name="level">The nesting level to build a layered graph for.</param>
     /// <param name="direction">The flow direction the level is laid out along; defaults to <see cref="LayoutDirection.Right"/>.</param>
-    /// <returns>The per-level layered graph, ready to feed the recursive pipeline.</returns>
+    /// <returns>The per-level layered graph and its hierarchy-crossing bookkeeping, ready to feed the recursive pipeline.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="level"/> is <see langword="null"/>.</exception>
-    internal static LayeredGraph BuildLevelGraph(MergeRegionLevel level, LayoutDirection direction = LayoutDirection.Right)
+    internal static LevelLayeredGraph BuildLevelGraph(MergeRegionLevel level, LayoutDirection direction = LayoutDirection.Right)
     {
         ArgumentNullException.ThrowIfNull(level);
 
@@ -190,21 +272,23 @@ internal static class MergeRegionGraphAssembler
             }
         }
 
-        // The incoming crossing: the parent boundary port delegates inward, so a single zero-size dummy
-        // (its internal face) feeds each interior delegation target.
-        if (level.IncomingBoundary is { } incoming)
+        var crossings = new List<LevelCrossing>();
+
+        // The incoming crossings: each parent boundary port delegating inward becomes one zero-size
+        // dummy (its internal face) feeding the interior delegation targets it reaches.
+        foreach (var incoming in level.IncomingBoundaries)
         {
-            AddIncomingCrossing(level, incoming, nodes, edges);
+            AddIncomingCrossing(level, incoming, nodes, edges, crossings);
         }
 
         // The outgoing crossings: each boundary-port container's external approach edges feed a zero-size
         // dummy (its external face) that then leads into the container's own box.
         foreach (var boundary in level.BoundaryPorts)
         {
-            AddOutgoingCrossing(level, boundary, nodes, edges);
+            AddOutgoingCrossing(level, boundary, nodes, edges, crossings);
         }
 
-        return new LayeredGraph(nodes, edges, direction);
+        return new LevelLayeredGraph(new LayeredGraph(nodes, edges, direction), crossings);
     }
 
     /// <summary>
@@ -214,14 +298,14 @@ internal static class MergeRegionGraphAssembler
     /// </summary>
     /// <param name="scope">The container scope this level is drawn from.</param>
     /// <param name="boundaryPorts">The boundary ports discovered directly in <paramref name="scope"/>.</param>
-    /// <param name="incomingBoundary">The parent boundary port delegating into this scope, or <see langword="null"/> at the root.</param>
+    /// <param name="incomingBoundaries">The parent boundary ports delegating into this scope, or empty at the root.</param>
     /// <param name="effectiveSize">The effective size lookup threaded to every level.</param>
     /// <param name="allBoundaryPorts">The accumulating flattened boundary-port list.</param>
     /// <returns>The assembled level for <paramref name="scope"/>.</returns>
     private static MergeRegionLevel BuildLevel(
         LayoutGraph scope,
         IReadOnlyList<BoundaryPort> boundaryPorts,
-        BoundaryPort? incomingBoundary,
+        IReadOnlyList<BoundaryPort> incomingBoundaries,
         IReadOnlyDictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize,
         List<BoundaryPort> allBoundaryPorts)
     {
@@ -233,16 +317,16 @@ internal static class MergeRegionGraphAssembler
             nodeIndex[nodes[i]] = i;
         }
 
-        // Boundary-crossing edges reference either a boundary port discovered here or the parent
-        // boundary port delegating in; they are represented as hierarchy crossings, so they are removed
-        // from the level's ordinary edge set.
+        // Boundary-crossing edges reference either a boundary port discovered here or a parent boundary
+        // port delegating in; they are represented as hierarchy crossings, so they are removed from the
+        // level's ordinary edge set.
         var boundaryPortSet = new HashSet<LayoutGraphPort>();
         foreach (var boundary in boundaryPorts)
         {
             boundaryPortSet.Add(boundary.Port);
         }
 
-        if (incomingBoundary is { } incoming)
+        foreach (var incoming in incomingBoundaries)
         {
             boundaryPortSet.Add(incoming.Port);
         }
@@ -254,15 +338,32 @@ internal static class MergeRegionGraphAssembler
         // This level's own boundary ports precede its descendants' in the flattened lookup.
         allBoundaryPorts.AddRange(boundaryPorts);
 
+        // Group boundary ports by their owning container so a multi-port container contributes exactly
+        // one nested child level whose incoming boundaries are all of that container's ports, rather than
+        // one duplicated child level per port.
+        var containerOrder = new List<LayoutGraphNode>();
+        var portsByContainer = new Dictionary<LayoutGraphNode, List<BoundaryPort>>();
+        foreach (var boundary in boundaryPorts)
+        {
+            if (!portsByContainer.TryGetValue(boundary.Container, out var ports))
+            {
+                ports = [];
+                portsByContainer[boundary.Container] = ports;
+                containerOrder.Add(boundary.Container);
+            }
+
+            ports.Add(boundary);
+        }
+
         // Recurse into every boundary-port container's full child scope, rediscovering that scope's own
         // boundary ports so a delegation chain of any depth is assembled level by level.
         var children = new List<(LayoutGraphNode Container, int NodeIndex, MergeRegionLevel Child)>();
-        foreach (var boundary in boundaryPorts)
+        foreach (var container in containerOrder)
         {
-            var container = boundary.Container;
+            var containerPorts = portsByContainer[container];
             var childScope = container.Children;
             var childBoundaries = HierarchyMergeRegionBuilder.Collect(childScope);
-            var childLevel = BuildLevel(childScope, childBoundaries, boundary, effectiveSize, allBoundaryPorts);
+            var childLevel = BuildLevel(childScope, childBoundaries, containerPorts, effectiveSize, allBoundaryPorts);
             children.Add((container, nodeIndex[container], childLevel));
         }
 
@@ -273,7 +374,8 @@ internal static class MergeRegionGraphAssembler
             nodeIndex,
             children,
             boundaryPorts,
-            incomingBoundary,
+            incomingBoundaries.Count > 0 ? incomingBoundaries[0] : null,
+            incomingBoundaries,
             effectiveSize);
     }
 
@@ -285,11 +387,13 @@ internal static class MergeRegionGraphAssembler
     /// <param name="incoming">The parent boundary port delegating into the level.</param>
     /// <param name="nodes">The working layer-node list, appended to in place.</param>
     /// <param name="edges">The working layer-edge list, appended to in place.</param>
+    /// <param name="crossings">The working crossing-metadata list, appended to in place.</param>
     private static void AddIncomingCrossing(
         MergeRegionLevel level,
         BoundaryPort incoming,
         List<LayerNode> nodes,
-        List<LayerEdge> edges)
+        List<LayerEdge> edges,
+        List<LevelCrossing> crossings)
     {
         var dummyIndex = nodes.Count;
         var wired = false;
@@ -305,6 +409,7 @@ internal static class MergeRegionGraphAssembler
             if (!wired)
             {
                 nodes.Add(new LayerNode(0.0, 0.0, RealWidth: 0.0, RealHeight: 0.0));
+                crossings.Add(new LevelCrossing(dummyIndex, incoming, HierarchyCrossingFace.Internal));
                 wired = true;
             }
 
@@ -320,11 +425,13 @@ internal static class MergeRegionGraphAssembler
     /// <param name="boundary">The boundary port whose external approach is being wired.</param>
     /// <param name="nodes">The working layer-node list, appended to in place.</param>
     /// <param name="edges">The working layer-edge list, appended to in place.</param>
+    /// <param name="crossings">The working crossing-metadata list, appended to in place.</param>
     private static void AddOutgoingCrossing(
         MergeRegionLevel level,
         BoundaryPort boundary,
         List<LayerNode> nodes,
-        List<LayerEdge> edges)
+        List<LayerEdge> edges,
+        List<LevelCrossing> crossings)
     {
         if (!level.NodeIndex.TryGetValue(boundary.Container, out var containerIndex))
         {
@@ -348,6 +455,7 @@ internal static class MergeRegionGraphAssembler
             {
                 nodes.Add(new LayerNode(0.0, 0.0, RealWidth: 0.0, RealHeight: 0.0));
                 edges.Add(new LayerEdge(dummyIndex, containerIndex));
+                crossings.Add(new LevelCrossing(dummyIndex, boundary, HierarchyCrossingFace.External));
                 wired = true;
             }
 

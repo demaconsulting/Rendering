@@ -2,6 +2,7 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
+using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Layout.Engine;
 using DemaConsulting.Rendering.Layout.Engine.Layered;
 
@@ -55,5 +56,40 @@ public sealed class LongEdgeSplitterTests
         // Assert: exactly two dummy nodes were inserted (layers 1 and 2).
         Assert.Equal(graph.N + 2, graph.AugNodes.Count);
         Assert.Equal(2, graph.AugNodes.Count(a => a.IsDummy));
+    }
+
+    /// <summary>
+    ///     A pre-seeded hierarchy-crossing dummy (a real node carrying a non-null
+    ///     <see cref="AugNode.Crossing"/> tag) is a zero-size terminal hop across a container boundary,
+    ///     so long-edge splitting carries its tag forward unchanged and never rebuilds it into an
+    ///     ordinary node — the consumer guard for the recursive pipeline's crossing dummies.
+    /// </summary>
+    [Fact]
+    public void LongEdgeSplitter_Apply_CrossingTaggedNode_PreservesTagAndIsNotSplit()
+    {
+        // Arrange: a two-node graph (feeder -> crossing dummy) whose target node is pre-seeded as a
+        // hierarchy-crossing dummy, exactly as the recursive pipeline tags a boundary-crossing node.
+        var port = new LayoutGraph().AddNode("Container", 10, 10).Ports.AddPort("p");
+        var nodes = new List<LayerNode> { new(60, 40), new(0, 0, RealWidth: 0, RealHeight: 0) };
+        var edges = new List<LayerEdge> { new(0, 1) };
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right);
+        new CycleBreaker().Apply(graph);
+        new LayerAssigner().Apply(graph);
+        graph.AugNodes =
+        [
+            new AugNode(nodes[0].Width, nodes[0].Height, graph.NodeLayers[0]),
+            new AugNode(0, 0, graph.NodeLayers[1], Crossing: new HierarchyCrossing(port, HierarchyCrossingFace.Internal)),
+        ];
+
+        // Act: split long edges with the crossing tag already present.
+        new LongEdgeSplitter().Apply(graph);
+
+        // Assert: the crossing tag survived the augmented-node rebuild unchanged, and the tagged node was
+        // not turned into a long-edge dummy nor duplicated (no split of the terminal crossing hop).
+        Assert.NotNull(graph.AugNodes[1].Crossing);
+        Assert.Equal(HierarchyCrossingFace.Internal, graph.AugNodes[1].Crossing!.Value.Face);
+        Assert.Same(port, graph.AugNodes[1].Crossing!.Value.Port);
+        Assert.False(graph.AugNodes[1].IsDummy);
+        Assert.DoesNotContain(graph.AugNodes, a => a.IsDummy);
     }
 }
