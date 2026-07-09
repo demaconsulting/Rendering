@@ -100,6 +100,12 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   approach edges and two delegation edges) still consolidate onto one shared anchor, and
   `Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors` confirms two independent boundary
   ports on one container each resolve to their own shared anchor.
+  `Apply_TwoIndependentBoundaryPortsWithSharedNullExternalLabel_PreservesConnectorProvenance` and
+  `Apply_TwoIndependentBoundaryPortsWithIdenticalExternalLabel_PreservesConnectorProvenance` go beyond
+  anchor count and label pairing to assert connector *provenance*: each anchor's external connector is
+  traced back to its own true external sibling and its internal connector to its own true child, with no
+  cross-wiring, in the case (a shared or both-null `ExternalLabel`) that previously caused the resolver's
+  label-string matching to silently mis-reconcile the two ports' anchors.
 - **Boundary port edge throws** (`Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows`):
   `Apply_PortOnNonContainerCrossingIntoDifferentContainer_Throws` confirms a port owned by a plain
   (non-container) node with an edge straight into a different container's nested child — a
@@ -139,7 +145,9 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
 - **`Rendering-Layout-HierarchicalLayout-BoundaryPortDelegation`**:
   Apply_BoundaryPortWithExternalAndInternalEdges_EmitsOneSharedAnchorCarryingBothLabels,
   Apply_BoundaryPortFanOut_ResolvesToOneSharedAnchor,
-  Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors
+  Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors,
+  Apply_TwoIndependentBoundaryPortsWithSharedNullExternalLabel_PreservesConnectorProvenance,
+  Apply_TwoIndependentBoundaryPortsWithIdenticalExternalLabel_PreservesConnectorProvenance
 - **`Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows`**:
   Apply_PortOnNonContainerCrossingIntoDifferentContainer_Throws
 - **`Rendering-Layout-HierarchicalLayout-ValidatesGraph`**:

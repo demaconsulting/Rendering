@@ -141,6 +141,8 @@ sections:
           - Apply_BoundaryPortWithExternalAndInternalEdges_EmitsOneSharedAnchorCarryingBothLabels
           - Apply_BoundaryPortFanOut_ResolvesToOneSharedAnchor
           - Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors
+          - Apply_TwoIndependentBoundaryPortsWithSharedNullExternalLabel_PreservesConnectorProvenance
+          - Apply_TwoIndependentBoundaryPortsWithIdenticalExternalLabel_PreservesConnectorProvenance
 
       - id: Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows
         title: >-

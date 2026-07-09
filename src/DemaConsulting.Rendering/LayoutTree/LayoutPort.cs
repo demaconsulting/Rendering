@@ -48,10 +48,22 @@ public enum PortSide
 /// Defaults to <see cref="double.PositiveInfinity"/> (no constraint), which preserves the behavior of
 /// every pre-existing 4-argument <c>new LayoutPort(x, y, side, label)</c> call site.
 /// </param>
+/// <param name="SourcePort">
+/// Engine-only plumbing identity: the <see cref="LayoutGraphPort"/> that produced this placed anchor
+/// during the leaf layout pass, if any. This exists solely so a later reconciliation stage (such as the
+/// hierarchical layout algorithm's boundary-port resolver) can recover, by reference identity, which
+/// graph port originated a given placed anchor — this is required because <paramref name="ExternalLabel"/>
+/// is optional and frequently <see langword="null"/>, so it cannot safely be used as an identity key.
+/// This is <em>not</em> rendering data: renderers must continue to read only
+/// <see cref="CentreX"/>/<see cref="CentreY"/>/<see cref="Side"/>/<paramref name="ExternalLabel"/>/
+/// <paramref name="InternalLabel"/>/<paramref name="MaxLabelWidth"/> and must ignore this field.
+/// Defaults to <see langword="null"/>, which preserves the behavior of every pre-existing call site.
+/// </param>
 public sealed record LayoutPort(
     double CentreX,
     double CentreY,
     PortSide Side,
     string? ExternalLabel,
     string? InternalLabel = null,
-    double MaxLabelWidth = double.PositiveInfinity) : LayoutNode;
+    double MaxLabelWidth = double.PositiveInfinity,
+    LayoutGraphPort? SourcePort = null) : LayoutNode;

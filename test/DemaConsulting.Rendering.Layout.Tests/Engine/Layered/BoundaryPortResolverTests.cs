@@ -105,7 +105,7 @@ public sealed class BoundaryPortResolverTests
         var composed = new[] { aBox, bBox };
         var indexOf = new Dictionary<LayoutGraphNode, int> { [a] = 0, [b] = 1 };
 
-        var anchor = new LayoutPort(200, 40, PortSide.Left, "EXT");
+        var anchor = new LayoutPort(200, 40, PortSide.Left, "EXT", SourcePort: port);
         var placedPorts = new List<LayoutPort> { anchor };
         var externalLine = new LayoutLine(
             [new Point2D(80, 20), new Point2D(200, 40)],
@@ -142,6 +142,121 @@ public sealed class BoundaryPortResolverTests
             resolution.Lines,
             line => line.Waypoints.Count > 0 && Same(line.Waypoints[0], anchorPoint) &&
                 line.Waypoints.Any(wp => wp.X >= cBox.X - 1 && wp.X <= cBox.X + cBox.Width + 1));
+    }
+
+    /// <summary>
+    ///     Regression for the boundary-port identity bug (isolated at the resolver level, without the
+    ///     full <see cref="HierarchicalLayoutAlgorithm"/> pipeline): two distinct boundary ports
+    ///     <c>p</c>/<c>q</c> on one container, both with <see cref="LayoutGraphPort.ExternalLabel"/>
+    ///     left <see langword="null"/>, each already anchored by the (hand-built) leaf pass and tagged
+    ///     with the correct <see cref="LayoutPort.SourcePort"/>. Before the fix,
+    ///     <see cref="BoundaryPortResolver.Resolve"/> matched a boundary port to its leaf anchor by
+    ///     <c>string.Equals</c> on <c>ExternalLabel</c>, so both null-labeled ports would match the same
+    ///     (first) leaf anchor, silently merging both ports' external connectors onto one anchor. This
+    ///     test proves each port resolves independently — its own anchor position, its own external
+    ///     line, its own internal connector — with no cross-wiring, even though <c>ExternalLabel</c> is
+    ///     identical (null) on both.
+    /// </summary>
+    [Fact]
+    public void Resolve_TwoBoundaryPortsWithSharedNullExternalLabel_ResolveIndependentlyByReferenceIdentity()
+    {
+        // Arrange: scope with two siblings A1/A2 and container B owning two boundary ports p/q, both
+        // with a null ExternalLabel, each delegating to its own child C1/C2.
+        var scope = new LayoutGraph();
+        var a1 = scope.AddNode("A1", 80, 40);
+        var a2 = scope.AddNode("A2", 80, 40);
+        var b = scope.AddNode("B", 120, 120);
+        var p = b.Ports.AddPort("p");
+        p.InternalLabel = "P_IN";
+        var q = b.Ports.AddPort("q");
+        q.InternalLabel = "Q_IN";
+        var c1 = b.Children.AddNode("C1", 80, 40);
+        var c2 = b.Children.AddNode("C2", 80, 40);
+        scope.AddEdge("a1-p", a1, p);
+        scope.AddEdge("a2-q", a2, q);
+        b.Children.AddEdge("p-c1", p, c1);
+        b.Children.AddEdge("q-c2", q, c2);
+
+        var boundaryPorts = HierarchyMergeRegionBuilder.Collect(scope);
+        Assert.Equal(2, boundaryPorts.Count);
+
+        // Composed geometry: A1/A2 to the left; B to the right; C1/C2 stacked inside B; the leaf pass's
+        // two anchors on B's left face, correctly tagged with their originating SourcePort.
+        var a1Box = Box(0, 0, 80, 40, "A1", []);
+        var a2Box = Box(0, 60, 80, 40, "A2", []);
+        var c1Box = Box(220, 20, 80, 40, "C1", []);
+        var c2Box = Box(220, 80, 80, 40, "C2", []);
+        var bBox = Box(200, 0, 120, 120, "B", [c1Box, c2Box]);
+        var composed = new[] { a1Box, a2Box, bBox };
+        var indexOf = new Dictionary<LayoutGraphNode, int> { [a1] = 0, [a2] = 1, [b] = 2 };
+
+        var pAnchor = new LayoutPort(200, 20, PortSide.Left, null, SourcePort: p);
+        var qAnchor = new LayoutPort(200, 100, PortSide.Left, null, SourcePort: q);
+        var placedPorts = new List<LayoutPort> { pAnchor, qAnchor };
+        var a1Line = new LayoutLine(
+            [new Point2D(80, 20), new Point2D(200, 20)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            null);
+        var a2Line = new LayoutLine(
+            [new Point2D(80, 80), new Point2D(200, 100)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            null);
+        var placedLines = new List<LayoutLine> { a1Line, a2Line };
+
+        // Act
+        var resolution = BoundaryPortResolver.Resolve(
+            scope,
+            LayoutDirection.Right,
+            boundaryPorts,
+            composed,
+            indexOf,
+            placedPorts,
+            placedLines);
+
+        // Assert: two distinct anchors at their own original positions, not collapsed onto one.
+        Assert.Equal(2, resolution.Ports.Count);
+        var pEmitted = Assert.Single(resolution.Ports, port => port.InternalLabel == "P_IN");
+        var qEmitted = Assert.Single(resolution.Ports, port => port.InternalLabel == "Q_IN");
+        Assert.Equal(200, pEmitted.CentreX, 3);
+        Assert.Equal(20, pEmitted.CentreY, 3);
+        Assert.Equal(200, qEmitted.CentreX, 3);
+        Assert.Equal(100, qEmitted.CentreY, 3);
+
+        // p's anchor: A1's external line still ends there, and its own internal connector reaches C1 —
+        // but A2's external line must NOT have been re-terminated onto it.
+        var pPoint = new Point2D(pEmitted.CentreX, pEmitted.CentreY);
+        var qPoint = new Point2D(qEmitted.CentreX, qEmitted.CentreY);
+        Assert.Contains(
+            resolution.Lines,
+            line => line.Waypoints.Count > 0 && Same(line.Waypoints[^1], pPoint) &&
+                Same(line.Waypoints[0], new Point2D(80, 20)));
+        Assert.Contains(
+            resolution.Lines,
+            line => line.Waypoints.Count > 0 && Same(line.Waypoints[0], pPoint) &&
+                line.Waypoints.Any(wp => wp.X >= c1Box.X - 1 && wp.X <= c1Box.X + c1Box.Width + 1));
+        Assert.DoesNotContain(
+            resolution.Lines,
+            line => line.Waypoints.Count > 0 && Same(line.Waypoints[^1], pPoint) &&
+                Same(line.Waypoints[0], new Point2D(80, 80)));
+
+        // q's anchor: A2's external line still ends there, and its own internal connector reaches C2 —
+        // but A1's external line must NOT have been re-terminated onto it.
+        Assert.Contains(
+            resolution.Lines,
+            line => line.Waypoints.Count > 0 && Same(line.Waypoints[^1], qPoint) &&
+                Same(line.Waypoints[0], new Point2D(80, 80)));
+        Assert.Contains(
+            resolution.Lines,
+            line => line.Waypoints.Count > 0 && Same(line.Waypoints[0], qPoint) &&
+                line.Waypoints.Any(wp => wp.X >= c2Box.X - 1 && wp.X <= c2Box.X + c2Box.Width + 1));
+        Assert.DoesNotContain(
+            resolution.Lines,
+            line => line.Waypoints.Count > 0 && Same(line.Waypoints[^1], qPoint) &&
+                Same(line.Waypoints[0], new Point2D(80, 20)));
     }
 
     /// <summary>

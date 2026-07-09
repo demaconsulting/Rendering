@@ -259,7 +259,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
         var (leafEdges, routedEdges) = ClassifyEdges(graph, descendantToDirect, portOwner);
 
-        var (view, _) = BuildSizedView(graph, effectiveSize, leafEdges);
+        var (view, _, viewPortOf) = BuildSizedView(graph, effectiveSize, leafEdges);
 
         // Place this level with the resolved leaf algorithm over the sized view. The leaf algorithm
         // emits one box per node in Nodes order, so placed boxes align with graph.Nodes by index.
@@ -267,6 +267,21 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
         var placedBoxes = placed.Nodes.OfType<LayoutBox>().ToList();
         var placedLines = placed.Nodes.OfType<LayoutLine>().ToList();
         var placedPorts = placed.Nodes.OfType<LayoutPort>().ToList();
+
+        // The leaf pass ran over the sized view graph, whose ports are distinct clone objects from this
+        // scope's original graph ports (see BuildSizedView). Translate each placed port's SourcePort
+        // back to the original scope's LayoutGraphPort so downstream boundary-port resolution reasons
+        // about the same port identity as HierarchyMergeRegionBuilder/BoundaryPortResolver, never the
+        // disposable view clone.
+        if (viewPortOf.Count > 0)
+        {
+            var originalPortOf = viewPortOf.ToDictionary(kv => kv.Value, kv => kv.Key);
+            placedPorts = placedPorts
+                .Select(p => p.SourcePort != null && originalPortOf.TryGetValue(p.SourcePort, out var orig)
+                    ? p with { SourcePort = orig }
+                    : p)
+                .ToList();
+        }
 
         var (composed, indexOf) = ComposeBoxes(graph, placedBoxes, subLayouts);
 
@@ -366,8 +381,16 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     /// <param name="graph">The caller's scope, which is never mutated.</param>
     /// <param name="effectiveSize">Effective sizes for the container nodes of this scope.</param>
     /// <param name="leafEdges">The edges this scope's leaf algorithm should route locally.</param>
-    /// <returns>The sized view graph and a map from each original node to its view counterpart.</returns>
-    private static (LayoutGraph View, Dictionary<LayoutGraphNode, LayoutGraphNode> ViewOf) BuildSizedView(
+    /// <returns>
+    /// The sized view graph, a map from each original node to its view counterpart, and a map from each
+    /// original port to its view counterpart (surfaced so callers can translate a placed
+    /// <see cref="LayoutPort"/>'s <see cref="LayoutPort.SourcePort"/> back to the original scope's port
+    /// identity once the leaf pass has run over the view).
+    /// </returns>
+    private static (
+        LayoutGraph View,
+        Dictionary<LayoutGraphNode, LayoutGraphNode> ViewOf,
+        Dictionary<LayoutGraphPort, LayoutGraphPort> ViewPortOf) BuildSizedView(
         LayoutGraph graph,
         Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize,
         HashSet<LayoutGraphEdge> leafEdges)
@@ -429,7 +452,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
             }
         }
 
-        return (view, viewOf);
+        return (view, viewOf, viewPortOf);
     }
 
     /// <summary>

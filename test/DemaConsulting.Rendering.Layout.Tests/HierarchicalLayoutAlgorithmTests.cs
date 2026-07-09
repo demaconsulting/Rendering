@@ -787,6 +787,165 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Regression for the boundary-port identity bug: two independent boundary ports <c>P</c> and
+    ///     <c>Q</c> on one container <c>B</c> both leave <see cref="LayoutGraphPort.ExternalLabel"/>
+    ///     <see langword="null"/> (the common, default case for a boundary port that has no cosmetic
+    ///     external label). Before the fix, <c>BoundaryPortResolver</c> matched a boundary port to its
+    ///     leaf-placed anchor by <c>string.Equals</c> on <c>ExternalLabel</c>, so both null-labeled
+    ///     ports collapsed onto the same match: one anchor silently absorbed both ports' external
+    ///     connectors while the other anchor was left with none. This test proves each anchor's
+    ///     external connector traces back to its own true external source (not just that two anchors
+    ///     exist), by identifying each anchor via its internal delegation connector's destination
+    ///     (<c>C1</c> vs <c>C2</c>) and then asserting that anchor's external connector reaches its own
+    ///     sibling (<c>A1</c> vs <c>A2</c>) and no other.
+    /// </summary>
+    [Fact]
+    public void Apply_TwoIndependentBoundaryPortsWithSharedNullExternalLabel_PreservesConnectorProvenance()
+    {
+        // Arrange: container B owns two boundary ports, both with a null ExternalLabel, distinguished
+        // only by InternalLabel and by which sibling/child each is wired to.
+        var graph = new LayoutGraph();
+        var a1 = graph.AddNode("A1", 80, 40);
+        a1.Label = "A1";
+        var a2 = graph.AddNode("A2", 80, 40);
+        a2.Label = "A2";
+        var b = graph.AddNode("B", 10, 10);
+        b.Label = "B";
+        var p = b.Ports.AddPort("p");
+        p.InternalLabel = "P_IN";
+        var q = b.Ports.AddPort("q");
+        q.InternalLabel = "Q_IN";
+        var c1 = b.Children.AddNode("C1", 80, 40);
+        c1.Label = "C1";
+        var c2 = b.Children.AddNode("C2", 80, 40);
+        c2.Label = "C2";
+
+        graph.AddEdge("a1-p", a1, p);
+        graph.AddEdge("a2-q", a2, q);
+        b.Children.AddEdge("p-c1", p, c1);
+        b.Children.AddEdge("q-c2", q, c2);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        AssertConnectorProvenancePreserved(tree, "A1", "C1", "A2", "C2");
+    }
+
+    /// <summary>
+    ///     Same regression as
+    ///     <see cref="Apply_TwoIndependentBoundaryPortsWithSharedNullExternalLabel_PreservesConnectorProvenance"/>,
+    ///     but covering the finding's "share an <c>ExternalLabel</c>" wording literally: both boundary
+    ///     ports carry the identical non-null <c>ExternalLabel</c> "SAME" rather than both leaving it
+    ///     null.
+    /// </summary>
+    [Fact]
+    public void Apply_TwoIndependentBoundaryPortsWithIdenticalExternalLabel_PreservesConnectorProvenance()
+    {
+        // Arrange: container B owns two boundary ports sharing one identical, non-null ExternalLabel.
+        var graph = new LayoutGraph();
+        var a1 = graph.AddNode("A1", 80, 40);
+        a1.Label = "A1";
+        var a2 = graph.AddNode("A2", 80, 40);
+        a2.Label = "A2";
+        var b = graph.AddNode("B", 10, 10);
+        b.Label = "B";
+        var p = b.Ports.AddPort("p");
+        p.ExternalLabel = "SAME";
+        p.InternalLabel = "P_IN";
+        var q = b.Ports.AddPort("q");
+        q.ExternalLabel = "SAME";
+        q.InternalLabel = "Q_IN";
+        var c1 = b.Children.AddNode("C1", 80, 40);
+        c1.Label = "C1";
+        var c2 = b.Children.AddNode("C2", 80, 40);
+        c2.Label = "C2";
+
+        graph.AddEdge("a1-p", a1, p);
+        graph.AddEdge("a2-q", a2, q);
+        b.Children.AddEdge("p-c1", p, c1);
+        b.Children.AddEdge("q-c2", q, c2);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        AssertConnectorProvenancePreserved(tree, "A1", "C1", "A2", "C2");
+    }
+
+    /// <summary>
+    ///     Shared assertion helper for the two connector-provenance regression tests above: given a
+    ///     resolved tree with exactly two boundary-port anchors on container <c>B</c>, identifies each
+    ///     anchor by which composed child box its internal delegation connector reaches, then asserts
+    ///     that anchor's external connector reaches its own corresponding sibling box and no other, and
+    ///     that the two anchors are not collapsed onto the same point.
+    /// </summary>
+    private static void AssertConnectorProvenancePreserved(
+        LayoutTree tree,
+        string firstSiblingLabel,
+        string firstChildLabel,
+        string secondSiblingLabel,
+        string secondChildLabel)
+    {
+        var emitted = tree.Nodes.OfType<LayoutPort>().ToList();
+        Assert.Equal(2, emitted.Count);
+
+        var containerBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "B");
+        foreach (var port in emitted)
+        {
+            Assert.True(
+                OnBoxBoundary(port.CentreX, port.CentreY, containerBox),
+                "A boundary-port anchor does not lie on container B's boundary.");
+        }
+
+        // The two anchors must not be collapsed onto one point.
+        Assert.False(
+            SamePoint(
+                new Point2D(emitted[0].CentreX, emitted[0].CentreY),
+                new Point2D(emitted[1].CentreX, emitted[1].CentreY)),
+            "The two independent boundary-port anchors collapsed onto the same point.");
+
+        var firstChildBox = containerBox.Children.OfType<LayoutBox>().Single(box => box.Label == firstChildLabel);
+        var secondChildBox = containerBox.Children.OfType<LayoutBox>().Single(box => box.Label == secondChildLabel);
+        var firstSiblingBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == firstSiblingLabel);
+        var secondSiblingBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == secondSiblingLabel);
+
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+
+        foreach (var port in emitted)
+        {
+            var anchor = new Point2D(port.CentreX, port.CentreY);
+            bool ReachesAnchor(LayoutLine line) =>
+                line.Waypoints.Count > 0 &&
+                (SamePoint(line.Waypoints[0], anchor) || SamePoint(line.Waypoints[^1], anchor));
+
+            bool ReachesBox(LayoutLine line, LayoutBox box) =>
+                ReachesAnchor(line) &&
+                line.Waypoints.Any(wp =>
+                    wp.X >= box.X - 1.0 && wp.X <= box.X + box.Width + 1.0 &&
+                    wp.Y >= box.Y - 1.0 && wp.Y <= box.Y + box.Height + 1.0);
+
+            // Determine which logical port this anchor is by its internal delegation connector's
+            // destination — the actual "provenance" check the prior label/count-only test lacked.
+            var isFirst = lines.Any(line => ReachesBox(line, firstChildBox));
+            var isSecond = lines.Any(line => ReachesBox(line, secondChildBox));
+            Assert.True(isFirst ^ isSecond, "Anchor must reach exactly one of the two internal children.");
+
+            var (ownChild, ownSibling, otherSibling) = isFirst
+                ? (firstChildBox, firstSiblingBox, secondSiblingBox)
+                : (secondChildBox, secondSiblingBox, firstSiblingBox);
+
+            Assert.True(
+                lines.Any(line => ReachesBox(line, ownChild)),
+                "Anchor's internal delegation connector does not reach its own child.");
+            Assert.True(
+                lines.Any(line => ReachesBox(line, ownSibling)),
+                "Anchor's external connector does not reach its own true external sibling.");
+            Assert.False(
+                lines.Any(line => ReachesBox(line, otherSibling)),
+                "Anchor's external connector incorrectly reaches the OTHER port's sibling (cross-wiring bug).");
+        }
+    }
+
+    /// <summary>
     ///     Proves that a port edge which genuinely crosses a container boundary in a shape Stage 1 does
     ///     <em>not</em> support — a named port owned by a plain (non-container) node, with an edge
     ///     straight to a leaf nested inside a <em>different</em> container — still throws a clear

@@ -242,14 +242,17 @@ internal static class BoundaryPortResolver
             maxLabelWidth = Math.Max(0.0, (containerBox.Width / 2.0) - PortLabelClearance);
         }
 
-        // Emit the single enriched anchor carrying both labels.
+        // Emit the single enriched anchor carrying both labels. SourcePort tags this anchor with its
+        // originating graph port so a parent scope's own ResolveInteriorTargets nested-port branch can
+        // later find it by reference identity, not by label text (see FindLeafAnchors).
         ports.Add(new LayoutPort(
             anchorPoint.X,
             anchorPoint.Y,
             side,
             boundary.Port.ExternalLabel,
             boundary.Port.InternalLabel,
-            maxLabelWidth));
+            maxLabelWidth,
+            SourcePort: boundary.Port));
 
         // Wire each internal delegation edge to the shared anchor with an orthogonal connector.
         foreach (var target in targets)
@@ -295,8 +298,10 @@ internal static class BoundaryPortResolver
                 case LayoutGraphPort nestedPort:
                     // A delegation chain link: the interior target is another container's boundary port,
                     // already anchored inside this container by that container's own resolution pass.
-                    var anchor = childPorts.FirstOrDefault(
-                        cp => string.Equals(cp.ExternalLabel, nestedPort.ExternalLabel, StringComparison.Ordinal));
+                    // Matched by reference identity (SourcePort), not by ExternalLabel, since that field
+                    // is optional and frequently null — two distinct nested ports sharing (or both
+                    // omitting) a label must never be conflated.
+                    var anchor = childPorts.FirstOrDefault(cp => ReferenceEquals(cp.SourcePort, nestedPort));
                     if (anchor != null)
                     {
                         targets.Add(new Rect(anchor.CentreX, anchor.CentreY, 0.0, 0.0));
@@ -314,7 +319,11 @@ internal static class BoundaryPortResolver
 
     /// <summary>
     /// Finds the leaf pass's emitted anchors for a boundary port: the ports lying on the container box's
-    /// boundary whose external label matches the boundary port's, in the order the leaf emitted them.
+    /// boundary whose <see cref="LayoutPort.SourcePort"/> is reference-identical to the boundary port, in
+    /// the order the leaf emitted them. Matching is by reference identity, not by
+    /// <see cref="LayoutPort.ExternalLabel"/>, since that field is optional and frequently null — two
+    /// independent boundary ports on the same container that share (or both omit) an external label must
+    /// still resolve to their own true leaf anchor, never each other's.
     /// </summary>
     /// <param name="port">The boundary port whose leaf anchors are sought.</param>
     /// <param name="containerBox">The container box the anchors must lie on.</param>
@@ -327,7 +336,7 @@ internal static class BoundaryPortResolver
     {
         return ports
             .Where(candidate =>
-                string.Equals(candidate.ExternalLabel, port.ExternalLabel, StringComparison.Ordinal) &&
+                ReferenceEquals(candidate.SourcePort, port) &&
                 candidate.InternalLabel is null &&
                 OnBoxBoundary(candidate.CentreX, candidate.CentreY, containerBox))
             .ToList();

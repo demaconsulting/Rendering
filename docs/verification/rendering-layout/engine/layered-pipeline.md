@@ -68,9 +68,14 @@ failure.
   while excluding same-scope and leaf-node ports.
 - **Boundary-port resolution** (`Rendering-Layout-LayeredPipeline-BoundaryPortResolution`):
   `Resolve_LeafAnchoredPort_EnrichesAnchorAndAddsInternalConnector` confirms `BoundaryPortResolver`
-  enriches the leaf-pass anchor with the internal label and adds the internal delegation connector, and
-  `OrderCrossings_MultipleCrossings_ReturnsPermutationOfIndices`, `OrderCrossings_NoTargets_ReturnsInputOrder`,
-  and `OrderCrossings_Empty_ReturnsEmpty` confirm deterministic same-face crossing ordering.
+  enriches the leaf-pass anchor with the internal label and adds the internal delegation connector,
+  `Resolve_TwoBoundaryPortsWithSharedNullExternalLabel_ResolveIndependentlyByReferenceIdentity` confirms
+  the leaf-anchor and nested-target matching is keyed on `LayoutPort.SourcePort` reference identity —
+  not on the optional, frequently-null `ExternalLabel` string — so two independent boundary ports on one
+  container that both leave `ExternalLabel` null resolve to their own true external connector, never
+  each other's, and `OrderCrossings_MultipleCrossings_ReturnsPermutationOfIndices`,
+  `OrderCrossings_NoTargets_ReturnsInputOrder`, and `OrderCrossings_Empty_ReturnsEmpty` confirm
+  deterministic same-face crossing ordering.
 - **Directions** (`Rendering-Layout-LayeredPipeline-Directions`):
   `AxisTransform_Apply_RightDirection_LeavesCoordinatesUnchanged`,
   `AxisTransform_Apply_Right_PlacesTargetEastWithCorrectFaces`,
@@ -179,6 +184,7 @@ failure.
   CollectRecursive_ThreeLevelChain_ReportsEveryLevel, Collect_PortOnLeafNode_NotDetected
 - **`Rendering-Layout-LayeredPipeline-BoundaryPortResolution`**:
   Resolve_LeafAnchoredPort_EnrichesAnchorAndAddsInternalConnector,
+  Resolve_TwoBoundaryPortsWithSharedNullExternalLabel_ResolveIndependentlyByReferenceIdentity,
   OrderCrossings_MultipleCrossings_ReturnsPermutationOfIndices, OrderCrossings_NoTargets_ReturnsInputOrder,
   OrderCrossings_Empty_ReturnsEmpty
 - **`Rendering-Layout-LayeredPipeline-Directions`**:

@@ -94,6 +94,7 @@ sections:
           anchor. Ordering same-face crossings keeps multiple crossings on one face deterministic.
         tests:
           - Resolve_LeafAnchoredPort_EnrichesAnchorAndAddsInternalConnector
+          - Resolve_TwoBoundaryPortsWithSharedNullExternalLabel_ResolveIndependentlyByReferenceIdentity
           - OrderCrossings_MultipleCrossings_ReturnsPermutationOfIndices
           - OrderCrossings_NoTargets_ReturnsInputOrder
           - OrderCrossings_Empty_ReturnsEmpty
