@@ -63,6 +63,9 @@ sections:
           - Rendering-Layout-LayeredPipeline-StagedPipeline
           - Rendering-Layout-LayeredPipeline-BehaviorPreserving
           - Rendering-Layout-LayeredPipeline-FlatHierarchyOnly
+          - Rendering-Layout-LayeredPipeline-HierarchyCrossingDescriptor
+          - Rendering-Layout-LayeredPipeline-BoundaryPortDetection
+          - Rendering-Layout-LayeredPipeline-BoundaryPortResolution
           - Rendering-Layout-LayeredPipeline-Directions
           - Rendering-Layout-LayeredPipeline-OrthogonalConnectors
           - Rendering-Layout-LayeredPipeline-CycleBreaking
@@ -169,6 +172,7 @@ sections:
           - Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm
           - Rendering-Layout-HierarchicalLayout-HierarchyHandling
           - Rendering-Layout-HierarchicalLayout-CrossContainerEdge
+          - Rendering-Layout-HierarchicalLayout-BoundaryPortDelegation
           - Rendering-Layout-HierarchicalLayout-CascadesOptions
           - Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting
           - Rendering-Layout-HierarchicalLayout-ValidatesGraph

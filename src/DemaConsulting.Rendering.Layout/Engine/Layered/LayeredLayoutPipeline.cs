@@ -54,6 +54,97 @@ internal sealed class LayeredLayoutPipeline
     }
 
     /// <summary>
+    /// Runs the recursive (hierarchy-aware) layered pipeline over an assembled merge region, laying out
+    /// every nesting level and retaining each level's placed graph for the decomposition step.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     The same nine-stage sequence as <see cref="PipelineBuilder.AddDefaultStages"/> is applied
+    ///     per level, innermost first: <see cref="CycleBreaker"/>, level-relative
+    ///     <see cref="LayerAssigner"/>, <see cref="LongEdgeSplitter"/>, hierarchy-aware
+    ///     <see cref="CrossingMinimizer"/>, <see cref="BrandesKopfPlacer"/>, <see cref="PortDistributor"/>,
+    ///     <see cref="LayeredCorridorRouter"/>, <see cref="LongEdgeJoiner"/>, and <see cref="AxisTransform"/>.
+    ///     Crossing minimization is the single stage coordinated across levels: each level's resolved
+    ///     boundary order propagates between adjacent levels (see
+    ///     <see cref="CrossingMinimizer.MinimizeCrossingsRecursive"/>). Every other stage runs
+    ///     independently per level, keeping each container's interior laid out inside its own box.
+    ///     </para>
+    ///     <para>
+    ///     The pipeline's own <see cref="Direction"/> is used for every level. The returned
+    ///     <see cref="RecursiveLayoutResult"/> exposes each level's placed graph and each
+    ///     hierarchy-crossing dummy's placed coordinate and originating <c>(BoundaryPort, Face)</c>.
+    ///     </para>
+    /// </remarks>
+    /// <param name="region">The assembled merge region to lay out.</param>
+    /// <returns>The per-level placed graphs and crossing-placement lookup for the decomposition step.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="region"/> is <see langword="null"/>.</exception>
+    public RecursiveLayoutResult RunRecursive(AssembledMergeRegion region)
+    {
+        ArgumentNullException.ThrowIfNull(region);
+
+        var levels = MergeRegionGraphAssembler.BuildAllLevelGraphs(region, Direction);
+
+        // Stages 1-3 (+ crossing tag): normalize axes and break cycles per level, assign level-relative
+        // layers across the whole region, then split long edges and tag the hierarchy-crossing dummies.
+        foreach (var graph in levels.Values.Select(levelGraph => levelGraph.Graph))
+        {
+            AxisTransform.NormalizeInputAxes(graph);
+            new CycleBreaker().Apply(graph);
+        }
+
+        new LayerAssigner().AssignLayersRecursive(region.Root, levels);
+
+        foreach (var levelGraph in levels.Values)
+        {
+            new LongEdgeSplitter().Apply(levelGraph.Graph);
+            TagCrossings(levelGraph);
+        }
+
+        // Stage 4: hierarchy-aware crossing minimization with boundary-order propagation.
+        new CrossingMinimizer().MinimizeCrossingsRecursive(region.Root, levels);
+
+        // Lookup from each boundary port to its external-face (outgoing) crossing's owning level and
+        // node index, so a descendant level's internal-face (incoming) crossing dummy can be pinned to
+        // the parent's already-resolved anchor once that parent level has been placed below.
+        var externalCrossingIndex = MergeRegionGraphAssembler.BuildExternalCrossingIndex(levels);
+
+        // Stages 5-9: place, distribute ports, route, join long edges, and transform axes, per level.
+        // Iterating levels.Values visits a parent level before its children (BuildAllLevelGraphs
+        // populates in pre-order and Dictionary preserves insertion order), so by the time a child
+        // level's PinIncomingCrossings call runs, every parent it could reference has already completed
+        // every stage below, including AxisTransform.
+        foreach (var levelGraph in levels.Values)
+        {
+            var graph = levelGraph.Graph;
+            MergeRegionGraphAssembler.PinIncomingCrossings(levelGraph, externalCrossingIndex, levels, Direction);
+            new BrandesKopfPlacer().Apply(graph);
+            new PortDistributor().Apply(graph);
+            new LayeredCorridorRouter().Apply(graph);
+            new LongEdgeJoiner().Apply(graph);
+            new AxisTransform().Apply(graph);
+        }
+
+        return new RecursiveLayoutResult(region, levels);
+    }
+
+    /// <summary>
+    /// Tags each hierarchy-crossing dummy's augmented node with its originating boundary port and face,
+    /// wiring <see cref="AugNode.Crossing"/> from scaffolding into a genuinely honored field.
+    /// </summary>
+    /// <param name="levelGraph">The level graph whose crossing dummies are tagged (after long-edge splitting).</param>
+    private static void TagCrossings(LevelLayeredGraph levelGraph)
+    {
+        var aug = levelGraph.Graph.AugNodes;
+        foreach (var crossing in levelGraph.Crossings)
+        {
+            aug[crossing.NodeIndex] = aug[crossing.NodeIndex] with
+            {
+                Crossing = new HierarchyCrossing(crossing.Boundary.Port, crossing.Face),
+            };
+        }
+    }
+
+    /// <summary>
     /// Fluent builder that assembles a <see cref="LayeredLayoutPipeline"/> from an ordered list
     /// of stages plus a direction and hierarchy-handling selection.
     /// </summary>
@@ -111,17 +202,90 @@ internal sealed class LayeredLayoutPipeline
             return this;
         }
 
+        /// <summary>
+        /// Appends the ELK-layered stage sequence used for recursive (compound-graph) hierarchy
+        /// handling. It is the same Sugiyama stage sequence as <see cref="AddDefaultStages"/>, because a
+        /// hierarchy-crossing dummy participates in exactly the same layer-assignment,
+        /// crossing-minimization, and placement stages as an ordinary node or long-edge dummy — ELK's
+        /// own compound-graph design. The Recursive-specific behavior is not a distinct stage but the
+        /// way <see cref="LayeredLayoutPipeline.RunRecursive"/> drives this sequence per nesting level and
+        /// propagates each level's resolved boundary order between adjacent levels (see
+        /// <c>MergeRegionGraphAssembler</c> for the crossing-dummy seeding and
+        /// <see cref="CrossingMinimizer.MinimizeCrossingsRecursive"/> for the propagation). This method
+        /// exists so a Recursive pipeline is assembled through its own explicit entry point, keeping the
+        /// <see cref="AddDefaultStages"/> Flat path untouched.
+        /// </summary>
+        /// <returns>This builder, for chaining.</returns>
+        public PipelineBuilder AddRecursiveStages()
+        {
+            // A hierarchy-crossing dummy is a zero-size node that flows through the standard stages
+            // like any other node, so the recursive pass reuses the identical stage sequence rather
+            // than introducing a parallel, divergent one that could drift from the Flat path.
+            return AddDefaultStages();
+        }
+
         /// <summary>Builds the configured pipeline.</summary>
         /// <returns>A new <see cref="LayeredLayoutPipeline"/>.</returns>
+        /// <remarks>
+        /// Both <see cref="HierarchyHandling.Flat"/> and <see cref="HierarchyHandling.Recursive"/> are
+        /// supported: Flat runs the stage sequence over a single flat graph, while Recursive runs the
+        /// same stage sequence over a graph pre-seeded with hierarchy-crossing dummies. The mode is
+        /// retained on the built pipeline (<see cref="LayeredLayoutPipeline.Hierarchy"/>) so callers can
+        /// assert which contract a pipeline was assembled for.
+        /// </remarks>
         public LayeredLayoutPipeline Build()
         {
-            if (_hierarchy == HierarchyHandling.Recursive)
-            {
-                throw new NotSupportedException(
-                    "Recursive hierarchy handling is not yet supported.");
-            }
-
             return new LayeredLayoutPipeline(_direction, _hierarchy, _stages.ToArray());
         }
+    }
+}
+
+/// <summary>
+/// The result of <see cref="LayeredLayoutPipeline.RunRecursive"/>: every nesting level's placed layered
+/// graph plus the means to recover each hierarchy-crossing dummy's placed coordinate and originating
+/// boundary, so the decomposition step can project the combined pass back into per-scope geometry.
+/// </summary>
+/// <remarks>
+///     <para>
+///     Per-level placed coordinates are read directly from a level's <see cref="LayeredGraph"/>:
+///     <see cref="LayeredGraph.AugX"/><c>[i]</c>/<see cref="LayeredGraph.AugY"/><c>[i]</c> is the placed
+///     centre of augmented node <c>i</c>, where indices <c>0..N-1</c> align with the level's
+///     <see cref="MergeRegionLevel.Nodes"/> in order, and each original edge's routed polyline is in
+///     <see cref="LayeredGraph.Waypoints"/>.
+///     </para>
+///     <para>
+///     A crossing dummy's placed coordinate and its <c>(BoundaryPort, Face)</c> are recovered together
+///     from <see cref="CrossingPlacements"/>, which pairs each level's <see cref="LevelCrossing"/> with
+///     the placed coordinate at its node index.
+///     </para>
+/// </remarks>
+/// <param name="Region">The assembled merge region that was laid out.</param>
+/// <param name="Levels">The lookup from each nesting level to its placed layered graph and crossing bookkeeping.</param>
+internal sealed record RecursiveLayoutResult(
+    AssembledMergeRegion Region,
+    IReadOnlyDictionary<MergeRegionLevel, LevelLayeredGraph> Levels)
+{
+    /// <summary>
+    /// Returns every hierarchy crossing placed at <paramref name="level"/>, each paired with its
+    /// originating boundary port, boundary face, and placed centre coordinate.
+    /// </summary>
+    /// <param name="level">The nesting level whose crossing placements are read.</param>
+    /// <returns>The boundary port, face, and placed centre of each crossing at the level.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="level"/> is <see langword="null"/>.</exception>
+    public IReadOnlyList<(BoundaryPort Boundary, HierarchyCrossingFace Face, Point2D Position)> CrossingPlacements(
+        MergeRegionLevel level)
+    {
+        ArgumentNullException.ThrowIfNull(level);
+
+        var levelGraph = Levels[level];
+        var graph = levelGraph.Graph;
+        var result = new List<(BoundaryPort, HierarchyCrossingFace, Point2D)>(levelGraph.Crossings.Count);
+        foreach (var crossing in levelGraph.Crossings)
+        {
+            var position = new Point2D(graph.AugX[crossing.NodeIndex], graph.AugY[crossing.NodeIndex]);
+            result.Add((crossing.Boundary, crossing.Face, position));
+        }
+
+        return result;
     }
 }

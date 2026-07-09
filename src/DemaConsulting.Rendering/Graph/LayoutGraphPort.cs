@@ -18,13 +18,14 @@ namespace DemaConsulting.Rendering;
 ///     via <see cref="LayoutGraph.AddEdge"/>.
 ///     </para>
 ///     <para>
-///     This first-cut (Phase 1, flat-graph) model deliberately has no <c>Side</c> property: no
-///     caller control over which edge of the node a port is placed on exists yet, and no
-///     hierarchy-aware placement (internal vs. external edges through a container) is implemented —
-///     <see cref="ExternalLabel"/> is the only label rendered in this phase; <see cref="InternalLabel"/>
-///     is carried for forward compatibility but is not read anywhere yet. The type does not forbid
-///     more than one internal or external edge per port, but the first-cut scope only exercises at
-///     most one of each.
+///     This model deliberately has no <c>Side</c> property: no caller control over which edge of the
+///     node a port is placed on exists yet, so the layout algorithm resolves each port's side from the
+///     placed geometry of its connected edge(s). <see cref="ExternalLabel"/> is rendered for an edge
+///     that crosses into or out of the node from outside its container; <see cref="InternalLabel"/> is
+///     rendered for a delegation edge into the node's own child scope when the port is a genuine
+///     boundary port. Both labels may be present on one port (a boundary/delegation port), and a single
+///     port may carry more than one external and more than one internal edge — fan-out is supported,
+///     the several edges on a face sharing the port's single anchor.
 ///     </para>
 /// </remarks>
 public sealed class LayoutGraphPort : PropertyHolder, ILayoutConnectable
@@ -47,16 +48,17 @@ public sealed class LayoutGraphPort : PropertyHolder, ILayoutConnectable
     /// <summary>
     /// Gets or sets the text label rendered beside this port for an edge that crosses into or out of
     /// the node from outside its container (an <em>external</em> edge). <see langword="null"/> when
-    /// no label should be shown. This is the only label rendered by the flat-graph (Phase 1) layout
-    /// algorithm, since no ancestor scope exists yet to make an edge "internal" by comparison.
+    /// no label should be shown. On a plain (non-boundary) port this is the only label present and is
+    /// rendered inward beside the port symbol; on a boundary port (one that also carries an
+    /// <see cref="InternalLabel"/>) it is rendered on the outward face.
     /// </summary>
     public string? ExternalLabel { get; set; }
 
     /// <summary>
-    /// Gets or sets the text label associated with this port for an edge contained entirely within
-    /// the node's own child scope (an <em>internal</em> edge). <see langword="null"/> when no label
-    /// should be shown. Reserved for a future hierarchy-aware layout phase; unused and never read by
-    /// the Phase 1 flat-graph layout algorithm.
+    /// Gets or sets the text label rendered beside this port for a delegation edge into the node's own
+    /// child scope (an <em>internal</em> edge). <see langword="null"/> when no label should be shown.
+    /// Its presence marks the port as a genuine boundary port and drives the boundary-crossing layout
+    /// and outward placement of <see cref="ExternalLabel"/>.
     /// </summary>
     public string? InternalLabel { get; set; }
 }

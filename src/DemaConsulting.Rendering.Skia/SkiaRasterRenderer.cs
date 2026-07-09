@@ -1255,26 +1255,59 @@ public abstract class SkiaRasterRenderer : IRenderer
             canvas.DrawRect(portRect, outlinePaint);
         }
 
-        // Draw the optional label inward, toward the box interior, so it reads immediately next to
-        // the port glyph without overlapping the connector approaching from outside the box.
-        if (port.Label != null)
+        // Labels. InternalLabel (when present) always renders inward, toward the box interior. The
+        // ExternalLabel renders inward too when there is no InternalLabel (a plain, non-boundary port —
+        // byte-identical to the single-label behavior), and only on the outward face when an
+        // InternalLabel is also present (a genuine boundary port), mirroring the inward offset across
+        // the port centre.
+        if (port.InternalLabel != null)
         {
-            // Offset the label far enough from the port square so it does not overlap
-            var offset = NotationMetrics.PortHalfSize + theme.LabelPadding;
-            var (labelX, labelY, align) = port.Side switch
-            {
-                PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, SKTextAlign.Center),
-                PortSide.Bottom => (port.CentreX, port.CentreY - offset, SKTextAlign.Center),
-                PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, SKTextAlign.Left),
-                _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, SKTextAlign.Right)
-            };
-
-            using var textPaint = CreateTextPaint(strokeColor);
-            using var font = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: false);
-            var maxLabelWidth = (float)(port.MaxLabelWidth * scale);
-            font.Size = FitFontSize(font, port.Label, maxLabelWidth, font.Size);
-            canvas.DrawText(port.Label, (float)(labelX * scale), (float)(labelY * scale), align, font, textPaint);
+            DrawPortLabel(canvas, port, port.InternalLabel, port.Side, options);
         }
+
+        if (port.ExternalLabel != null)
+        {
+            var side = port.InternalLabel != null ? OppositeSide(port.Side) : port.Side;
+            DrawPortLabel(canvas, port, port.ExternalLabel, side, options);
+        }
+    }
+
+    /// <summary>Returns the box edge opposite <paramref name="side"/>, used to place an outward label.</summary>
+    private static PortSide OppositeSide(PortSide side) => side switch
+    {
+        PortSide.Top => PortSide.Bottom,
+        PortSide.Bottom => PortSide.Top,
+        PortSide.Left => PortSide.Right,
+        _ => PortSide.Left,
+    };
+
+    /// <summary>
+    /// Draws one port label offset from the port centre using the interior-side formula for
+    /// <paramref name="offsetSide"/> (the port's own side for an inward label, the opposite side for an
+    /// outward one), so an inward and an outward label on one boundary port sit symmetrically about the
+    /// port centre.
+    /// </summary>
+    private static void DrawPortLabel(SKCanvas canvas, LayoutPort port, string text, PortSide offsetSide, RenderOptions options)
+    {
+        var theme = options.Theme;
+        var scale = (float)options.Scale;
+        var strokeColor = SKColor.Parse(theme.StrokeColor);
+
+        // Offset the label far enough from the port square so it does not overlap.
+        var offset = NotationMetrics.PortHalfSize + theme.LabelPadding;
+        var (labelX, labelY, align) = offsetSide switch
+        {
+            PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, SKTextAlign.Center),
+            PortSide.Bottom => (port.CentreX, port.CentreY - offset, SKTextAlign.Center),
+            PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, SKTextAlign.Left),
+            _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, SKTextAlign.Right)
+        };
+
+        using var textPaint = CreateTextPaint(strokeColor);
+        using var font = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: false);
+        var maxLabelWidth = (float)(port.MaxLabelWidth * scale);
+        font.Size = FitFontSize(font, text, maxLabelWidth, font.Size);
+        canvas.DrawText(text, (float)(labelX * scale), (float)(labelY * scale), align, font, textPaint);
     }
 
     /// <summary>

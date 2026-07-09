@@ -480,6 +480,148 @@ internal static class GalleryDiagrams
         return graph;
     }
 
+    /// <summary>
+    ///     A sibling node joined to a container's <em>boundary (delegation) port</em>, which in turn
+    ///     delegates inward to two nested children — the canonical boundary-port diagram, laid out
+    ///     left-to-right.
+    /// </summary>
+    /// <remarks>
+    ///     A boundary port is a <see cref="LayoutGraphPort"/> that carries <em>both</em> an
+    ///     <see cref="LayoutGraphPort.ExternalLabel"/> and an <see cref="LayoutGraphPort.InternalLabel"/>
+    ///     and is referenced by an edge <em>inside</em> its owning container's child scope (the inward
+    ///     delegation edge is the structural signal that marks it as a boundary port). The hierarchical
+    ///     engine lays the container and its children out in one combined recursive pass and routes the
+    ///     external approach edge and every internal delegation edge through its orthogonal corridor
+    ///     router onto one shared physical anchor on the container boundary, carrying both labels: the
+    ///     external label reads outward (away from the container) and the internal label reads inward
+    ///     (into the container's interior). This diagram also exercises internal <em>fan-out</em>: the
+    ///     single port delegates to two distinct nested children, both connectors routed onto the one
+    ///     shared anchor.
+    /// </remarks>
+    /// <returns>A compound graph whose container exposes one left-face boundary port with internal fan-out.</returns>
+    public static LayoutGraph BoundaryPortsShowcaseHorizontal()
+    {
+        var graph = new LayoutGraph();
+
+        var sensor = AddLabelled(graph, "sensor", "Sensor");
+
+        // The container starts small; the hierarchical engine grows it to fit its nested children.
+        var controller = graph.AddNode("controller", 10, 10);
+        controller.Label = "Controller";
+
+        // One boundary port carrying BOTH labels: the external label reads outward, the internal label
+        // reads inward, at the same shared physical anchor on the container boundary.
+        var command = controller.Ports.AddPort("command");
+        command.ExternalLabel = "command";
+        command.InternalLabel = "dispatch";
+
+        var driver = AddLabelled(controller.Children, "driver", "Driver");
+        var logger = AddLabelled(controller.Children, "logger", "Logger");
+
+        // The external approach edge lives in the root scope, joining the sibling to the boundary port.
+        Connect(graph, "sensor-command", sensor, command, null);
+
+        // The internal delegation edges live inside the container's own child scope, relaying the
+        // boundary port inward to two children (internal fan-out onto the one shared anchor).
+        Connect(controller.Children, "command-driver", command, driver, null);
+        Connect(controller.Children, "command-logger", command, logger, null);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     The companion to <see cref="BoundaryPortsShowcaseHorizontal"/>, using a downward
+    ///     <see cref="CoreOptions.Direction"/> so the boundary port anchors on the container's top face
+    ///     instead of its left face, and exercising external <em>fan-out</em>: two sibling nodes both
+    ///     approach the single boundary port, which delegates inward to one nested child.
+    /// </summary>
+    /// <returns>A compound graph whose downward-flowing container exposes one top-face boundary port with external fan-out.</returns>
+    public static LayoutGraph BoundaryPortsShowcaseVertical()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        var monitor = AddLabelled(graph, "monitor", "Monitor");
+        var operatorConsole = AddLabelled(graph, "operator", "Operator");
+
+        var controller = graph.AddNode("controller", 10, 10);
+        controller.Label = "Controller";
+
+        var command = controller.Ports.AddPort("command");
+        command.ExternalLabel = "command";
+        command.InternalLabel = "dispatch";
+
+        var driver = AddLabelled(controller.Children, "driver", "Driver");
+
+        // Two external approach edges (external fan-out) both reach the one shared top-face anchor.
+        Connect(graph, "monitor-command", monitor, command, null);
+        Connect(graph, "operator-command", operatorConsole, command, null);
+
+        // A single internal delegation edge reaches inward to the nested child.
+        Connect(controller.Children, "command-driver", command, driver, null);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     A three-level boundary-port <em>delegation chain</em>: a sibling approaches an outer
+    ///     container's boundary port, which delegates inward to a nested container's own boundary port,
+    ///     which in turn delegates inward again to a leaf child at the innermost level — two boundary
+    ///     crossing points stacked in one recursive descent.
+    /// </summary>
+    /// <remarks>
+    ///     This exercises the recursive hierarchical engine at depth three. Each of the two boundary
+    ///     ports (the outer <c>system</c> container's and the nested <c>subsystem</c> container's)
+    ///     carries <em>both</em> a <see cref="LayoutGraphPort.ExternalLabel"/> reading outward and a
+    ///     <see cref="LayoutGraphPort.InternalLabel"/> reading inward, resolving to one shared physical
+    ///     anchor on its own container boundary. The single external approach and every delegation edge
+    ///     — across both boundary crossings — are routed through the orthogonal corridor router in the
+    ///     one combined pass, so the whole chain reads as an unbroken orthogonal path from the outermost
+    ///     sibling down to the innermost leaf with no diagonal shortcut at either boundary.
+    /// </remarks>
+    /// <returns>A compound graph whose boundary port delegates through a nested container's own boundary port to a leaf.</returns>
+    public static LayoutGraph BoundaryPortsShowcaseDeepChain()
+    {
+        var graph = new LayoutGraph();
+
+        var source = AddLabelled(graph, "source", "Source");
+
+        // Outer container; the engine grows it to fit its nested subsystem.
+        var system = graph.AddNode("system", 10, 10);
+        system.Label = "System";
+
+        // The outer boundary port: external label reads outward, internal label reads inward, at one
+        // shared anchor on the System boundary.
+        var request = system.Ports.AddPort("request");
+        request.ExternalLabel = "request";
+        request.InternalLabel = "route";
+
+        // Nested container inside System; it too exposes its own boundary port.
+        var subsystem = system.Children.AddNode("subsystem", 10, 10);
+        subsystem.Label = "Subsystem";
+
+        // The inner boundary port: its external face is approached by System's own delegation edge, and
+        // its internal face delegates inward again to the innermost leaf.
+        var relay = subsystem.Ports.AddPort("relay");
+        relay.ExternalLabel = "relay";
+        relay.InternalLabel = "handle";
+
+        var core = AddLabelled(subsystem.Children, "core", "Core");
+
+        // The external approach edge lives in the root scope, joining the sibling to the outer port.
+        Connect(graph, "source-request", source, request, null);
+
+        // The first delegation edge lives inside System's own child scope, relaying the outer boundary
+        // port inward to the nested container's boundary port (crossing point one).
+        Connect(system.Children, "request-relay", request, relay, null);
+
+        // The second delegation edge lives inside Subsystem's own child scope, relaying the inner
+        // boundary port inward to the innermost leaf child (crossing point two).
+        Connect(subsystem.Children, "relay-core", relay, core, null);
+
+        return graph;
+    }
+
     /// <summary>Computes the height of a titled compartment (a title row plus one row per line, plus the
     ///     leading title-area gap and the trailing bottom gap), matching the renderer's own layout
     ///     formula so the compartment content never overflows the box.

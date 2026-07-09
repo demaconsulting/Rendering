@@ -4,12 +4,76 @@
 
 namespace DemaConsulting.Rendering.Layout.Engine.Layered;
 
-/// <summary>A node in the augmented Sugiyama graph (real part box or long-edge dummy).</summary>
+/// <summary>
+/// Identifies which face of a boundary container's box a hierarchy-crossing dummy represents.
+/// </summary>
+/// <remarks>
+///     A boundary port carries up to two logical connection faces at the same physical anchor: the
+///     <see cref="External"/> face is where an edge crossing in from a sibling scope approaches the
+///     container from outside, and the <see cref="Internal"/> face is where a delegation edge into the
+///     container's own child scope departs on the inside. Both faces resolve to a single shared anchor
+///     on the container boundary; the enum records which logical half a given hierarchy-crossing dummy
+///     stands in for, so the resolver can spread and reconcile the two halves consistently.
+/// </remarks>
+internal enum HierarchyCrossingFace
+{
+    /// <summary>The outward-facing half, approached by an edge crossing in from a sibling scope.</summary>
+    External,
+
+    /// <summary>The inward-facing half, departed by a delegation edge into the container's child scope.</summary>
+    Internal,
+}
+
+/// <summary>
+/// Describes a hierarchy-crossing dummy: the extra data an <see cref="AugNode"/> carries when it stands
+/// in for a boundary port crossing a container boundary, rather than an ordinary long-edge dummy.
+/// </summary>
+/// <remarks>
+///     Generalizes <c>LongEdgeSplitter</c>'s zero-size intermediate-layer dummy from "spans layers
+///     within one scope" to "spans layers across nested scopes". A hierarchy-crossing dummy participates
+///     in the same layer-assignment, crossing-minimization, and placement stages as an ordinary dummy
+///     while additionally remembering the originating <see cref="Port"/> and which <see cref="Face"/> of
+///     the container boundary it stands in for. The recursive layered pipeline
+///     (<c>LayeredLayoutPipeline.RunRecursive</c>) is the producer: <c>MergeRegionGraphAssembler</c>
+///     seeds one crossing dummy per boundary port and the pipeline tags the corresponding
+///     <see cref="AugNode.Crossing"/> after long-edge splitting, then reads the dummies' placed
+///     positions back to propagate a resolved boundary order between nesting levels. The ordering
+///     primitive's unit tests exercise the same descriptor.
+/// </remarks>
+/// <param name="Port">The originating input-graph boundary port this dummy stands in for.</param>
+/// <param name="Face">Which logical face (external/internal) of the boundary crossing this dummy is.</param>
+internal readonly record struct HierarchyCrossing(LayoutGraphPort Port, HierarchyCrossingFace Face);
+
+/// <summary>A node in the augmented Sugiyama graph (real part box, long-edge dummy, or hierarchy-crossing dummy).</summary>
 /// <param name="Width">Width of the node's bounding box in logical pixels.</param>
 /// <param name="Height">Height of the node's bounding box in logical pixels.</param>
 /// <param name="Layer">Assigned Sugiyama layer index.</param>
 /// <param name="IsDummy">Whether this node is a zero-size long-edge dummy.</param>
-internal sealed record AugNode(double Width, double Height, int Layer, bool IsDummy = false);
+/// <param name="Crossing">
+/// When non-<see langword="null"/>, marks this node as a hierarchy-crossing dummy standing in for a
+/// boundary port, recording the originating port and boundary face. The recursive layered pipeline
+/// (<c>LayeredLayoutPipeline.RunRecursive</c>) is the producer, tagging crossing dummies after long-edge
+/// splitting; the ordinary flat pipeline never assigns it, so it is <see langword="null"/> for every
+/// real node and every long-edge dummy on that path, keeping default construction and every existing
+/// flat caller byte-identical.
+/// </param>
+/// <param name="PinnedCrossAxis">
+/// When non-<see langword="null"/>, pins this node's cross-axis coordinate (Y for horizontal flow, X
+/// for vertical flow) to an already-resolved value from an enclosing scope, rather than letting
+/// <c>BrandesKopfPlacer</c> derive it from ordinary fork-centering/alignment. <c>MergeRegionGraphAssembler</c>
+/// sets this on a child level's <see cref="HierarchyCrossing"/> dummy to the parent scope's resolved
+/// boundary-port anchor, so the child's fan-out does not re-center independently of where the parent
+/// already placed the port. Like <see cref="Crossing"/>, this is <see langword="null"/> by default for
+/// every real node, every long-edge dummy, and every node produced by the flat (non-hierarchical)
+/// pipeline, keeping default construction and every existing flat caller byte-identical.
+/// </param>
+internal sealed record AugNode(
+    double Width,
+    double Height,
+    int Layer,
+    bool IsDummy = false,
+    HierarchyCrossing? Crossing = null,
+    double? PinnedCrossAxis = null);
 
 /// <summary>A sub-edge in the augmented graph after long-edge splitting.</summary>
 /// <param name="Source">Index of the source augmented node.</param>

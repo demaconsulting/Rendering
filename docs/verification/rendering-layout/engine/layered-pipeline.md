@@ -35,7 +35,9 @@ rejected. No stage is mocked — real `LayeredGraph` instances flow through ever
 A verification run passes when every named scenario below asserts without unexpected exception, and
 the referenced tests cover each `Rendering-Layout-LayeredPipeline-*` requirement. Any drift in
 per-stage geometry, in byte-identity with the legacy oracle on the random and named topologies,
-in supported hierarchy handling (recursive input must throw), in flow directions, in orthogonal
+in supported hierarchy handling (recursive input must assemble a runnable pipeline; the recursive
+combined pass, boundary-port detection, and the decomposer's boundary-port resolution must behave as
+specified), in flow directions, in orthogonal
 waypoint shape, in back-edge approach behavior, in component packing determinism, in shared
 `LayeredGraph` state validation, or in `LayeredLayoutPipeline` input validation constitutes a
 failure.
@@ -51,9 +53,54 @@ failure.
   `Pipeline_MatchesLegacyOracle_OnEmptyGraph`, `Pipeline_MatchesLegacyOracle_OnDroneLikeGraph`,
   `Pipeline_MatchesLegacyOracle_OnWorkstationLikeGraph`, and
   `Pipeline_MatchesLegacyOracle_OnNamedTopologies`.
-- **Flat hierarchy only** (`Rendering-Layout-LayeredPipeline-FlatHierarchyOnly`):
-  `LayeredLayoutPipeline_Build_RecursiveHierarchy_ThrowsNotSupportedException` confirms recursive
-  handling fails fast.
+- **Flat and recursive hierarchy handling** (`Rendering-Layout-LayeredPipeline-FlatHierarchyOnly`):
+  `LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline` confirms recursive
+  hierarchy handling now assembles a runnable pipeline rather than throwing, alongside the flat default
+  sequence exercised by
+  `LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing`.
+- **Recursive combined pass** (`Rendering-Layout-LayeredPipeline-RecursiveCombinedPass`):
+  `CrossingMinimizer_MinimizeCrossingsRecursive_TwoLevelHierarchy_ChildOrderPropagatesToParent` and
+  `CrossingMinimizer_InteriorNodeReordering_OrdinaryNodeParticipatesInRealCrossingMinimization` confirm
+  the recursive crossing minimizer coordinates the ordering of a container's boundary faces with its
+  children's interior across levels (a resolved child order propagates to the parent, and an ordinary
+  interior node genuinely reorders under outer-scope pressure).
+  `MergeRegionGraphAssembler_Assemble_SingleLevelBoundaryPort_ProducesOneChildLevel`,
+  `MergeRegionGraphAssembler_Assemble_ThreeLevelChain_RecursesToDepthThree`, and
+  `MergeRegionGraphAssembler_Assemble_NonBoundaryInteriorNode_IncludedInFullFlattening` confirm the
+  assembler builds one child level per container, recurses to arbitrary depth, and flattens every
+  interior node into its level. `LongEdgeSplitter_Apply_CrossingTaggedNode_PreservesTagAndIsNotSplit`
+  confirms a seeded boundary-crossing tag survives the augmented-node rebuild and its dummy is never
+  split.
+- **Hierarchy-crossing descriptor** (`Rendering-Layout-LayeredPipeline-HierarchyCrossingDescriptor`):
+  `LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline` exercises the recursive
+  path that consumes the optional `AugNode` hierarchy-crossing descriptor.
+- **Boundary-port detection** (`Rendering-Layout-LayeredPipeline-BoundaryPortDetection`):
+  `Collect_NoPorts_ReturnsEmpty`, `Collect_SameScopePort_NotDetectedAsBoundary`,
+  `Collect_DelegationPort_DetectedWithExternalAndInternalEdges`, `Collect_TwoIndependentPorts_DetectsBoth`,
+  `CollectRecursive_ThreeLevelChain_ReportsEveryLevel`, and `Collect_PortOnLeafNode_NotDetected` confirm
+  `HierarchyMergeRegionBuilder` detects a container's boundary ports transitively and to unbounded depth
+  while excluding same-scope and leaf-node ports.
+- **Boundary-port resolution** (`Rendering-Layout-LayeredPipeline-BoundaryPortResolution`):
+  `FaceForDirection_Right_ReturnsLeftFace`, `FaceForDirection_Left_ReturnsRightFace`,
+  `FaceForDirection_Down_ReturnsTopFace`, and `FaceForDirection_Up_ReturnsBottomFace` confirm the one
+  retained `BoundaryPortResolver` helper maps each flow direction to the container face the shared
+  anchor sits on, and `MergeRegionDecomposer_FanIn_EveryConvergingEdge_IsStrictlyOrthogonalWithNoDirectDiagonal`
+  and `MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal` confirm
+  the decomposer projects the combined-pass placement back so every converging edge is routed
+  orthogonally onto the shared anchor with no direct diagonal.
+  `MergeRegionDecomposer_InternalFanOut_DelegationEdges_TakeMinimalBendPathWithNoReversal` confirms an
+  internal fan-out's shared crossing dummy now anchors to the parent scope's already-resolved position
+  (`MergeRegionGraphAssembler.PinIncomingCrossings` / `AugNode.PinnedCrossAxis`) instead of independently
+  re-centering, so both delegation connectors take a minimal-bend path with no direction reversal rather
+  than the old back-and-forth detour.
+  `OrthogonalRouter_Apply_MirrorSymmetricConvergingEdges_ProduceIdenticalFirstBendOffsets` confirms
+  `LayeredCorridorRouter.CreateDependency`'s crossing-count tie-break no longer forces two segments that
+  converge on the same target Y into different routing slots purely by insertion order, so a symmetric
+  fan-in receives identical first-bend offsets on both sides.
+  `OrthogonalRouter_Apply_MirrorSymmetricDivergingEdges_ProduceIdenticalFirstBendOffsets` confirms the
+  mirror-image fix: the same tie-break no longer forces two segments that diverge from the same source Y
+  into different routing slots purely by insertion order, so a symmetric fan-out receives identical
+  first-bend offsets on both sides.
 - **Directions** (`Rendering-Layout-LayeredPipeline-Directions`):
   `AxisTransform_Apply_RightDirection_LeavesCoordinatesUnchanged`,
   `AxisTransform_Apply_Right_PlacesTargetEastWithCorrectFaces`,
@@ -152,7 +199,28 @@ failure.
   Pipeline_MatchesLegacyOracle_OnDroneLikeGraph, Pipeline_MatchesLegacyOracle_OnWorkstationLikeGraph,
   Pipeline_MatchesLegacyOracle_OnNamedTopologies
 - **`Rendering-Layout-LayeredPipeline-FlatHierarchyOnly`**:
-  LayeredLayoutPipeline_Build_RecursiveHierarchy_ThrowsNotSupportedException
+  LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing,
+  LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline
+- **`Rendering-Layout-LayeredPipeline-RecursiveCombinedPass`**:
+  CrossingMinimizer_MinimizeCrossingsRecursive_TwoLevelHierarchy_ChildOrderPropagatesToParent,
+  CrossingMinimizer_InteriorNodeReordering_OrdinaryNodeParticipatesInRealCrossingMinimization,
+  MergeRegionGraphAssembler_Assemble_SingleLevelBoundaryPort_ProducesOneChildLevel,
+  MergeRegionGraphAssembler_Assemble_ThreeLevelChain_RecursesToDepthThree,
+  MergeRegionGraphAssembler_Assemble_NonBoundaryInteriorNode_IncludedInFullFlattening,
+  LongEdgeSplitter_Apply_CrossingTaggedNode_PreservesTagAndIsNotSplit
+- **`Rendering-Layout-LayeredPipeline-HierarchyCrossingDescriptor`**:
+  LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline
+- **`Rendering-Layout-LayeredPipeline-BoundaryPortDetection`**:
+  Collect_NoPorts_ReturnsEmpty, Collect_SameScopePort_NotDetectedAsBoundary,
+  Collect_DelegationPort_DetectedWithExternalAndInternalEdges, Collect_TwoIndependentPorts_DetectsBoth,
+  CollectRecursive_ThreeLevelChain_ReportsEveryLevel, Collect_PortOnLeafNode_NotDetected
+- **`Rendering-Layout-LayeredPipeline-BoundaryPortResolution`**:
+  FaceForDirection_Right_ReturnsLeftFace, FaceForDirection_Left_ReturnsRightFace,
+  FaceForDirection_Down_ReturnsTopFace, FaceForDirection_Up_ReturnsBottomFace,
+  MergeRegionDecomposer_FanIn_EveryConvergingEdge_IsStrictlyOrthogonalWithNoDirectDiagonal,
+  MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal,
+  MergeRegionDecomposer_InternalFanOut_DelegationEdges_TakeMinimalBendPathWithNoReversal,
+  OrthogonalRouter_Apply_MirrorSymmetricConvergingEdges_ProduceIdenticalFirstBendOffsets
 - **`Rendering-Layout-LayeredPipeline-Directions`**:
   AxisTransform_Apply_RightDirection_LeavesCoordinatesUnchanged,
   AxisTransform_Apply_Right_PlacesTargetEastWithCorrectFaces,

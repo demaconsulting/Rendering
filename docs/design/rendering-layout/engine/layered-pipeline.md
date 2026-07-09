@@ -42,17 +42,34 @@ Each stage implements `ILayoutStage` (`void Apply(LayeredGraph graph)`) and muta
 place. Stages are stateless and may be shared across pipelines. `LayeredLayoutMetrics` holds the
 shared spacing, clearance, and padding constants — intentionally identical to the constants of the
 previous monolithic engine so the pipeline reproduces its output exactly. The `LayoutDirection` enum
-selects Right, Down, Left, or Up flow; `HierarchyHandling` selects Flat (supported) or Recursive
-(reserved).
+selects Right, Down, Left, or Up flow; `HierarchyHandling` selects `Flat` (a single flat pass) or the
+ELK-style `Recursive` compound-graph mode. `Recursive` is no longer a fail-fast placeholder: it
+assembles a genuinely runnable stage sequence (via `AddRecursiveStages`) that the hierarchical
+algorithm drives in production (through `LayeredLayoutPipeline.RunRecursive`) to lay out a container
+together with its nested descendants in one combined pass. To coordinate the container faces that share
+a boundary (delegation) port, `AugNode` carries an optional `HierarchyCrossing` descriptor recording
+which container face a crossing occupies; the descriptor now has a real producer —
+`MergeRegionGraphAssembler` seeds one crossing per boundary face and `LayeredLayoutPipeline.TagCrossings`
+sets it on the augmented node after long-edge splitting — yet still defaults to none, so every
+flat-graph augmented node — and therefore the flat fast path — is constructed byte-identically to
+before it existed.
 
 #### Layered Pipeline Assembly
 
 A pipeline is assembled through the fluent `LayeredLayoutPipeline.PipelineBuilder` returned by
-`Builder()`. The builder exposes `Direction`, `Hierarchy`, `AddStage`, `AddDefaultStages`, and
-`Build`. `AddStage` rejects a null stage with `ArgumentNullException`, and `Build` fails fast with
-`NotSupportedException` when recursive hierarchy handling is requested. `Run(graph)` first calls
-`AxisTransform.NormalizeInputAxes` to normalize the input node axes for the requested direction, then
-applies every stage in order. `Run` rejects a null graph with `ArgumentNullException`.
+`Builder()`. The builder exposes `Direction`, `Hierarchy`, `AddStage`, `AddDefaultStages`,
+`AddRecursiveStages`, and `Build`. `AddStage` rejects a null stage with `ArgumentNullException`.
+`AddDefaultStages` assembles the flat stage sequence; `AddRecursiveStages` assembles the recursive
+stage sequence for `HierarchyHandling.Recursive`, so `Build` no longer rejects recursive hierarchy
+handling with `NotSupportedException`. `Run(graph)` first calls `AxisTransform.NormalizeInputAxes` to
+normalize the input node axes for the requested direction, then applies every stage in order. `Run`
+rejects a null graph with `ArgumentNullException`. `RunRecursive(region)` is the recursive entry
+point: it assembles every level graph of an `AssembledMergeRegion` (via `MergeRegionGraphAssembler`)
+and drives the same ELK stage sequence per level — innermost first for crossing coordination —
+substituting the recursive `LayerAssigner.AssignLayersRecursive` and
+`CrossingMinimizer.MinimizeCrossingsRecursive` for their flat counterparts so a container's boundary
+faces and its children's ordering are decided together across levels. It returns a
+`RecursiveLayoutResult` carrying each level's placed graph and its boundary crossings.
 
 #### Layered Pipeline Stages
 
@@ -107,6 +124,77 @@ boxes and waypoints together. Each component is laid out through a freshly const
 reversed-edge clearance is honored consistently whether the input graph is packed into one component
 or several.
 
+#### Layered Pipeline Boundary Ports
+
+Several internal helpers in `Engine/Layered` implement the hierarchical algorithm's boundary
+(delegation) ports through one combined recursive pass rather than a post-hoc reconciliation of
+separately-placed scopes. `HierarchyMergeRegionBuilder` detects boundary ports structurally: a
+container's port is a boundary port when an edge inside that container's own child scope references the
+port — the inward delegation edge is the signal. Its `Collect` reports a single scope's boundary ports
+(ignoring same-scope ports and leaf-node ports), and its `CollectRecursive` walks the whole hierarchy
+so detection is general, transitive, and depth-unbounded.
+
+`MergeRegionGraphAssembler` assembles a detected container and all of its nested descendants into an
+`AssembledMergeRegion` of per-level graphs, flattening every interior node into its level and seeding
+one zero-size crossing dummy per boundary face (an incoming `Internal`-face dummy that relays inward to
+each internal delegation target, and an outgoing `External`-face dummy between the interior approachers
+and the container node). It records each seeded crossing as a `LevelCrossing` so the boundary faces
+carry their `HierarchyCrossing(port, face)` identity through the pipeline; a multi-port container yields
+exactly one child level whose incoming boundaries are all of that container's ports.
+
+`RunRecursive` then drives every level through the ELK stage sequence with recursive layer assignment
+and crossing minimization: `LayerAssigner.AssignLayersRecursive` assigns level-local layers per level
+and recurses into children, while `CrossingMinimizer.MinimizeCrossingsRecursive` performs a genuine
+two-direction hierarchical sweep — an up-sweep that seeds a parent level's same-face crossing order from
+its resolved child (`Internal`-face) order, and a down-sweep that pins the child's `Internal` crossings
+to the parent's resolved `External` order and re-minimizes the child interior with a forward-only
+propagation. `LongEdgeSplitter` carries each pre-seeded `HierarchyCrossing` tag through the
+augmented-node rebuild so a crossing dummy stays a tagged terminal hop and is never split; for the flat
+path no crossing is seeded, so the rebuild is byte-identical.
+
+`MergeRegionDecomposer` projects the placed combined result back into per-scope geometry. It resolves
+each boundary port to one shared physical anchor on the container face — the face given by
+`BoundaryPortResolver.FaceForDirection`, keyed on the boundary port's reference identity so the port's
+external and internal faces collapse onto one point — and takes every converging edge's waypoints
+directly from the orthogonal corridor router's routed polylines (the external approach concatenates the
+approach and container-link polylines; each internal delegation prepends the shared anchor to its
+delegation polyline with at most one orthogonal corner). Boundary containers recurse to arbitrary depth;
+leaf and non-boundary nodes rigid-shift into place. No endpoint is patched onto the anchor with a
+hand-built diagonal, which is what keeps external fan-in and multi-level delegation chains orthogonal.
+`BoundaryPortResolver` itself is now reduced to the single retained `FaceForDirection` helper (the
+direction→face mapping the decomposer's anchor placement shares); its former reconciliation code and the
+`OrderCrossings` ordering it once performed are superseded by the recursive crossing minimizer above.
+
+An `Internal`-face crossing dummy — the shared fan-out point a boundary port's delegation edges route
+through inside the child level's own layered graph — would otherwise be centered by `BrandesKopfPlacer`
+purely among that level's own interior fan-out targets, ignoring the parent scope's already-resolved
+anchor position for the same port. `MergeRegionGraphAssembler.PinIncomingCrossings` corrects this: once
+a boundary port's `External`-face crossing has been placed in the parent level (guaranteed by
+`RunRecursive`'s parent-before-child level iteration order), it computes that placement's cross-axis
+offset relative to the port's own container node and seeds it onto the matching `Internal`-face
+crossing dummy's `AugNode.PinnedCrossAxis`. `BrandesKopfPlacer.AssignCoordinatesAug` then overrides
+just that node's cross-axis coordinate with the pinned value after its ordinary alignment/compaction
+pass, so the child's fan-out anchors to the parent's resolved position instead of re-centering
+independently. `PinnedCrossAxis` defaults to `null` for every node the flat (non-hierarchical) pipeline
+produces, so this override is a no-op there.
+
+`LayeredCorridorRouter.CreateDependency`'s crossing-count tie-break also recognizes when two segments
+converge on the same target Y (within `StraightTolerance`) — the symmetric fan-in case, such as two
+external approaches converging on one shared boundary anchor. Previously the deterministic tie-break
+forced such a pair into a strict left/right slot order purely by insertion order, producing asymmetric
+clearance around the shared point even though neither segment has a genuine geometric preference. The
+tie-break now skips creating a dependency for a pair whose target Y values coincide, so the topological
+slot numbering does not arbitrarily separate them.
+
+The same tie-break also recognizes the mirror-image symmetric fan-out case: two segments diverging from
+the same source Y (within `StraightTolerance`), such as one shared boundary anchor branching to two
+approaches. Without a matching `SourceY` guard, the tie-break would still force such a pair into a
+strict left/right slot order purely by insertion order, producing an asymmetric fork even though neither
+segment has a genuine geometric preference. The guard's condition now requires both the target Y values
+*and* the source Y values to differ by more than `StraightTolerance` before it creates the deterministic
+tie-break dependency, so a pair sharing a coincident anchor at either end — target (fan-in) or source
+(fan-out) — is left without a forced separation.
+
 #### Layered Pipeline Dependencies
 
 All pipeline types are internal and consume only the geometric value types of the Layout system
@@ -118,14 +206,17 @@ small internal `ShapeAnchorSupport` helper, on `ConnectorRouter`'s internal shap
 `CoordinateAtDistance`) for non-`BoxShape.Rectangle` nodes — a documented cross-unit dependency
 (`LayeredPipeline` unit → `ConnectorRouter` unit) that lets a shaped node's ports and endpoints reuse
 `ConnectorRouter`'s already-tested extent-restriction and surface-projection rules instead of
-duplicating them. See _ConnectorRouter Unit Design_'s "Callers" section for the reverse-direction
+duplicating them. See *ConnectorRouter Unit Design*'s "Callers" section for the reverse-direction
 documentation of this dependency.
 
 #### Layered Pipeline Callers
 
 The pipeline is assembled and run directly by `InterconnectionLayoutEngine`, and the public
 `LayeredLayoutAlgorithm` consumes it transitively through that engine when the layered algorithm is
-selected.
+selected. The boundary-port helpers (`HierarchyMergeRegionBuilder`, `MergeRegionGraphAssembler`,
+`RunRecursive`, and `MergeRegionDecomposer`) are consumed by `HierarchicalLayoutAlgorithm` to detect a
+container's boundary ports, lay the container and its descendants out in one combined pass, and project
+the result back into per-scope geometry.
 
 #### Layered Pipeline Interactions
 
@@ -140,6 +231,10 @@ public layout result contract.
 | Rendering-Layout-LayeredPipeline-StagedPipeline | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-BehaviorPreserving | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-FlatHierarchyOnly | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-RecursiveCombinedPass | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-HierarchyCrossingDescriptor | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-BoundaryPortDetection | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-BoundaryPortResolution | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-Directions | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-OrthogonalConnectors | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-CycleBreaking | Layered pipeline behavior described above |

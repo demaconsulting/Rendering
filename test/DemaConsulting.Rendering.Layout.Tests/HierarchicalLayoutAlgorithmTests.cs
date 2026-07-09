@@ -618,7 +618,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         // one LayoutLine connects the two boxes — the connector is routed, not dropped, even though
         // the scope contains an (unrelated) container.
         var port1 = Assert.Single(tree.Nodes.OfType<LayoutPort>());
-        Assert.Equal("output", port1.Label);
+        Assert.Equal("output", port1.ExternalLabel);
         Assert.Single(tree.Nodes.OfType<LayoutLine>());
 
         // The port anchor lies exactly on the source box's boundary, matching how a flat (no
@@ -630,19 +630,337 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
-    ///     Proves that a port edge which genuinely crosses a container boundary — one endpoint's owning
-    ///     node nested inside a container relative to the scope, the other a plain direct member —
-    ///     throws a clear <see cref="NotSupportedException"/> instead of being silently dropped or
-    ///     routed incorrectly as a plain box connector. Full boundary-crossing port support (anchoring,
-    ///     routing) remains a separate, not-yet-designed Phase 2 effort; this proves the interim
-    ///     behavior fails loudly.
+    ///     Proves the Stage 1 acceptance scenario: a container <c>B</c> owns a boundary (delegation)
+    ///     port <c>P</c> carrying both an external and an internal label, an external edge approaches
+    ///     <c>P</c> from a sibling node <c>A</c> in the parent scope, and an internal delegation edge
+    ///     routes <c>P</c> to a child <c>C</c> inside <c>B</c>. The engine must emit exactly one
+    ///     <see cref="LayoutPort"/> for <c>P</c> — carrying both labels on one shared physical anchor on
+    ///     <c>B</c>'s boundary — and both the external approach connector and the internal delegation
+    ///     connector must reach that one anchor.
     /// </summary>
     [Fact]
-    public void Apply_PortEdgeCrossingContainerBoundary_Throws()
+    public void Apply_BoundaryPortWithExternalAndInternalEdges_EmitsOneSharedAnchorCarryingBothLabels()
     {
-        // Arrange: a root-level node with a named port, and a separate container with a nested child.
-        // An edge from the outer port directly to the nested child is a genuine boundary-crossing
-        // port edge, added at the root (their lowest common ancestor).
+        // Arrange: sibling A and container B are peers at the root; B owns boundary port P with both
+        // labels; the external edge A->P lives in the root scope; the internal delegation edge P->C
+        // lives inside B's own children.
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("A", 80, 40);
+        a.Label = "A";
+        var b = graph.AddNode("B", 10, 10);
+        b.Label = "B";
+        var port = b.Ports.AddPort("p1");
+        port.ExternalLabel = "PWR_OUT";
+        port.InternalLabel = "PWR_IN";
+        var c = b.Children.AddNode("C", 80, 40);
+        c.Label = "C";
+
+        graph.AddEdge("a-to-b", a, port);
+        b.Children.AddEdge("b-to-c", port, c);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: exactly one LayoutPort, carrying BOTH labels, on B's boundary.
+        var emitted = Assert.Single(tree.Nodes.OfType<LayoutPort>());
+        Assert.Equal("PWR_OUT", emitted.ExternalLabel);
+        Assert.Equal("PWR_IN", emitted.InternalLabel);
+
+        var containerBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "B");
+        Assert.True(
+            OnBoxBoundary(emitted.CentreX, emitted.CentreY, containerBox),
+            "The shared boundary-port anchor does not lie on container B's boundary.");
+
+        // Both connectors reach the single shared anchor: the external approach terminates on it, and
+        // the internal delegation connector starts from it.
+        var anchor = new Point2D(emitted.CentreX, emitted.CentreY);
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Contains(
+            lines,
+            line => line.Waypoints.Count > 0 &&
+                (SamePoint(line.Waypoints[0], anchor) || SamePoint(line.Waypoints[^1], anchor)));
+
+        // The internal delegation connector must reach into container B's interior toward child C.
+        var childBox = containerBox.Children.OfType<LayoutBox>().Single(box => box.Label == "C");
+        Assert.Contains(
+            lines,
+            line => line.Waypoints.Count > 0 &&
+                (SamePoint(line.Waypoints[0], anchor) || SamePoint(line.Waypoints[^1], anchor)) &&
+                line.Waypoints.Any(wp =>
+                    wp.X >= childBox.X - 1.0 && wp.X <= childBox.X + childBox.Width + 1.0 &&
+                    wp.Y >= childBox.Y - 1.0 && wp.Y <= childBox.Y + childBox.Height + 1.0));
+    }
+
+    /// <summary>
+    ///     Proves boundary-port fan-out: a single boundary port <c>P</c> with <em>two</em> external
+    ///     approach edges (from siblings <c>A1</c> and <c>A2</c>) and <em>two</em> internal delegation
+    ///     edges (to children <c>C1</c> and <c>C2</c>) still resolves to exactly one shared anchor
+    ///     carrying both labels, with every external approach and every internal delegation reaching
+    ///     that one anchor.
+    /// </summary>
+    [Fact]
+    public void Apply_BoundaryPortFanOut_ResolvesToOneSharedAnchor()
+    {
+        // Arrange: two siblings feed one boundary port that delegates to two children.
+        var graph = new LayoutGraph();
+        var a1 = graph.AddNode("A1", 80, 40);
+        var a2 = graph.AddNode("A2", 80, 40);
+        var b = graph.AddNode("B", 10, 10);
+        b.Label = "B";
+        var port = b.Ports.AddPort("p1");
+        port.ExternalLabel = "PWR_OUT";
+        port.InternalLabel = "PWR_IN";
+        var c1 = b.Children.AddNode("C1", 80, 40);
+        var c2 = b.Children.AddNode("C2", 80, 40);
+
+        graph.AddEdge("a1-b", a1, port);
+        graph.AddEdge("a2-b", a2, port);
+        b.Children.AddEdge("b-c1", port, c1);
+        b.Children.AddEdge("b-c2", port, c2);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: exactly one LayoutPort carrying both labels despite the fan-out.
+        var emitted = Assert.Single(tree.Nodes.OfType<LayoutPort>());
+        Assert.Equal("PWR_OUT", emitted.ExternalLabel);
+        Assert.Equal("PWR_IN", emitted.InternalLabel);
+
+        var containerBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "B");
+        Assert.True(
+            OnBoxBoundary(emitted.CentreX, emitted.CentreY, containerBox),
+            "The shared fan-out anchor does not lie on container B's boundary.");
+
+        // At least the two internal delegation connectors must start/end at the shared anchor.
+        var anchor = new Point2D(emitted.CentreX, emitted.CentreY);
+        var reachingAnchor = tree.Nodes.OfType<LayoutLine>().Count(
+            line => line.Waypoints.Count > 0 &&
+                (SamePoint(line.Waypoints[0], anchor) || SamePoint(line.Waypoints[^1], anchor)));
+        Assert.True(reachingAnchor >= 2, "Fewer than the two internal delegation connectors reach the shared anchor.");
+    }
+
+    /// <summary>
+    ///     Proves two independent boundary ports on one container are merged in a single combined pass:
+    ///     container <c>B</c> owns two delegation ports <c>P</c> and <c>Q</c>, each with its own
+    ///     external approach and internal delegation, and the engine emits exactly two
+    ///     <see cref="LayoutPort"/> anchors — one per port — each carrying its own pair of labels.
+    /// </summary>
+    [Fact]
+    public void Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors()
+    {
+        // Arrange: container B owns two independent boundary ports.
+        var graph = new LayoutGraph();
+        var a1 = graph.AddNode("A1", 80, 40);
+        var a2 = graph.AddNode("A2", 80, 40);
+        var b = graph.AddNode("B", 10, 10);
+        b.Label = "B";
+        var p = b.Ports.AddPort("p");
+        p.ExternalLabel = "P_OUT";
+        p.InternalLabel = "P_IN";
+        var q = b.Ports.AddPort("q");
+        q.ExternalLabel = "Q_OUT";
+        q.InternalLabel = "Q_IN";
+        var c1 = b.Children.AddNode("C1", 80, 40);
+        var c2 = b.Children.AddNode("C2", 80, 40);
+
+        graph.AddEdge("a1-p", a1, p);
+        graph.AddEdge("a2-q", a2, q);
+        b.Children.AddEdge("p-c1", p, c1);
+        b.Children.AddEdge("q-c2", q, c2);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: two distinct anchors, each carrying its own labels.
+        var emitted = tree.Nodes.OfType<LayoutPort>().ToList();
+        Assert.Equal(2, emitted.Count);
+        Assert.Contains(emitted, port => port.ExternalLabel == "P_OUT" && port.InternalLabel == "P_IN");
+        Assert.Contains(emitted, port => port.ExternalLabel == "Q_OUT" && port.InternalLabel == "Q_IN");
+
+        var containerBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "B");
+        foreach (var port in emitted)
+        {
+            Assert.True(
+                OnBoxBoundary(port.CentreX, port.CentreY, containerBox),
+                "A boundary-port anchor does not lie on container B's boundary.");
+        }
+    }
+
+    /// <summary>
+    ///     Regression for the boundary-port identity bug: two independent boundary ports <c>P</c> and
+    ///     <c>Q</c> on one container <c>B</c> both leave <see cref="LayoutGraphPort.ExternalLabel"/>
+    ///     <see langword="null"/> (the common, default case for a boundary port that has no cosmetic
+    ///     external label). Before the fix, <c>BoundaryPortResolver</c> matched a boundary port to its
+    ///     leaf-placed anchor by <c>string.Equals</c> on <c>ExternalLabel</c>, so both null-labeled
+    ///     ports collapsed onto the same match: one anchor silently absorbed both ports' external
+    ///     connectors while the other anchor was left with none. This test proves each anchor's
+    ///     external connector traces back to its own true external source (not just that two anchors
+    ///     exist), by identifying each anchor via its internal delegation connector's destination
+    ///     (<c>C1</c> vs <c>C2</c>) and then asserting that anchor's external connector reaches its own
+    ///     sibling (<c>A1</c> vs <c>A2</c>) and no other.
+    /// </summary>
+    [Fact]
+    public void Apply_TwoIndependentBoundaryPortsWithSharedNullExternalLabel_PreservesConnectorProvenance()
+    {
+        // Arrange: container B owns two boundary ports, both with a null ExternalLabel, distinguished
+        // only by InternalLabel and by which sibling/child each is wired to.
+        var graph = new LayoutGraph();
+        var a1 = graph.AddNode("A1", 80, 40);
+        a1.Label = "A1";
+        var a2 = graph.AddNode("A2", 80, 40);
+        a2.Label = "A2";
+        var b = graph.AddNode("B", 10, 10);
+        b.Label = "B";
+        var p = b.Ports.AddPort("p");
+        p.InternalLabel = "P_IN";
+        var q = b.Ports.AddPort("q");
+        q.InternalLabel = "Q_IN";
+        var c1 = b.Children.AddNode("C1", 80, 40);
+        c1.Label = "C1";
+        var c2 = b.Children.AddNode("C2", 80, 40);
+        c2.Label = "C2";
+
+        graph.AddEdge("a1-p", a1, p);
+        graph.AddEdge("a2-q", a2, q);
+        b.Children.AddEdge("p-c1", p, c1);
+        b.Children.AddEdge("q-c2", q, c2);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        AssertConnectorProvenancePreserved(tree, "A1", "C1", "A2", "C2");
+    }
+
+    /// <summary>
+    ///     Same regression as
+    ///     <see cref="Apply_TwoIndependentBoundaryPortsWithSharedNullExternalLabel_PreservesConnectorProvenance"/>,
+    ///     but covering the finding's "share an <c>ExternalLabel</c>" wording literally: both boundary
+    ///     ports carry the identical non-null <c>ExternalLabel</c> "SAME" rather than both leaving it
+    ///     null.
+    /// </summary>
+    [Fact]
+    public void Apply_TwoIndependentBoundaryPortsWithIdenticalExternalLabel_PreservesConnectorProvenance()
+    {
+        // Arrange: container B owns two boundary ports sharing one identical, non-null ExternalLabel.
+        var graph = new LayoutGraph();
+        var a1 = graph.AddNode("A1", 80, 40);
+        a1.Label = "A1";
+        var a2 = graph.AddNode("A2", 80, 40);
+        a2.Label = "A2";
+        var b = graph.AddNode("B", 10, 10);
+        b.Label = "B";
+        var p = b.Ports.AddPort("p");
+        p.ExternalLabel = "SAME";
+        p.InternalLabel = "P_IN";
+        var q = b.Ports.AddPort("q");
+        q.ExternalLabel = "SAME";
+        q.InternalLabel = "Q_IN";
+        var c1 = b.Children.AddNode("C1", 80, 40);
+        c1.Label = "C1";
+        var c2 = b.Children.AddNode("C2", 80, 40);
+        c2.Label = "C2";
+
+        graph.AddEdge("a1-p", a1, p);
+        graph.AddEdge("a2-q", a2, q);
+        b.Children.AddEdge("p-c1", p, c1);
+        b.Children.AddEdge("q-c2", q, c2);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        AssertConnectorProvenancePreserved(tree, "A1", "C1", "A2", "C2");
+    }
+
+    /// <summary>
+    ///     Shared assertion helper for the two connector-provenance regression tests above: given a
+    ///     resolved tree with exactly two boundary-port anchors on container <c>B</c>, identifies each
+    ///     anchor by which composed child box its internal delegation connector reaches, then asserts
+    ///     that anchor's external connector reaches its own corresponding sibling box and no other, and
+    ///     that the two anchors are not collapsed onto the same point.
+    /// </summary>
+    private static void AssertConnectorProvenancePreserved(
+        LayoutTree tree,
+        string firstSiblingLabel,
+        string firstChildLabel,
+        string secondSiblingLabel,
+        string secondChildLabel)
+    {
+        var emitted = tree.Nodes.OfType<LayoutPort>().ToList();
+        Assert.Equal(2, emitted.Count);
+
+        var containerBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "B");
+        foreach (var port in emitted)
+        {
+            Assert.True(
+                OnBoxBoundary(port.CentreX, port.CentreY, containerBox),
+                "A boundary-port anchor does not lie on container B's boundary.");
+        }
+
+        // The two anchors must not be collapsed onto one point.
+        Assert.False(
+            SamePoint(
+                new Point2D(emitted[0].CentreX, emitted[0].CentreY),
+                new Point2D(emitted[1].CentreX, emitted[1].CentreY)),
+            "The two independent boundary-port anchors collapsed onto the same point.");
+
+        var firstChildBox = containerBox.Children.OfType<LayoutBox>().Single(box => box.Label == firstChildLabel);
+        var secondChildBox = containerBox.Children.OfType<LayoutBox>().Single(box => box.Label == secondChildLabel);
+        var firstSiblingBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == firstSiblingLabel);
+        var secondSiblingBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == secondSiblingLabel);
+
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+
+        foreach (var port in emitted)
+        {
+            var anchor = new Point2D(port.CentreX, port.CentreY);
+            bool ReachesAnchor(LayoutLine line) =>
+                line.Waypoints.Count > 0 &&
+                (SamePoint(line.Waypoints[0], anchor) || SamePoint(line.Waypoints[^1], anchor));
+
+            bool ReachesBox(LayoutLine line, LayoutBox box) =>
+                ReachesAnchor(line) &&
+                line.Waypoints.Any(wp =>
+                    wp.X >= box.X - 1.0 && wp.X <= box.X + box.Width + 1.0 &&
+                    wp.Y >= box.Y - 1.0 && wp.Y <= box.Y + box.Height + 1.0);
+
+            // Determine which logical port this anchor is by its internal delegation connector's
+            // destination — the actual "provenance" check the prior label/count-only test lacked.
+            var isFirst = lines.Any(line => ReachesBox(line, firstChildBox));
+            var isSecond = lines.Any(line => ReachesBox(line, secondChildBox));
+            Assert.True(isFirst ^ isSecond, "Anchor must reach exactly one of the two internal children.");
+
+            var (ownChild, ownSibling, otherSibling) = isFirst
+                ? (firstChildBox, firstSiblingBox, secondSiblingBox)
+                : (secondChildBox, secondSiblingBox, firstSiblingBox);
+
+            Assert.True(
+                lines.Any(line => ReachesBox(line, ownChild)),
+                "Anchor's internal delegation connector does not reach its own child.");
+            Assert.True(
+                lines.Any(line => ReachesBox(line, ownSibling)),
+                "Anchor's external connector does not reach its own true external sibling.");
+            Assert.False(
+                lines.Any(line => ReachesBox(line, otherSibling)),
+                "Anchor's external connector incorrectly reaches the OTHER port's sibling (cross-wiring bug).");
+        }
+    }
+
+    /// <summary>
+    ///     Proves that a port edge which genuinely crosses a container boundary in a shape Stage 1 does
+    ///     <em>not</em> support — a named port owned by a plain (non-container) node, with an edge
+    ///     straight to a leaf nested inside a <em>different</em> container — still throws a clear
+    ///     <see cref="NotSupportedException"/> rather than being silently dropped or mis-routed. This
+    ///     shape is not a delegation port: the port's owner has no child scope to delegate into, so the
+    ///     boundary-port merge mechanism never detects it, and the edge falls through to the box-only
+    ///     cross-container router which has no port concept.
+    /// </summary>
+    [Fact]
+    public void Apply_PortOnNonContainerCrossingIntoDifferentContainer_Throws()
+    {
+        // Arrange: a root-level plain node with a named port, and a separate container with a nested
+        // child. An edge from the plain node's port directly to the nested child is a genuine
+        // boundary-crossing port edge added at the root (their lowest common ancestor) that Stage 1's
+        // delegation mechanism deliberately does not cover.
         var graph = new LayoutGraph();
         var outer = graph.AddNode("outer", 80, 40);
         var port = outer.Ports.AddPort("out1");
@@ -693,6 +1011,15 @@ public sealed class HierarchicalLayoutAlgorithmTests
         var port1 = Assert.Single(groupBox.Children.OfType<LayoutPort>());
         Assert.InRange(port1.CentreX, groupBox.X, groupBox.X + groupBox.Width);
         Assert.InRange(port1.CentreY, groupBox.Y, groupBox.Y + groupBox.Height);
+    }
+
+    /// <summary>
+    ///     Returns true when two points coincide within a small tolerance.
+    /// </summary>
+    private static bool SamePoint(Point2D a, Point2D b)
+    {
+        const double tolerance = 1e-6;
+        return Math.Abs(a.X - b.X) < tolerance && Math.Abs(a.Y - b.Y) < tolerance;
     }
 
     /// <summary>
@@ -949,7 +1276,110 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
-    ///     Deterministically builds a flat (non-nested) layout graph for the given seed, with random
+    ///     End-to-end proof of an arbitrary-depth delegation chain: a sibling in the root scope reaches a
+    ///     boundary port on an outer container, which delegates through a boundary port on a middle
+    ///     container, which delegates through a boundary port on an inner container, which finally reaches
+    ///     a leaf three levels deep. The whole pipeline (scope walk, assembly, combined recursive
+    ///     placement, decomposition) must connect the outer edge through all three levels to the innermost
+    ///     leaf using strictly orthogonal segments only — no diagonal patched onto any anchor at any depth.
+    /// </summary>
+    [Fact]
+    public void HierarchicalLayoutAlgorithm_ThreeLevelDelegationChain_EndToEnd_ProducesConnectedOrthogonalPath()
+    {
+        // Arrange: source -> L1.p1 -> L2.p2 -> L3.p3 -> leaf, one boundary port per nesting level.
+        var graph = BuildDelegationChain(leafWidth: 120, leafHeight: 50);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: one anchor per level (three in total), each on its own container's boundary.
+        var ports = tree.Nodes.OfType<LayoutPort>().ToList();
+        Assert.Equal(3, ports.Count);
+
+        var l1 = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "L1");
+        var l2 = l1.Children.OfType<LayoutBox>().Single(box => box.Label == "L2");
+        var l3 = l2.Children.OfType<LayoutBox>().Single(box => box.Label == "L3");
+        var leaf = l3.Children.OfType<LayoutBox>().Single(box => box.Label == "Leaf");
+        var source = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "Source");
+
+        // Every connector, at every depth, is strictly orthogonal along its whole polyline.
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        foreach (var line in lines)
+        {
+            AssertPolylineIsStrictlyOrthogonal(line.Waypoints);
+        }
+
+        // The chain is connected end to end: some connector touches the root source, and some connector
+        // reaches into the innermost leaf three levels down.
+        Assert.Contains(lines, line => TouchesBox(line, source));
+        Assert.Contains(lines, line => TouchesBox(line, leaf));
+
+        // Each level's anchor sits on its own container's boundary — the physical hand-off between levels.
+        Assert.Contains(ports, port => OnBoxBoundary(port.CentreX, port.CentreY, l1));
+        Assert.Contains(ports, port => OnBoxBoundary(port.CentreX, port.CentreY, l2));
+        Assert.Contains(ports, port => OnBoxBoundary(port.CentreX, port.CentreY, l3));
+    }
+
+    /// <summary>
+    ///     Hard-invariant guard: a hierarchical graph that has containers but <em>zero</em> boundary
+    ///     ports must never take the new combined-pass path; its output must be byte-for-byte the leaf
+    ///     pass + cross-container routing it produced before this change. The expected layout is the
+    ///     leaf-composition oracle (containers sized bottom-up, cross-container edge routed by the
+    ///     existing router); forcing the combined path instead (breaking the <c>Collect == 0</c> gate)
+    ///     changes these coordinates and fails this assertion.
+    /// </summary>
+    [Fact]
+    public void HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange()
+    {
+        // Arrange: two containers, each with a child, joined by a genuine cross-container edge and NO
+        // boundary ports anywhere — the exact shape the Collect == 0 gate must keep on the leaf path.
+        var graph = BuildNoBoundaryPortHierarchy();
+        var options = LayoutOptions.ForAlgorithm("layered");
+
+        // Act
+        var actual = new HierarchicalLayoutAlgorithm().Apply(graph, options);
+
+        // Assert: the layout matches the captured leaf-path golden snapshot exactly (bit level).
+        Assert.Equal(NoBoundaryPortGolden, DumpTree(actual));
+    }
+
+    /// <summary>
+    ///     Cascading-sizing proof: when the innermost container of a three-level delegation chain holds a
+    ///     large leaf, that growth must cascade outward so every enclosing level grows to physically
+    ///     contain the level nested inside it. The innermost leaf keeps its intrinsic size, and each
+    ///     container box strictly encloses the box nested directly within it, with room for padding.
+    /// </summary>
+    [Fact]
+    public void HierarchicalLayoutAlgorithm_ThreeLevelChain_InnermostContainerGrows_GrowthCascadesThroughEveryEnclosingLevel()
+    {
+        // Arrange: an oversized innermost leaf forces the inner container to grow, which must cascade
+        // through the middle and outer containers.
+        const double leafWidth = 420;
+        const double leafHeight = 300;
+        var graph = BuildDelegationChain(leafWidth, leafHeight);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the innermost leaf keeps its intrinsic size.
+        var l1 = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "L1");
+        var l2 = l1.Children.OfType<LayoutBox>().Single(box => box.Label == "L2");
+        var l3 = l2.Children.OfType<LayoutBox>().Single(box => box.Label == "L3");
+        var leaf = l3.Children.OfType<LayoutBox>().Single(box => box.Label == "Leaf");
+
+        Assert.Equal(leafWidth, leaf.Width, precision: 3);
+        Assert.Equal(leafHeight, leaf.Height, precision: 3);
+
+        // Growth cascaded outward: each level strictly encloses the box nested directly inside it.
+        AssertStrictlyEncloses("L3 must contain Leaf", l3, leaf);
+        AssertStrictlyEncloses("L2 must contain L3", l2, l3);
+        AssertStrictlyEncloses("L1 must contain L2", l1, l2);
+
+        // Sanity: the oversized inner content actually forced the whole chain to be large.
+        Assert.True(l1.Width >= leafWidth, "Outermost container did not grow to accommodate the deep oversized leaf.");
+    }
+
+    /// <summary>Deterministically builds a flat (non-nested) layout graph for the given seed, with random
     ///     node sizes and arbitrary edges (including self-loops, parallel edges, and cycles).
     /// </summary>
     private static LayoutGraph BuildRandomFlatGraph(int seed)
@@ -987,7 +1417,204 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
-    ///     Deep-compares two layout trees for exact (bit-level) equality of every geometric field,
+    ///     Builds a three-level delegation chain: a root <c>Source</c> reaches boundary port <c>p1</c> on
+    ///     container <c>L1</c>, which delegates to port <c>p2</c> on nested container <c>L2</c>, which
+    ///     delegates to port <c>p3</c> on nested container <c>L3</c>, which finally delegates to the
+    ///     leaf <c>Leaf</c> of the given intrinsic size.
+    /// </summary>
+    /// <param name="leafWidth">The innermost leaf's intrinsic width.</param>
+    /// <param name="leafHeight">The innermost leaf's intrinsic height.</param>
+    /// <returns>The assembled delegation-chain graph.</returns>
+    private static LayoutGraph BuildDelegationChain(double leafWidth, double leafHeight)
+    {
+        var graph = new LayoutGraph();
+
+        var source = graph.AddNode("Source", 120, 50);
+        source.Label = "Source";
+
+        var l1 = graph.AddNode("L1", 10, 10);
+        l1.Label = "L1";
+        var p1 = l1.Ports.AddPort("p1");
+        p1.ExternalLabel = "in1";
+        p1.InternalLabel = "out1";
+
+        var l2 = l1.Children.AddNode("L2", 10, 10);
+        l2.Label = "L2";
+        var p2 = l2.Ports.AddPort("p2");
+        p2.ExternalLabel = "in2";
+        p2.InternalLabel = "out2";
+
+        var l3 = l2.Children.AddNode("L3", 10, 10);
+        l3.Label = "L3";
+        var p3 = l3.Ports.AddPort("p3");
+        p3.ExternalLabel = "in3";
+        p3.InternalLabel = "out3";
+
+        var leaf = l3.Children.AddNode("Leaf", leafWidth, leafHeight);
+        leaf.Label = "Leaf";
+
+        graph.AddEdge("source-p1", source, p1);
+        l1.Children.AddEdge("p1-p2", p1, p2);
+        l2.Children.AddEdge("p2-p3", p2, p3);
+        l3.Children.AddEdge("p3-leaf", p3, leaf);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Builds a hierarchical graph with two containers, each holding one child, joined by a genuine
+    ///     cross-container edge and containing <em>no</em> boundary ports — the shape that must stay on
+    ///     the leaf pass under the <c>Collect == 0</c> gate.
+    /// </summary>
+    /// <returns>The assembled boundary-port-free hierarchy.</returns>
+    private static LayoutGraph BuildNoBoundaryPortHierarchy()
+    {
+        var graph = new LayoutGraph();
+
+        var left = graph.AddNode("Left", 10, 10);
+        left.Label = "Left";
+        var leftChild = left.Children.AddNode("LeftChild", 80, 40);
+        leftChild.Label = "LeftChild";
+
+        var right = graph.AddNode("Right", 10, 10);
+        right.Label = "Right";
+        var rightChild = right.Children.AddNode("RightChild", 80, 40);
+        rightChild.Label = "RightChild";
+
+        // A genuine cross-container edge between the two nested children (routed by the cross-container
+        // router, not a boundary port), plus an ordinary edge between the two container nodes so the
+        // scope has real layered structure that the combined pass would place differently.
+        graph.AddEdge("leftChild-rightChild", leftChild, rightChild);
+        graph.AddEdge("left-right", left, right);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Serializes a layout tree into a stable, human-readable string capturing every box rectangle
+    ///     (recursively) and every line's waypoints, for exact snapshot comparison.
+    /// </summary>
+    /// <param name="tree">The tree to serialize.</param>
+    /// <returns>The deterministic textual snapshot.</returns>
+    private static string DumpTree(LayoutTree tree)
+    {
+        var builder = new System.Text.StringBuilder();
+        builder.Append(System.Globalization.CultureInfo.InvariantCulture, $"W={tree.Width:R} H={tree.Height:R}\n");
+        foreach (var node in tree.Nodes)
+        {
+            DumpNode(builder, node, 0);
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>Appends a single node (and its children) to the snapshot builder.</summary>
+    /// <param name="builder">The accumulating snapshot builder.</param>
+    /// <param name="node">The node to append.</param>
+    /// <param name="depth">The current nesting depth, used for indentation.</param>
+    private static void DumpNode(System.Text.StringBuilder builder, LayoutNode node, int depth)
+    {
+        var indent = new string(' ', depth * 2);
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        switch (node)
+        {
+            case LayoutBox box:
+                builder.Append(culture, $"{indent}BOX {box.Label} X={box.X:R} Y={box.Y:R} W={box.Width:R} H={box.Height:R}\n");
+                foreach (var child in box.Children)
+                {
+                    DumpNode(builder, child, depth + 1);
+                }
+
+                break;
+
+            case LayoutLine line:
+                builder.Append(culture, $"{indent}LINE");
+                foreach (var wp in line.Waypoints)
+                {
+                    builder.Append(culture, $" ({wp.X:R},{wp.Y:R})");
+                }
+
+                builder.Append('\n');
+                break;
+
+            case LayoutPort port:
+                builder.Append(culture, $"{indent}PORT {port.ExternalLabel}/{port.InternalLabel} X={port.CentreX:R} Y={port.CentreY:R}\n");
+                break;
+
+            default:
+                builder.Append(culture, $"{indent}{node.GetType().Name}\n");
+                break;
+        }
+    }
+
+    /// <summary>Asserts every consecutive, non-degenerate waypoint pair of the polyline is axis-aligned.</summary>
+    /// <param name="waypoints">The connector polyline.</param>
+    private static void AssertPolylineIsStrictlyOrthogonal(IReadOnlyList<Point2D> waypoints)
+    {
+        const double tolerance = 1e-4;
+        for (var i = 1; i < waypoints.Count; i++)
+        {
+            var dx = Math.Abs(waypoints[i].X - waypoints[i - 1].X);
+            var dy = Math.Abs(waypoints[i].Y - waypoints[i - 1].Y);
+            if (dx < tolerance && dy < tolerance)
+            {
+                continue;
+            }
+
+            Assert.True(
+                (dy < tolerance) ^ (dx < tolerance),
+                $"Segment [{waypoints[i - 1].X},{waypoints[i - 1].Y}]->[{waypoints[i].X},{waypoints[i].Y}] is diagonal.");
+        }
+    }
+
+    /// <summary>Returns true when either endpoint of the line lies on the given box's boundary.</summary>
+    /// <param name="line">The connector line.</param>
+    /// <param name="box">The box to test against.</param>
+    /// <returns>True when an endpoint touches the box boundary.</returns>
+    private static bool TouchesBox(LayoutLine line, LayoutBox box)
+    {
+        if (line.Waypoints.Count == 0)
+        {
+            return false;
+        }
+
+        var start = line.Waypoints[0];
+        var end = line.Waypoints[^1];
+        return OnBoxBoundary(start.X, start.Y, box) || OnBoxBoundary(end.X, end.Y, box);
+    }
+
+    /// <summary>Asserts the outer box strictly encloses the inner box (with room to spare on every side).</summary>
+    /// <param name="context">A message prefix for assertion failures.</param>
+    /// <param name="outer">The enclosing box.</param>
+    /// <param name="inner">The box expected to be nested within.</param>
+    private static void AssertStrictlyEncloses(string context, LayoutBox outer, LayoutBox inner)
+    {
+        Assert.True(inner.X >= outer.X - 0.001, $"{context}: inner left is outside outer.");
+        Assert.True(inner.Y >= outer.Y - 0.001, $"{context}: inner top is outside outer.");
+        Assert.True(
+            inner.X + inner.Width <= outer.X + outer.Width + 0.001,
+            $"{context}: inner right is outside outer.");
+        Assert.True(
+            inner.Y + inner.Height <= outer.Y + outer.Height + 0.001,
+            $"{context}: inner bottom is outside outer.");
+        Assert.True(outer.Width > inner.Width, $"{context}: outer is not wider than inner (no room for padding).");
+        Assert.True(outer.Height > inner.Height, $"{context}: outer is not taller than inner (no room for padding).");
+    }
+
+    /// <summary>
+    ///     The captured leaf-path golden snapshot for <see cref="BuildNoBoundaryPortHierarchy"/>. Any
+    ///     change to the boundary-port-free layout path (including forcing the combined pass) alters this.
+    /// </summary>
+    private const string NoBoundaryPortGolden =
+        "W=184 H=326\n" +
+        "BOX Left X=20 Y=20 W=144 H=128\n" +
+        "  BOX LeftChild X=52 Y=76 W=80 H=40\n" +
+        "BOX Right X=20 Y=178 W=144 H=128\n" +
+        "  BOX RightChild X=52 Y=234 W=80 H=40\n" +
+        "LINE (32,148) (32,178)\n" +
+        "LINE (152,148) (152,178)\n";
+
+    /// <summary>Deep-compares two layout trees for exact (bit-level) equality of every geometric field,
     ///     node kind, box attribute, and line attribute. No numeric tolerance is allowed.
     /// </summary>
     private static void AssertTreesIdentical(string context, LayoutTree expected, LayoutTree actual)

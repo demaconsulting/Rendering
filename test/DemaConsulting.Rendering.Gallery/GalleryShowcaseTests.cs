@@ -305,4 +305,153 @@ public sealed class GalleryShowcaseTests
             GalleryDiagrams.PortsShowcaseVertical(),
             Themes.Dark);
     }
+
+    /// <summary>
+    ///     Renders the horizontal boundary-ports showcase to SVG, proving a container's boundary
+    ///     (delegation) port emits one shared <see cref="LayoutPort"/> anchor carrying both an outward
+    ///     external label and an inward internal label, with the sibling's external approach edge and
+    ///     both internal delegation edges (internal fan-out) reaching that one anchor.
+    /// </summary>
+    [Fact]
+    public void Gallery_BoundaryPortsShowcaseHorizontal_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.BoundaryPortsShowcaseHorizontalSvg,
+            GalleryDiagrams.BoundaryPortsShowcaseHorizontal(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the vertical boundary-ports showcase to SVG — the companion to
+    ///     <see cref="Gallery_BoundaryPortsShowcaseHorizontal_RendersSvg"/> — proving a downward-flowing
+    ///     container's top-face boundary port routes external fan-out (two sibling approach edges)
+    ///     orthogonally onto one shared anchor that then delegates inward to the nested child.
+    /// </summary>
+    [Fact]
+    public void Gallery_BoundaryPortsShowcaseVertical_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.BoundaryPortsShowcaseVerticalSvg,
+            GalleryDiagrams.BoundaryPortsShowcaseVertical(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the three-level boundary-ports delegation chain to SVG — proving an outer container's
+    ///     boundary port delegates inward to a nested container's own boundary port, which delegates
+    ///     again to the innermost leaf, so the whole chain routes as one unbroken orthogonal path
+    ///     through the recursive engine's single combined pass across both boundary crossings.
+    /// </summary>
+    [Fact]
+    public void Gallery_BoundaryPortsShowcaseDeepChain_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.BoundaryPortsShowcaseDeepChainSvg,
+            GalleryDiagrams.BoundaryPortsShowcaseDeepChain(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the horizontal ports showcase to PNG, proving the raster path handles named
+    ///     left/right ports.
+    /// </summary>
+    [Fact]
+    public void Gallery_PortsShowcaseHorizontal_RendersPng()
+    {
+        GalleryWriter.Png(
+            GalleryCatalog.PortsShowcaseHorizontalPng,
+            GalleryDiagrams.PortsShowcaseHorizontal(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the vertical ports showcase to PNG, proving the raster path handles named
+    ///     top/bottom ports.
+    /// </summary>
+    [Fact]
+    public void Gallery_PortsShowcaseVertical_RendersPng()
+    {
+        GalleryWriter.Png(
+            GalleryCatalog.PortsShowcaseVerticalPng,
+            GalleryDiagrams.PortsShowcaseVertical(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the parallel-edges-merged diagram to PNG, proving the raster path handles merged
+    ///     parallel connectors.
+    /// </summary>
+    [Fact]
+    public void Gallery_ParallelEdgesMerged_RendersPng()
+    {
+        GalleryWriter.Png(
+            GalleryCatalog.ParallelEdgesMergedPng,
+            GalleryDiagrams.ParallelEdgesMerged(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the parallel-edges-preserved diagram to PNG, proving the raster path handles
+    ///     independently-routed parallel connectors.
+    /// </summary>
+    [Fact]
+    public void Gallery_ParallelEdgesPreserved_RendersPng()
+    {
+        GalleryWriter.Png(
+            GalleryCatalog.ParallelEdgesPreservedPng,
+            GalleryDiagrams.ParallelEdgesPreserved(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the vertical-flow parallel-edges-preserved diagram to PNG, proving the raster path
+    ///     handles the top/bottom-anchored companion case.
+    /// </summary>
+    [Fact]
+    public void Gallery_ParallelEdgesPreservedVertical_RendersPng()
+    {
+        GalleryWriter.Png(
+            GalleryCatalog.ParallelEdgesPreservedVerticalPng,
+            GalleryDiagrams.ParallelEdgesPreservedVertical(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the horizontal boundary-ports showcase to PNG, proving the raster path handles a
+    ///     container's shared boundary (delegation) port anchor.
+    /// </summary>
+    [Fact]
+    public void Gallery_BoundaryPortsShowcaseHorizontal_RendersPng()
+    {
+        GalleryWriter.Png(
+            GalleryCatalog.BoundaryPortsShowcaseHorizontalPng,
+            GalleryDiagrams.BoundaryPortsShowcaseHorizontal(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the vertical boundary-ports showcase to PNG, proving the raster path handles the
+    ///     downward-flowing companion case's top-face boundary port.
+    /// </summary>
+    [Fact]
+    public void Gallery_BoundaryPortsShowcaseVertical_RendersPng()
+    {
+        GalleryWriter.Png(
+            GalleryCatalog.BoundaryPortsShowcaseVerticalPng,
+            GalleryDiagrams.BoundaryPortsShowcaseVertical(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the three-level boundary-ports delegation chain to PNG, proving the raster path
+    ///     handles a chain of two boundary crossings routed in one combined recursive pass.
+    /// </summary>
+    [Fact]
+    public void Gallery_BoundaryPortsShowcaseDeepChain_RendersPng()
+    {
+        GalleryWriter.Png(
+            GalleryCatalog.BoundaryPortsShowcaseDeepChainPng,
+            GalleryDiagrams.BoundaryPortsShowcaseDeepChain(),
+            Themes.Dark);
+    }
 }

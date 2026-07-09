@@ -124,6 +124,7 @@ sections:
           Rounded connector corners convey the theme's configured line-corner radius.
         tests:
           - SvgRenderer_Render_SingleLine_WithCornerRadius_ProducesArcInPath
+          - SvgRenderer_Render_SingleLine_CollinearInteriorWaypoint_ProducesNoArcInPath
 
       - id: Rendering-Svg-SvgRenderer-RenderLineDashed
         title: >-

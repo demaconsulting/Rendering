@@ -179,7 +179,8 @@ public sealed class LayoutTests
         Assert.Equal(250.0, port.CentreX);
         Assert.Equal(150.0, port.CentreY);
         Assert.Equal(PortSide.Right, port.Side);
-        Assert.Equal("myPort", port.Label);
+        Assert.Equal("myPort", port.ExternalLabel);
+        Assert.Null(port.InternalLabel);
     }
 
     /// <summary>

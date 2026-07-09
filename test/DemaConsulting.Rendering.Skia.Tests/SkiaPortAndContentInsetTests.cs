@@ -61,6 +61,89 @@ public sealed class SkiaPortAndContentInsetTests
     }
 
     /// <summary>
+    ///     Proves the boundary-port dual-label rule in the raster renderer: a left-side port carrying
+    ///     both an external and an internal label draws foreground pixels on BOTH sides of the port
+    ///     glyph (the external label outward/left, the internal label inward/right), whereas an
+    ///     external-label-only port draws its single label inward only, leaving the outward side blank.
+    ///     This guards the both-labels geometry the SVG unit test asserts, mirrored in the raster path.
+    /// </summary>
+    [Fact]
+    public void PngRenderer_RenderPort_BothLabels_DrawsLabelsOnBothSidesOfPort()
+    {
+        // Arrange: identical left-side ports, one with both labels, one external-only.
+        var renderer = new PngRenderer();
+        var options = new RenderOptions(Themes.Light);
+        const int portCentreX = 100;
+
+        var bothLabels = RenderToBitmap(
+            renderer, options, new LayoutPort(portCentreX, 50, PortSide.Left, ExternalLabel: "ext", InternalLabel: "int"));
+        var externalOnly = RenderToBitmap(
+            renderer, options, new LayoutPort(portCentreX, 50, PortSide.Left, ExternalLabel: "solo"));
+
+        try
+        {
+            var background = SKColor.Parse(Themes.Light.BackgroundColor);
+
+            // Regions strictly outside the port glyph: outward (left of the port) and inward (right).
+            // The glyph itself spans a few pixels around the centre, so leave a margin either side.
+            const int outwardMaxX = 88;   // columns 0..88 lie left of the glyph (outward face)
+            const int inwardMinX = 112;   // columns 112.. lie right of the glyph (inward face)
+
+            // Both-labels port: foreground appears on both the outward and inward sides.
+            Assert.True(
+                HasForegroundInColumnRange(bothLabels, background, 0, outwardMaxX),
+                "both-labels port should draw its external label on the outward (left) side");
+            Assert.True(
+                HasForegroundInColumnRange(bothLabels, background, inwardMinX, bothLabels.Width - 1),
+                "both-labels port should draw its internal label on the inward (right) side");
+
+            // External-only port: nothing outward; the single label reads inward only.
+            Assert.False(
+                HasForegroundInColumnRange(externalOnly, background, 0, outwardMaxX),
+                "external-only port must not draw anything on the outward (left) side");
+            Assert.True(
+                HasForegroundInColumnRange(externalOnly, background, inwardMinX, externalOnly.Width - 1),
+                "external-only port should draw its label inward (right) exactly like a legacy port");
+        }
+        finally
+        {
+            bothLabels.Dispose();
+            externalOnly.Dispose();
+        }
+    }
+
+    /// <summary>Renders a single port on a 200x100 layout and decodes the PNG into a bitmap.</summary>
+    private static SKBitmap RenderToBitmap(PngRenderer renderer, RenderOptions options, LayoutPort port)
+    {
+        using var stream = new MemoryStream();
+        renderer.Render(new LayoutTree(200, 100, [port]), options, stream);
+        stream.Position = 0;
+        using var data = SKData.Create(stream);
+        var bitmap = SKBitmap.Decode(data);
+        Assert.NotNull(bitmap);
+        return bitmap!;
+    }
+
+    /// <summary>Returns whether any non-background pixel exists in the inclusive column range [minX, maxX].</summary>
+    private static bool HasForegroundInColumnRange(SKBitmap bitmap, SKColor background, int minX, int maxX)
+    {
+        var lo = Math.Max(0, minX);
+        var hi = Math.Min(bitmap.Width - 1, maxX);
+        for (var x = lo; x <= hi; x++)
+        {
+            for (var y = 0; y < bitmap.Height; y++)
+            {
+                if (bitmap.GetPixel(x, y) != background)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     ///     Proves that a box's non-zero <see cref="LayoutBox.ContentInsetLeft"/> shifts the leftmost
     ///     drawn compartment-row pixel further right than an otherwise-identical box with no content
     ///     insets, confirming the renderer reads the inset when placing compartment text.

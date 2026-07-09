@@ -806,6 +806,11 @@ public sealed class SvgRenderer : IRenderer
             return sb.ToString();
         }
 
+        // Shared tolerance for both the direction-collinearity check and the degenerate
+        // zero-length-segment check below - a single named constant avoids a second magic
+        // number drifting out of sync with the first.
+        const double DirectionTolerance = 0.001;
+
         // Arc-at-bends: replace each interior waypoint with a shortened L + arc A command
         for (var i = 1; i < waypoints.Count; i++)
         {
@@ -832,7 +837,26 @@ public sealed class SvgRenderer : IRenderer
             var outDy = next.Y - cur.Y;
             var outLen = Math.Sqrt(outDx * outDx + outDy * outDy);
 
-            if (inLen < 0.001 || outLen < 0.001)
+            // Collinearity check: if the incoming and outgoing directions are parallel and
+            // same-sense (normalized cross product ~0 and dot product positive, i.e. not a
+            // reversal), this waypoint sits on a straight run rather than a real corner. Skip
+            // the arc-rounding entirely so the line continues straight through it - rounding a
+            // waypoint that is not an actual turn would draw a spurious bump in the path. Both
+            // lengths are checked against DirectionTolerance first so this never divides by a
+            // near-zero length; genuinely degenerate segments fall through to the next check.
+            if (inLen >= DirectionTolerance && outLen >= DirectionTolerance)
+            {
+                var crossNorm = (inDx * outDy - inDy * outDx) / (inLen * outLen);
+                var dotNorm = (inDx * outDx + inDy * outDy) / (inLen * outLen);
+                if (Math.Abs(crossNorm) <= DirectionTolerance && dotNorm > 0)
+                {
+                    // Collinear waypoint: no corner to round, continue straight through it
+                    sb.Append(CultureInfo.InvariantCulture, $" L {F(cur.X * scale)} {F(cur.Y * scale)}");
+                    continue;
+                }
+            }
+
+            if (inLen < DirectionTolerance || outLen < DirectionTolerance)
             {
                 // Degenerate segment: fall back to a plain line command
                 sb.Append(CultureInfo.InvariantCulture, $" L {F(cur.X * scale)} {F(cur.Y * scale)}");
@@ -941,23 +965,52 @@ public sealed class SvgRenderer : IRenderer
             $"""  <rect x="{F(rx)}" y="{F(ry)}" width="{F(rs)}" height="{F(rs)}" fill="{theme.StrokeColor}" stroke="{theme.BackgroundColor}" stroke-width="{F(PortGlyphStrokeWidth * scale)}"/>""");
         sb.AppendLine();
 
-        // Optional label offset inward, toward the box interior, so it reads immediately next to
-        // the port glyph without overlapping the connector approaching from outside the box.
-        if (port.Label != null)
+        // Labels. InternalLabel (when present) always renders inward, toward the box interior, beside
+        // the port glyph. ExternalLabel renders inward too whenever there is no InternalLabel (a plain,
+        // non-boundary port — byte-identical to the single-label behavior every existing call site
+        // relies on), and only renders on the outward face when an InternalLabel is also present (a
+        // genuine boundary port), mirroring the inward offset across the port centre.
+        if (port.InternalLabel != null)
         {
-            var offset = NotationMetrics.PortHalfSize + theme.LabelPadding;
-            var (labelX, labelY, anchor) = port.Side switch
-            {
-                PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, TextAnchorMiddle),
-                PortSide.Bottom => (port.CentreX, port.CentreY - offset, TextAnchorMiddle),
-                PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, "start"),
-                _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, "end")
-            };
-
-            sb.Append(CultureInfo.InvariantCulture,
-                $"""  <text x="{F(labelX * scale)}" y="{F(labelY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle"{FitTextLength(port.Label, theme.FontSizeBody, port.MaxLabelWidth, scale, useAccurateEstimator: true)}>{EscapeXml(port.Label)}</text>""");
-            sb.AppendLine();
+            EmitPortLabel(sb, port, port.InternalLabel, port.Side, theme, scale);
         }
+
+        if (port.ExternalLabel != null)
+        {
+            var side = port.InternalLabel != null ? OppositeSide(port.Side) : port.Side;
+            EmitPortLabel(sb, port, port.ExternalLabel, side, theme, scale);
+        }
+    }
+
+    /// <summary>Returns the box edge opposite <paramref name="side"/>, used to place an outward label.</summary>
+    private static PortSide OppositeSide(PortSide side) => side switch
+    {
+        PortSide.Top => PortSide.Bottom,
+        PortSide.Bottom => PortSide.Top,
+        PortSide.Left => PortSide.Right,
+        _ => PortSide.Left,
+    };
+
+    /// <summary>
+    /// Emits one port <c>&lt;text&gt;</c> label offset from the port centre toward the interior of the
+    /// box on <paramref name="offsetSide"/> (which equals the port's own side for an inward label and the
+    /// opposite side for an outward one), using the same offset formula for both so an inward and an
+    /// outward label on one boundary port sit symmetrically about the port centre.
+    /// </summary>
+    private static void EmitPortLabel(StringBuilder sb, LayoutPort port, string text, PortSide offsetSide, Theme theme, double scale)
+    {
+        var offset = NotationMetrics.PortHalfSize + theme.LabelPadding;
+        var (labelX, labelY, anchor) = offsetSide switch
+        {
+            PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, TextAnchorMiddle),
+            PortSide.Bottom => (port.CentreX, port.CentreY - offset, TextAnchorMiddle),
+            PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, "start"),
+            _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, "end")
+        };
+
+        sb.Append(CultureInfo.InvariantCulture,
+            $"""  <text x="{F(labelX * scale)}" y="{F(labelY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle"{FitTextLength(text, theme.FontSizeBody, port.MaxLabelWidth, scale, useAccurateEstimator: true)}>{EscapeXml(text)}</text>""");
+        sb.AppendLine();
     }
 
     /// <summary>

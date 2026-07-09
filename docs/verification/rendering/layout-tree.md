@@ -80,8 +80,11 @@ back its own value independently of the others.
 
 #### Port carries all fields
 
-Test `LayoutPort_Construction_StoresAllFields` constructs a port with centre, side, and label set and
-asserts that `CentreX`, `CentreY`, `Side`, and `Label` equal the supplied values.
+Test `LayoutPort_Construction_StoresAllFields` constructs a port with centre, side, and external label
+set and asserts that `CentreX`, `CentreY`, `Side`, and `ExternalLabel` equal the supplied values and
+that `InternalLabel` defaults to `null` (a plain, non-boundary port). The optional `InternalLabel`,
+when set, marks a boundary (delegation) port that carries both an outward external and an inward
+internal label at one anchor.
 
 **Covers**: `Rendering-Model-LayoutTree-Port`.
 
