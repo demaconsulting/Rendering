@@ -165,6 +165,27 @@ hand-built diagonal, which is what keeps external fan-in and multi-level delegat
 direction→face mapping the decomposer's anchor placement shares); its former reconciliation code and the
 `OrderCrossings` ordering it once performed are superseded by the recursive crossing minimizer above.
 
+An `Internal`-face crossing dummy — the shared fan-out point a boundary port's delegation edges route
+through inside the child level's own layered graph — would otherwise be centered by `BrandesKopfPlacer`
+purely among that level's own interior fan-out targets, ignoring the parent scope's already-resolved
+anchor position for the same port. `MergeRegionGraphAssembler.PinIncomingCrossings` corrects this: once
+a boundary port's `External`-face crossing has been placed in the parent level (guaranteed by
+`RunRecursive`'s parent-before-child level iteration order), it computes that placement's cross-axis
+offset relative to the port's own container node and seeds it onto the matching `Internal`-face
+crossing dummy's `AugNode.PinnedCrossAxis`. `BrandesKopfPlacer.AssignCoordinatesAug` then overrides
+just that node's cross-axis coordinate with the pinned value after its ordinary alignment/compaction
+pass, so the child's fan-out anchors to the parent's resolved position instead of re-centering
+independently. `PinnedCrossAxis` defaults to `null` for every node the flat (non-hierarchical) pipeline
+produces, so this override is a no-op there.
+
+`LayeredCorridorRouter.CreateDependency`'s crossing-count tie-break also recognizes when two segments
+converge on the same target Y (within `StraightTolerance`) — the symmetric fan-in case, such as two
+external approaches converging on one shared boundary anchor. Previously the deterministic tie-break
+forced such a pair into a strict left/right slot order purely by insertion order, producing asymmetric
+clearance around the shared point even though neither segment has a genuine geometric preference. The
+tie-break now skips creating a dependency for a pair whose target Y values coincide, so the topological
+slot numbering does not arbitrarily separate them.
+
 #### Layered Pipeline Dependencies
 
 All pipeline types are internal and consume only the geometric value types of the Layout system

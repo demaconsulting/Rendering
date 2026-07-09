@@ -130,6 +130,8 @@ sections:
           - FaceForDirection_Up_ReturnsBottomFace
           - MergeRegionDecomposer_FanIn_EveryConvergingEdge_IsStrictlyOrthogonalWithNoDirectDiagonal
           - MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal
+          - MergeRegionDecomposer_InternalFanOut_DelegationEdges_TakeMinimalBendPathWithNoReversal
+          - OrthogonalRouter_Apply_MirrorSymmetricConvergingEdges_ProduceIdenticalFirstBendOffsets
 
       - id: Rendering-Layout-LayeredPipeline-Directions
         title: >-

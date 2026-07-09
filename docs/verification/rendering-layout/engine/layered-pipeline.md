@@ -88,6 +88,15 @@ failure.
   and `MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal` confirm
   the decomposer projects the combined-pass placement back so every converging edge is routed
   orthogonally onto the shared anchor with no direct diagonal.
+  `MergeRegionDecomposer_InternalFanOut_DelegationEdges_TakeMinimalBendPathWithNoReversal` confirms an
+  internal fan-out's shared crossing dummy now anchors to the parent scope's already-resolved position
+  (`MergeRegionGraphAssembler.PinIncomingCrossings` / `AugNode.PinnedCrossAxis`) instead of independently
+  re-centering, so both delegation connectors take a minimal-bend path with no direction reversal rather
+  than the old back-and-forth detour.
+  `OrthogonalRouter_Apply_MirrorSymmetricConvergingEdges_ProduceIdenticalFirstBendOffsets` confirms
+  `LayeredCorridorRouter.CreateDependency`'s crossing-count tie-break no longer forces two segments that
+  converge on the same target Y into different routing slots purely by insertion order, so a symmetric
+  fan-in receives identical first-bend offsets on both sides.
 - **Directions** (`Rendering-Layout-LayeredPipeline-Directions`):
   `AxisTransform_Apply_RightDirection_LeavesCoordinatesUnchanged`,
   `AxisTransform_Apply_Right_PlacesTargetEastWithCorrectFaces`,
@@ -205,7 +214,9 @@ failure.
   FaceForDirection_Right_ReturnsLeftFace, FaceForDirection_Left_ReturnsRightFace,
   FaceForDirection_Down_ReturnsTopFace, FaceForDirection_Up_ReturnsBottomFace,
   MergeRegionDecomposer_FanIn_EveryConvergingEdge_IsStrictlyOrthogonalWithNoDirectDiagonal,
-  MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal
+  MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal,
+  MergeRegionDecomposer_InternalFanOut_DelegationEdges_TakeMinimalBendPathWithNoReversal,
+  OrthogonalRouter_Apply_MirrorSymmetricConvergingEdges_ProduceIdenticalFirstBendOffsets
 - **`Rendering-Layout-LayeredPipeline-Directions`**:
   AxisTransform_Apply_RightDirection_LeavesCoordinatesUnchanged,
   AxisTransform_Apply_Right_PlacesTargetEastWithCorrectFaces,
