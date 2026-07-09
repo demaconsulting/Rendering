@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering.Abstractions;
+using DemaConsulting.Rendering.Layout.Engine.Layered;
 
 namespace DemaConsulting.Rendering.Layout;
 
@@ -271,13 +272,37 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
         var crossLines = RouteCrossContainerEdges(routedEdges, composed, indexOf, descendantToDirect, effective);
 
+        // Resolve any boundary (delegation) ports of this scope's direct-member containers: an edge
+        // referencing such a port crosses the container boundary and cannot be routed by an ordinary
+        // per-scope leaf pass. When at least one is present, the boundary-port resolver reconciles the
+        // leaf pass's external anchor with the container's own placed interior into a single shared
+        // anchor carrying both labels, and wires each internal delegation edge to it. Gating on a
+        // non-empty result keeps every boundary-port-free scope on its existing, byte-identical path.
+        var boundaryPorts = HierarchyMergeRegionBuilder.Collect(graph);
+        IReadOnlyList<LayoutPort> resolvedPorts = placedPorts;
+        IReadOnlyList<LayoutLine> resolvedLines = placedLines;
+        if (boundaryPorts.Count > 0)
+        {
+            var resolution = BoundaryPortResolver.Resolve(
+                graph,
+                ToEngineDirection(effective.Get(CoreOptions.Direction)),
+                boundaryPorts,
+                composed,
+                indexOf,
+                placedPorts,
+                placedLines);
+            resolvedPorts = resolution.Ports;
+            resolvedLines = resolution.Lines;
+        }
+
         // Assemble: composed boxes, then the leaf algorithm's routed lines and any LayoutPort it
-        // emitted for a leaf-routed port edge, then the cross-container lines. The canvas dimensions
-        // are the leaf algorithm's for this (sized) level.
-        var nodes = new List<LayoutNode>(composed.Length + placedLines.Count + placedPorts.Count + crossLines.Count);
+        // emitted for a leaf-routed port edge (both possibly reconciled by the boundary-port resolver),
+        // then the cross-container lines. The canvas dimensions are the leaf algorithm's for this
+        // (sized) level.
+        var nodes = new List<LayoutNode>(composed.Length + resolvedLines.Count + resolvedPorts.Count + crossLines.Count);
         nodes.AddRange(composed);
-        nodes.AddRange(placedLines);
-        nodes.AddRange(placedPorts);
+        nodes.AddRange(resolvedLines);
+        nodes.AddRange(resolvedPorts);
         nodes.AddRange(crossLines);
         return new LayoutTree(placed.Width, placed.Height, nodes);
     }
@@ -676,6 +701,21 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
                 return false;
         }
     }
+
+    /// <summary>
+    /// Maps the public <see cref="LayoutFlowDirection"/> option to the internal engine
+    /// <see cref="LayoutDirection"/> the boundary-port resolver reasons about, so a delegation port's
+    /// boundary face is chosen consistently with the flow the leaf algorithm laid the scope out along.
+    /// </summary>
+    /// <param name="direction">The public flow direction resolved for this scope.</param>
+    /// <returns>The equivalent internal engine direction.</returns>
+    private static LayoutDirection ToEngineDirection(LayoutFlowDirection direction) => direction switch
+    {
+        LayoutFlowDirection.Down => LayoutDirection.Down,
+        LayoutFlowDirection.Left => LayoutDirection.Left,
+        LayoutFlowDirection.Up => LayoutDirection.Up,
+        _ => LayoutDirection.Right,
+    };
 
     /// <summary>
     /// Resolves the leaf-algorithm identifier a scope is placed with from its already-cascaded effective
