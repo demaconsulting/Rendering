@@ -111,16 +111,37 @@ internal sealed class LayeredLayoutPipeline
             return this;
         }
 
+        /// <summary>
+        /// Appends the ELK-layered stage sequence used for recursive (compound-graph) hierarchy
+        /// handling. It is the same Sugiyama stage sequence as <see cref="AddDefaultStages"/>, because a
+        /// hierarchy-crossing dummy participates in exactly the same layer-assignment,
+        /// crossing-minimization, and placement stages as an ordinary node or long-edge dummy — ELK's
+        /// own compound-graph design. The Recursive-specific behavior is not a distinct stage but the
+        /// way the caller seeds the graph with zero-size hierarchy-crossing dummies (carrying a
+        /// <see cref="HierarchyCrossing"/> descriptor) and reads their placed positions back out; this
+        /// method exists so a Recursive pipeline is assembled through its own explicit entry point,
+        /// keeping the <see cref="AddDefaultStages"/> Flat path untouched.
+        /// </summary>
+        /// <returns>This builder, for chaining.</returns>
+        public PipelineBuilder AddRecursiveStages()
+        {
+            // A hierarchy-crossing dummy is a zero-size node that flows through the standard stages
+            // like any other node, so the recursive pass reuses the identical stage sequence rather
+            // than introducing a parallel, divergent one that could drift from the Flat path.
+            return AddDefaultStages();
+        }
+
         /// <summary>Builds the configured pipeline.</summary>
         /// <returns>A new <see cref="LayeredLayoutPipeline"/>.</returns>
+        /// <remarks>
+        /// Both <see cref="HierarchyHandling.Flat"/> and <see cref="HierarchyHandling.Recursive"/> are
+        /// supported: Flat runs the stage sequence over a single flat graph, while Recursive runs the
+        /// same stage sequence over a graph pre-seeded with hierarchy-crossing dummies. The mode is
+        /// retained on the built pipeline (<see cref="LayeredLayoutPipeline.Hierarchy"/>) so callers can
+        /// assert which contract a pipeline was assembled for.
+        /// </remarks>
         public LayeredLayoutPipeline Build()
         {
-            if (_hierarchy == HierarchyHandling.Recursive)
-            {
-                throw new NotSupportedException(
-                    "Recursive hierarchy handling is not yet supported.");
-            }
-
             return new LayeredLayoutPipeline(_direction, _hierarchy, _stages.ToArray());
         }
     }

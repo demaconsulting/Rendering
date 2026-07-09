@@ -4,12 +4,59 @@
 
 namespace DemaConsulting.Rendering.Layout.Engine.Layered;
 
-/// <summary>A node in the augmented Sugiyama graph (real part box or long-edge dummy).</summary>
+/// <summary>
+/// Identifies which face of a boundary container's box a hierarchy-crossing dummy represents.
+/// </summary>
+/// <remarks>
+///     A boundary port carries up to two logical connection faces at the same physical anchor: the
+///     <see cref="External"/> face is where an edge crossing in from a sibling scope approaches the
+///     container from outside, and the <see cref="Internal"/> face is where a delegation edge into the
+///     container's own child scope departs on the inside. Both faces resolve to a single shared anchor
+///     on the container boundary; the enum records which logical half a given hierarchy-crossing dummy
+///     stands in for, so the resolver can spread and reconcile the two halves consistently.
+/// </remarks>
+internal enum HierarchyCrossingFace
+{
+    /// <summary>The outward-facing half, approached by an edge crossing in from a sibling scope.</summary>
+    External,
+
+    /// <summary>The inward-facing half, departed by a delegation edge into the container's child scope.</summary>
+    Internal,
+}
+
+/// <summary>
+/// Describes a hierarchy-crossing dummy: the extra data an <see cref="AugNode"/> carries when it stands
+/// in for a boundary port crossing a container boundary, rather than an ordinary long-edge dummy.
+/// </summary>
+/// <remarks>
+///     Generalizes <c>LongEdgeSplitter</c>'s zero-size intermediate-layer dummy from "spans layers
+///     within one scope" to "spans layers across nested scopes": a hierarchy-crossing dummy participates
+///     in the same layer-assignment, crossing-minimization, and placement pass as ordinary dummies, but
+///     additionally remembers the originating <see cref="Port"/> and which <see cref="Face"/> of the
+///     container boundary it represents, so the placed dummy coordinate can be reconciled with the
+///     owning container's own box placement into a single shared boundary anchor.
+/// </remarks>
+/// <param name="Port">The originating input-graph boundary port this dummy stands in for.</param>
+/// <param name="Face">Which logical face (external/internal) of the boundary crossing this dummy is.</param>
+internal readonly record struct HierarchyCrossing(LayoutGraphPort Port, HierarchyCrossingFace Face);
+
+/// <summary>A node in the augmented Sugiyama graph (real part box, long-edge dummy, or hierarchy-crossing dummy).</summary>
 /// <param name="Width">Width of the node's bounding box in logical pixels.</param>
 /// <param name="Height">Height of the node's bounding box in logical pixels.</param>
 /// <param name="Layer">Assigned Sugiyama layer index.</param>
 /// <param name="IsDummy">Whether this node is a zero-size long-edge dummy.</param>
-internal sealed record AugNode(double Width, double Height, int Layer, bool IsDummy = false);
+/// <param name="Crossing">
+/// When non-<see langword="null"/>, marks this node as a hierarchy-crossing dummy standing in for a
+/// boundary port (rather than an ordinary long-edge dummy), carrying the originating port and its face.
+/// <see langword="null"/> for every real node and every ordinary long-edge dummy, so the default
+/// construction and every existing caller stay byte-identical.
+/// </param>
+internal sealed record AugNode(
+    double Width,
+    double Height,
+    int Layer,
+    bool IsDummy = false,
+    HierarchyCrossing? Crossing = null);
 
 /// <summary>A sub-edge in the augmented graph after long-edge splitting.</summary>
 /// <param name="Source">Index of the source augmented node.</param>
