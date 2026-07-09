@@ -43,17 +43,23 @@ place. Stages are stateless and may be shared across pipelines. `LayeredLayoutMe
 shared spacing, clearance, and padding constants — intentionally identical to the constants of the
 previous monolithic engine so the pipeline reproduces its output exactly. The `LayoutDirection` enum
 selects Right, Down, Left, or Up flow; `HierarchyHandling` selects `Flat` (a single flat pass) or the
-ELK-style `Recursive` compound-graph mode used for edges whose named boundary port crosses a container
-boundary.
+ELK-style `Recursive` compound-graph mode. `Recursive` is no longer a fail-fast placeholder: it
+assembles a genuinely runnable stage sequence (via `AddRecursiveStages`) that the boundary-port
+resolver drives to order the same-face crossings of a container's boundary (delegation) ports. To
+support that ordering, `AugNode` can carry an optional `HierarchyCrossing` descriptor recording which
+container face a crossing occupies; the descriptor defaults to none, so every flat-graph augmented node
+— and therefore the flat fast path — is constructed byte-identically to before it existed.
 
 #### Layered Pipeline Assembly
 
 A pipeline is assembled through the fluent `LayeredLayoutPipeline.PipelineBuilder` returned by
-`Builder()`. The builder exposes `Direction`, `Hierarchy`, `AddStage`, `AddDefaultStages`, and
-`Build`. `AddStage` rejects a null stage with `ArgumentNullException`, and `Build` fails fast with
-`NotSupportedException` when recursive hierarchy handling is requested. `Run(graph)` first calls
-`AxisTransform.NormalizeInputAxes` to normalize the input node axes for the requested direction, then
-applies every stage in order. `Run` rejects a null graph with `ArgumentNullException`.
+`Builder()`. The builder exposes `Direction`, `Hierarchy`, `AddStage`, `AddDefaultStages`,
+`AddRecursiveStages`, and `Build`. `AddStage` rejects a null stage with `ArgumentNullException`.
+`AddDefaultStages` assembles the flat stage sequence; `AddRecursiveStages` assembles the recursive
+stage sequence for `HierarchyHandling.Recursive`, so `Build` no longer rejects recursive hierarchy
+handling with `NotSupportedException`. `Run(graph)` first calls `AxisTransform.NormalizeInputAxes` to
+normalize the input node axes for the requested direction, then applies every stage in order. `Run`
+rejects a null graph with `ArgumentNullException`.
 
 #### Layered Pipeline Stages
 
@@ -108,6 +114,24 @@ boxes and waypoints together. Each component is laid out through a freshly const
 reversed-edge clearance is honored consistently whether the input graph is packed into one component
 or several.
 
+#### Layered Pipeline Boundary Ports
+
+Two internal helpers in `Engine/Layered` support the hierarchical algorithm's boundary (delegation)
+ports. `HierarchyMergeRegionBuilder` detects them structurally: a container's port is a boundary port
+when an edge inside that container's own child scope references the port — the inward delegation edge is
+the signal. Its `Collect` reports a single scope's boundary ports (ignoring same-scope ports and
+leaf-node ports), and its `CollectRecursive` walks the whole hierarchy so detection is general,
+transitive, and depth-unbounded. `BoundaryPortResolver` then reconciles each detected boundary port to
+one shared physical anchor on the container boundary carrying both labels: it consolidates external
+fan-out onto that anchor and adds one internal delegation connector per internal edge reaching into the
+container's placed interior. `OrderCrossings` deterministically orders several crossings that share one
+container face (returning a permutation of the input indices, and the input order when there are no
+targets or none to order). Rather than a single flattened cross-scope Sugiyama pass spanning nested
+scopes, the resolver *reconciles* the anchor the per-scope leaf pass already produced — enriching it
+with the internal label and internal delegation connectors — driving the `Recursive` pipeline path over
+the `AugNode` hierarchy-crossing descriptors only to order same-face crossings. A fully flattened joint
+cross-scope pass remains a documented future refinement (see ROADMAP.md).
+
 #### Layered Pipeline Dependencies
 
 All pipeline types are internal and consume only the geometric value types of the Layout system
@@ -119,14 +143,15 @@ small internal `ShapeAnchorSupport` helper, on `ConnectorRouter`'s internal shap
 `CoordinateAtDistance`) for non-`BoxShape.Rectangle` nodes — a documented cross-unit dependency
 (`LayeredPipeline` unit → `ConnectorRouter` unit) that lets a shaped node's ports and endpoints reuse
 `ConnectorRouter`'s already-tested extent-restriction and surface-projection rules instead of
-duplicating them. See _ConnectorRouter Unit Design_'s "Callers" section for the reverse-direction
+duplicating them. See *ConnectorRouter Unit Design*'s "Callers" section for the reverse-direction
 documentation of this dependency.
 
 #### Layered Pipeline Callers
 
 The pipeline is assembled and run directly by `InterconnectionLayoutEngine`, and the public
 `LayeredLayoutAlgorithm` consumes it transitively through that engine when the layered algorithm is
-selected.
+selected. The boundary-port helpers (`HierarchyMergeRegionBuilder`, `BoundaryPortResolver`) are
+consumed by `HierarchicalLayoutAlgorithm` to detect and reconcile a container's boundary ports.
 
 #### Layered Pipeline Interactions
 
@@ -141,6 +166,9 @@ public layout result contract.
 | Rendering-Layout-LayeredPipeline-StagedPipeline | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-BehaviorPreserving | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-FlatHierarchyOnly | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-HierarchyCrossingDescriptor | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-BoundaryPortDetection | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-BoundaryPortResolution | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-Directions | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-OrthogonalConnectors | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-CycleBreaking | Layered pipeline behavior described above |

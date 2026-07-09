@@ -291,6 +291,50 @@ horizontally) the box's **width** grows to fit each label's actual rendered widt
 examples of preserved vs. merged parallel edges, horizontal vs. vertical port placement, and the
 horizontal- vs. vertical-flow parallel-edge auto-grow behavior.
 
+## Boundary (delegation) ports
+
+A *boundary (delegation) port* is a named port on a **container** node that relays a connection from
+outside the container into its nested children. It carries two independent, optional labels — an
+`ExternalLabel` and an `InternalLabel` — and the hierarchical engine reconciles both onto one shared
+physical anchor on the container boundary: the external label reads outward (away from the container)
+and the internal label reads inward (into the container's interior). A port is recognized as a boundary
+port purely structurally, when an edge *inside the container's own child scope* references it — the
+inward delegation edge is the signal:
+
+```csharp
+var graph = new LayoutGraph();
+
+// A sibling node and a container node.
+var sensor = graph.AddNode("sensor", width: 120, height: 50);
+sensor.Label = "Sensor";
+var controller = graph.AddNode("controller", width: 10, height: 10); // grows to fit its children
+controller.Label = "Controller";
+
+// One boundary port carrying BOTH labels.
+var command = controller.Ports.AddPort("command");
+command.ExternalLabel = "command"; // rendered outward
+command.InternalLabel = "dispatch"; // rendered inward
+
+// Nested children the port delegates to.
+var driver = controller.Children.AddNode("driver", width: 120, height: 50);
+var logger = controller.Children.AddNode("logger", width: 120, height: 50);
+
+// The external approach edge lives in the root scope (sibling to the port).
+graph.AddEdge("sensor-command", sensor, command);
+
+// The internal delegation edges live inside the container's own child scope; two of
+// them exercise internal fan-out onto the one shared anchor.
+controller.Children.AddEdge("command-driver", command, driver);
+controller.Children.AddEdge("command-logger", command, logger);
+```
+
+The engine emits exactly one `LayoutPort` anchor for the boundary port, carrying both labels, with the
+external approach edge and every internal delegation edge reaching that one anchor. External fan-out
+(several sibling approach edges) and internal fan-out (several internal delegation edges) are both
+consolidated onto the single shared anchor. The
+[gallery's "Boundary and delegation ports" diagrams](../gallery/README.md) show complete, rendered
+horizontal- and vertical-flow examples, including both fan-out directions.
+
 ## Option cascading
 
 Every well-known option cascades: it can be set at the free-standing `LayoutOptions`, at a

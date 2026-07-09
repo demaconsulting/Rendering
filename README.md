@@ -14,6 +14,21 @@ with a pluggable algorithm, and render it to SVG, PNG, JPEG, or WEBP. The design
 [Eclipse Layout Kernel (ELK)][link-elk]: layout and rendering are configured through an open,
 extensible property system, and new algorithms, renderers, and options are added additively.
 
+## Features
+
+- **Pluggable layout algorithms** — layered (Sugiyama-style), containment packing, and a recursive
+  hierarchical engine for compound (nested-container) graphs, each selected through the open property
+  system.
+- **Orthogonal edge routing** — axis-aligned connectors in all four flow directions, with obstacle
+  avoidance around intervening containers.
+- **Named ports** — first-class, labelled attachment points on a node's boundary, including parallel
+  edges and per-side port labels.
+- **Boundary (delegation) ports** — a container port that carries both an outward external label and
+  an inward internal label at one shared anchor, relaying an external connection into the container's
+  nested children, with external and internal fan-out consolidated onto that single anchor.
+- **Multiple output formats** — SVG (zero external dependencies) plus PNG, JPEG, and WEBP via
+  SkiaSharp, with light, dark, and print themes.
+
 ## Packages
 
 The library is split into focused packages so consumers take only what they need:

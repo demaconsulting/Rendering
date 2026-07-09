@@ -67,6 +67,7 @@ words:
   - textmeasurer
   - abcdeabcde
   - settability
+  - retarget
   # Non-ASCII terms retained verbatim in extracted source comments
   - façade
   - Köpf

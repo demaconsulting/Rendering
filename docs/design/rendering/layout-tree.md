@@ -33,12 +33,18 @@ the top-left, so a renderer can draw each element directly without resolving nes
   a renderer knows where title/compartment content may start and must stop without colliding with a
   port label.
 - `LayoutCompartment` (sealed record) — `Title` and text `Rows`.
-- `LayoutPort` (node record) — `CentreX`, `CentreY`, attached `Side`, `Label`, and `MaxLabelWidth`
-  (defaulting to `double.PositiveInfinity`) — an optional upper bound, computed by a layout
-  algorithm from the owning box's placed width (a flat `LayoutPort` has no reference back to its
-  owning box, so this bound must be precomputed and carried on the port itself), that a renderer
-  uses to squeeze an excessively long port label rather than let it visually overlap the opposite
-  port's label region.
+- `LayoutPort` (node record) — `CentreX`, `CentreY`, attached `Side`, `ExternalLabel`,
+  `InternalLabel` (defaulting to `null`), and `MaxLabelWidth` (defaulting to
+  `double.PositiveInfinity`). A plain port carries only an `ExternalLabel`, rendered inward beside the
+  glyph exactly as the single legacy label was (keeping every pre-existing call site byte-identical). A
+  boundary (delegation) port additionally carries an `InternalLabel`: its presence marks the port as a
+  boundary port and moves the `ExternalLabel` to the outward face while the `InternalLabel` reads
+  inward, so one physical anchor names both the connection reaching it from outside the container and
+  the delegation relaying it into the container's own child scope. `MaxLabelWidth` is an optional upper
+  bound, computed by a layout algorithm from the owning box's placed width (a `LayoutPort` has no
+  reference back to its owning box, so this bound must be precomputed and carried on the port itself),
+  that a renderer uses to squeeze an excessively long port label rather than let it visually overlap
+  the opposite port's label region.
 - `LayoutLine` (node record) — `Waypoints`, `SourceEnd`, `TargetEnd`, `LineStyle`, and
   `MidpointLabel`.
 - `Point2D` (sealed record) — `X` and `Y`.

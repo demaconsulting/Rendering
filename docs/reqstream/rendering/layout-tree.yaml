@@ -71,11 +71,17 @@ sections:
 
       - id: Rendering-Model-LayoutTree-Port
         title: >-
-          A port node shall carry its absolute centre, the box edge it is attached to, and an
-          optional label.
+          A port node shall carry its absolute centre, the box edge it is attached to, an optional
+          external label, and an optional internal label.
         justification: |
           Ports pin connection points to box edges; carrying the attached side lets a renderer
-          offset the port symbol and its label away from the box face correctly.
+          offset the port symbol and its labels away from the box face correctly. A plain port carries
+          only an external label (rendered inward beside the glyph, exactly as the single legacy label
+          was, keeping every pre-existing call site byte-identical). A boundary (delegation) port
+          additionally carries an internal label: its presence marks the port as a boundary port and
+          moves the external label to the outward face while the internal label reads inward, so one
+          physical anchor can name both the connection reaching it from outside the container and the
+          delegation relaying it into the container's own child scope.
         tests:
           - LayoutPort_Construction_StoresAllFields
 

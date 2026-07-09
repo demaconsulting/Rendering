@@ -10,7 +10,10 @@ containment algorithms place a single flat scope, this engine lays out a *compou
 whose nodes may be containers of nested subgraphs — by recursively placing each container's children
 and composing the sub-layouts into one absolute `LayoutTree`. It does not place boxes itself; it
 selects a bundled *leaf* algorithm per scope and delegates the actual placement to it, then sizes each
-container and composes the results. It is additive: it changes no existing output and is honored only
+container and composes the results. It additionally resolves *boundary (delegation) ports* — a
+container port that both receives an external approach edge and is referenced by an edge inside the
+container's own child scope — reconciling each to one shared anchor on the container boundary carrying
+both an external and an internal label. It is additive: it changes no existing output and is honored only
 when a caller selects it by name.
 
 ### HierarchicalLayoutAlgorithm Data Model
@@ -74,13 +77,32 @@ overrides win over the supplied options, exactly like every nested scope), and c
    on the owning scope's graph is honored rather than falling back to the root options. Edges already
    routed by the leaf algorithm (both endpoints direct) or belonging to a lower scope (both endpoints
    under one container) are skipped. A genuine cross-container edge whose endpoint is a named
-   `LayoutGraphPort` — this scope's router is built on the box-only `ConnectorRouter`/`Connection` and
-   has no port concept — throws `NotSupportedException` instead of being routed or silently dropped;
-   full boundary-crossing port support (anchoring, routing) is a separate, not-yet-designed Phase 2
-   effort (see ROADMAP.md).
+   `LayoutGraphPort` in a shape the boundary-port delegation mechanism does not cover — for example a
+   port owned by a plain (non-container) node with an edge straight into a different container — throws
+   `NotSupportedException` instead of being routed or silently dropped; that port's owner has no child
+   scope to delegate into, so this scope's box-only router (which has no port concept) cannot anchor it.
+   Broader boundary-crossing port support is a separate future effort (see ROADMAP.md).
 7. **Assembly.** The engine returns a `LayoutTree` with the leaf algorithm's canvas size for this level
    and the composed boxes followed by the leaf-routed lines, any leaf-emitted port anchors, and the
    cross-container lines.
+
+**Boundary (delegation) port reconciliation.** After the leaf pass places a scope, `LayoutScope`
+collects that scope's boundary ports with `HierarchyMergeRegionBuilder` (part of the layered-pipeline
+unit, in `Engine/Layered`): a container's port is a boundary port when an edge inside that container's
+own `Children` references it — the inward delegation edge is the structural signal, detected
+transitively and to unbounded depth by a recursive collect. *Only when at least one boundary port is
+detected* does the engine reconcile the leaf pass output with `BoundaryPortResolver`; a scope with no
+boundary port takes the identical existing code path, so flat and ordinary port-edge graphs are
+byte-for-byte unchanged. The resolver reconciles each boundary port to one shared physical anchor on
+the container boundary carrying both the external label (rendered outward) and the internal label
+(rendered inward), consolidates external fan-out onto that anchor, and adds one internal delegation
+connector per internal edge reaching into the container's placed interior. This is a *reconciliation*
+of the anchor the per-scope leaf pass already produced — enriched with the internal label and internal
+delegation connectors — rather than a single flattened cross-scope Sugiyama pass; the `AugNode`
+hierarchy-crossing descriptor and the recursive pipeline path order same-face crossings. A fully
+flattened joint cross-scope pass remains a documented future refinement (see ROADMAP.md); the current
+reconciliation satisfies every boundary-port acceptance criterion (one shared anchor carrying both
+labels, external and internal fan-out, and two independent boundary ports on one container).
 
 Every `CoreOptions` property (`Algorithm`, `Direction`, `EdgeRouting`, `HierarchyHandling`,
 `NodeSpacing`, `LayerSpacing`) cascades through this same generalized mechanism, built once on
@@ -111,13 +133,15 @@ Null `graph`, `options`, or (injecting constructor) `registry` throw `ArgumentNu
 that selects an algorithm identifier absent from the registry surfaces the registry's
 `KeyNotFoundException`. An edge whose endpoint resolves to no node at all under the current scope (an
 out-of-scope reference) is skipped rather than treated as an error. A port edge that genuinely crosses
-a container boundary — one endpoint's owning node nested inside a container relative to this scope
-while the other is not, or an edge otherwise promoted into this scope's router because it shares a box
-with such an edge — throws `NotSupportedException` with a message identifying named ports crossing a
-container boundary as not yet supported; this scope's router has no port concept and full
-boundary-crossing port support remains a separate Phase 2 effort. A same-scope port edge (neither
-endpoint nested relative to this scope) is not an error case: it is routed locally by the leaf
-algorithm exactly as it would be in a flat graph.
+a container boundary in a shape the boundary-port delegation mechanism does not cover — for example a
+port owned by a plain (non-container) node with an edge into a different container's nested child —
+throws `NotSupportedException` with a message identifying named ports crossing a container boundary as
+not supported; that port's owner has no child scope to delegate into, so this scope's router has no port
+concept for it, and broader boundary-crossing port support remains a separate future effort. A
+container's own boundary (delegation) port is not this error case: it is reconciled to one shared anchor
+by `BoundaryPortResolver` as described above. A same-scope port edge (neither endpoint nested relative
+to this scope) is likewise not an error case: it is routed locally by the leaf algorithm exactly as it
+would be in a flat graph.
 
 ### HierarchicalLayoutAlgorithm Dependencies
 
@@ -131,8 +155,10 @@ algorithm exactly as it would be in a flat graph.
   `CoreOptions.HierarchyHandling` for configuration, and `PropertyHolder.OverlayOnto` for building each
   scope's cascaded effective options snapshot.
 - **Layout units** — `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm` as bundled leaf
-  algorithms registered in the default registry, and `ConnectorRouter` for LCA cross-container edge
-  routing. See *ConnectorRouter Unit Design*.
+  algorithms registered in the default registry, `ConnectorRouter` for LCA cross-container edge
+  routing, and `HierarchyMergeRegionBuilder` / `BoundaryPortResolver` (layered-pipeline unit,
+  `Engine/Layered`) for boundary-port detection and reconciliation. See *ConnectorRouter Unit Design*
+  and *Layered Pipeline Unit Design*.
 
 No OTS runtime component or shared package is consumed.
 
@@ -169,6 +195,8 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-HierarchyHandling | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-CrossContainerEdge | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-BoundaryPortDelegation | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-CascadesOptions | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-ValidatesGraph | HierarchicalLayoutAlgorithm behavior described above |

@@ -121,19 +121,43 @@ sections:
           - Apply_SameScopePortEdge_WithUnrelatedContainerElsewhere_RoutesLikePortEdge
           - Apply_NestedContainerPortEdge_TranslatesPortIntoAncestorCoordinates
 
+      - id: Rendering-Layout-HierarchicalLayout-BoundaryPortDelegation
+        title: >-
+          HierarchicalLayoutAlgorithm shall resolve a container's boundary (delegation) port — a port
+          the container both exposes to an external approach edge and references from an edge inside
+          its own child scope — to exactly one shared LayoutPort anchor on the container boundary
+          carrying both the external and internal labels, with every external approach and every
+          internal delegation edge reaching that one anchor, including under external and internal
+          fan-out and for two independent boundary ports on one container.
+        justification: |
+          A boundary/delegation port is the bulkhead-connector pattern: one physical anchor names both
+          the connection reaching it from outside the container and the delegation relaying it into the
+          container's own children. Consolidating fan-out and reconciling both labels onto a single
+          anchor (rather than emitting a separate port per edge) keeps the rendered wiring unambiguous.
+          The resolution reconciles the anchor the per-scope leaf pass already produced with the
+          internal label and one delegation connector per internal edge, which satisfies the acceptance
+          criteria without a literal flattened cross-scope pass.
+        tests:
+          - Apply_BoundaryPortWithExternalAndInternalEdges_EmitsOneSharedAnchorCarryingBothLabels
+          - Apply_BoundaryPortFanOut_ResolvesToOneSharedAnchor
+          - Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors
+
       - id: Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows
         title: >-
           HierarchicalLayoutAlgorithm shall throw NotSupportedException, rather than silently dropping
-          the edge, when a named-port edge genuinely crosses a container boundary.
+          the edge, when a named-port edge genuinely crosses a container boundary in a shape the
+          boundary-port delegation mechanism does not cover — for example a port owned by a plain
+          (non-container) node with an edge straight into a different container's nested child.
         justification: |
-          This scope's cross-container router is built on the box-only ConnectorRouter/Connection and
-          has no port concept, so it cannot anchor or route a port endpoint. Failing loudly with a clear,
-          actionable message is safer than silently dropping the edge (the previous, previously-
-          undocumented defect behavior) or anchoring it incorrectly as a plain box connector. Full
-          boundary-crossing port support (anchoring, routing) remains a separate, not-yet-designed Phase
-          2 effort (see ROADMAP.md).
+          The boundary-port delegation mechanism covers a container's own boundary port delegating into
+          its children. A port whose owner has no child scope to delegate into is not a delegation port,
+          so it falls through to the box-only ConnectorRouter/Connection cross-container router, which
+          has no port concept and cannot anchor or route a port endpoint. Failing loudly with a clear,
+          actionable message is safer than silently dropping the edge or anchoring it incorrectly as a
+          plain box connector. Broader boundary-crossing port support remains a separate future effort
+          (see ROADMAP.md).
         tests:
-          - Apply_PortEdgeCrossingContainerBoundary_Throws
+          - Apply_PortOnNonContainerCrossingIntoDifferentContainer_Throws
 
       - id: Rendering-Layout-HierarchicalLayout-ValidatesGraph
         title: >-

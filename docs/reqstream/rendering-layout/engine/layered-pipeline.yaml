@@ -35,13 +35,68 @@ sections:
 
       - id: Rendering-Layout-LayeredPipeline-FlatHierarchyOnly
         title: >-
-          The layered pipeline shall support flat (single-graph) hierarchy handling and shall reject
-          recursive hierarchy handling with a clear error until it is implemented.
+          The layered pipeline shall assemble the flat (single-graph) stage sequence by default, and
+          shall additionally assemble a runnable recursive-hierarchy stage sequence, via
+          AddRecursiveStages, when recursive hierarchy handling is requested, rather than rejecting it
+          with an error.
         justification: |
-          Flat handling reproduces the current behavior exactly; failing fast on the unimplemented
-          recursive mode prevents silently producing an unsupported layout.
+          Flat handling reproduces the current behavior exactly. Recursive handling — formerly a
+          fail-fast NotSupportedException placeholder — now assembles a genuinely runnable pipeline
+          path that the boundary-port resolver drives to order same-face hierarchy crossings, so the
+          pipeline no longer needs to reject the recursive mode.
         tests:
-          - LayeredLayoutPipeline_Build_RecursiveHierarchy_ThrowsNotSupportedException
+          - LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing
+          - LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline
+
+      - id: Rendering-Layout-LayeredPipeline-HierarchyCrossingDescriptor
+        title: >-
+          An augmented node shall be able to carry an optional hierarchy-crossing descriptor
+          identifying the container face a boundary-port crossing occupies, defaulting to none so a
+          node with no crossing is constructed byte-identically to before the descriptor existed.
+        justification: |
+          Ordering several boundary-port crossings that share one container face requires a per-node
+          record of which face each crossing occupies. Making the descriptor optional and defaulting
+          it to none keeps every existing flat-graph augmented node — and therefore the flat fast
+          path — byte-identical.
+        tests:
+          - LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline
+
+      - id: Rendering-Layout-LayeredPipeline-BoundaryPortDetection
+        title: >-
+          The boundary-port merge-region builder shall structurally detect a container's boundary
+          ports — a port referenced by an edge inside that container's own child scope — across the
+          whole hierarchy, transitively and to unbounded depth, and shall not misclassify a
+          same-scope port or a leaf-node port as a boundary port.
+        justification: |
+          A boundary (delegation) port is recognized purely structurally: the inward delegation edge
+          referencing the port from within the container's children is the signal. Detecting this
+          across every level (via a recursive collect) makes boundary-port support general and
+          depth-unbounded, while excluding same-scope and leaf ports keeps flat and ordinary
+          port-edge graphs on their unchanged code path.
+        tests:
+          - Collect_NoPorts_ReturnsEmpty
+          - Collect_SameScopePort_NotDetectedAsBoundary
+          - Collect_DelegationPort_DetectedWithExternalAndInternalEdges
+          - Collect_TwoIndependentPorts_DetectsBoth
+          - CollectRecursive_ThreeLevelChain_ReportsEveryLevel
+          - Collect_PortOnLeafNode_NotDetected
+
+      - id: Rendering-Layout-LayeredPipeline-BoundaryPortResolution
+        title: >-
+          The boundary-port resolver shall reconcile each detected boundary port to one shared anchor
+          on its container's boundary carrying both labels, add one internal delegation connector per
+          internal edge into the container's placed interior, and order same-face crossings
+          deterministically.
+        justification: |
+          Rather than a literal single flattened cross-scope pass, the resolver enriches the external
+          anchor already produced by the per-scope leaf pass with the internal label and internal
+          delegation connectors, consolidating external and internal fan-out onto one physical
+          anchor. Ordering same-face crossings keeps multiple crossings on one face deterministic.
+        tests:
+          - Resolve_LeafAnchoredPort_EnrichesAnchorAndAddsInternalConnector
+          - OrderCrossings_MultipleCrossings_ReturnsPermutationOfIndices
+          - OrderCrossings_NoTargets_ReturnsInputOrder
+          - OrderCrossings_Empty_ReturnsEmpty
 
       - id: Rendering-Layout-LayeredPipeline-Directions
         title: >-

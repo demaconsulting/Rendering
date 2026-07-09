@@ -35,7 +35,8 @@ rejected. No stage is mocked — real `LayeredGraph` instances flow through ever
 A verification run passes when every named scenario below asserts without unexpected exception, and
 the referenced tests cover each `Rendering-Layout-LayeredPipeline-*` requirement. Any drift in
 per-stage geometry, in byte-identity with the legacy oracle on the random and named topologies,
-in supported hierarchy handling (recursive input must throw), in flow directions, in orthogonal
+in supported hierarchy handling (recursive input must assemble a runnable pipeline; boundary-port
+detection and reconciliation must behave as specified), in flow directions, in orthogonal
 waypoint shape, in back-edge approach behavior, in component packing determinism, in shared
 `LayeredGraph` state validation, or in `LayeredLayoutPipeline` input validation constitutes a
 failure.
@@ -51,9 +52,25 @@ failure.
   `Pipeline_MatchesLegacyOracle_OnEmptyGraph`, `Pipeline_MatchesLegacyOracle_OnDroneLikeGraph`,
   `Pipeline_MatchesLegacyOracle_OnWorkstationLikeGraph`, and
   `Pipeline_MatchesLegacyOracle_OnNamedTopologies`.
-- **Flat hierarchy only** (`Rendering-Layout-LayeredPipeline-FlatHierarchyOnly`):
-  `LayeredLayoutPipeline_Build_RecursiveHierarchy_ThrowsNotSupportedException` confirms recursive
-  handling fails fast.
+- **Flat and recursive hierarchy handling** (`Rendering-Layout-LayeredPipeline-FlatHierarchyOnly`):
+  `LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline` confirms recursive
+  hierarchy handling now assembles a runnable pipeline rather than throwing, alongside the flat default
+  sequence exercised by
+  `LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing`.
+- **Hierarchy-crossing descriptor** (`Rendering-Layout-LayeredPipeline-HierarchyCrossingDescriptor`):
+  `LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline` exercises the recursive
+  path that consumes the optional `AugNode` hierarchy-crossing descriptor.
+- **Boundary-port detection** (`Rendering-Layout-LayeredPipeline-BoundaryPortDetection`):
+  `Collect_NoPorts_ReturnsEmpty`, `Collect_SameScopePort_NotDetectedAsBoundary`,
+  `Collect_DelegationPort_DetectedWithExternalAndInternalEdges`, `Collect_TwoIndependentPorts_DetectsBoth`,
+  `CollectRecursive_ThreeLevelChain_ReportsEveryLevel`, and `Collect_PortOnLeafNode_NotDetected` confirm
+  `HierarchyMergeRegionBuilder` detects a container's boundary ports transitively and to unbounded depth
+  while excluding same-scope and leaf-node ports.
+- **Boundary-port resolution** (`Rendering-Layout-LayeredPipeline-BoundaryPortResolution`):
+  `Resolve_LeafAnchoredPort_EnrichesAnchorAndAddsInternalConnector` confirms `BoundaryPortResolver`
+  enriches the leaf-pass anchor with the internal label and adds the internal delegation connector, and
+  `OrderCrossings_MultipleCrossings_ReturnsPermutationOfIndices`, `OrderCrossings_NoTargets_ReturnsInputOrder`,
+  and `OrderCrossings_Empty_ReturnsEmpty` confirm deterministic same-face crossing ordering.
 - **Directions** (`Rendering-Layout-LayeredPipeline-Directions`):
   `AxisTransform_Apply_RightDirection_LeavesCoordinatesUnchanged`,
   `AxisTransform_Apply_Right_PlacesTargetEastWithCorrectFaces`,
@@ -152,7 +169,18 @@ failure.
   Pipeline_MatchesLegacyOracle_OnDroneLikeGraph, Pipeline_MatchesLegacyOracle_OnWorkstationLikeGraph,
   Pipeline_MatchesLegacyOracle_OnNamedTopologies
 - **`Rendering-Layout-LayeredPipeline-FlatHierarchyOnly`**:
-  LayeredLayoutPipeline_Build_RecursiveHierarchy_ThrowsNotSupportedException
+  LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing,
+  LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline
+- **`Rendering-Layout-LayeredPipeline-HierarchyCrossingDescriptor`**:
+  LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline
+- **`Rendering-Layout-LayeredPipeline-BoundaryPortDetection`**:
+  Collect_NoPorts_ReturnsEmpty, Collect_SameScopePort_NotDetectedAsBoundary,
+  Collect_DelegationPort_DetectedWithExternalAndInternalEdges, Collect_TwoIndependentPorts_DetectsBoth,
+  CollectRecursive_ThreeLevelChain_ReportsEveryLevel, Collect_PortOnLeafNode_NotDetected
+- **`Rendering-Layout-LayeredPipeline-BoundaryPortResolution`**:
+  Resolve_LeafAnchoredPort_EnrichesAnchorAndAddsInternalConnector,
+  OrderCrossings_MultipleCrossings_ReturnsPermutationOfIndices, OrderCrossings_NoTargets_ReturnsInputOrder,
+  OrderCrossings_Empty_ReturnsEmpty
 - **`Rendering-Layout-LayeredPipeline-Directions`**:
   AxisTransform_Apply_RightDirection_LeavesCoordinatesUnchanged,
   AxisTransform_Apply_Right_PlacesTargetEastWithCorrectFaces,

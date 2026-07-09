@@ -32,7 +32,8 @@ the referenced tests cover each `Rendering-Layout-HierarchicalLayout-*` requirem
 the stable identifier (`"hierarchical"`), in the flat-graph byte-equivalence guarantee, in
 container sizing (padding, title band), in per-scope algorithm resolution, in cross-container
 LCA edge routing, in same-scope named-port edge routing (or its ancestor-coordinate translation), in
-the boundary-crossing port `NotSupportedException` behavior, or in the argument-null validation
+the boundary (delegation) port reconciliation behavior, in the narrowed boundary-crossing port
+`NotSupportedException` behavior, or in the argument-null validation
 behavior constitutes a failure. Mutation of input node sizes also constitutes a failure.
 
 ### Test Scenarios
@@ -90,11 +91,21 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   `Apply_NestedContainerPortEdge_TranslatesPortIntoAncestorCoordinates` confirms a `LayoutPort` emitted
   by a nested container's own leaf pass is correctly translated into the ancestor's absolute
   coordinates when composed, landing within the composed container box's bounds.
+- **Boundary port delegation** (`Rendering-Layout-HierarchicalLayout-BoundaryPortDelegation`):
+  `Apply_BoundaryPortWithExternalAndInternalEdges_EmitsOneSharedAnchorCarryingBothLabels` confirms a
+  container's boundary port resolves to exactly one `LayoutPort` anchor carrying both the external and
+  internal labels on the container boundary, with both the external approach edge and the internal
+  delegation connector reaching that one anchor.
+  `Apply_BoundaryPortFanOut_ResolvesToOneSharedAnchor` confirms external and internal fan-out (two
+  approach edges and two delegation edges) still consolidate onto one shared anchor, and
+  `Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors` confirms two independent boundary
+  ports on one container each resolve to their own shared anchor.
 - **Boundary port edge throws** (`Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows`):
-  `Apply_PortEdgeCrossingContainerBoundary_Throws` confirms an edge from a root-level named port
-  directly to a node nested inside a separate container — a genuine boundary-crossing port edge —
-  throws `NotSupportedException` with a message identifying named ports crossing a container boundary
-  as not yet supported, rather than the edge being silently dropped.
+  `Apply_PortOnNonContainerCrossingIntoDifferentContainer_Throws` confirms a port owned by a plain
+  (non-container) node with an edge straight into a different container's nested child — a
+  boundary-crossing port edge the delegation mechanism does not cover — throws `NotSupportedException`
+  with a message identifying named ports crossing a container boundary as not supported, rather than the
+  edge being silently dropped.
 - **Validation** (`Rendering-Layout-HierarchicalLayout-ValidatesGraph`,
   `Rendering-Layout-HierarchicalLayout-ValidatesOptions`,
   `Rendering-Layout-HierarchicalLayout-ValidatesRegistry`): `Apply_NullGraph_Throws`,
@@ -125,8 +136,12 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
 - **`Rendering-Layout-HierarchicalLayout-SameScopePortEdges`**:
   Apply_SameScopePortEdge_WithUnrelatedContainerElsewhere_RoutesLikePortEdge,
   Apply_NestedContainerPortEdge_TranslatesPortIntoAncestorCoordinates
+- **`Rendering-Layout-HierarchicalLayout-BoundaryPortDelegation`**:
+  Apply_BoundaryPortWithExternalAndInternalEdges_EmitsOneSharedAnchorCarryingBothLabels,
+  Apply_BoundaryPortFanOut_ResolvesToOneSharedAnchor,
+  Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors
 - **`Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows`**:
-  Apply_PortEdgeCrossingContainerBoundary_Throws
+  Apply_PortOnNonContainerCrossingIntoDifferentContainer_Throws
 - **`Rendering-Layout-HierarchicalLayout-ValidatesGraph`**:
   Apply_NullGraph_Throws
 - **`Rendering-Layout-HierarchicalLayout-ValidatesOptions`**:
