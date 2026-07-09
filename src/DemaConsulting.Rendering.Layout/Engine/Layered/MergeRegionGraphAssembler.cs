@@ -110,15 +110,65 @@ internal readonly record struct LevelCrossing(
     HierarchyCrossingFace Face);
 
 /// <summary>
+/// The semantic role of one <see cref="LayerEdge"/> built into a level's assembled graph, so the
+/// decomposition step can project each routed polyline back into the correct kind of per-scope
+/// connector without re-deriving the crossing wiring from raw node indices.
+/// </summary>
+internal enum LevelEdgeKind
+{
+    /// <summary>An ordinary interior edge between two direct-member nodes of the level.</summary>
+    Ordinary,
+
+    /// <summary>An external approach edge feeding a boundary port's external-face crossing dummy.</summary>
+    ExternalApproach,
+
+    /// <summary>
+    /// The synthetic dummy-to-container edge leading a boundary port's external-face crossing into its
+    /// container box; carries no visible connector but its routed polyline lands on the container face,
+    /// establishing the boundary port's single shared anchor.
+    /// </summary>
+    ContainerLink,
+
+    /// <summary>An internal delegation edge from a boundary port's internal-face crossing into an interior target.</summary>
+    InternalDelegation,
+}
+
+/// <summary>
+/// The semantic role of one built <see cref="LayerEdge"/>, index-aligned with a level graph's input
+/// <see cref="LayeredGraph.Edges"/> list, so the decomposition step can map each routed polyline
+/// (recovered through <see cref="LayeredGraph.AcyclicOriginalIndex"/>) to the connector it should
+/// produce and style it from its originating <see cref="LayoutGraphEdge"/>.
+/// </summary>
+/// <param name="Kind">Which kind of connector this edge represents.</param>
+/// <param name="Edge">
+/// The originating input <see cref="LayoutGraphEdge"/> the connector is styled from, or
+/// <see langword="null"/> for a synthetic <see cref="LevelEdgeKind.ContainerLink"/>.
+/// </param>
+/// <param name="Boundary">
+/// The boundary port this edge relates to for a crossing edge (external approach, container link, or
+/// internal delegation), or <see langword="null"/> for an <see cref="LevelEdgeKind.Ordinary"/> edge.
+/// </param>
+internal readonly record struct LevelEdgeRole(
+    LevelEdgeKind Kind,
+    LayoutGraphEdge? Edge,
+    BoundaryPort? Boundary);
+
+/// <summary>
 /// One nesting level's assembled <see cref="LayeredGraph"/> paired with the hierarchy-crossing dummies
 /// seeded into it, so the recursive layered pipeline can both tag those dummies and recover each
 /// crossing's placed coordinate and originating <c>(BoundaryPort, Face)</c> after placement.
 /// </summary>
 /// <param name="Graph">The per-level layered graph built by <see cref="MergeRegionGraphAssembler.BuildLevelGraph"/>.</param>
 /// <param name="Crossings">The hierarchy-crossing dummies seeded into <paramref name="Graph"/>, in creation order.</param>
+/// <param name="EdgeRoles">
+/// The semantic role of each built edge, index-aligned with <see cref="LayeredGraph.Edges"/> of
+/// <paramref name="Graph"/>, so the decomposition step can project routed polylines back into the
+/// correct per-scope connectors.
+/// </param>
 internal sealed record LevelLayeredGraph(
     LayeredGraph Graph,
-    IReadOnlyList<LevelCrossing> Crossings);
+    IReadOnlyList<LevelCrossing> Crossings,
+    IReadOnlyList<LevelEdgeRole> EdgeRoles);
 
 /// <summary>
 /// Assembles the combined, hierarchy-aware node/edge model for one merge region from the boundary ports
@@ -227,9 +277,8 @@ internal static class MergeRegionGraphAssembler
     /// </summary>
     /// <remarks>
     ///     Package-private so the recursive <c>CrossingMinimizer</c>/<c>LayerAssigner</c> entry points
-    ///     (later stages) can rebuild each nested level's graph on demand. The crossing dummy wiring is
-    ///     the input-graph precedent set by <see cref="BoundaryPortResolver.OrderCrossings"/>: a boundary
-    ///     port becomes a zero-size dummy that the pipeline lays out like any other node. The
+    ///     (later stages) can rebuild each nested level's graph on demand. Each boundary-crossing edge
+    ///     is represented by a zero-size dummy node that the pipeline lays out like any other node. The
     ///     <see cref="HierarchyCrossing"/> descriptor itself lives on <see cref="AugNode"/> and is
     ///     populated by the pipeline's augmentation stages, so it is not carried on the input
     ///     <see cref="LayerNode"/> here.
@@ -260,6 +309,7 @@ internal static class MergeRegionGraphAssembler
         }
 
         var edges = new List<LayerEdge>();
+        var edgeRoles = new List<LevelEdgeRole>();
 
         // Ordinary interior edges connect two direct-member nodes of this level.
         foreach (var edge in level.Edges)
@@ -269,6 +319,7 @@ internal static class MergeRegionGraphAssembler
             if (source >= 0 && target >= 0)
             {
                 edges.Add(new LayerEdge(source, target));
+                edgeRoles.Add(new LevelEdgeRole(LevelEdgeKind.Ordinary, edge, Boundary: null));
             }
         }
 
@@ -278,17 +329,17 @@ internal static class MergeRegionGraphAssembler
         // dummy (its internal face) feeding the interior delegation targets it reaches.
         foreach (var incoming in level.IncomingBoundaries)
         {
-            AddIncomingCrossing(level, incoming, nodes, edges, crossings);
+            AddIncomingCrossing(level, incoming, nodes, edges, edgeRoles, crossings);
         }
 
         // The outgoing crossings: each boundary-port container's external approach edges feed a zero-size
         // dummy (its external face) that then leads into the container's own box.
         foreach (var boundary in level.BoundaryPorts)
         {
-            AddOutgoingCrossing(level, boundary, nodes, edges, crossings);
+            AddOutgoingCrossing(level, boundary, nodes, edges, edgeRoles, crossings);
         }
 
-        return new LevelLayeredGraph(new LayeredGraph(nodes, edges, direction), crossings);
+        return new LevelLayeredGraph(new LayeredGraph(nodes, edges, direction), crossings, edgeRoles);
     }
 
     /// <summary>
@@ -387,12 +438,14 @@ internal static class MergeRegionGraphAssembler
     /// <param name="incoming">The parent boundary port delegating into the level.</param>
     /// <param name="nodes">The working layer-node list, appended to in place.</param>
     /// <param name="edges">The working layer-edge list, appended to in place.</param>
+    /// <param name="edgeRoles">The working edge-role list, appended to in place index-aligned with <paramref name="edges"/>.</param>
     /// <param name="crossings">The working crossing-metadata list, appended to in place.</param>
     private static void AddIncomingCrossing(
         MergeRegionLevel level,
         BoundaryPort incoming,
         List<LayerNode> nodes,
         List<LayerEdge> edges,
+        List<LevelEdgeRole> edgeRoles,
         List<LevelCrossing> crossings)
     {
         var dummyIndex = nodes.Count;
@@ -414,6 +467,7 @@ internal static class MergeRegionGraphAssembler
             }
 
             edges.Add(new LayerEdge(dummyIndex, target));
+            edgeRoles.Add(new LevelEdgeRole(LevelEdgeKind.InternalDelegation, edge, incoming));
         }
     }
 
@@ -425,12 +479,14 @@ internal static class MergeRegionGraphAssembler
     /// <param name="boundary">The boundary port whose external approach is being wired.</param>
     /// <param name="nodes">The working layer-node list, appended to in place.</param>
     /// <param name="edges">The working layer-edge list, appended to in place.</param>
+    /// <param name="edgeRoles">The working edge-role list, appended to in place index-aligned with <paramref name="edges"/>.</param>
     /// <param name="crossings">The working crossing-metadata list, appended to in place.</param>
     private static void AddOutgoingCrossing(
         MergeRegionLevel level,
         BoundaryPort boundary,
         List<LayerNode> nodes,
         List<LayerEdge> edges,
+        List<LevelEdgeRole> edgeRoles,
         List<LevelCrossing> crossings)
     {
         if (!level.NodeIndex.TryGetValue(boundary.Container, out var containerIndex))
@@ -455,11 +511,13 @@ internal static class MergeRegionGraphAssembler
             {
                 nodes.Add(new LayerNode(0.0, 0.0, RealWidth: 0.0, RealHeight: 0.0));
                 edges.Add(new LayerEdge(dummyIndex, containerIndex));
+                edgeRoles.Add(new LevelEdgeRole(LevelEdgeKind.ContainerLink, Edge: null, boundary));
                 crossings.Add(new LevelCrossing(dummyIndex, boundary, HierarchyCrossingFace.External));
                 wired = true;
             }
 
             edges.Add(new LayerEdge(source, dummyIndex));
+            edgeRoles.Add(new LevelEdgeRole(LevelEdgeKind.ExternalApproach, edge, boundary));
         }
     }
 

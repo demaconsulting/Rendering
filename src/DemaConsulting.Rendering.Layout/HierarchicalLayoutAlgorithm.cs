@@ -113,7 +113,21 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     /// its children. Sizing each container to its children plus this padding keeps nested content from
     /// touching the container edge.
     /// </summary>
-    private const double ContainerPadding = 12.0;
+    internal const double ContainerPadding = 12.0;
+
+    /// <summary>
+    /// Maximum number of cascading-sizing re-runs the combined pass performs before accepting the
+    /// current sizes. Growth only ever propagates outward through the finite nesting chain, so a stable
+    /// fixpoint is reached in at most chain-depth iterations; this cap is a safety bound well above any
+    /// realistic nesting depth.
+    /// </summary>
+    private const int MaxSizingIterations = 32;
+
+    /// <summary>
+    /// Slack, in logical pixels, a container's placed interior may exceed its current effective size by
+    /// before the cascading-sizing pass grows it, so sub-pixel rounding never triggers a spurious re-run.
+    /// </summary>
+    private const double SizingTolerance = 0.5;
 
     /// <summary>
     /// Default height, in logical pixels, of the title band reserved at the top of a container that
@@ -142,7 +156,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     /// </summary>
     /// <param name="node">The container node whose reserved content offset is resolved.</param>
     /// <returns>The total reserved band height in logical pixels.</returns>
-    private static double ResolveContentOffsetHeight(LayoutGraphNode node)
+    internal static double ResolveContentOffsetHeight(LayoutGraphNode node)
     {
         var titleHeight = ResolveTitleHeight(node);
         if (node.Shape != BoxShape.Folder)
@@ -285,41 +299,127 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
         var (composed, indexOf) = ComposeBoxes(graph, placedBoxes, subLayouts);
 
-        var crossLines = RouteCrossContainerEdges(routedEdges, composed, indexOf, descendantToDirect, effective);
-
         // Resolve any boundary (delegation) ports of this scope's direct-member containers: an edge
         // referencing such a port crosses the container boundary and cannot be routed by an ordinary
-        // per-scope leaf pass. When at least one is present, the boundary-port resolver reconciles the
-        // leaf pass's external anchor with the container's own placed interior into a single shared
-        // anchor carrying both labels, and wires each internal delegation edge to it. Gating on a
-        // non-empty result keeps every boundary-port-free scope on its existing, byte-identical path.
+        // per-scope leaf pass. Gating on a non-empty discovery keeps every boundary-port-free scope on
+        // its existing, byte-identical path.
         var boundaryPorts = HierarchyMergeRegionBuilder.Collect(graph);
-        IReadOnlyList<LayoutPort> resolvedPorts = placedPorts;
-        IReadOnlyList<LayoutLine> resolvedLines = placedLines;
-        if (boundaryPorts.Count > 0)
+
+        if (boundaryPorts.Count == 0)
         {
-            var resolution = BoundaryPortResolver.Resolve(
-                graph,
-                ToEngineDirection(effective.Get(CoreOptions.Direction)),
-                boundaryPorts,
-                composed,
-                indexOf,
-                placedPorts,
-                placedLines);
-            resolvedPorts = resolution.Ports;
-            resolvedLines = resolution.Lines;
+            // Hard invariant: a hierarchical scope with containers but zero boundary ports keeps its
+            // existing leaf-pass + cross-container-router output, byte-for-byte unchanged.
+            var leafCrossLines = RouteCrossContainerEdges(routedEdges, composed, indexOf, descendantToDirect, effective);
+            var leafNodes = new List<LayoutNode>(composed.Length + placedLines.Count + placedPorts.Count + leafCrossLines.Count);
+            leafNodes.AddRange(composed);
+            leafNodes.AddRange(placedLines);
+            leafNodes.AddRange(placedPorts);
+            leafNodes.AddRange(leafCrossLines);
+            return new LayoutTree(placed.Width, placed.Height, leafNodes);
         }
 
-        // Assemble: composed boxes, then the leaf algorithm's routed lines and any LayoutPort it
-        // emitted for a leaf-routed port edge (both possibly reconciled by the boundary-port resolver),
-        // then the cross-container lines. The canvas dimensions are the leaf algorithm's for this
-        // (sized) level.
-        var nodes = new List<LayoutNode>(composed.Length + resolvedLines.Count + resolvedPorts.Count + crossLines.Count);
-        nodes.AddRange(composed);
-        nodes.AddRange(resolvedLines);
-        nodes.AddRange(resolvedPorts);
+        // Single combined pass (ELK-style recursive hierarchy handling): assemble the hierarchy-aware
+        // graph spanning every nesting level, lay it all out in one coordinated placement (growing each
+        // container to fit its placed interior and cascading that growth outward), then project the
+        // placed result back into per-scope geometry. The boxes the leaf pass placed above are reused
+        // only as styling/interior templates; every placed coordinate and every connector polyline comes
+        // from the combined pass, so a fan-in of boundary approaches routes through the corridor router's
+        // own orthogonal channels rather than being patched onto a shared anchor.
+        var engineDirection = ToEngineDirection(effective.Get(CoreOptions.Direction));
+        var region = MergeRegionGraphAssembler.Assemble(graph, boundaryPorts, effectiveSize);
+        var placement = RunRecursiveWithCascadingSizing(region, effectiveSize, engineDirection);
+        var decomposed = MergeRegionDecomposer.Decompose(placement, engineDirection, composed);
+
+        var crossLines = RouteCrossContainerEdges(routedEdges, decomposed.Boxes, decomposed.IndexOf, descendantToDirect, effective);
+
+        var nodes = new List<LayoutNode>(
+            decomposed.Boxes.Length + decomposed.Lines.Count + decomposed.Ports.Count + crossLines.Count);
+        nodes.AddRange(decomposed.Boxes);
+        nodes.AddRange(decomposed.Lines);
+        nodes.AddRange(decomposed.Ports);
         nodes.AddRange(crossLines);
-        return new LayoutTree(placed.Width, placed.Height, nodes);
+        return new LayoutTree(decomposed.Width, decomposed.Height, nodes);
+    }
+
+    /// <summary>
+    /// Runs the recursive combined pass over <paramref name="region"/>, then cascades container sizing:
+    /// after each placement, any container whose placed interior needs more room than its current
+    /// effective size is grown, and — because a grown container enlarges the interior of every level that
+    /// encloses it — the pass is re-run until every container's size is stable. The common case where the
+    /// first placement already fits every container skips the re-run entirely, mirroring
+    /// <see cref="LayeredLayoutAlgorithm"/>'s Fix-5 two-pass growth detection generalized to cascade
+    /// across the whole nesting chain.
+    /// </summary>
+    /// <param name="region">The assembled merge region to place; its levels share <paramref name="effectiveSize"/>.</param>
+    /// <param name="effectiveSize">
+    /// The mutable effective-size lookup threaded through every level of <paramref name="region"/>;
+    /// grown in place as inner content demands more room so the next re-run reserves the larger box.
+    /// </param>
+    /// <param name="direction">The region's flow direction.</param>
+    /// <returns>The fully-placed, size-stable recursive layout result.</returns>
+    private static RecursiveLayoutResult RunRecursiveWithCascadingSizing(
+        AssembledMergeRegion region,
+        Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize,
+        LayoutDirection direction)
+    {
+        var pipeline = LayeredLayoutPipeline.Builder()
+            .Direction(direction)
+            .Hierarchy(Engine.Layered.HierarchyHandling.Recursive)
+            .AddRecursiveStages()
+            .Build();
+
+        // Every (container, its placed child level) pair whose interior determines the container's size.
+        var sizingPairs = new List<(LayoutGraphNode Container, MergeRegionLevel Child)>();
+        CollectSizingPairs(region.Root, sizingPairs);
+
+        var result = pipeline.RunRecursive(region);
+        for (var iteration = 0; iteration < MaxSizingIterations; iteration++)
+        {
+            var grew = false;
+            foreach (var (container, child) in sizingPairs)
+            {
+                var (footprintWidth, footprintHeight) = MergeRegionDecomposer.LevelFootprint(
+                    result.Levels[child].Graph, direction);
+                var titleHeight = ResolveContentOffsetHeight(container);
+                var requiredWidth = footprintWidth + (2 * ContainerPadding);
+                var requiredHeight = footprintHeight + (2 * ContainerPadding) + titleHeight;
+                var current = effectiveSize.TryGetValue(container, out var size) ? size : (Width: 0.0, Height: 0.0);
+                if (requiredWidth > current.Width + SizingTolerance || requiredHeight > current.Height + SizingTolerance)
+                {
+                    effectiveSize[container] = (
+                        Math.Max(current.Width, requiredWidth),
+                        Math.Max(current.Height, requiredHeight));
+                    grew = true;
+                }
+            }
+
+            if (!grew)
+            {
+                break;
+            }
+
+            result = pipeline.RunRecursive(region);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Collects every boundary-port container of <paramref name="level"/> and its descendants, paired
+    /// with the child level whose placed footprint sizes it, so cascading sizing can measure each in a
+    /// single sweep.
+    /// </summary>
+    /// <param name="level">The nesting level to walk.</param>
+    /// <param name="pairs">The accumulating (container, child level) list, mutated in place.</param>
+    private static void CollectSizingPairs(
+        MergeRegionLevel level,
+        List<(LayoutGraphNode Container, MergeRegionLevel Child)> pairs)
+    {
+        foreach (var (container, _, child) in level.Children)
+        {
+            pairs.Add((container, child));
+            CollectSizingPairs(child, pairs);
+        }
     }
 
     /// <summary>
@@ -804,7 +904,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     /// <param name="deltaX">Offset added to every X coordinate, in logical pixels.</param>
     /// <param name="deltaY">Offset added to every Y coordinate, in logical pixels.</param>
     /// <returns>A translated copy of <paramref name="node"/>, or the node unchanged for unknown subtypes.</returns>
-    private static LayoutNode Translate(LayoutNode node, double deltaX, double deltaY)
+    internal static LayoutNode Translate(LayoutNode node, double deltaX, double deltaY)
     {
         switch (node)
         {

@@ -1276,7 +1276,110 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
-    ///     Deterministically builds a flat (non-nested) layout graph for the given seed, with random
+    ///     End-to-end proof of an arbitrary-depth delegation chain: a sibling in the root scope reaches a
+    ///     boundary port on an outer container, which delegates through a boundary port on a middle
+    ///     container, which delegates through a boundary port on an inner container, which finally reaches
+    ///     a leaf three levels deep. The whole pipeline (scope walk, assembly, combined recursive
+    ///     placement, decomposition) must connect the outer edge through all three levels to the innermost
+    ///     leaf using strictly orthogonal segments only — no diagonal patched onto any anchor at any depth.
+    /// </summary>
+    [Fact]
+    public void HierarchicalLayoutAlgorithm_ThreeLevelDelegationChain_EndToEnd_ProducesConnectedOrthogonalPath()
+    {
+        // Arrange: source -> L1.p1 -> L2.p2 -> L3.p3 -> leaf, one boundary port per nesting level.
+        var graph = BuildDelegationChain(leafWidth: 120, leafHeight: 50);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: one anchor per level (three in total), each on its own container's boundary.
+        var ports = tree.Nodes.OfType<LayoutPort>().ToList();
+        Assert.Equal(3, ports.Count);
+
+        var l1 = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "L1");
+        var l2 = l1.Children.OfType<LayoutBox>().Single(box => box.Label == "L2");
+        var l3 = l2.Children.OfType<LayoutBox>().Single(box => box.Label == "L3");
+        var leaf = l3.Children.OfType<LayoutBox>().Single(box => box.Label == "Leaf");
+        var source = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "Source");
+
+        // Every connector, at every depth, is strictly orthogonal along its whole polyline.
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        foreach (var line in lines)
+        {
+            AssertPolylineIsStrictlyOrthogonal(line.Waypoints);
+        }
+
+        // The chain is connected end to end: some connector touches the root source, and some connector
+        // reaches into the innermost leaf three levels down.
+        Assert.Contains(lines, line => TouchesBox(line, source));
+        Assert.Contains(lines, line => TouchesBox(line, leaf));
+
+        // Each level's anchor sits on its own container's boundary — the physical hand-off between levels.
+        Assert.Contains(ports, port => OnBoxBoundary(port.CentreX, port.CentreY, l1));
+        Assert.Contains(ports, port => OnBoxBoundary(port.CentreX, port.CentreY, l2));
+        Assert.Contains(ports, port => OnBoxBoundary(port.CentreX, port.CentreY, l3));
+    }
+
+    /// <summary>
+    ///     Hard-invariant guard: a hierarchical graph that has containers but <em>zero</em> boundary
+    ///     ports must never take the new combined-pass path; its output must be byte-for-byte the leaf
+    ///     pass + cross-container routing it produced before this change. The expected layout is the
+    ///     leaf-composition oracle (containers sized bottom-up, cross-container edge routed by the
+    ///     existing router); forcing the combined path instead (breaking the <c>Collect == 0</c> gate)
+    ///     changes these coordinates and fails this assertion.
+    /// </summary>
+    [Fact]
+    public void HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange()
+    {
+        // Arrange: two containers, each with a child, joined by a genuine cross-container edge and NO
+        // boundary ports anywhere — the exact shape the Collect == 0 gate must keep on the leaf path.
+        var graph = BuildNoBoundaryPortHierarchy();
+        var options = LayoutOptions.ForAlgorithm("layered");
+
+        // Act
+        var actual = new HierarchicalLayoutAlgorithm().Apply(graph, options);
+
+        // Assert: the layout matches the captured leaf-path golden snapshot exactly (bit level).
+        Assert.Equal(NoBoundaryPortGolden, DumpTree(actual));
+    }
+
+    /// <summary>
+    ///     Cascading-sizing proof: when the innermost container of a three-level delegation chain holds a
+    ///     large leaf, that growth must cascade outward so every enclosing level grows to physically
+    ///     contain the level nested inside it. The innermost leaf keeps its intrinsic size, and each
+    ///     container box strictly encloses the box nested directly within it, with room for padding.
+    /// </summary>
+    [Fact]
+    public void HierarchicalLayoutAlgorithm_ThreeLevelChain_InnermostContainerGrows_GrowthCascadesThroughEveryEnclosingLevel()
+    {
+        // Arrange: an oversized innermost leaf forces the inner container to grow, which must cascade
+        // through the middle and outer containers.
+        const double leafWidth = 420;
+        const double leafHeight = 300;
+        var graph = BuildDelegationChain(leafWidth, leafHeight);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the innermost leaf keeps its intrinsic size.
+        var l1 = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "L1");
+        var l2 = l1.Children.OfType<LayoutBox>().Single(box => box.Label == "L2");
+        var l3 = l2.Children.OfType<LayoutBox>().Single(box => box.Label == "L3");
+        var leaf = l3.Children.OfType<LayoutBox>().Single(box => box.Label == "Leaf");
+
+        Assert.Equal(leafWidth, leaf.Width, precision: 3);
+        Assert.Equal(leafHeight, leaf.Height, precision: 3);
+
+        // Growth cascaded outward: each level strictly encloses the box nested directly inside it.
+        AssertStrictlyEncloses("L3 must contain Leaf", l3, leaf);
+        AssertStrictlyEncloses("L2 must contain L3", l2, l3);
+        AssertStrictlyEncloses("L1 must contain L2", l1, l2);
+
+        // Sanity: the oversized inner content actually forced the whole chain to be large.
+        Assert.True(l1.Width >= leafWidth, "Outermost container did not grow to accommodate the deep oversized leaf.");
+    }
+
+    /// <summary>Deterministically builds a flat (non-nested) layout graph for the given seed, with random
     ///     node sizes and arbitrary edges (including self-loops, parallel edges, and cycles).
     /// </summary>
     private static LayoutGraph BuildRandomFlatGraph(int seed)
@@ -1314,7 +1417,204 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
-    ///     Deep-compares two layout trees for exact (bit-level) equality of every geometric field,
+    ///     Builds a three-level delegation chain: a root <c>Source</c> reaches boundary port <c>p1</c> on
+    ///     container <c>L1</c>, which delegates to port <c>p2</c> on nested container <c>L2</c>, which
+    ///     delegates to port <c>p3</c> on nested container <c>L3</c>, which finally delegates to the
+    ///     leaf <c>Leaf</c> of the given intrinsic size.
+    /// </summary>
+    /// <param name="leafWidth">The innermost leaf's intrinsic width.</param>
+    /// <param name="leafHeight">The innermost leaf's intrinsic height.</param>
+    /// <returns>The assembled delegation-chain graph.</returns>
+    private static LayoutGraph BuildDelegationChain(double leafWidth, double leafHeight)
+    {
+        var graph = new LayoutGraph();
+
+        var source = graph.AddNode("Source", 120, 50);
+        source.Label = "Source";
+
+        var l1 = graph.AddNode("L1", 10, 10);
+        l1.Label = "L1";
+        var p1 = l1.Ports.AddPort("p1");
+        p1.ExternalLabel = "in1";
+        p1.InternalLabel = "out1";
+
+        var l2 = l1.Children.AddNode("L2", 10, 10);
+        l2.Label = "L2";
+        var p2 = l2.Ports.AddPort("p2");
+        p2.ExternalLabel = "in2";
+        p2.InternalLabel = "out2";
+
+        var l3 = l2.Children.AddNode("L3", 10, 10);
+        l3.Label = "L3";
+        var p3 = l3.Ports.AddPort("p3");
+        p3.ExternalLabel = "in3";
+        p3.InternalLabel = "out3";
+
+        var leaf = l3.Children.AddNode("Leaf", leafWidth, leafHeight);
+        leaf.Label = "Leaf";
+
+        graph.AddEdge("source-p1", source, p1);
+        l1.Children.AddEdge("p1-p2", p1, p2);
+        l2.Children.AddEdge("p2-p3", p2, p3);
+        l3.Children.AddEdge("p3-leaf", p3, leaf);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Builds a hierarchical graph with two containers, each holding one child, joined by a genuine
+    ///     cross-container edge and containing <em>no</em> boundary ports — the shape that must stay on
+    ///     the leaf pass under the <c>Collect == 0</c> gate.
+    /// </summary>
+    /// <returns>The assembled boundary-port-free hierarchy.</returns>
+    private static LayoutGraph BuildNoBoundaryPortHierarchy()
+    {
+        var graph = new LayoutGraph();
+
+        var left = graph.AddNode("Left", 10, 10);
+        left.Label = "Left";
+        var leftChild = left.Children.AddNode("LeftChild", 80, 40);
+        leftChild.Label = "LeftChild";
+
+        var right = graph.AddNode("Right", 10, 10);
+        right.Label = "Right";
+        var rightChild = right.Children.AddNode("RightChild", 80, 40);
+        rightChild.Label = "RightChild";
+
+        // A genuine cross-container edge between the two nested children (routed by the cross-container
+        // router, not a boundary port), plus an ordinary edge between the two container nodes so the
+        // scope has real layered structure that the combined pass would place differently.
+        graph.AddEdge("leftchild-rightchild", leftChild, rightChild);
+        graph.AddEdge("left-right", left, right);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Serializes a layout tree into a stable, human-readable string capturing every box rectangle
+    ///     (recursively) and every line's waypoints, for exact snapshot comparison.
+    /// </summary>
+    /// <param name="tree">The tree to serialize.</param>
+    /// <returns>The deterministic textual snapshot.</returns>
+    private static string DumpTree(LayoutTree tree)
+    {
+        var builder = new System.Text.StringBuilder();
+        builder.Append(System.Globalization.CultureInfo.InvariantCulture, $"W={tree.Width:R} H={tree.Height:R}\n");
+        foreach (var node in tree.Nodes)
+        {
+            DumpNode(builder, node, 0);
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>Appends a single node (and its children) to the snapshot builder.</summary>
+    /// <param name="builder">The accumulating snapshot builder.</param>
+    /// <param name="node">The node to append.</param>
+    /// <param name="depth">The current nesting depth, used for indentation.</param>
+    private static void DumpNode(System.Text.StringBuilder builder, LayoutNode node, int depth)
+    {
+        var indent = new string(' ', depth * 2);
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        switch (node)
+        {
+            case LayoutBox box:
+                builder.Append(culture, $"{indent}BOX {box.Label} X={box.X:R} Y={box.Y:R} W={box.Width:R} H={box.Height:R}\n");
+                foreach (var child in box.Children)
+                {
+                    DumpNode(builder, child, depth + 1);
+                }
+
+                break;
+
+            case LayoutLine line:
+                builder.Append(culture, $"{indent}LINE");
+                foreach (var wp in line.Waypoints)
+                {
+                    builder.Append(culture, $" ({wp.X:R},{wp.Y:R})");
+                }
+
+                builder.Append('\n');
+                break;
+
+            case LayoutPort port:
+                builder.Append(culture, $"{indent}PORT {port.ExternalLabel}/{port.InternalLabel} X={port.CentreX:R} Y={port.CentreY:R}\n");
+                break;
+
+            default:
+                builder.Append(culture, $"{indent}{node.GetType().Name}\n");
+                break;
+        }
+    }
+
+    /// <summary>Asserts every consecutive, non-degenerate waypoint pair of the polyline is axis-aligned.</summary>
+    /// <param name="waypoints">The connector polyline.</param>
+    private static void AssertPolylineIsStrictlyOrthogonal(IReadOnlyList<Point2D> waypoints)
+    {
+        const double tolerance = 1e-4;
+        for (var i = 1; i < waypoints.Count; i++)
+        {
+            var dx = Math.Abs(waypoints[i].X - waypoints[i - 1].X);
+            var dy = Math.Abs(waypoints[i].Y - waypoints[i - 1].Y);
+            if (dx < tolerance && dy < tolerance)
+            {
+                continue;
+            }
+
+            Assert.True(
+                (dy < tolerance) ^ (dx < tolerance),
+                $"Segment [{waypoints[i - 1].X},{waypoints[i - 1].Y}]->[{waypoints[i].X},{waypoints[i].Y}] is diagonal.");
+        }
+    }
+
+    /// <summary>Returns true when either endpoint of the line lies on the given box's boundary.</summary>
+    /// <param name="line">The connector line.</param>
+    /// <param name="box">The box to test against.</param>
+    /// <returns>True when an endpoint touches the box boundary.</returns>
+    private static bool TouchesBox(LayoutLine line, LayoutBox box)
+    {
+        if (line.Waypoints.Count == 0)
+        {
+            return false;
+        }
+
+        var start = line.Waypoints[0];
+        var end = line.Waypoints[^1];
+        return OnBoxBoundary(start.X, start.Y, box) || OnBoxBoundary(end.X, end.Y, box);
+    }
+
+    /// <summary>Asserts the outer box strictly encloses the inner box (with room to spare on every side).</summary>
+    /// <param name="context">A message prefix for assertion failures.</param>
+    /// <param name="outer">The enclosing box.</param>
+    /// <param name="inner">The box expected to be nested within.</param>
+    private static void AssertStrictlyEncloses(string context, LayoutBox outer, LayoutBox inner)
+    {
+        Assert.True(inner.X >= outer.X - 0.001, $"{context}: inner left is outside outer.");
+        Assert.True(inner.Y >= outer.Y - 0.001, $"{context}: inner top is outside outer.");
+        Assert.True(
+            inner.X + inner.Width <= outer.X + outer.Width + 0.001,
+            $"{context}: inner right is outside outer.");
+        Assert.True(
+            inner.Y + inner.Height <= outer.Y + outer.Height + 0.001,
+            $"{context}: inner bottom is outside outer.");
+        Assert.True(outer.Width > inner.Width, $"{context}: outer is not wider than inner (no room for padding).");
+        Assert.True(outer.Height > inner.Height, $"{context}: outer is not taller than inner (no room for padding).");
+    }
+
+    /// <summary>
+    ///     The captured leaf-path golden snapshot for <see cref="BuildNoBoundaryPortHierarchy"/>. Any
+    ///     change to the boundary-port-free layout path (including forcing the combined pass) alters this.
+    /// </summary>
+    private const string NoBoundaryPortGolden =
+        "W=184 H=326\n" +
+        "BOX Left X=20 Y=20 W=144 H=128\n" +
+        "  BOX LeftChild X=52 Y=76 W=80 H=40\n" +
+        "BOX Right X=20 Y=178 W=144 H=128\n" +
+        "  BOX RightChild X=52 Y=234 W=80 H=40\n" +
+        "LINE (32,148) (32,178)\n" +
+        "LINE (152,148) (152,178)\n";
+
+    /// <summary>Deep-compares two layout trees for exact (bit-level) equality of every geometric field,
     ///     node kind, box attribute, and line attribute. No numeric tolerance is allowed.
     /// </summary>
     private static void AssertTreesIdentical(string context, LayoutTree expected, LayoutTree actual)
