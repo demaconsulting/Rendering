@@ -186,6 +186,15 @@ clearance around the shared point even though neither segment has a genuine geom
 tie-break now skips creating a dependency for a pair whose target Y values coincide, so the topological
 slot numbering does not arbitrarily separate them.
 
+The same tie-break also recognizes the mirror-image symmetric fan-out case: two segments diverging from
+the same source Y (within `StraightTolerance`), such as one shared boundary anchor branching to two
+approaches. Without a matching `SourceY` guard, the tie-break would still force such a pair into a
+strict left/right slot order purely by insertion order, producing an asymmetric fork even though neither
+segment has a genuine geometric preference. The guard's condition now requires both the target Y values
+*and* the source Y values to differ by more than `StraightTolerance` before it creates the deterministic
+tie-break dependency, so a pair sharing a coincident anchor at either end — target (fan-in) or source
+(fan-out) — is left without a forced separation.
+
 #### Layered Pipeline Dependencies
 
 All pipeline types are internal and consume only the geometric value types of the Layout system

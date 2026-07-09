@@ -97,6 +97,10 @@ failure.
   `LayeredCorridorRouter.CreateDependency`'s crossing-count tie-break no longer forces two segments that
   converge on the same target Y into different routing slots purely by insertion order, so a symmetric
   fan-in receives identical first-bend offsets on both sides.
+  `OrthogonalRouter_Apply_MirrorSymmetricDivergingEdges_ProduceIdenticalFirstBendOffsets` confirms the
+  mirror-image fix: the same tie-break no longer forces two segments that diverge from the same source Y
+  into different routing slots purely by insertion order, so a symmetric fan-out receives identical
+  first-bend offsets on both sides.
 - **Directions** (`Rendering-Layout-LayeredPipeline-Directions`):
   `AxisTransform_Apply_RightDirection_LeavesCoordinatesUnchanged`,
   `AxisTransform_Apply_Right_PlacesTargetEastWithCorrectFaces`,

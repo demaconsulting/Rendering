@@ -79,6 +79,34 @@ public sealed class OrthogonalRouterTests
         Assert.Equal(graph.AugBendPoints[0][0].X, graph.AugBendPoints[1][0].X, precision: 9);
     }
 
+    /// <summary>
+    ///     Two mirror-symmetric diverging edges fanning out from one shared source (the boundary-port
+    ///     anchor scenario: <c>dispatch</c> branching to both <c>Driver</c> and <c>Logger</c>) must
+    ///     receive the same routing slot, so their first-bend offsets from the shared source are
+    ///     identical. Both sub-edges share the exact same <c>SourceY</c> (the same source node/port),
+    ///     so <see cref="LayeredCorridorRouter"/>'s crossing-count tie-break used to force them into
+    ///     different slots purely by insertion order, producing an asymmetric fork for whichever edge
+    ///     happened to be considered second. With the fix, diverging segments whose source Y values
+    ///     coincide are not forced apart, so both bends land at the same corridor X.
+    /// </summary>
+    [Fact]
+    public void OrthogonalRouter_Apply_MirrorSymmetricDivergingEdges_ProduceIdenticalFirstBendOffsets()
+    {
+        // Arrange / Act: a single zero-height layer-0 source (mirroring the real boundary-port anchor
+        // both branches actually diverge from) fanning out to two equal-size layer-1 targets - the
+        // exact "dispatch"/"Driver"/"Logger" shape - one above, one below the shared source's Y.
+        var graph = BuildRoutedGraph(
+            [new(0, 0), new(60, 40), new(60, 40)],
+            [new(0, 1), new(0, 2)]);
+
+        // Assert: both sub-edges bend (neither is a degenerate straight run - the two targets sit on
+        // opposite sides of the shared source by construction), and the bend X (routing slot) - the
+        // first-bend offset from the shared anchor - is identical for both.
+        Assert.Equal(2, graph.AugBendPoints[0].Count);
+        Assert.Equal(2, graph.AugBendPoints[1].Count);
+        Assert.Equal(graph.AugBendPoints[0][0].X, graph.AugBendPoints[1][0].X, precision: 9);
+    }
+
     /// <summary>Runs the stages up to and including orthogonal routing and returns the graph.</summary>
     /// <param name="nodes">Input nodes.</param>
     /// <param name="edges">Input edges.</param>
