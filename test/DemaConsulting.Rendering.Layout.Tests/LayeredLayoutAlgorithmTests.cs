@@ -711,7 +711,7 @@ public class LayeredLayoutAlgorithmTests
         // Assert: exactly one port is emitted, carrying the external label.
         var ports = tree.Nodes.OfType<LayoutPort>().ToList();
         var port1 = Assert.Single(ports);
-        Assert.Equal("output", port1.Label);
+        Assert.Equal("output", port1.ExternalLabel);
 
         // The port anchor lies exactly on the source box's boundary (its right face, since the
         // port is the edge's source feeding rightward toward the target).
@@ -847,8 +847,8 @@ public class LayeredLayoutAlgorithmTests
         var measuredRightWidth = PortLabelWidthEstimator.MeasureWidth(rightLabel, assumedFontSize);
 
         var ports = tree.Nodes.OfType<LayoutPort>().ToList();
-        var inLayoutPort = Assert.Single(ports, p => p.Label == leftLabel);
-        var outLayoutPort = Assert.Single(ports, p => p.Label == rightLabel);
+        var inLayoutPort = Assert.Single(ports, p => p.ExternalLabel == leftLabel);
+        var outLayoutPort = Assert.Single(ports, p => p.ExternalLabel == rightLabel);
         Assert.True(
             inLayoutPort.MaxLabelWidth >= measuredLeftWidth,
             $"Expected left MaxLabelWidth >= {measuredLeftWidth}, was {inLayoutPort.MaxLabelWidth}.");

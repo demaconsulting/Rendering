@@ -941,23 +941,52 @@ public sealed class SvgRenderer : IRenderer
             $"""  <rect x="{F(rx)}" y="{F(ry)}" width="{F(rs)}" height="{F(rs)}" fill="{theme.StrokeColor}" stroke="{theme.BackgroundColor}" stroke-width="{F(PortGlyphStrokeWidth * scale)}"/>""");
         sb.AppendLine();
 
-        // Optional label offset inward, toward the box interior, so it reads immediately next to
-        // the port glyph without overlapping the connector approaching from outside the box.
-        if (port.Label != null)
+        // Labels. InternalLabel (when present) always renders inward, toward the box interior, beside
+        // the port glyph. ExternalLabel renders inward too whenever there is no InternalLabel (a plain,
+        // non-boundary port — byte-identical to the single-label behavior every existing call site
+        // relies on), and only renders on the outward face when an InternalLabel is also present (a
+        // genuine boundary port), mirroring the inward offset across the port centre.
+        if (port.InternalLabel != null)
         {
-            var offset = NotationMetrics.PortHalfSize + theme.LabelPadding;
-            var (labelX, labelY, anchor) = port.Side switch
-            {
-                PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, TextAnchorMiddle),
-                PortSide.Bottom => (port.CentreX, port.CentreY - offset, TextAnchorMiddle),
-                PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, "start"),
-                _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, "end")
-            };
-
-            sb.Append(CultureInfo.InvariantCulture,
-                $"""  <text x="{F(labelX * scale)}" y="{F(labelY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle"{FitTextLength(port.Label, theme.FontSizeBody, port.MaxLabelWidth, scale, useAccurateEstimator: true)}>{EscapeXml(port.Label)}</text>""");
-            sb.AppendLine();
+            EmitPortLabel(sb, port, port.InternalLabel, port.Side, theme, scale);
         }
+
+        if (port.ExternalLabel != null)
+        {
+            var side = port.InternalLabel != null ? OppositeSide(port.Side) : port.Side;
+            EmitPortLabel(sb, port, port.ExternalLabel, side, theme, scale);
+        }
+    }
+
+    /// <summary>Returns the box edge opposite <paramref name="side"/>, used to place an outward label.</summary>
+    private static PortSide OppositeSide(PortSide side) => side switch
+    {
+        PortSide.Top => PortSide.Bottom,
+        PortSide.Bottom => PortSide.Top,
+        PortSide.Left => PortSide.Right,
+        _ => PortSide.Left,
+    };
+
+    /// <summary>
+    /// Emits one port <c>&lt;text&gt;</c> label offset from the port centre toward the interior of the
+    /// box on <paramref name="offsetSide"/> (which equals the port's own side for an inward label and the
+    /// opposite side for an outward one), using the same offset formula for both so an inward and an
+    /// outward label on one boundary port sit symmetrically about the port centre.
+    /// </summary>
+    private static void EmitPortLabel(StringBuilder sb, LayoutPort port, string text, PortSide offsetSide, Theme theme, double scale)
+    {
+        var offset = NotationMetrics.PortHalfSize + theme.LabelPadding;
+        var (labelX, labelY, anchor) = offsetSide switch
+        {
+            PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, TextAnchorMiddle),
+            PortSide.Bottom => (port.CentreX, port.CentreY - offset, TextAnchorMiddle),
+            PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, "start"),
+            _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, "end")
+        };
+
+        sb.Append(CultureInfo.InvariantCulture,
+            $"""  <text x="{F(labelX * scale)}" y="{F(labelY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle"{FitTextLength(text, theme.FontSizeBody, port.MaxLabelWidth, scale, useAccurateEstimator: true)}>{EscapeXml(text)}</text>""");
+        sb.AppendLine();
     }
 
     /// <summary>

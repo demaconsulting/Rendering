@@ -412,7 +412,7 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                     anchor.Y,
                     ResolveSide(anchor, result.Rects[emission.Source]),
                     emission.SourcePort.ExternalLabel,
-                    ResolveMaxLabelWidth(result.Rects[emission.Source])));
+                    MaxLabelWidth: ResolveMaxLabelWidth(result.Rects[emission.Source])));
             }
 
             if (emission.TargetPort != null)
@@ -423,7 +423,7 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                     anchor.Y,
                     ResolveSide(anchor, result.Rects[emission.Target]),
                     emission.TargetPort.ExternalLabel,
-                    ResolveMaxLabelWidth(result.Rects[emission.Target])));
+                    MaxLabelWidth: ResolveMaxLabelWidth(result.Rects[emission.Target])));
             }
         }
 

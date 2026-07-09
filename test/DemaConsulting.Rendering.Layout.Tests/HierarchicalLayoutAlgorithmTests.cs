@@ -618,7 +618,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         // one LayoutLine connects the two boxes — the connector is routed, not dropped, even though
         // the scope contains an (unrelated) container.
         var port1 = Assert.Single(tree.Nodes.OfType<LayoutPort>());
-        Assert.Equal("output", port1.Label);
+        Assert.Equal("output", port1.ExternalLabel);
         Assert.Single(tree.Nodes.OfType<LayoutLine>());
 
         // The port anchor lies exactly on the source box's boundary, matching how a flat (no
