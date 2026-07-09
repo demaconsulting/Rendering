@@ -167,11 +167,16 @@ labels are drawn in the final pass of `Render` so later wires cannot cover earli
 **`BuildLinePath(...)`**
 
 Builds the SVG path `d` string. When `cornerRadius` is zero, emits plain `M` / `L` commands. When
-positive, each interior waypoint is replaced with a shortened `L` command to the arc start point,
-followed by an `A` (elliptical arc) command whose sweep direction is determined from the cross product
-of the incoming and outgoing unit direction vectors. The radius is clamped to half the shorter
-adjacent segment to prevent overshoot. At the first and last bends the radius is additionally clamped
-so the rounded corner completes at least the marker's along-line length
+positive, each interior waypoint is first checked for collinearity: if the incoming (previous→current)
+and outgoing (current→next) direction vectors are parallel and same-sense (a normalized cross product
+within `DirectionTolerance` of zero and a positive dot product — not a reversal), the waypoint sits on
+a straight run rather than a genuine corner, so it is emitted as a plain `L` command and no arc is
+drawn there; rounding a non-corner waypoint would otherwise draw a spurious bump in an already-straight
+run. Any waypoint that fails this collinearity check is replaced with a shortened `L` command to the
+arc start point, followed by an `A` (elliptical arc) command whose sweep direction is determined from
+the cross product of the incoming and outgoing unit direction vectors. The radius is clamped to half
+the shorter adjacent segment to prevent overshoot. At the first and last bends the radius is
+additionally clamped so the rounded corner completes at least the marker's along-line length
 (`NotationMetrics.AlongLineLength` for the `SourceEnd` / `TargetEnd` styles) before the endpoint, so
 the curve never intrudes into the end-marker zone.
 

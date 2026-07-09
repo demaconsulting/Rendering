@@ -95,9 +95,11 @@ well-formed XML.
 
 Tests `SvgRenderer_Render_SingleLine_ProducesPathElement`,
 `SvgRenderer_Render_SingleLine_WithCornerRadius_ProducesArcInPath`,
+`SvgRenderer_Render_SingleLine_CollinearInteriorWaypoint_ProducesNoArcInPath`,
 `SvgRenderer_Render_SingleLine_Dashed_ProducesDashArray`, and
 `SvgRenderer_Render_LineWithMidpointLabel_ProducesTextElement` render connector lines and assert on
-`<path>`, an arc command, `stroke-dasharray`, and the connector label text.
+`<path>`, an arc command, the absence of an arc command at a collinear (non-corner) interior waypoint,
+`stroke-dasharray`, and the connector label text.
 
 The midpoint-label scenario asserts that a `<text>` element containing the label appears in the final
 SVG. The design places connector labels in a final pass using `ConnectorLabelPlacer`; this scenario
@@ -250,7 +252,8 @@ marker id appears somewhere in the document. This prevents a false pass if the m
   `SvgRenderer_Render_LabelWithXmlSpecialCharacters_ProducesWellFormedEscapedSvg`
 - **`Rendering-Svg-SvgRenderer-RenderLine`**: `SvgRenderer_Render_SingleLine_ProducesPathElement`
 - **`Rendering-Svg-SvgRenderer-RenderLineRoundedCorners`**:
-  `SvgRenderer_Render_SingleLine_WithCornerRadius_ProducesArcInPath`
+  `SvgRenderer_Render_SingleLine_WithCornerRadius_ProducesArcInPath`,
+  `SvgRenderer_Render_SingleLine_CollinearInteriorWaypoint_ProducesNoArcInPath`
 - **`Rendering-Svg-SvgRenderer-RenderLineDashed`**:
   `SvgRenderer_Render_SingleLine_Dashed_ProducesDashArray`
 - **`Rendering-Svg-SvgRenderer-RenderLineMidpointLabel`**:

@@ -806,6 +806,11 @@ public sealed class SvgRenderer : IRenderer
             return sb.ToString();
         }
 
+        // Shared tolerance for both the direction-collinearity check and the degenerate
+        // zero-length-segment check below - a single named constant avoids a second magic
+        // number drifting out of sync with the first.
+        const double DirectionTolerance = 0.001;
+
         // Arc-at-bends: replace each interior waypoint with a shortened L + arc A command
         for (var i = 1; i < waypoints.Count; i++)
         {
@@ -832,7 +837,26 @@ public sealed class SvgRenderer : IRenderer
             var outDy = next.Y - cur.Y;
             var outLen = Math.Sqrt(outDx * outDx + outDy * outDy);
 
-            if (inLen < 0.001 || outLen < 0.001)
+            // Collinearity check: if the incoming and outgoing directions are parallel and
+            // same-sense (normalized cross product ~0 and dot product positive, i.e. not a
+            // reversal), this waypoint sits on a straight run rather than a real corner. Skip
+            // the arc-rounding entirely so the line continues straight through it - rounding a
+            // waypoint that is not an actual turn would draw a spurious bump in the path. Both
+            // lengths are checked against DirectionTolerance first so this never divides by a
+            // near-zero length; genuinely degenerate segments fall through to the next check.
+            if (inLen >= DirectionTolerance && outLen >= DirectionTolerance)
+            {
+                var crossNorm = (inDx * outDy - inDy * outDx) / (inLen * outLen);
+                var dotNorm = (inDx * outDx + inDy * outDy) / (inLen * outLen);
+                if (Math.Abs(crossNorm) <= DirectionTolerance && dotNorm > 0)
+                {
+                    // Collinear waypoint: no corner to round, continue straight through it
+                    sb.Append(CultureInfo.InvariantCulture, $" L {F(cur.X * scale)} {F(cur.Y * scale)}");
+                    continue;
+                }
+            }
+
+            if (inLen < DirectionTolerance || outLen < DirectionTolerance)
             {
                 // Degenerate segment: fall back to a plain line command
                 sb.Append(CultureInfo.InvariantCulture, $" L {F(cur.X * scale)} {F(cur.Y * scale)}");

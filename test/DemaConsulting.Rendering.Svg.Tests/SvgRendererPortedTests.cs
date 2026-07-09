@@ -143,6 +143,37 @@ public sealed class SvgRendererPortedTests
     }
 
     /// <summary>
+    ///     Render a LayoutLine with 3 waypoints and a positive LineCornerRadius theme, where the
+    ///     interior waypoint is collinear with its neighbors (the incoming and outgoing directions are
+    ///     parallel and same-sense, not a real turn), produces SVG output containing NO arc command
+    ///     (" A ") in the path data, confirming that a collinear waypoint is skipped rather than rounded
+    ///     into a spurious bump.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_Render_SingleLine_CollinearInteriorWaypoint_ProducesNoArcInPath()
+    {
+        // Arrange: a line whose interior waypoint sits on the same straight run as its neighbors
+        var renderer = new SvgRenderer();
+        var line = new LayoutLine(
+            [new Point2D(10, 50), new Point2D(50, 50), new Point2D(90, 50)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.None,
+            LineStyle.Solid,
+            null);
+        var layout = new LayoutTree(200, 100, [line]);
+        var options = new RenderOptions(Themes.Light); // LineCornerRadius = 4.0
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert: no arc command is present in path data for the collinear waypoint
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        Assert.DoesNotContain(" A ", svgText, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     ///     Render a dashed LayoutLine produces SVG output containing the stroke-dasharray
     ///     attribute, confirming that dashed line style is mapped to SVG dash patterns.
     /// </summary>
