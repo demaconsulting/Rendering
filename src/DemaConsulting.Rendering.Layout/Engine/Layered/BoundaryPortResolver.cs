@@ -109,11 +109,14 @@ internal static class BoundaryPortResolver
     /// sorted by their placed cross-axis position.
     /// </summary>
     /// <remarks>
-    ///     This is the combined-pass core of the recursive hierarchy handling exposed for direct unit
-    ///     testing: each crossing is a zero-size hierarchy-crossing dummy <see cref="AugNode"/> that
-    ///     participates in the same layer-assignment, crossing-minimization, and Brandes-Köpf placement
-    ///     stages as an ordinary node, so the relative order the pipeline assigns the crossings is the
-    ///     order they should occupy along the shared boundary face.
+    ///     This is the combined-pass ordering primitive for the recursive hierarchy handling, exposed for
+    ///     direct unit testing: it builds a small flattened graph — one zero-size crossing dummy per
+    ///     crossing feeding the interior targets — and runs the recursive-mode pipeline so the relative
+    ///     order the pipeline assigns the crossings is the order they should occupy along the shared
+    ///     boundary face. It is reserved for the fully-joint pass and for ordering several crossings that
+    ///     share one face; the current production reconciliation aligns each boundary anchor by
+    ///     mean-of-targets (see <see cref="HierarchyHandling.Recursive"/>) rather than consuming this
+    ///     ordering, so today this method is covered by unit tests but does not yet govern placement.
     /// </remarks>
     /// <param name="crossings">The hierarchy crossings to order, one zero-size dummy each.</param>
     /// <param name="targetSizes">The interior target node sizes each crossing delegates to, in order.</param>
@@ -375,8 +378,11 @@ internal static class BoundaryPortResolver
         IReadOnlyList<Rect> targets,
         LayoutDirection direction)
     {
-        // Exercise the combined layered ordering so a synthesized anchor's along-face position is
-        // governed by the same pass that would order several crossings sharing this face.
+        // Exercise the combined layered ordering primitive over this face's single crossing so the
+        // reserved joint-pass path stays live and covered. Its result does not govern placement today:
+        // with one crossing there is nothing to reorder, and the anchor's along-face position is set by
+        // the mean-of-targets alignment below. Feeding OrderCrossings back for multi-crossing faces is
+        // the reserved refinement (see HierarchyHandling.Recursive).
         var crossings = new[] { new HierarchyCrossing(new LayoutGraphPort("crossing"), HierarchyCrossingFace.Internal) };
         var targetSizes = targets.Select(t => (t.Width, t.Height)).ToList();
         _ = OrderCrossings(crossings, targetSizes, direction);

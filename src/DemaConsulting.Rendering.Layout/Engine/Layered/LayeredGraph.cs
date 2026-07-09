@@ -30,11 +30,14 @@ internal enum HierarchyCrossingFace
 /// </summary>
 /// <remarks>
 ///     Generalizes <c>LongEdgeSplitter</c>'s zero-size intermediate-layer dummy from "spans layers
-///     within one scope" to "spans layers across nested scopes": a hierarchy-crossing dummy participates
-///     in the same layer-assignment, crossing-minimization, and placement pass as ordinary dummies, but
-///     additionally remembers the originating <see cref="Port"/> and which <see cref="Face"/> of the
-///     container boundary it represents, so the placed dummy coordinate can be reconciled with the
-///     owning container's own box placement into a single shared boundary anchor.
+///     within one scope" to "spans layers across nested scopes". In the fully-joint pass this mode is
+///     designed toward, a hierarchy-crossing dummy would participate in the same layer-assignment,
+///     crossing-minimization, and placement pass as ordinary dummies while additionally remembering the
+///     originating <see cref="Port"/> and which <see cref="Face"/> of the container boundary it stands
+///     in for. That descriptor is reserved scaffolding: the current recursive handling reaches the same
+///     general/transitive external result by reconciliation (see <see cref="HierarchyHandling.Recursive"/>)
+///     and does not yet populate hierarchy-crossing dummies into the augmented graph, so this type is
+///     currently exercised only by the ordering primitive's unit tests.
 /// </remarks>
 /// <param name="Port">The originating input-graph boundary port this dummy stands in for.</param>
 /// <param name="Face">Which logical face (external/internal) of the boundary crossing this dummy is.</param>
@@ -46,10 +49,11 @@ internal readonly record struct HierarchyCrossing(LayoutGraphPort Port, Hierarch
 /// <param name="Layer">Assigned Sugiyama layer index.</param>
 /// <param name="IsDummy">Whether this node is a zero-size long-edge dummy.</param>
 /// <param name="Crossing">
-/// When non-<see langword="null"/>, marks this node as a hierarchy-crossing dummy standing in for a
-/// boundary port (rather than an ordinary long-edge dummy), carrying the originating port and its face.
-/// <see langword="null"/> for every real node and every ordinary long-edge dummy, so the default
-/// construction and every existing caller stay byte-identical.
+/// Reserved scaffolding for the fully-joint flattened pass: when non-<see langword="null"/> it would
+/// mark this node as a hierarchy-crossing dummy standing in for a boundary port. The current
+/// reconciliation-based recursive handling never assigns it, so it is <see langword="null"/> for every
+/// real node and every long-edge dummy, keeping default construction and every existing caller
+/// byte-identical.
 /// </param>
 internal sealed record AugNode(
     double Width,

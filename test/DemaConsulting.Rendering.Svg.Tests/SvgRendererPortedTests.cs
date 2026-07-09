@@ -377,6 +377,79 @@ public sealed class SvgRendererPortedTests
     }
 
     /// <summary>
+    ///     Proves the boundary-port dual-label rule: when a port carries both an
+    ///     <see cref="LayoutPort.ExternalLabel"/> and an <see cref="LayoutPort.InternalLabel"/>, the
+    ///     internal label renders inward (toward the box interior) and the external label renders
+    ///     outward (away from the interior) on the opposite face, and both sit symmetrically about the
+    ///     single shared port anchor. Uses a left-side port so inward means larger x and outward means
+    ///     smaller x.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_RenderPort_BothLabels_InternalInwardExternalOutwardAboutSharedAnchor()
+    {
+        // Arrange: a left-side boundary port carrying both an external and an internal label.
+        var renderer = new SvgRenderer();
+        var port = new LayoutPort(100, 50, PortSide.Left, ExternalLabel: "ext", InternalLabel: "int");
+        var layout = new LayoutTree(200, 100, [port]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert: two <text> labels, one per side of the port centre, symmetric about it.
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var internalX = ExtractLabelX(svgText, "int");
+        var externalX = ExtractLabelX(svgText, "ext");
+
+        // Internal reads inward (toward the interior / larger x for a left-side port); external reads
+        // outward (away from the interior / smaller x).
+        Assert.True(internalX > port.CentreX, $"internal label x={internalX} should be inward of port x={port.CentreX}");
+        Assert.True(externalX < port.CentreX, $"external label x={externalX} should be outward of port x={port.CentreX}");
+
+        // Both labels are offset by the same magnitude about the shared anchor (mirror-formula).
+        var inwardOffset = internalX - port.CentreX;
+        var outwardOffset = port.CentreX - externalX;
+        Assert.Equal(inwardOffset, outwardOffset, precision: 6);
+    }
+
+    /// <summary>
+    ///     Proves that an <see cref="LayoutPort.ExternalLabel"/> alone (no internal label) still reads
+    ///     inward exactly as a legacy single-label port does, guaranteeing the dual-label machinery does
+    ///     not disturb the byte-identical behavior every existing plain-port call site relies on.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_RenderPort_ExternalLabelOnly_ReadsInwardLikeLegacy()
+    {
+        // Arrange: a left-side port carrying only an external label (a plain, non-boundary port).
+        var renderer = new SvgRenderer();
+        var port = new LayoutPort(100, 50, PortSide.Left, ExternalLabel: "solo");
+        var layout = new LayoutTree(200, 100, [port]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert: exactly one label, reading inward (larger x for a left-side port).
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var labelX = ExtractLabelX(svgText, "solo");
+        Assert.True(labelX > port.CentreX, $"external-only label x={labelX} should read inward of port x={port.CentreX}");
+    }
+
+    /// <summary>Extracts the x attribute of the &lt;text&gt; element whose content equals <paramref name="text"/>.</summary>
+    private static double ExtractLabelX(string svg, string text)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(
+            svg,
+            $"""<text x="([\-0-9.]+)"[^>]*>{System.Text.RegularExpressions.Regex.Escape(text)}</text>""");
+        Assert.True(match.Success, $"expected a <text> label with content '{text}'");
+        return double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
     ///     Proves that a box's non-zero <see cref="LayoutBox.ContentInsetLeft"/> pushes its
     ///     compartment row text further right than an otherwise-identical box with no content
     ///     insets, confirming the renderer reads the inset rather than a fixed label-padding-only

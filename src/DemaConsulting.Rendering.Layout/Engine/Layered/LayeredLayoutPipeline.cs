@@ -117,10 +117,13 @@ internal sealed class LayeredLayoutPipeline
         /// hierarchy-crossing dummy participates in exactly the same layer-assignment,
         /// crossing-minimization, and placement stages as an ordinary node or long-edge dummy — ELK's
         /// own compound-graph design. The Recursive-specific behavior is not a distinct stage but the
-        /// way the caller seeds the graph with zero-size hierarchy-crossing dummies (carrying a
-        /// <see cref="HierarchyCrossing"/> descriptor) and reads their placed positions back out; this
-        /// method exists so a Recursive pipeline is assembled through its own explicit entry point,
-        /// keeping the <see cref="AddDefaultStages"/> Flat path untouched.
+        /// way the caller seeds the graph with zero-size crossing dummies and reads their placed
+        /// positions back out (see <c>BoundaryPortResolver.OrderCrossings</c>, the ordering primitive
+        /// that drives this pipeline). This method exists so a Recursive pipeline is assembled through
+        /// its own explicit entry point, keeping the <see cref="AddDefaultStages"/> Flat path untouched.
+        /// Today the primitive is unit-tested and reserved for the fully-joint pass; production placement
+        /// is reconciliation-based (see <see cref="HierarchyHandling.Recursive"/>), so the seeded dummies
+        /// do not yet carry a <see cref="HierarchyCrossing"/> descriptor into the augmented graph.
         /// </summary>
         /// <returns>This builder, for chaining.</returns>
         public PipelineBuilder AddRecursiveStages()
