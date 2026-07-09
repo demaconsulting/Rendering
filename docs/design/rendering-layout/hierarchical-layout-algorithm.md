@@ -12,8 +12,10 @@ and composing the sub-layouts into one absolute `LayoutTree`. It does not place 
 selects a bundled *leaf* algorithm per scope and delegates the actual placement to it, then sizes each
 container and composes the results. It additionally resolves *boundary (delegation) ports* — a
 container port that both receives an external approach edge and is referenced by an edge inside the
-container's own child scope — reconciling each to one shared anchor on the container boundary carrying
-both an external and an internal label. It is additive: it changes no existing output and is honored only
+container's own child scope — laying the container together with its nested children in a single
+combined recursive layered pass so each such port resolves to one shared anchor on the container
+boundary carrying both an external and an internal label, with every converging edge routed
+orthogonally onto it. It is additive: it changes no existing output and is honored only
 when a caller selects it by name.
 
 ### HierarchicalLayoutAlgorithm Data Model
@@ -86,23 +88,37 @@ overrides win over the supplied options, exactly like every nested scope), and c
    and the composed boxes followed by the leaf-routed lines, any leaf-emitted port anchors, and the
    cross-container lines.
 
-**Boundary (delegation) port reconciliation.** After the leaf pass places a scope, `LayoutScope`
+**Boundary (delegation) port combined pass.** After the leaf pass places a scope, `LayoutScope`
 collects that scope's boundary ports with `HierarchyMergeRegionBuilder` (part of the layered-pipeline
 unit, in `Engine/Layered`): a container's port is a boundary port when an edge inside that container's
 own `Children` references it — the inward delegation edge is the structural signal, detected
 transitively and to unbounded depth by a recursive collect. *Only when at least one boundary port is
-detected* does the engine reconcile the leaf pass output with `BoundaryPortResolver`; a scope with no
-boundary port takes the identical existing code path, so flat and ordinary port-edge graphs are
-byte-for-byte unchanged. The resolver reconciles each boundary port to one shared physical anchor on
-the container boundary carrying both the external label (rendered outward) and the internal label
-(rendered inward), consolidates external fan-out onto that anchor, and adds one internal delegation
-connector per internal edge reaching into the container's placed interior. This is a *reconciliation*
-of the anchor the per-scope leaf pass already produced — enriched with the internal label and internal
-delegation connectors — rather than a single flattened cross-scope Sugiyama pass; the `AugNode`
-hierarchy-crossing descriptor and the recursive pipeline path order same-face crossings. A fully
-flattened joint cross-scope pass remains a documented future refinement (see ROADMAP.md); the current
-reconciliation satisfies every boundary-port acceptance criterion (one shared anchor carrying both
-labels, external and internal fan-out, and two independent boundary ports on one container).
+detected* does the engine take the combined-pass path; a scope with no boundary port takes the
+identical existing code path, so flat and ordinary port-edge graphs are byte-for-byte unchanged. On
+the combined path the engine assembles the container and all of its nested descendants into one
+`AssembledMergeRegion` (`MergeRegionGraphAssembler`), runs it through the recursive layered pipeline
+(`LayeredLayoutPipeline.RunRecursive` — recursive layer assignment and crossing minimization across
+every level, one crossing dummy seeded per boundary face, each crossing tagged on its `AugNode`), and
+projects the placed result back into per-scope geometry with `MergeRegionDecomposer`. The decomposer
+resolves each boundary port to one shared physical anchor on the container face — the face given by
+`BoundaryPortResolver.FaceForDirection`, keyed on the boundary port's reference identity so the
+external and internal faces collapse onto one point — carrying both the external label (rendered
+outward) and the internal label (rendered inward). Crucially, every converging edge takes its
+waypoints directly from the orthogonal corridor router's routed polylines: the external approach is the
+approach polyline concatenated with the container-link polyline, and each internal delegation prepends
+the shared anchor to its delegation polyline with at most one orthogonal corner. No endpoint is patched
+onto the anchor with a hand-built diagonal, which is what keeps external fan-in and multi-level
+delegation chains free of the diagonal shortcut a post-hoc endpoint reconciliation produced.
+
+**Two-pass cascading container sizing.** Because a container's placed interior size is only known
+after its combined pass runs, the engine sizes containers in two passes, mirroring the established
+`Fix-5` growth precedent: it assembles the region once, then re-runs `RunRecursive` while any
+container's placed interior footprint (`MergeRegionDecomposer.LevelFootprint` plus padding and title
+height) exceeds its current effective size, growing the shared mutable effective-size map in place so
+inner growth cascades outward through every enclosing level (`RunRecursiveWithCascadingSizing`,
+bounded by `MaxSizingIterations` and `SizingTolerance`). The common no-growth case settles in a single
+pass. `ContainerPadding` and the resolved title height are the same offsets the flat composition path
+uses, reused rather than re-derived.
 
 Every `CoreOptions` property (`Algorithm`, `Direction`, `EdgeRouting`, `HierarchyHandling`,
 `NodeSpacing`, `LayerSpacing`) cascades through this same generalized mechanism, built once on
@@ -138,8 +154,9 @@ port owned by a plain (non-container) node with an edge into a different contain
 throws `NotSupportedException` with a message identifying named ports crossing a container boundary as
 not supported; that port's owner has no child scope to delegate into, so this scope's router has no port
 concept for it, and broader boundary-crossing port support remains a separate future effort. A
-container's own boundary (delegation) port is not this error case: it is reconciled to one shared anchor
-by `BoundaryPortResolver` as described above. A same-scope port edge (neither endpoint nested relative
+container's own boundary (delegation) port is not this error case: it is resolved to one shared anchor
+by the combined recursive pass and its `MergeRegionDecomposer` as described above. A same-scope port
+edge (neither endpoint nested relative
 to this scope) is likewise not an error case: it is routed locally by the leaf algorithm exactly as it
 would be in a flat graph.
 
@@ -156,8 +173,10 @@ would be in a flat graph.
   scope's cascaded effective options snapshot.
 - **Layout units** — `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm` as bundled leaf
   algorithms registered in the default registry, `ConnectorRouter` for LCA cross-container edge
-  routing, and `HierarchyMergeRegionBuilder` / `BoundaryPortResolver` (layered-pipeline unit,
-  `Engine/Layered`) for boundary-port detection and reconciliation. See *ConnectorRouter Unit Design*
+  routing, and `HierarchyMergeRegionBuilder`, `MergeRegionGraphAssembler`, the recursive
+  `LayeredLayoutPipeline`, `MergeRegionDecomposer`, and `BoundaryPortResolver.FaceForDirection`
+  (layered-pipeline unit, `Engine/Layered`) for boundary-port detection, the combined recursive pass,
+  and its projection back to per-scope geometry. See *ConnectorRouter Unit Design*
   and *Layered Pipeline Unit Design*.
 
 No OTS runtime component or shared package is consumed.

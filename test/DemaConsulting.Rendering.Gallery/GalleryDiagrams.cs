@@ -490,11 +490,13 @@ internal static class GalleryDiagrams
     ///     <see cref="LayoutGraphPort.ExternalLabel"/> and an <see cref="LayoutGraphPort.InternalLabel"/>
     ///     and is referenced by an edge <em>inside</em> its owning container's child scope (the inward
     ///     delegation edge is the structural signal that marks it as a boundary port). The hierarchical
-    ///     engine reconciles the external approach edge and every internal delegation edge onto one
-    ///     shared physical anchor on the container boundary, carrying both labels: the external label
-    ///     reads outward (away from the container) and the internal label reads inward (into the
-    ///     container's interior). This diagram also exercises internal <em>fan-out</em>: the single port
-    ///     delegates to two distinct nested children, both connectors reaching the one shared anchor.
+    ///     engine lays the container and its children out in one combined recursive pass and routes the
+    ///     external approach edge and every internal delegation edge through its orthogonal corridor
+    ///     router onto one shared physical anchor on the container boundary, carrying both labels: the
+    ///     external label reads outward (away from the container) and the internal label reads inward
+    ///     (into the container's interior). This diagram also exercises internal <em>fan-out</em>: the
+    ///     single port delegates to two distinct nested children, both connectors routed onto the one
+    ///     shared anchor.
     /// </remarks>
     /// <returns>A compound graph whose container exposes one left-face boundary port with internal fan-out.</returns>
     public static LayoutGraph BoundaryPortsShowcaseHorizontal()
@@ -557,6 +559,65 @@ internal static class GalleryDiagrams
 
         // A single internal delegation edge reaches inward to the nested child.
         Connect(controller.Children, "command-driver", command, driver, null);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     A three-level boundary-port <em>delegation chain</em>: a sibling approaches an outer
+    ///     container's boundary port, which delegates inward to a nested container's own boundary port,
+    ///     which in turn delegates inward again to a leaf child at the innermost level — two boundary
+    ///     crossing points stacked in one recursive descent.
+    /// </summary>
+    /// <remarks>
+    ///     This exercises the recursive hierarchical engine at depth three. Each of the two boundary
+    ///     ports (the outer <c>system</c> container's and the nested <c>subsystem</c> container's)
+    ///     carries <em>both</em> a <see cref="LayoutGraphPort.ExternalLabel"/> reading outward and a
+    ///     <see cref="LayoutGraphPort.InternalLabel"/> reading inward, resolving to one shared physical
+    ///     anchor on its own container boundary. The single external approach and every delegation edge
+    ///     — across both boundary crossings — are routed through the orthogonal corridor router in the
+    ///     one combined pass, so the whole chain reads as an unbroken orthogonal path from the outermost
+    ///     sibling down to the innermost leaf with no diagonal shortcut at either boundary.
+    /// </remarks>
+    /// <returns>A compound graph whose boundary port delegates through a nested container's own boundary port to a leaf.</returns>
+    public static LayoutGraph BoundaryPortsShowcaseDeepChain()
+    {
+        var graph = new LayoutGraph();
+
+        var source = AddLabelled(graph, "source", "Source");
+
+        // Outer container; the engine grows it to fit its nested subsystem.
+        var system = graph.AddNode("system", 10, 10);
+        system.Label = "System";
+
+        // The outer boundary port: external label reads outward, internal label reads inward, at one
+        // shared anchor on the System boundary.
+        var request = system.Ports.AddPort("request");
+        request.ExternalLabel = "request";
+        request.InternalLabel = "route";
+
+        // Nested container inside System; it too exposes its own boundary port.
+        var subsystem = system.Children.AddNode("subsystem", 10, 10);
+        subsystem.Label = "Subsystem";
+
+        // The inner boundary port: its external face is approached by System's own delegation edge, and
+        // its internal face delegates inward again to the innermost leaf.
+        var relay = subsystem.Ports.AddPort("relay");
+        relay.ExternalLabel = "relay";
+        relay.InternalLabel = "handle";
+
+        var core = AddLabelled(subsystem.Children, "core", "Core");
+
+        // The external approach edge lives in the root scope, joining the sibling to the outer port.
+        Connect(graph, "source-request", source, request, null);
+
+        // The first delegation edge lives inside System's own child scope, relaying the outer boundary
+        // port inward to the nested container's boundary port (crossing point one).
+        Connect(system.Children, "request-relay", request, relay, null);
+
+        // The second delegation edge lives inside Subsystem's own child scope, relaying the inner
+        // boundary port inward to the innermost leaf child (crossing point two).
+        Connect(subsystem.Children, "relay-core", relay, core, null);
 
         return graph;
     }

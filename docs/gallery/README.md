@@ -147,16 +147,26 @@ The companion top/bottom case: a downward-flowing hub node, whose ports anchor o
 The hierarchical engine's support for boundary (delegation) ports: a container may expose a named port carrying BOTH an
 external and an internal label at one shared physical anchor on its boundary. An external approach edge from a sibling
 reaches the anchor from outside, while one or more internal delegation edges relay the connection inward to the
-container's nested children. The external label reads outward (away from the container) and the internal label reads
-inward, and the anchor consolidates external and internal fan-out onto a single boundary point.
+container's nested children. The container and its children are laid out in one combined recursive pass, and every
+converging edge — external approach and internal delegation alike — is routed through the orthogonal corridor router
+onto that single shared anchor, with the external label reading outward and the internal label reading inward.
 
 ![A sibling joined to a container's boundary port delegating to two children](boundary-ports-showcase-horizontal.svg)
 
 A rightward-flowing container exposes one boundary port on its left face carrying both a 'command' external label
 (reading outward) and a 'dispatch' internal label (reading inward) at the same shared anchor. The external approach edge
-from the sibling and both internal delegation edges (internal fan-out to two nested children) reach that one anchor.
+from the sibling and both internal delegation edges (internal fan-out to two nested children) are routed orthogonally
+onto that one anchor.
 
 ![Two siblings joined to a container's top-face boundary port and one child](boundary-ports-showcase-vertical.svg)
 
 The companion downward-flowing case: the boundary port anchors on the container's top face, with external fan-out (two
-sibling approach edges) consolidated onto the one shared anchor, which then delegates inward to the single nested child.
+sibling approach edges) both routed orthogonally onto the one shared anchor, which then delegates inward to the single
+nested child.
+
+![A boundary port delegating through a nested boundary port to a leaf](boundary-ports-showcase-deep-chain.svg)
+
+A three-level delegation chain: a sibling approaches an outer container's boundary port, which delegates inward to a
+nested container's own boundary port, which delegates again to the innermost leaf. Both boundary crossings carry an
+outward external and an inward internal label, and the whole chain is routed orthogonally in one combined recursive pass
+with no diagonal shortcut at either boundary.

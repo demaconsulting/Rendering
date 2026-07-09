@@ -35,8 +35,9 @@ rejected. No stage is mocked — real `LayeredGraph` instances flow through ever
 A verification run passes when every named scenario below asserts without unexpected exception, and
 the referenced tests cover each `Rendering-Layout-LayeredPipeline-*` requirement. Any drift in
 per-stage geometry, in byte-identity with the legacy oracle on the random and named topologies,
-in supported hierarchy handling (recursive input must assemble a runnable pipeline; boundary-port
-detection and reconciliation must behave as specified), in flow directions, in orthogonal
+in supported hierarchy handling (recursive input must assemble a runnable pipeline; the recursive
+combined pass, boundary-port detection, and the decomposer's boundary-port resolution must behave as
+specified), in flow directions, in orthogonal
 waypoint shape, in back-edge approach behavior, in component packing determinism, in shared
 `LayeredGraph` state validation, or in `LayeredLayoutPipeline` input validation constitutes a
 failure.
@@ -57,6 +58,19 @@ failure.
   hierarchy handling now assembles a runnable pipeline rather than throwing, alongside the flat default
   sequence exercised by
   `LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing`.
+- **Recursive combined pass** (`Rendering-Layout-LayeredPipeline-RecursiveCombinedPass`):
+  `CrossingMinimizer_MinimizeCrossingsRecursive_TwoLevelHierarchy_ChildOrderPropagatesToParent` and
+  `CrossingMinimizer_InteriorNodeReordering_OrdinaryNodeParticipatesInRealCrossingMinimization` confirm
+  the recursive crossing minimizer coordinates the ordering of a container's boundary faces with its
+  children's interior across levels (a resolved child order propagates to the parent, and an ordinary
+  interior node genuinely reorders under outer-scope pressure).
+  `MergeRegionGraphAssembler_Assemble_SingleLevelBoundaryPort_ProducesOneChildLevel`,
+  `MergeRegionGraphAssembler_Assemble_ThreeLevelChain_RecursesToDepthThree`, and
+  `MergeRegionGraphAssembler_Assemble_NonBoundaryInteriorNode_IncludedInFullFlattening` confirm the
+  assembler builds one child level per container, recurses to arbitrary depth, and flattens every
+  interior node into its level. `LongEdgeSplitter_Apply_CrossingTaggedNode_PreservesTagAndIsNotSplit`
+  confirms a seeded boundary-crossing tag survives the augmented-node rebuild and its dummy is never
+  split.
 - **Hierarchy-crossing descriptor** (`Rendering-Layout-LayeredPipeline-HierarchyCrossingDescriptor`):
   `LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline` exercises the recursive
   path that consumes the optional `AugNode` hierarchy-crossing descriptor.
@@ -67,15 +81,13 @@ failure.
   `HierarchyMergeRegionBuilder` detects a container's boundary ports transitively and to unbounded depth
   while excluding same-scope and leaf-node ports.
 - **Boundary-port resolution** (`Rendering-Layout-LayeredPipeline-BoundaryPortResolution`):
-  `Resolve_LeafAnchoredPort_EnrichesAnchorAndAddsInternalConnector` confirms `BoundaryPortResolver`
-  enriches the leaf-pass anchor with the internal label and adds the internal delegation connector,
-  `Resolve_TwoBoundaryPortsWithSharedNullExternalLabel_ResolveIndependentlyByReferenceIdentity` confirms
-  the leaf-anchor and nested-target matching is keyed on `LayoutPort.SourcePort` reference identity —
-  not on the optional, frequently-null `ExternalLabel` string — so two independent boundary ports on one
-  container that both leave `ExternalLabel` null resolve to their own true external connector, never
-  each other's, and `OrderCrossings_MultipleCrossings_ReturnsPermutationOfIndices`,
-  `OrderCrossings_NoTargets_ReturnsInputOrder`, and `OrderCrossings_Empty_ReturnsEmpty` confirm
-  deterministic same-face crossing ordering.
+  `FaceForDirection_Right_ReturnsLeftFace`, `FaceForDirection_Left_ReturnsRightFace`,
+  `FaceForDirection_Down_ReturnsTopFace`, and `FaceForDirection_Up_ReturnsBottomFace` confirm the one
+  retained `BoundaryPortResolver` helper maps each flow direction to the container face the shared
+  anchor sits on, and `MergeRegionDecomposer_FanIn_EveryConvergingEdge_IsStrictlyOrthogonalWithNoDirectDiagonal`
+  and `MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal` confirm
+  the decomposer projects the combined-pass placement back so every converging edge is routed
+  orthogonally onto the shared anchor with no direct diagonal.
 - **Directions** (`Rendering-Layout-LayeredPipeline-Directions`):
   `AxisTransform_Apply_RightDirection_LeavesCoordinatesUnchanged`,
   `AxisTransform_Apply_Right_PlacesTargetEastWithCorrectFaces`,
@@ -176,6 +188,13 @@ failure.
 - **`Rendering-Layout-LayeredPipeline-FlatHierarchyOnly`**:
   LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing,
   LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline
+- **`Rendering-Layout-LayeredPipeline-RecursiveCombinedPass`**:
+  CrossingMinimizer_MinimizeCrossingsRecursive_TwoLevelHierarchy_ChildOrderPropagatesToParent,
+  CrossingMinimizer_InteriorNodeReordering_OrdinaryNodeParticipatesInRealCrossingMinimization,
+  MergeRegionGraphAssembler_Assemble_SingleLevelBoundaryPort_ProducesOneChildLevel,
+  MergeRegionGraphAssembler_Assemble_ThreeLevelChain_RecursesToDepthThree,
+  MergeRegionGraphAssembler_Assemble_NonBoundaryInteriorNode_IncludedInFullFlattening,
+  LongEdgeSplitter_Apply_CrossingTaggedNode_PreservesTagAndIsNotSplit
 - **`Rendering-Layout-LayeredPipeline-HierarchyCrossingDescriptor`**:
   LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline
 - **`Rendering-Layout-LayeredPipeline-BoundaryPortDetection`**:
@@ -183,10 +202,10 @@ failure.
   Collect_DelegationPort_DetectedWithExternalAndInternalEdges, Collect_TwoIndependentPorts_DetectsBoth,
   CollectRecursive_ThreeLevelChain_ReportsEveryLevel, Collect_PortOnLeafNode_NotDetected
 - **`Rendering-Layout-LayeredPipeline-BoundaryPortResolution`**:
-  Resolve_LeafAnchoredPort_EnrichesAnchorAndAddsInternalConnector,
-  Resolve_TwoBoundaryPortsWithSharedNullExternalLabel_ResolveIndependentlyByReferenceIdentity,
-  OrderCrossings_MultipleCrossings_ReturnsPermutationOfIndices, OrderCrossings_NoTargets_ReturnsInputOrder,
-  OrderCrossings_Empty_ReturnsEmpty
+  FaceForDirection_Right_ReturnsLeftFace, FaceForDirection_Left_ReturnsRightFace,
+  FaceForDirection_Down_ReturnsTopFace, FaceForDirection_Up_ReturnsBottomFace,
+  MergeRegionDecomposer_FanIn_EveryConvergingEdge_IsStrictlyOrthogonalWithNoDirectDiagonal,
+  MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal
 - **`Rendering-Layout-LayeredPipeline-Directions`**:
   AxisTransform_Apply_RightDirection_LeavesCoordinatesUnchanged,
   AxisTransform_Apply_Right_PlacesTargetEastWithCorrectFaces,

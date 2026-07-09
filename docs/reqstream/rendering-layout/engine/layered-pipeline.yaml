@@ -41,12 +41,38 @@ sections:
           with an error.
         justification: |
           Flat handling reproduces the current behavior exactly. Recursive handling — formerly a
-          fail-fast NotSupportedException placeholder — now assembles a genuinely runnable pipeline
-          path that the boundary-port resolver drives to order same-face hierarchy crossings, so the
-          pipeline no longer needs to reject the recursive mode.
+          fail-fast NotSupportedException placeholder — now assembles a genuinely runnable combined-pass
+          pipeline that the hierarchical algorithm drives in production (through RunRecursive) to lay
+          out a boundary-port container and its nested descendants together, so the pipeline no longer
+          needs to reject the recursive mode.
         tests:
           - LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing
           - LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline
+
+      - id: Rendering-Layout-LayeredPipeline-RecursiveCombinedPass
+        title: >-
+          The recursive-hierarchy stage sequence, assembled by AddRecursiveStages and run through
+          RunRecursive, shall lay out a boundary-port container and all of its nested descendants in one
+          combined pass — assigning layers and minimizing crossings recursively across every level,
+          seeding one crossing dummy per boundary face, and tagging each boundary-port crossing on its
+          augmented node — so the hierarchical algorithm can drive it in production to place and route
+          boundary-port hierarchies.
+        justification: |
+          Boundary-port hierarchies are laid out by running the recursive stage sequence over the
+          assembled merge region rather than by reconciling separately-placed scopes. Recursive layer
+          assignment and crossing minimization coordinate the ordering of the container faces that share
+          a boundary port, the merge-region graph assembler seeds one crossing dummy per boundary face
+          and flattens every interior node into its level, and the long-edge splitter carries each
+          crossing tag through untouched so a crossing dummy stays a tagged terminal hop. This combined
+          pass — not a post-hoc endpoint reconciliation — is the production path the hierarchical
+          algorithm uses whenever a scope contains at least one boundary port.
+        tests:
+          - CrossingMinimizer_MinimizeCrossingsRecursive_TwoLevelHierarchy_ChildOrderPropagatesToParent
+          - CrossingMinimizer_InteriorNodeReordering_OrdinaryNodeParticipatesInRealCrossingMinimization
+          - MergeRegionGraphAssembler_Assemble_SingleLevelBoundaryPort_ProducesOneChildLevel
+          - MergeRegionGraphAssembler_Assemble_ThreeLevelChain_RecursesToDepthThree
+          - MergeRegionGraphAssembler_Assemble_NonBoundaryInteriorNode_IncludedInFullFlattening
+          - LongEdgeSplitter_Apply_CrossingTaggedNode_PreservesTagAndIsNotSplit
 
       - id: Rendering-Layout-LayeredPipeline-HierarchyCrossingDescriptor
         title: >-
@@ -83,21 +109,27 @@ sections:
 
       - id: Rendering-Layout-LayeredPipeline-BoundaryPortResolution
         title: >-
-          The boundary-port resolver shall reconcile each detected boundary port to one shared anchor
-          on its container's boundary carrying both labels, add one internal delegation connector per
-          internal edge into the container's placed interior, and order same-face crossings
-          deterministically.
+          The merge-region decomposer shall project the recursive combined-pass placement back into
+          per-scope geometry, resolving each detected boundary port to one shared anchor on its
+          container's face — the face given by BoundaryPortResolver.FaceForDirection — and taking every
+          converging edge's waypoints from the orthogonal corridor router so no endpoint is joined to
+          the anchor by a hand-built diagonal.
         justification: |
-          Rather than a literal single flattened cross-scope pass, the resolver enriches the external
-          anchor already produced by the per-scope leaf pass with the internal label and internal
-          delegation connectors, consolidating external and internal fan-out onto one physical
-          anchor. Ordering same-face crossings keeps multiple crossings on one face deterministic.
+          Rather than reconciling endpoints the per-scope leaf pass already placed, the decomposer reads
+          the combined pass's routed polylines directly: the external approach concatenates the approach
+          and container-link polylines, and the internal delegation prepends the shared anchor to the
+          delegation polyline with at most one orthogonal corner. Keying the shared anchor on the
+          boundary port's reference identity collapses the external and internal faces of one port onto
+          a single physical point, and FaceForDirection gives the anchor its container face for each of
+          the four flow directions. Routing every converging edge through the real router keeps the
+          fan-in, fan-out, and multi-level-chain approaches axis-aligned.
         tests:
-          - Resolve_LeafAnchoredPort_EnrichesAnchorAndAddsInternalConnector
-          - Resolve_TwoBoundaryPortsWithSharedNullExternalLabel_ResolveIndependentlyByReferenceIdentity
-          - OrderCrossings_MultipleCrossings_ReturnsPermutationOfIndices
-          - OrderCrossings_NoTargets_ReturnsInputOrder
-          - OrderCrossings_Empty_ReturnsEmpty
+          - FaceForDirection_Right_ReturnsLeftFace
+          - FaceForDirection_Left_ReturnsRightFace
+          - FaceForDirection_Down_ReturnsTopFace
+          - FaceForDirection_Up_ReturnsBottomFace
+          - MergeRegionDecomposer_FanIn_EveryConvergingEdge_IsStrictlyOrthogonalWithNoDirectDiagonal
+          - MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal
 
       - id: Rendering-Layout-LayeredPipeline-Directions
         title: >-

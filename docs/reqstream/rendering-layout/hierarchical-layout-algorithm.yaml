@@ -39,6 +39,7 @@ sections:
         tests:
           - Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely
           - Apply_ThreeLevelNesting_Succeeds
+          - HierarchicalLayoutAlgorithm_ThreeLevelChain_InnermostContainerGrows_GrowthCascadesThroughEveryEnclosingLevel
 
       - id: Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm
         title: >-
@@ -63,6 +64,7 @@ sections:
         tests:
           - Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely
           - Apply_CompoundGraph_DoesNotMutateInputNodeSizes
+          - HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange
 
       - id: Rendering-Layout-HierarchicalLayout-CrossContainerEdge
         title: >-
@@ -126,23 +128,32 @@ sections:
           HierarchicalLayoutAlgorithm shall resolve a container's boundary (delegation) port — a port
           the container both exposes to an external approach edge and references from an edge inside
           its own child scope — to exactly one shared LayoutPort anchor on the container boundary
-          carrying both the external and internal labels, with every external approach and every
-          internal delegation edge reaching that one anchor, including under external and internal
-          fan-out and for two independent boundary ports on one container.
+          carrying both the external and internal labels, with every converging edge — every external
+          approach and every internal delegation edge — routed through the real orthogonal corridor
+          router onto that one anchor as an axis-aligned path with no direct diagonal, including under
+          external and internal fan-out, for two independent boundary ports on one container, and
+          through a multi-level delegation chain.
         justification: |
           A boundary/delegation port is the bulkhead-connector pattern: one physical anchor names both
           the connection reaching it from outside the container and the delegation relaying it into the
-          container's own children. Consolidating fan-out and reconciling both labels onto a single
-          anchor (rather than emitting a separate port per edge) keeps the rendered wiring unambiguous.
-          The resolution reconciles the anchor the per-scope leaf pass already produced with the
-          internal label and one delegation connector per internal edge, which satisfies the acceptance
-          criteria without a literal flattened cross-scope pass.
+          container's own children. The container and its children are laid out in one combined
+          recursive layered pass — assembled into a merge region, run through the recursive pipeline,
+          and projected back by the merge-region decomposer — so every converging edge is routed by the
+          same orthogonal corridor router that routes ordinary edges, rather than having an endpoint
+          patched onto the anchor with a hand-built diagonal. Consolidating fan-out and both labels onto
+          a single anchor (rather than emitting a separate port per edge) keeps the rendered wiring
+          unambiguous, and routing every converging edge orthogonally through the real router is what
+          keeps the external fan-in and the multi-level delegation chain free of the diagonal shortcut a
+          post-hoc endpoint reconciliation produced.
         tests:
           - Apply_BoundaryPortWithExternalAndInternalEdges_EmitsOneSharedAnchorCarryingBothLabels
           - Apply_BoundaryPortFanOut_ResolvesToOneSharedAnchor
           - Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors
           - Apply_TwoIndependentBoundaryPortsWithSharedNullExternalLabel_PreservesConnectorProvenance
           - Apply_TwoIndependentBoundaryPortsWithIdenticalExternalLabel_PreservesConnectorProvenance
+          - MergeRegionDecomposer_FanIn_EveryConvergingEdge_IsStrictlyOrthogonalWithNoDirectDiagonal
+          - MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal
+          - HierarchicalLayoutAlgorithm_ThreeLevelDelegationChain_EndToEnd_ProducesConnectedOrthogonalPath
 
       - id: Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows
         title: >-
