@@ -81,6 +81,38 @@ The layered pipeline rendered to a raster PNG image.
 
 The hierarchical nested diagram rendered to a raster PNG image.
 
+![A hub node with a named port on each of its left and right sides as PNG](ports-showcase-horizontal.png)
+
+The horizontal ports showcase rendered to a raster PNG image.
+
+![A hub node with a named port on each of its top and bottom sides as PNG](ports-showcase-vertical.png)
+
+The vertical ports showcase rendered to a raster PNG image.
+
+![The same three parallel connectors collapsed to a single line as PNG](parallel-edges-merged.png)
+
+The parallel edges merged diagram rendered to a raster PNG image.
+
+![Three parallel connectors between the same two boxes, independently routed as PNG](parallel-edges-preserved.png)
+
+The parallel edges preserved diagram rendered to a raster PNG image.
+
+![The same three parallel connectors on a downward-flowing pair of boxes as PNG](parallel-edges-preserved-vertical.png)
+
+The parallel edges preserved vertical diagram rendered to a raster PNG image.
+
+![A container's boundary port delegating to two children as PNG](boundary-ports-showcase-horizontal.png)
+
+The horizontal boundary-ports showcase rendered to a raster PNG image.
+
+![A container's top-face boundary port and one child as PNG](boundary-ports-showcase-vertical.png)
+
+The vertical boundary-ports showcase rendered to a raster PNG image.
+
+![A boundary port delegating through a nested boundary port to a leaf as PNG](boundary-ports-showcase-deep-chain.png)
+
+The boundary-ports deep-chain showcase rendered to a raster PNG image.
+
 ## Box appearance
 
 A node's Shape, Keyword, and Compartments properties select the box outline, an italicized keyword line, and labelled
