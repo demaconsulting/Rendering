@@ -102,6 +102,101 @@ public sealed class MergeRegionDecomposerTests
     }
 
     /// <summary>
+    ///     Reproduces the internal fan-out showcase (<c>BoundaryPortsShowcaseHorizontal</c>): a single
+    ///     external approach (<c>Sensor</c>) reaches a boundary port that delegates inward to two nested
+    ///     children (<c>Driver</c> and <c>Logger</c>). Before the hierarchy-crossing dummy's cross-axis
+    ///     coordinate was pinned to the parent scope's already-resolved anchor, the shared fan-out dummy
+    ///     centered independently between <c>Driver</c> and <c>Logger</c>, producing an unnecessary
+    ///     extra back-and-forth detour (5 segments / 4 bends) for whichever target sat nearer the anchor.
+    ///     Both delegation connectors must now take a minimal-bend path with no direction reversal.
+    /// </summary>
+    [Fact]
+    public void MergeRegionDecomposer_InternalFanOut_DelegationEdges_TakeMinimalBendPathWithNoReversal()
+    {
+        // Arrange: the horizontal internal fan-out showcase (one approach, two delegations).
+        var graph = new LayoutGraph();
+
+        var sensor = graph.AddNode("sensor", 120, 50);
+        sensor.Label = "Sensor";
+
+        var controller = graph.AddNode("controller", 10, 10);
+        controller.Label = "Controller";
+        var command = controller.Ports.AddPort("command");
+        command.ExternalLabel = "command";
+        command.InternalLabel = "dispatch";
+
+        var driver = controller.Children.AddNode("driver", 120, 50);
+        driver.Label = "Driver";
+        var logger = controller.Children.AddNode("logger", 120, 50);
+        logger.Label = "Logger";
+
+        graph.AddEdge("sensor-command", sensor, command);
+        var toDriver = controller.Children.AddEdge("command-driver", command, driver);
+        toDriver.Label = "to-driver";
+        var toLogger = controller.Children.AddEdge("command-logger", command, logger);
+        toLogger.Label = "to-logger";
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: both delegation connectors take a minimal-bend (at most 3 segments / 2 bends) path
+        // with no direction reversal along the way - not the old 5-segment/4-bend detour.
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        var driverLine = Assert.Single(lines, line => line.MidpointLabel == "to-driver");
+        var loggerLine = Assert.Single(lines, line => line.MidpointLabel == "to-logger");
+
+        AssertMinimalBendPathWithNoReversal(driverLine.Waypoints);
+        AssertMinimalBendPathWithNoReversal(loggerLine.Waypoints);
+    }
+
+    /// <summary>
+    ///     Asserts a polyline has at most 2 genuine turns and never reverses direction along either axis
+    ///     (a segment vector never points opposite a preceding non-degenerate segment vector on the same
+    ///     axis), confirming the connector takes the shortest reasonable orthogonal path rather than an
+    ///     unnecessary back-and-forth detour. A collinear interior waypoint (same direction as its
+    ///     predecessor) is not counted as a turn.
+    /// </summary>
+    /// <param name="waypoints">The connector polyline.</param>
+    private static void AssertMinimalBendPathWithNoReversal(IReadOnlyList<Point2D> waypoints)
+    {
+        // Count only genuine turns (a direction change between consecutive non-degenerate segments) -
+        // a raw waypoint that continues collinearly (same direction as its predecessor) is not a bend,
+        // it is exactly the kind of interior waypoint Defect 1 stops from being rounded with a spurious
+        // arc, and must not be counted as an extra bend here either.
+        var bends = 0;
+        Point2D? lastDir = null;
+        for (var i = 1; i < waypoints.Count; i++)
+        {
+            var dx = waypoints[i].X - waypoints[i - 1].X;
+            var dy = waypoints[i].Y - waypoints[i - 1].Y;
+            if (Math.Abs(dx) < OrthogonalTolerance && Math.Abs(dy) < OrthogonalTolerance)
+            {
+                // Degenerate (coincident) segment: no direction to compare.
+                continue;
+            }
+
+            if (lastDir is { } prev)
+            {
+                // A reversal is a segment whose dot product with the preceding segment is negative -
+                // i.e. it doubles back rather than continuing to progress toward the target.
+                var dot = (prev.X * dx) + (prev.Y * dy);
+                Assert.True(dot >= -OrthogonalTolerance, "Segment direction reverses a preceding segment.");
+
+                // A cross product near zero means the two segments are parallel (collinear) - no turn.
+                var cross = (prev.X * dy) - (prev.Y * dx);
+                if (Math.Abs(cross) > OrthogonalTolerance)
+                {
+                    bends++;
+                }
+            }
+
+            lastDir = new Point2D(dx, dy);
+        }
+
+        Assert.True(bends <= 2, $"Expected at most 2 bends, found {bends}.");
+    }
+
+    /// <summary>
     ///     Asserts the layout emits exactly one boundary anchor, that the expected number of connectors
     ///     touch it, and that every such connector is strictly orthogonal along its entire polyline.
     /// </summary>

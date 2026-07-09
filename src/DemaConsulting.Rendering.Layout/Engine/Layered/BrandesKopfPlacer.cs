@@ -95,6 +95,21 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
         // Assign Y coordinates using the Brandes-Köpf balanced four-layout algorithm.
         var augY = BkAssignYCoordinates(augNodes, groups, augEdges, nodeSpacing);
 
+        // Honor any pinned cross-axis coordinate: a hierarchy-crossing dummy tagged with
+        // AugNode.PinnedCrossAxis (set by MergeRegionGraphAssembler.PinIncomingCrossings for the
+        // recursive pipeline) must anchor to its parent scope's already-resolved boundary-port position
+        // rather than the ordinary fork-centering value the alignment/compaction above just computed for
+        // it. This bypasses ordinary placement for that node only; every other node's value is untouched.
+        // AugNode.PinnedCrossAxis defaults to null and is never set by the flat (non-hierarchical)
+        // pipeline, so this loop is a no-op there.
+        for (var i = 0; i < numAug; i++)
+        {
+            if (augNodes[i].PinnedCrossAxis is { } pinnedCrossAxis)
+            {
+                augY[i] = pinnedCrossAxis;
+            }
+        }
+
         return (augX, augY, columnX, maxColWidth);
     }
 

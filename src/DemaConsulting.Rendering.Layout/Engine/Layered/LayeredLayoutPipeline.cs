@@ -103,9 +103,20 @@ internal sealed class LayeredLayoutPipeline
         // Stage 4: hierarchy-aware crossing minimization with boundary-order propagation.
         new CrossingMinimizer().MinimizeCrossingsRecursive(region.Root, levels);
 
+        // Lookup from each boundary port to its external-face (outgoing) crossing's owning level and
+        // node index, so a descendant level's internal-face (incoming) crossing dummy can be pinned to
+        // the parent's already-resolved anchor once that parent level has been placed below.
+        var externalCrossingIndex = MergeRegionGraphAssembler.BuildExternalCrossingIndex(levels);
+
         // Stages 5-9: place, distribute ports, route, join long edges, and transform axes, per level.
-        foreach (var graph in levels.Values.Select(levelGraph => levelGraph.Graph))
+        // Iterating levels.Values visits a parent level before its children (BuildAllLevelGraphs
+        // populates in pre-order and Dictionary preserves insertion order), so by the time a child
+        // level's PinIncomingCrossings call runs, every parent it could reference has already completed
+        // every stage below, including AxisTransform.
+        foreach (var levelGraph in levels.Values)
         {
+            var graph = levelGraph.Graph;
+            MergeRegionGraphAssembler.PinIncomingCrossings(levelGraph, externalCrossingIndex, levels, Direction);
             new BrandesKopfPlacer().Apply(graph);
             new PortDistributor().Apply(graph);
             new LayeredCorridorRouter().Apply(graph);

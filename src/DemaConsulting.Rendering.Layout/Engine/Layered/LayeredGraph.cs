@@ -57,12 +57,23 @@ internal readonly record struct HierarchyCrossing(LayoutGraphPort Port, Hierarch
 /// real node and every long-edge dummy on that path, keeping default construction and every existing
 /// flat caller byte-identical.
 /// </param>
+/// <param name="PinnedCrossAxis">
+/// When non-<see langword="null"/>, pins this node's cross-axis coordinate (Y for horizontal flow, X
+/// for vertical flow) to an already-resolved value from an enclosing scope, rather than letting
+/// <c>BrandesKopfPlacer</c> derive it from ordinary fork-centering/alignment. <c>MergeRegionGraphAssembler</c>
+/// sets this on a child level's <see cref="HierarchyCrossing"/> dummy to the parent scope's resolved
+/// boundary-port anchor, so the child's fan-out does not re-center independently of where the parent
+/// already placed the port. Like <see cref="Crossing"/>, this is <see langword="null"/> by default for
+/// every real node, every long-edge dummy, and every node produced by the flat (non-hierarchical)
+/// pipeline, keeping default construction and every existing flat caller byte-identical.
+/// </param>
 internal sealed record AugNode(
     double Width,
     double Height,
     int Layer,
     bool IsDummy = false,
-    HierarchyCrossing? Crossing = null);
+    HierarchyCrossing? Crossing = null,
+    double? PinnedCrossAxis = null);
 
 /// <summary>A sub-edge in the augmented graph after long-edge splitting.</summary>
 /// <param name="Source">Index of the source augmented node.</param>

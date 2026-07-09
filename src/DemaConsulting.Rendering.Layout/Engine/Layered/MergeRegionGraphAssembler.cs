@@ -257,6 +257,13 @@ internal static class MergeRegionGraphAssembler
     /// <param name="level">The level to build a graph for.</param>
     /// <param name="direction">The flow direction each level's graph is laid out along.</param>
     /// <param name="sink">The accumulating level-to-graph lookup.</param>
+    /// <remarks>
+    /// Populates <paramref name="sink"/> in pre-order (a level before its children) and
+    /// <see cref="Dictionary{TKey,TValue}"/> reliably preserves insertion order absent removals, so
+    /// <c>LayeredLayoutPipeline.RunRecursive</c>'s later iteration over this dictionary's values always
+    /// visits a parent level before its children. <see cref="PinIncomingCrossings"/> depends on this
+    /// ordering guarantee to read a parent level's already-placed coordinates while processing a child.
+    /// </remarks>
     private static void BuildAllLevelGraphs(
         MergeRegionLevel level,
         LayoutDirection direction,
@@ -266,6 +273,127 @@ internal static class MergeRegionGraphAssembler
         foreach (var (_, _, child) in level.Children)
         {
             BuildAllLevelGraphs(child, direction, sink);
+        }
+    }
+
+    /// <summary>
+    /// Builds a lookup from each boundary port to the owning level and augmented-node index of its
+    /// external-face (outgoing) crossing dummy, so a descendant level's internal-face (incoming) crossing
+    /// dummy for the same port can find the corresponding parent-scope placement once that parent level
+    /// has been placed.
+    /// </summary>
+    /// <param name="levels">Every nesting level's assembled graph, as built by <see cref="BuildAllLevelGraphs(AssembledMergeRegion, LayoutDirection)"/>.</param>
+    /// <returns>A lookup from boundary port to the level owning its external-face crossing and that crossing's node index.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="levels"/> is <see langword="null"/>.</exception>
+    public static IReadOnlyDictionary<LayoutGraphPort, (MergeRegionLevel Level, int NodeIndex)> BuildExternalCrossingIndex(
+        IReadOnlyDictionary<MergeRegionLevel, LevelLayeredGraph> levels)
+    {
+        ArgumentNullException.ThrowIfNull(levels);
+
+        var result = new Dictionary<LayoutGraphPort, (MergeRegionLevel Level, int NodeIndex)>();
+        foreach (var (level, levelGraph) in levels)
+        {
+            foreach (var crossing in levelGraph.Crossings)
+            {
+                if (crossing.Face == HierarchyCrossingFace.External)
+                {
+                    result[crossing.Boundary.Port] = (level, crossing.NodeIndex);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Pins a level's internal-face (incoming) crossing dummies to the parent scope's already-resolved
+    /// cross-axis coordinate for the matching external-face (outgoing) crossing, so
+    /// <c>BrandesKopfPlacer</c> anchors each dummy to where the parent already placed the boundary port
+    /// instead of independently re-centering it among this level's own interior fan-out targets.
+    /// </summary>
+    /// <remarks>
+    /// Must run after the parent level's own placement stages have completed - guaranteed by
+    /// <c>LayeredLayoutPipeline.RunRecursive</c>'s parent-before-child level iteration order, itself a
+    /// consequence of <see cref="BuildAllLevelGraphs(AssembledMergeRegion, LayoutDirection)"/>'s pre-order
+    /// population (see that method's remarks) - and before this level's own <c>BrandesKopfPlacer</c> runs.
+    /// The pin is read from whichever abstract axis carries the cross-axis semantic for
+    /// <paramref name="direction"/>: for <see cref="LayoutDirection.Down"/>/<see cref="LayoutDirection.Up"/>
+    /// the parent's <c>AxisTransform</c> has already swapped cross onto screen X; for
+    /// <see cref="LayoutDirection.Right"/>/<see cref="LayoutDirection.Left"/> cross stays on screen Y.
+    /// The pinned value is the crossing dummy's parent-scope cross-axis position <em>relative to its own
+    /// container node's</em> cross-axis position, not the parent's raw coordinate - the child level's own
+    /// local graph has its own coordinate origin (only reconciled with the parent's absolute frame later,
+    /// at decomposition time), so only the offset from the container's own placement transfers meaningfully
+    /// into the child's local frame. This container-relative offset, fed back in as this (not-yet-transformed)
+    /// level's abstract cross coordinate, is self-consistent because every level in a region shares the same
+    /// <paramref name="direction"/>: this level's own upcoming <c>AxisTransform</c> maps it through the
+    /// identical axis rule the parent's already went through. Gated entirely behind the hierarchy-crossing
+    /// dummy tag (only <see cref="HierarchyCrossingFace.Internal"/> crossings are pinned), so the flat
+    /// (non-hierarchical) pipeline - which never populates <see cref="LevelLayeredGraph.Crossings"/> - is
+    /// unaffected.
+    /// </remarks>
+    /// <param name="levelGraph">The level's assembled graph, mutated in place to seed the pin on its incoming crossing dummies.</param>
+    /// <param name="externalCrossingIndex">The lookup built by <see cref="BuildExternalCrossingIndex"/>.</param>
+    /// <param name="levels">Every level's assembled graph, used to read a parent's already-placed graph.</param>
+    /// <param name="direction">The region's flow direction, deciding which abstract axis carries cross semantics.</param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="levelGraph"/>, <paramref name="externalCrossingIndex"/>, or <paramref name="levels"/> is <see langword="null"/>.
+    /// </exception>
+    public static void PinIncomingCrossings(
+        LevelLayeredGraph levelGraph,
+        IReadOnlyDictionary<LayoutGraphPort, (MergeRegionLevel Level, int NodeIndex)> externalCrossingIndex,
+        IReadOnlyDictionary<MergeRegionLevel, LevelLayeredGraph> levels,
+        LayoutDirection direction)
+    {
+        ArgumentNullException.ThrowIfNull(levelGraph);
+        ArgumentNullException.ThrowIfNull(externalCrossingIndex);
+        ArgumentNullException.ThrowIfNull(levels);
+
+        foreach (var crossing in levelGraph.Crossings)
+        {
+            // Only an incoming (internal-face) crossing dummy is centered independently of its parent
+            // scope's already-resolved anchor; an outgoing (external-face) crossing dummy is this same
+            // level's own concern and needs no pin.
+            if (crossing.Face != HierarchyCrossingFace.Internal)
+            {
+                continue;
+            }
+
+            if (!externalCrossingIndex.TryGetValue(crossing.Boundary.Port, out var parentInfo))
+            {
+                continue;
+            }
+
+            // The container node is this same boundary port's owner in the parent level; its own
+            // cross-axis placement is the reference point the crossing dummy's position is made
+            // relative to, since the child level's local coordinate origin is not otherwise reconciled
+            // with the parent's frame until decomposition.
+            if (!parentInfo.Level.NodeIndex.TryGetValue(crossing.Boundary.Container, out var containerNodeIndex))
+            {
+                continue;
+            }
+
+            var parentGraph = levels[parentInfo.Level].Graph;
+            var crossAxis = direction is LayoutDirection.Down or LayoutDirection.Up
+                ? parentGraph.AugX
+                : parentGraph.AugY;
+
+            // MergeRegionDecomposer.ChildOffset maps the container's own placed screen position into
+            // the child level's absolute local origin by adding the container padding on every side
+            // plus, on the vertical (screen Y) axis only, the container's title-bar height. The
+            // cross-axis subtraction above only removes the container's own position; it must also
+            // remove this same padding/title offset so the pinned value lands in the child's own local
+            // frame, not the parent's. For Right/Left flow the cross axis is screen Y, so both the
+            // padding and the title-bar height apply; for Down/Up flow the cross axis is screen X, on
+            // which only the padding applies (the title bar sits on the along axis for those directions).
+            var containerOffset = direction is LayoutDirection.Down or LayoutDirection.Up
+                ? HierarchicalLayoutAlgorithm.ContainerPadding
+                : HierarchicalLayoutAlgorithm.ContainerPadding + HierarchicalLayoutAlgorithm.ResolveContentOffsetHeight(crossing.Boundary.Container);
+
+            var pinned = crossAxis[parentInfo.NodeIndex] - crossAxis[containerNodeIndex] - containerOffset;
+
+            var aug = levelGraph.Graph.AugNodes;
+            aug[crossing.NodeIndex] = aug[crossing.NodeIndex] with { PinnedCrossAxis = pinned };
         }
     }
 
