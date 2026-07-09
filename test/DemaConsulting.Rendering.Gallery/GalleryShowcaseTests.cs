@@ -305,4 +305,34 @@ public sealed class GalleryShowcaseTests
             GalleryDiagrams.PortsShowcaseVertical(),
             Themes.Dark);
     }
+
+    /// <summary>
+    ///     Renders the horizontal boundary-ports showcase to SVG, proving a container's boundary
+    ///     (delegation) port emits one shared <see cref="LayoutPort"/> anchor carrying both an outward
+    ///     external label and an inward internal label, with the sibling's external approach edge and
+    ///     both internal delegation edges (internal fan-out) reaching that one anchor.
+    /// </summary>
+    [Fact]
+    public void Gallery_BoundaryPortsShowcaseHorizontal_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.BoundaryPortsShowcaseHorizontalSvg,
+            GalleryDiagrams.BoundaryPortsShowcaseHorizontal(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the vertical boundary-ports showcase to SVG — the companion to
+    ///     <see cref="Gallery_BoundaryPortsShowcaseHorizontal_RendersSvg"/> — proving a downward-flowing
+    ///     container's top-face boundary port consolidates external fan-out (two sibling approach edges)
+    ///     onto one shared anchor that then delegates inward to the nested child.
+    /// </summary>
+    [Fact]
+    public void Gallery_BoundaryPortsShowcaseVertical_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.BoundaryPortsShowcaseVerticalSvg,
+            GalleryDiagrams.BoundaryPortsShowcaseVertical(),
+            Themes.Dark);
+    }
 }
