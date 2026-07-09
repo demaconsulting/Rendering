@@ -152,9 +152,14 @@ internal sealed class LayeredCorridorRouter : ILayoutStage
             // s2 prefers to be left of s1.
             _ = new SegDep(s2, s1, c1 - c2);
         }
-        else if (c1 > 0)
+        else if (c1 > 0 && Math.Abs(s1.TargetY - s2.TargetY) > StraightTolerance)
         {
             // Equal non-zero crossings: unavoidable conflict — pick s1 left (deterministic tie-break).
+            // Exception: when both segments converge on essentially the same target point (a symmetric
+            // fan-in, e.g. two approaches converging on one shared anchor), forcing a strict left/right
+            // order here produces asymmetric clearance driven purely by insertion order rather than any
+            // genuine geometric preference. Skip creating a dependency for that pair so the topological
+            // numbering does not arbitrarily separate them.
             _ = new SegDep(s1, s2, 0);
         }
 
