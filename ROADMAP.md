@@ -521,6 +521,72 @@ same-face crowding (no port-spacing-by-width work):
 - The gallery entry must be wired into `GalleryCatalog`/`GalleryIndex` like existing examples, so
   it renders via `gallery.ps1` and appears in `docs/gallery/README.md`.
 
+## Unify all text rendering onto a single `LayoutLabel`/`LayoutText` primitive
+
+Today eight `LayoutNode` types carry renderable text, and only one of them —
+`LayoutLabel` — is a fully-resolved primitive (`X`/`Y`/`Align`/`Weight`/`Style`/`FontSize` all
+precomputed by the layout engine; a renderer just paints it, no discretion involved). Every other
+text-bearing type hands the renderer a raw string plus surrounding geometry and expects the
+renderer to *derive* the text position itself:
+
+- `LayoutBox` — `Label`, `Keyword`, `Compartments[].Title`/`Rows` (renderer computes title cursor Y,
+  keyword/label stacking, and whether to center — see the box-title-centering discussion below).
+- `LayoutPort` — `ExternalLabel`, `InternalLabel` (renderer computes the per-`Side` offset/anchor).
+- `LayoutLine` — `MidpointLabel` (renderer computes the midpoint placement and an occluding
+  background rect, see below).
+- `LayoutLifeline` — `Label` (renderer computes header-box text position).
+- `LayoutGrid` — `LayoutGridCell.Text` (renderer computes per-cell text position/alignment).
+- `LayoutBand` — `Label` (renderer computes edge-header position).
+- `LayoutBadge` — `Label` (renderer computes beside-badge position).
+
+Because `SvgRenderer` and `SkiaRasterRenderer` each independently reimplement these formulas, they
+can silently drift (confirmed: both renderers duplicated `RenderBoxTitle`/`ResolveTitleAreaTop`
+verbatim, which is exactly the kind of duplication that let a box-title-centering gap go unnoticed
+in one renderer's math without the other necessarily agreeing).
+
+**Proposed direction (large, deliberately deferred — not a quick fix):** have the layout engine
+itself emit fully-resolved `LayoutLabel` (or a renamed `LayoutText`) nodes for *all* of the above —
+i.e. `LayoutBox`/`LayoutPort`/`LayoutLine`/etc. stop carrying raw label strings and instead the
+engine synthesizes child `LayoutLabel` nodes at already-resolved positions, alongside the
+geometry-only parent node. This is the same pattern `LayoutLabel` already proves works — it just
+isn't used everywhere yet. Renderers would then have zero discretion over text *positioning*
+anywhere in the tree, only over drawing mechanics (glyph shaping, `SKPaint` vs. SVG `<text>`
+fitting, anti-aliasing) — which is where renderer-specific discretion actually belongs.
+
+This would also need `LayoutLabel` to gain an optional background-color field: today the
+occluding background painted behind `LayoutLine.MidpointLabel` (so the label reads cleanly over a
+crossing connector) is a separate, hardcoded mechanism in each renderer
+(`RenderLineLabel`/`RenderLineMidpointLabel`, and the SVG `label-bg` filter), always using
+`theme.BackgroundColor` — not a general, configurable property on `LayoutLabel` itself. Folding
+that occlusion behavior into a first-class `LayoutLabel.BackgroundColor` (or similar) would let one
+rendering path cover both the plain-label and occluded-label cases.
+
+**Scope note:** this is a genuine breaking change to the `LayoutTree` model (every box/port/
+line/grid/band/badge construction site across the layout engine would need to synthesize label
+children instead of carrying raw strings), so it needs a proper planning pass before
+implementation — not an opportunistic fix. A smaller, lower-risk interim step (extracting today's
+duplicated per-renderer formulas into shared static helpers, e.g. alongside `BoxMetrics`, so both
+renderers call one function instead of two independent copies) can close the immediate
+divergence-risk gap without committing to the full model change — see the leaf-box title
+centering item below, which is exactly this kind of interim fix.
+
+## Leaf-box title should be vertically centered
+
+Confirmed via direct gallery inspection: `RenderBoxTitle` (both `SvgRenderer` and
+`SkiaRasterRenderer`, independently duplicated) always pins the title/keyword block under the top
+padding (`cursorY = top + ContentInsetTop + LabelPadding`), for every box regardless of whether it
+has children or compartments. For a container with a header and compartments below, that's the
+correct convention. But for a leaf/atomic box — no `Children`, no `Compartments`, just a name (and
+optionally a keyword) — this reads as top-anchored with dead space below, which looks off (user
+feedback, comparing `Monitor`/`Control`-style plain boxes against a box like `Hub`, whose title
+only *looks* centered by accident because top/bottom port labels happen to box it in).
+
+**Fix:** when `box.Children.Count == 0 && box.Compartments.Count == 0`, center the title block
+vertically in the full box height instead of pinning it under the top padding. Containers with
+children or compartments keep the existing top-pinned header behavior unchanged. Needs to be fixed
+in both `SvgRenderer` and `SkiaRasterRenderer` (ideally via the shared-helper interim step
+described above, to avoid a third hand-copied formula).
+
 ## Process note
 
 When a future session identifies further deferred/advisory work, add it here rather than letting
