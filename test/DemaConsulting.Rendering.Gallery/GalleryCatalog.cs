@@ -150,38 +150,6 @@ internal static class GalleryCatalog
                     HierarchicalNestedPng,
                     "Hierarchical nested diagram as PNG",
                     "The hierarchical nested diagram rendered to a raster PNG image."),
-                new GalleryImage(
-                    PortsShowcaseHorizontalPng,
-                    "A hub node with a named port on each of its left and right sides as PNG",
-                    "The horizontal ports showcase rendered to a raster PNG image."),
-                new GalleryImage(
-                    PortsShowcaseVerticalPng,
-                    "A hub node with a named port on each of its top and bottom sides as PNG",
-                    "The vertical ports showcase rendered to a raster PNG image."),
-                new GalleryImage(
-                    ParallelEdgesMergedPng,
-                    "The same three parallel connectors collapsed to a single line as PNG",
-                    "The parallel edges merged diagram rendered to a raster PNG image."),
-                new GalleryImage(
-                    ParallelEdgesPreservedPng,
-                    "Three parallel connectors between the same two boxes, independently routed as PNG",
-                    "The parallel edges preserved diagram rendered to a raster PNG image."),
-                new GalleryImage(
-                    ParallelEdgesPreservedVerticalPng,
-                    "The same three parallel connectors on a downward-flowing pair of boxes as PNG",
-                    "The parallel edges preserved vertical diagram rendered to a raster PNG image."),
-                new GalleryImage(
-                    BoundaryPortsShowcaseHorizontalPng,
-                    "A container's boundary port delegating to two children as PNG",
-                    "The horizontal boundary-ports showcase rendered to a raster PNG image."),
-                new GalleryImage(
-                    BoundaryPortsShowcaseVerticalPng,
-                    "A container's top-face boundary port and one child as PNG",
-                    "The vertical boundary-ports showcase rendered to a raster PNG image."),
-                new GalleryImage(
-                    BoundaryPortsShowcaseDeepChainPng,
-                    "A boundary port delegating through a nested boundary port to a leaf as PNG",
-                    "The boundary-ports deep-chain showcase rendered to a raster PNG image."),
             ]),
         new GallerySection(
             "Box appearance",
