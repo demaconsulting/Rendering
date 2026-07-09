@@ -524,7 +524,7 @@ public sealed class SvgRenderer : IRenderer
     private static void RenderBoxTitle(StringBuilder sb, LayoutBox box, Theme theme, double scale)
     {
         var centerX = (box.X + (box.Width / 2.0)) * scale;
-        var cursorY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + theme.LabelPadding;
+        var cursorY = BoxMetrics.TitleCursorTop(box, theme);
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
         if (box.Keyword != null)

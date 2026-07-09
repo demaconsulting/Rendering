@@ -464,7 +464,7 @@ public abstract class SkiaRasterRenderer : IRenderer
         var theme = options.Theme;
         var scale = (float)options.Scale;
         var centerX = (float)((box.X + (box.Width / 2.0)) * scale);
-        var cursorY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + theme.LabelPadding;
+        var cursorY = BoxMetrics.TitleCursorTop(box, theme);
 
         // Keyword line (smaller, italic, guillemet-wrapped) above the name
         if (box.Keyword != null)

@@ -524,9 +524,13 @@ internal static class MergeRegionDecomposer
         var crossTotal = Padding;
         for (var i = 0; i < graph.Nodes.Count; i++)
         {
+            // Down/Up directions leave graph.Nodes axis-swapped (see AxisTransform.NormalizeInputAxes),
+            // so the cross-axis extent must come from RealWidth/RealHeight (the caller's true,
+            // never-swapped dimensions), not Width/Height, to match how InterconnectionLayoutEngine.Place
+            // computes the same footprint from its own un-swapped `nodes` parameter.
             var crossFar = transposed
-                ? graph.AugX[i] + graph.Nodes[i].Width
-                : graph.AugY[i] + graph.Nodes[i].Height;
+                ? graph.AugX[i] + graph.Nodes[i].RealWidth
+                : graph.AugY[i] + graph.Nodes[i].RealHeight;
             crossTotal = Math.Max(crossTotal, crossFar + Padding);
         }
 

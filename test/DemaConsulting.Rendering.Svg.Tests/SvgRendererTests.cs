@@ -46,28 +46,27 @@ public class SvgRendererTests
     [Fact]
     public void SvgRenderer_Render_FolderBox_TitleRecessedBelowTab()
     {
-        // Arrange: an equivalent rectangle and folder box, both wide enough that the folder's
-        // tab does not span the full width, so any title text still positioned at the tab's
-        // vertical band would be visibly outside the tab's horizontal extent.
+        // Arrange: a folder box wide enough that the tab does not span the full width, so any
+        // title text still positioned at the tab's vertical band would be visibly outside the
+        // tab's horizontal extent.
         var theme = Themes.Light;
-        var rectangleBox = new LayoutBox(0, 0, 200, 80, "Widget", 0, BoxShape.Rectangle, [], [], Keyword: "part def");
         var folderBox = new LayoutBox(0, 0, 200, 80, "Widget", 0, BoxShape.Folder, [], [], Keyword: "part def");
         var renderer = new SvgRenderer();
 
-        // Act: render both boxes and extract the keyword line's y-coordinate from each
-        var rectangleSvg = RenderToString(renderer, rectangleBox, theme);
+        // Act: render the box and extract the keyword line's y-coordinate
         var folderSvg = RenderToString(renderer, folderBox, theme);
-        var rectangleKeywordY = ExtractFirstTextY(rectangleSvg);
         var folderKeywordY = ExtractFirstTextY(folderSvg);
         var tabHeight = BoxMetrics.FolderTabHeight(theme);
 
-        // Assert: the folder's keyword text sits below the rectangle's equivalent position by
-        // (at least) the tab height, i.e. it is recessed below the tab rather than drawn at the
-        // very top of the bounding box.
+        // Assert: the folder's keyword text sits at or below the tab's bottom edge, i.e. it is
+        // recessed below the tab rather than floating in the empty notch above the box outline.
+        // (Both boxes are leaf boxes, so their titles are centered vertically within their own
+        // content height; the folder's centering window starts below the tab, so this invariant
+        // holds regardless of that centering offset.)
         Assert.True(
-            folderKeywordY >= rectangleKeywordY + tabHeight - 0.5,
-            $"Expected folder keyword y ({folderKeywordY}) to be at least tab height ({tabHeight}) " +
-            $"below the rectangle keyword y ({rectangleKeywordY}).");
+            folderKeywordY >= folderBox.Y + tabHeight - 0.5,
+            $"Expected folder keyword y ({folderKeywordY}) to be at or below the tab's bottom edge " +
+            $"({folderBox.Y + tabHeight}).");
     }
 
     /// <summary>

@@ -523,7 +523,7 @@ same-face crowding (no port-spacing-by-width work):
 
 ## Unify all text rendering onto a single `LayoutLabel`/`LayoutText` primitive
 
-Today eight `LayoutNode` types carry renderable text, and only one of them —
+Today eight `LayoutNode` types carry text to render, and only one of them —
 `LayoutLabel` — is a fully-resolved primitive (`X`/`Y`/`Align`/`Weight`/`Style`/`FontSize` all
 precomputed by the layout engine; a renderer just paints it, no discretion involved). Every other
 text-bearing type hands the renderer a raw string plus surrounding geometry and expects the
@@ -570,37 +570,26 @@ renderers call one function instead of two independent copies) can close the imm
 divergence-risk gap without committing to the full model change — see the leaf-box title
 centering item below, which is exactly this kind of interim fix.
 
-## Leaf-box title should be vertically centered
+## Leaf-box title should be vertically centered — resolved
 
-Confirmed via direct gallery inspection: `RenderBoxTitle` (both `SvgRenderer` and
-`SkiaRasterRenderer`, independently duplicated) always pins the title/keyword block under the top
-padding (`cursorY = top + ContentInsetTop + LabelPadding`), for every box regardless of whether it
-has children or compartments. For a container with a header and compartments below, that's the
-correct convention. But for a leaf/atomic box — no `Children`, no `Compartments`, just a name (and
-optionally a keyword) — this reads as top-anchored with dead space below, which looks off (user
-feedback, comparing `Monitor`/`Control`-style plain boxes against a box like `Hub`, whose title
-only *looks* centered by accident because top/bottom port labels happen to box it in).
+**Resolved.** Added `BoxMetrics.TitleCursorTop(LayoutBox, Theme)`, a shared formula both
+`SvgRenderer.RenderBoxTitle` and `SkiaRasterRenderer.RenderBoxTitle` now call. For a leaf box
+(`Children.Count == 0 && Compartments.Count == 0`) the title block is centered vertically within
+the box's own content height (excluding port-reserved `ContentInset*` margins); containers with
+children or compartments keep the existing top-pinned header behavior unchanged. This also closed
+the renderer-duplication gap for this one formula, as the "interim step" described above.
 
-**Fix:** when `box.Children.Count == 0 && box.Compartments.Count == 0`, center the title block
-vertically in the full box height instead of pinning it under the top padding. Containers with
-children or compartments keep the existing top-pinned header behavior unchanged. Needs to be fixed
-in both `SvgRenderer` and `SkiaRasterRenderer` (ideally via the shared-helper interim step
-described above, to avoid a third hand-copied formula).
+## Canvas margin: box edges can sit flush against the rendered viewport boundary — resolved
 
-## Canvas margin: box edges can sit flush against the rendered viewport boundary
-
-Confirmed via direct inspection of `boundary-ports-showcase-vertical.svg`/`.png`: the `Operator`
-box's right edge (`x=191`, `width=120`, so its stroke sits at `x=311`) sits essentially flush
-against the document's `viewBox`/canvas width of `312`, leaving under half a pixel of margin
-(and the stroke itself, at `stroke-width=1.5`, extends past the nominal edge). At typical render
-scale this reads as the box border being clipped/touching the canvas edge, which looks
-unintentional. This is a pre-existing canvas-sizing/padding gap, not something introduced by the
-boundary-port work — the overall `LayoutTree` bounding-box computation doesn't appear to reserve
-any outer margin beyond the exact extent of the outermost content, so any diagram whose outermost
-box happens to be flush with the computed extent will show this. Worth a small, low-risk fix:
-reserve a fixed outer margin (e.g. matching existing padding/spacing constants) around the whole
-`LayoutTree`'s computed content extent before it's used as the canvas/viewBox size, so no box
-border ever renders flush against the image boundary.
+**Resolved.** Root cause: `MergeRegionDecomposer.LevelFootprint`'s cross-axis extent computation
+used `graph.Nodes[i].Width`/`Height`, which for `LayoutDirection.Down`/`Up` are axis-swapped by
+`AxisTransform.NormalizeInputAxes` (`SwapNodeAxes`) and no longer represent the node's true screen
+width/height. `InterconnectionLayoutEngine.Place`'s equivalent (and correct) formula uses its own
+local, never-swapped `nodes` parameter, so it never hit this. Fixed by reading
+`RealWidth`/`RealHeight` (the caller's true, never-swapped dimensions, already carried on
+`LayerNode` for exactly this purpose) instead of `Width`/`Height` in the cross-axis loop. Confirmed
+fix via `boundary-ports-showcase-vertical.svg`: `viewBox` width grew from `312` (flush against the
+`Operator` box's right edge at `x=311`) to the expected `331` (full padding on both sides).
 
 ## Process note
 
