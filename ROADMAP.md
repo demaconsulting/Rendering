@@ -587,6 +587,21 @@ children or compartments keep the existing top-pinned header behavior unchanged.
 in both `SvgRenderer` and `SkiaRasterRenderer` (ideally via the shared-helper interim step
 described above, to avoid a third hand-copied formula).
 
+## Canvas margin: box edges can sit flush against the rendered viewport boundary
+
+Confirmed via direct inspection of `boundary-ports-showcase-vertical.svg`/`.png`: the `Operator`
+box's right edge (`x=191`, `width=120`, so its stroke sits at `x=311`) sits essentially flush
+against the document's `viewBox`/canvas width of `312`, leaving under half a pixel of margin
+(and the stroke itself, at `stroke-width=1.5`, extends past the nominal edge). At typical render
+scale this reads as the box border being clipped/touching the canvas edge, which looks
+unintentional. This is a pre-existing canvas-sizing/padding gap, not something introduced by the
+boundary-port work — the overall `LayoutTree` bounding-box computation doesn't appear to reserve
+any outer margin beyond the exact extent of the outermost content, so any diagram whose outermost
+box happens to be flush with the computed extent will show this. Worth a small, low-risk fix:
+reserve a fixed outer margin (e.g. matching existing padding/spacing constants) around the whole
+`LayoutTree`'s computed content extent before it's used as the canvas/viewBox size, so no box
+border ever renders flush against the image boundary.
+
 ## Process note
 
 When a future session identifies further deferred/advisory work, add it here rather than letting
