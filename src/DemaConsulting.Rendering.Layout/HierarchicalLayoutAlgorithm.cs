@@ -118,7 +118,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     /// <summary>
     /// Maximum number of cascading-sizing re-runs the combined pass performs before accepting the
     /// current sizes. Growth only ever propagates outward through the finite nesting chain, so a stable
-    /// fixpoint is reached in at most chain-depth iterations; this cap is a safety bound well above any
+    /// fixed point is reached in at most chain-depth iterations; this cap is a safety bound well above any
     /// realistic nesting depth.
     /// </summary>
     private const int MaxSizingIterations = 32;

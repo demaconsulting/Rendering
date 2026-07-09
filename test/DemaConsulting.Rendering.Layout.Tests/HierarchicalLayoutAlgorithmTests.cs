@@ -1484,7 +1484,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         // A genuine cross-container edge between the two nested children (routed by the cross-container
         // router, not a boundary port), plus an ordinary edge between the two container nodes so the
         // scope has real layered structure that the combined pass would place differently.
-        graph.AddEdge("leftchild-rightchild", leftChild, rightChild);
+        graph.AddEdge("leftChild-rightChild", leftChild, rightChild);
         graph.AddEdge("left-right", left, right);
 
         return graph;
