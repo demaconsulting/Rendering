@@ -306,6 +306,21 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
             }
         }
 
+        // Relaxation only ever nudges nodes relative to their neighbors, so the whole layout can
+        // drift away from the classic algorithm's "minimum Y equals Padding" invariant (e.g. a hub's
+        // downstream chain sliding into negative Y). Downstream consumers (canvas sizing, SVG viewBox)
+        // assume that invariant holds, so restore it by re-normalizing the final result the same way
+        // BkBalancedLayout does: shift everything so the minimum Y is exactly Padding.
+        var finalMinY = y.Min();
+        var normalizeShift = Padding - finalMinY;
+        if (normalizeShift != 0.0)
+        {
+            for (var i = 0; i < y.Length; i++)
+            {
+                y[i] += normalizeShift;
+            }
+        }
+
         return y;
     }
 
