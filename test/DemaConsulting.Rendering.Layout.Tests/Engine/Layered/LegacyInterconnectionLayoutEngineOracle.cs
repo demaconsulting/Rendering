@@ -584,7 +584,218 @@ internal static class LegacyInterconnectionLayoutEngineOracle
         }
 
         // Step 5: normalize each layout and return the balanced (median average) result.
-        return BkBalancedLayout(layouts, numAug);
+        var balanced = BkBalancedLayout(layouts, numAug);
+
+        // Step 6: relax residual port-centroid error for "hub" nodes — a real node with 2+ ports on
+        // one face connecting to 2+ distinct sibling nodes in an adjacent layer. Classic BK's
+        // per-node four-pass median only ever aligns a hub with ONE of its same-face neighbors per
+        // pass (the low or high median), so averaging the four passes gives each such neighbor only a
+        // partial (roughly half-magnitude) correction rather than the true least-squares-optimal
+        // position. See RelaxPortCentroids for the iterative fix.
+        return RelaxPortCentroids(augNodes, groups, augEdges, balanced, srcRelPortY, tgtRelPortY, NodeSpacing);
+    }
+
+    /// <summary>
+    /// Iteratively nudges every node's cross-axis position toward the least-squares-optimal
+    /// position implied by its neighbors' current positions and each edge's fixed port offsets,
+    /// re-projecting each layer back onto its order-preserving minimum-spacing constraint after
+    /// every sweep.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Classic Brandes-Köpf balancing (<see cref="BkBalancedLayout"/>) gives an excellent result for
+    /// ordinary chains and single-sided forks — the existing four-pass median already reaches the
+    /// least-squares optimum for those shapes, so this relaxation converges in its first sweep with
+    /// zero change (verified: a chain or one-sided fork's per-edge desired position already equals its
+    /// current position, since <see cref="BkBalancedLayout"/> already aligns it exactly). It only
+    /// meaningfully moves nodes for "hub" shapes — a real node with 2+ differently-positioned ports on
+    /// one face, each connecting to a different sibling node in an adjacent layer — where the classic
+    /// algorithm's one-median-per-pass limitation leaves a systematic partial-correction residual.
+    /// </para>
+    /// <para>
+    /// Each sweep computes, per node, the average of every incident edge's implied ideal position
+    /// (the neighbor's current position offset by the difference in relative port offsets), then
+    /// projects each layer's desired positions onto the closest order-preserving, minimum-spacing
+    /// sequence via isotonic regression (<see cref="ProjectSingleLayerOrder"/>) — so relative node order
+    /// and <paramref name="nodeSpacing"/> are always honored exactly as the single-pass algorithm would
+    /// enforce them. Iteration stops early once no node's position changes by more than a small
+    /// tolerance, or after a fixed sweep cap (bounded so pathological graphs cannot loop indefinitely);
+    /// the last computed values are used either way, so a graph that has not fully converged by the cap
+    /// still gets a partial improvement over the uncorrected balanced result, never a regression.
+    /// </para>
+    /// </remarks>
+    private static double[] RelaxPortCentroids(
+        List<AugNode> augNodes,
+        List<List<int>> groups,
+        List<AugEdge> augEdges,
+        double[] initialY,
+        double[] srcRelPortY,
+        double[] tgtRelPortY,
+        double nodeSpacing)
+    {
+        const int maxSweeps = 12;
+        const double tolerance = 1e-9;
+
+        var numAug = augNodes.Count;
+
+        // incident[v]: for every edge touching v, the neighbor node index and the (myRel, otherRel)
+        // port offsets needed to compute v's implied ideal position from that neighbor's position:
+        // implied = y[neighbor] + otherRel - myRel.
+        var incident = new List<(int Neighbor, double MyRel, double OtherRel)>[numAug];
+        for (var i = 0; i < numAug; i++)
+        {
+            incident[i] = [];
+        }
+
+        for (var ei = 0; ei < augEdges.Count; ei++)
+        {
+            var e = augEdges[ei];
+            incident[e.Source].Add((e.Target, srcRelPortY[ei], tgtRelPortY[ei]));
+            incident[e.Target].Add((e.Source, tgtRelPortY[ei], srcRelPortY[ei]));
+        }
+
+        var y = (double[])initialY.Clone();
+        var desiredForLayer = new double[augNodes.Count];
+        var layerCount = groups.Count;
+
+        for (var sweep = 0; sweep < maxSweeps; sweep++)
+        {
+            // Alternate sweep direction each iteration (forward then backward through the layer
+            // sequence) so corrections propagate across long layer chains in far fewer sweeps than a
+            // single fixed direction would need — mirroring why the classic four-pass algorithm itself
+            // scans both DOWN/UP and RIGHT/LEFT.
+            var layerStart = sweep % 2 == 0 ? 0 : layerCount - 1;
+            var layerEnd = sweep % 2 == 0 ? layerCount - 1 : 0;
+            var layerStep = sweep % 2 == 0 ? 1 : -1;
+
+            var maxDelta = 0.0;
+            for (var l = layerStart; sweep % 2 == 0 ? l <= layerEnd : l >= layerEnd; l += layerStep)
+            {
+                var layer = groups[l];
+                foreach (var i in layer)
+                {
+                    var edges = incident[i];
+                    if (edges.Count == 0)
+                    {
+                        desiredForLayer[i] = y[i];
+                        continue;
+                    }
+
+                    // Gauss-Seidel: neighbors in already-processed layers this sweep contribute their
+                    // freshly-updated position; neighbors not yet reached this sweep contribute their
+                    // value from the previous sweep (still in y). Using only fresh values (Jacobi-style
+                    // batching of a whole sweep before any update is visible) makes this bipartite-like
+                    // system oscillate with period 2 instead of converging — verified by hand-tracing a
+                    // hub example, where a whole-sweep batch update ping-pongs between two states forever.
+                    var sum = 0.0;
+                    foreach (var (neighbor, myRel, otherRel) in edges)
+                    {
+                        sum += y[neighbor] + otherRel - myRel;
+                    }
+
+                    desiredForLayer[i] = sum / edges.Count;
+                }
+
+                ProjectSingleLayerOrder(augNodes, layer, desiredForLayer, nodeSpacing, y, ref maxDelta);
+            }
+
+            if (maxDelta < tolerance)
+            {
+                break;
+            }
+        }
+
+        return y;
+    }
+
+    /// <summary>
+    /// Projects one layer's desired positions onto the closest (least-squares) sequence that
+    /// preserves the layer's existing node order and every consecutive pair's minimum required gap,
+    /// writing the result directly into <paramref name="y"/> and tracking the largest per-node change.
+    /// </summary>
+    /// <remarks>
+    /// Subtracting the cumulative minimum gap up to each node reduces the "must be at least this much
+    /// further than the previous node" constraint to a plain "must be no less than the previous node"
+    /// (weakly non-decreasing) constraint — exactly the classic isotonic regression problem solved by
+    /// <see cref="PoolAdjacentViolators"/>. Adding the same cumulative offset back afterward restores
+    /// the minimum-gap semantics.
+    /// </remarks>
+    private static void ProjectSingleLayerOrder(
+        List<AugNode> augNodes,
+        List<int> layer,
+        double[] desired,
+        double nodeSpacing,
+        double[] y,
+        ref double maxDelta)
+    {
+        var n = layer.Count;
+        if (n == 0)
+        {
+            return;
+        }
+
+        var offset = new double[n];
+        var adjusted = new double[n];
+        adjusted[0] = desired[layer[0]];
+        for (var i = 1; i < n; i++)
+        {
+            offset[i] = offset[i - 1] + augNodes[layer[i - 1]].Height + nodeSpacing;
+            adjusted[i] = desired[layer[i]] - offset[i];
+        }
+
+        var pooled = PoolAdjacentViolators(adjusted);
+
+        for (var i = 0; i < n; i++)
+        {
+            var node = layer[i];
+            var newValue = pooled[i] + offset[i];
+            maxDelta = Math.Max(maxDelta, Math.Abs(newValue - y[node]));
+            y[node] = newValue;
+        }
+    }
+
+    /// <summary>
+    /// Solves the classic (unweighted) isotonic regression problem: finds the weakly non-decreasing
+    /// sequence closest (in least-squares distance) to <paramref name="values"/>, via the
+    /// pool-adjacent-violators algorithm.
+    /// </summary>
+    private static double[] PoolAdjacentViolators(double[] values)
+    {
+        var n = values.Length;
+        var result = new double[n];
+
+        // Each stack entry is a pooled block: its mean and how many original elements it spans.
+        var blockMean = new double[n];
+        var blockCount = new int[n];
+        var top = -1;
+
+        for (var i = 0; i < n; i++)
+        {
+            top++;
+            blockMean[top] = values[i];
+            blockCount[top] = 1;
+
+            // Merge back while the new block's mean would violate monotonicity with its predecessor.
+            while (top > 0 && blockMean[top - 1] > blockMean[top])
+            {
+                var mergedCount = blockCount[top - 1] + blockCount[top];
+                var mergedMean = ((blockMean[top - 1] * blockCount[top - 1]) + (blockMean[top] * blockCount[top])) / mergedCount;
+                top--;
+                blockMean[top] = mergedMean;
+                blockCount[top] = mergedCount;
+            }
+        }
+
+        var index = 0;
+        for (var b = 0; b <= top; b++)
+        {
+            for (var c = 0; c < blockCount[b]; c++)
+            {
+                result[index++] = blockMean[b];
+            }
+        }
+
+        return result;
     }
 
     /// <summary>
