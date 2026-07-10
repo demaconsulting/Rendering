@@ -379,13 +379,15 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
 
                     if (side is PortSide.Left or PortSide.Right)
                     {
-                        var requiredUsable = labelHeight * (faceInfo.Total - 1);
-
-                        // Use effectiveTopReserve/insetBottom (which may now reserve a title band
-                        // excluded from left/right port placement — see the title-vs-side-port
-                        // reservation) so this candidate never replaces a title-aware minHeight with
-                        // a smaller, title-unaware one via the Math.Max below.
-                        var minHeightCandidate = requiredUsable + (2.0 * LayeredLayoutMetrics.ConnectorClearance) + effectiveTopReserve + insetBottom;
+                        // PortDistributor now centers each of faceInfo.Total ports within its own
+                        // equal-width slice of the face (see PortDistributor.DistributePorts), so
+                        // adjacent-port spacing equals nodeHeight / Total (not / (Total - 1) as the
+                        // old endpoint-inclusive linear formula gave) — require that per-slice height
+                        // to be at least the label's own line height, with no separate outer-edge
+                        // buffer term needed since the outermost slice's own half-height already gives
+                        // proportional corner clearance.
+                        var minHeightCandidate = Math.Max(labelHeight * faceInfo.Total, 2.0 * LayeredLayoutMetrics.ConnectorClearance)
+                            + effectiveTopReserve + insetBottom;
                         minHeight = Math.Max(minHeight, minHeightCandidate);
                     }
                     else
@@ -406,9 +408,12 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                             }
                         }
 
+                        // Same equal-area-slice reasoning as the Left/Right branch above, but along
+                        // the width axis: each port's slice must be at least as wide as the widest
+                        // same-side label so a Top/Bottom label (rendered centred on its port) never
+                        // overlaps its neighbor's label or overflows past the box's own edge.
                         var maxLabelWidth = Math.Max(faceInfo.MaxLabelWidth, sidePortMaxLabelWidth);
-                        var requiredUsable = maxLabelWidth * (faceInfo.Total - 1);
-                        var minWidthCandidate = requiredUsable + (2.0 * LayeredLayoutMetrics.ConnectorClearance);
+                        var minWidthCandidate = Math.Max(maxLabelWidth * faceInfo.Total, 2.0 * LayeredLayoutMetrics.ConnectorClearance);
                         minWidth = Math.Max(minWidth, minWidthCandidate);
                     }
                 }

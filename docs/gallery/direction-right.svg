@@ -42,6 +42,6 @@
   <text x="650.00" y="125.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Archive</text>
   <path d="M 140.00 85.00 L 210.00 85.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <path d="M 330.00 85.00 L 400.00 85.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 520.00 70.00 L 526.00 70.00 A 4.00 4.00 0 0 0 530.00 66.00 L 530.00 49.00 A 4.00 4.00 0 0 1 534.00 45.00 L 590.00 45.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 520.00 100.00 L 526.00 100.00 A 4.00 4.00 0 0 1 530.00 104.00 L 530.00 121.00 A 4.00 4.00 0 0 0 534.00 125.00 L 590.00 125.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 520.00 72.50 L 526.00 72.50 A 4.00 4.00 0 0 0 530.00 68.50 L 530.00 49.00 A 4.00 4.00 0 0 1 534.00 45.00 L 590.00 45.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 520.00 97.50 L 526.00 97.50 A 4.00 4.00 0 0 1 530.00 101.50 L 530.00 121.00 A 4.00 4.00 0 0 0 534.00 125.00 L 590.00 125.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
 </svg>

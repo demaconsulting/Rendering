@@ -176,11 +176,9 @@ public sealed class PortDistributorTests
         var graph = BuildPortedGraph(nodes, [new(0, 3), new(1, 3), new(2, 3)]);
 
         var tgt = graph.AugEdges[0].Target;
-        const double clearance = LayeredLayoutMetrics.ConnectorClearance;
-        var inset = Math.Min(clearance, nodes[tgt].Height / 2.0);
-        var usable = nodes[tgt].Height - (2.0 * inset);
 
-        // Assert: each recorded port Y matches the original even-spacing formula exactly.
+        // Assert: each recorded port Y matches the equal-area-center formula exactly — port k centred
+        // within the k-th of `count` equal slices of the face.
         var sorted = graph.AugEdges
             .Select((e, i) => (Edge: e, Index: i))
             .Where(x => x.Edge.Target == tgt)
@@ -190,7 +188,7 @@ public sealed class PortDistributorTests
             .ToList();
         for (var k = 0; k < sorted.Count; k++)
         {
-            var expected = graph.AugY[tgt] + inset + (k * usable / (sorted.Count - 1));
+            var expected = graph.AugY[tgt] + ((k + 0.5) * nodes[tgt].Height / sorted.Count);
             Assert.Equal(expected, graph.AugPortYTgt[sorted[k]], 9);
         }
     }

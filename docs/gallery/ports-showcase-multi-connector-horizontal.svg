@@ -34,8 +34,8 @@
   <text x="80.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">SensorA</text>
   <rect x="20.00" y="100.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="80.00" y="125.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">SensorB</text>
-  <rect x="210.00" y="49.20" width="328.60" height="71.60" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="374.30" y="62.20" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Hub</text>
+  <rect x="210.00" y="49.40" width="328.60" height="71.20" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="374.30" y="62.40" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Hub</text>
   <rect x="608.60" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="668.60" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">ActuatorA</text>
   <rect x="608.60" y="100.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>

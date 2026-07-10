@@ -675,9 +675,9 @@ internal static class LegacyInterconnectionLayoutEngineOracle
                 var portCount = sorted.Count;
                 for (var k = 0; k < portCount; k++)
                 {
-                    srcRelPortY[sorted[k]] = portCount == 1
-                        ? augNodes[ni].Height / 2.0
-                        : ConnectorClearance + (k * (augNodes[ni].Height - (2.0 * ConnectorClearance)) / (portCount - 1));
+                    // Equal-area-center distribution (kept in lockstep with PortDistributor.DistributePorts
+                    // so this legacy oracle remains a valid equivalence baseline for the refactored pipeline).
+                    srcRelPortY[sorted[k]] = (k + 0.5) * augNodes[ni].Height / portCount;
                 }
             }
         }
@@ -709,9 +709,9 @@ internal static class LegacyInterconnectionLayoutEngineOracle
                 var portCount = sorted.Count;
                 for (var k = 0; k < portCount; k++)
                 {
-                    tgtRelPortY[sorted[k]] = portCount == 1
-                        ? augNodes[ni].Height / 2.0
-                        : ConnectorClearance + (k * (augNodes[ni].Height - (2.0 * ConnectorClearance)) / (portCount - 1));
+                    // Equal-area-center distribution (kept in lockstep with PortDistributor.DistributePorts
+                    // so this legacy oracle remains a valid equivalence baseline for the refactored pipeline).
+                    tgtRelPortY[sorted[k]] = (k + 0.5) * augNodes[ni].Height / portCount;
                 }
             }
         }
@@ -1585,8 +1585,10 @@ internal static class LegacyInterconnectionLayoutEngineOracle
     // ── Port distribution ─────────────────────────────────────────────────────
 
     /// <summary>
-    /// Evenly distributes port Y positions along a node face, with
-    /// <see cref="ConnectorClearance"/> inset from the top and bottom edges.
+    /// Distributes port Y positions along a node face by dividing it into <c>count</c> equal-width
+    /// areas and centering each port within its own area (kept in lockstep with
+    /// <c>PortDistributor.DistributePorts</c> so this legacy oracle remains a valid equivalence
+    /// baseline for the refactored pipeline).
     /// </summary>
     private static void DistributePorts(
         IReadOnlyList<int> sortedEdgeIndices,
@@ -1597,21 +1599,7 @@ internal static class LegacyInterconnectionLayoutEngineOracle
         var count = sortedEdgeIndices.Count;
         for (var k = 0; k < count; k++)
         {
-            double y;
-            if (count == 1)
-            {
-                y = nodeTop + (nodeHeight / 2.0);
-            }
-            else
-            {
-                var usable = nodeHeight - (2.0 * ConnectorClearance);
-                y = nodeTop + ConnectorClearance + (k * usable / (count - 1));
-            }
-
-            portY[sortedEdgeIndices[k]] = Math.Clamp(
-                y,
-                nodeTop + ConnectorClearance,
-                nodeTop + nodeHeight - ConnectorClearance);
+            portY[sortedEdgeIndices[k]] = nodeTop + ((k + 0.5) * nodeHeight / count);
         }
     }
 }

@@ -196,8 +196,10 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
     /// <para>
     /// Port positions follow ELK's BKAligner preprocessing convention: a dummy node
     /// contributes relative port Y = 0 (the wire passes straight through); a real node
-    /// distributes its ports evenly between <see cref="ConnectorClearance"/> insets, or
-    /// at the midpoint when it has only one port on that face.
+    /// centers each of its ports within its own equal-width slice of the face — see
+    /// <see cref="PortDistributor.DistributePorts"/>, which this preview must mirror so the
+    /// alignment heuristic optimizes against the same port positions the pipeline ultimately
+    /// renders.
     /// </para>
     /// <para>
     /// <paramref name="leftNeighborEdges"/>[v] lists augmented-edge indices whose target is v,
@@ -276,9 +278,7 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
                 var portCount = sorted.Count;
                 for (var k = 0; k < portCount; k++)
                 {
-                    srcRelPortY[sorted[k]] = portCount == 1
-                        ? augNodes[ni].Height / 2.0
-                        : ConnectorClearance + (k * (augNodes[ni].Height - (2.0 * ConnectorClearance)) / (portCount - 1));
+                    srcRelPortY[sorted[k]] = (k + 0.5) * augNodes[ni].Height / portCount;
                 }
             }
         }
@@ -310,9 +310,7 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
                 var portCount = sorted.Count;
                 for (var k = 0; k < portCount; k++)
                 {
-                    tgtRelPortY[sorted[k]] = portCount == 1
-                        ? augNodes[ni].Height / 2.0
-                        : ConnectorClearance + (k * (augNodes[ni].Height - (2.0 * ConnectorClearance)) / (portCount - 1));
+                    tgtRelPortY[sorted[k]] = (k + 0.5) * augNodes[ni].Height / portCount;
                 }
             }
         }
