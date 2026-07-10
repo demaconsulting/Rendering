@@ -481,6 +481,92 @@ internal static class GalleryDiagrams
     }
 
     /// <summary>
+    ///     A five-node left-to-right chain exercising <em>two</em> named <see cref="LayoutGraphPort"/>s
+    ///     on each of the middle node's left and right sides — the multi-connector companion to
+    ///     <see cref="PortsShowcaseHorizontal"/>'s single-port-per-side case, demonstrating
+    ///     same-face crowding: two independently-labelled ports sharing one face, one of them
+    ///     deliberately long, so the box's <see cref="LayoutBox.ContentInsetLeft"/>/Right auto-grow
+    ///     from the widest same-side label and PortDistributor's even spacing between the two anchors
+    ///     never collapses onto a single row.
+    /// </summary>
+    /// <remarks>
+    ///     Also exercises this session's title-vs-side-port collision protection with a genuinely
+    ///     crowded face (not just the single-port case): the hub's title must stay clear of both
+    ///     stacked port rows on either side, at every combination of label length.
+    /// </remarks>
+    /// <returns>A five-node graph with two left ports and two right ports on its middle node.</returns>
+    public static LayoutGraph PortsShowcaseMultiConnectorHorizontal()
+    {
+        var graph = new LayoutGraph();
+
+        var sensorA = AddLabelled(graph, "sensor-a", "SensorA");
+        var sensorB = AddLabelled(graph, "sensor-b", "SensorB");
+        var hub = AddLabelled(graph, "hub", "Hub");
+        var actuatorA = AddLabelled(graph, "actuator-a", "ActuatorA");
+        var actuatorB = AddLabelled(graph, "actuator-b", "ActuatorB");
+
+        // Left side (incoming): two stacked ports, one with a deliberately long label.
+        var telemetryPort = hub.Ports.AddPort("telemetry");
+        telemetryPort.ExternalLabel = "a rather long telemetry feed";
+        Connect(graph, "sensorA-hub", sensorA, telemetryPort, null);
+
+        var heartbeatPort = hub.Ports.AddPort("heartbeat");
+        heartbeatPort.ExternalLabel = "heartbeat";
+        Connect(graph, "sensorB-hub", sensorB, heartbeatPort, null);
+
+        // Right side (outgoing): two more stacked ports, again of differing label length.
+        var primaryDrivePort = hub.Ports.AddPort("primary-drive");
+        primaryDrivePort.ExternalLabel = "primary drive command";
+        Connect(graph, "hub-actuatorA", primaryDrivePort, actuatorA, null);
+
+        var diagnosticsPort = hub.Ports.AddPort("diagnostics");
+        diagnosticsPort.ExternalLabel = "diag";
+        Connect(graph, "hub-actuatorB", diagnosticsPort, actuatorB, null);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     A five-node top-to-bottom chain exercising <em>two</em> named <see cref="LayoutGraphPort"/>s
+    ///     on each of the middle node's top and bottom sides — the vertical companion to
+    ///     <see cref="PortsShowcaseMultiConnectorHorizontal"/>, proving the same same-face crowding and
+    ///     title-collision protection when PortDistributor spreads anchors horizontally along a
+    ///     top/bottom face instead of vertically along a left/right one.
+    /// </summary>
+    /// <returns>A five-node graph with two top ports and two bottom ports on its middle node.</returns>
+    public static LayoutGraph PortsShowcaseMultiConnectorVertical()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        var monitorA = AddLabelled(graph, "monitor-a", "MonitorA");
+        var monitorB = AddLabelled(graph, "monitor-b", "MonitorB");
+        var hub = AddLabelled(graph, "hub", "Hub");
+        var controlA = AddLabelled(graph, "control-a", "ControlA");
+        var controlB = AddLabelled(graph, "control-b", "ControlB");
+
+        // Top side (incoming): two side-by-side ports, one with a deliberately long label.
+        var statusPort = hub.Ports.AddPort("status");
+        statusPort.ExternalLabel = "a rather long status feed";
+        Connect(graph, "monitorA-hub", monitorA, statusPort, null);
+
+        var alertPort = hub.Ports.AddPort("alert");
+        alertPort.ExternalLabel = "alert";
+        Connect(graph, "monitorB-hub", monitorB, alertPort, null);
+
+        // Bottom side (outgoing): two more side-by-side ports.
+        var ctrlPrimaryPort = hub.Ports.AddPort("ctrl-primary");
+        ctrlPrimaryPort.ExternalLabel = "primary control command";
+        Connect(graph, "hub-controlA", ctrlPrimaryPort, controlA, null);
+
+        var ctrlBackupPort = hub.Ports.AddPort("ctrl-backup");
+        ctrlBackupPort.ExternalLabel = "backup";
+        Connect(graph, "hub-controlB", ctrlBackupPort, controlB, null);
+
+        return graph;
+    }
+
+    /// <summary>
     ///     A sibling node joined to a container's <em>boundary (delegation) port</em>, which in turn
     ///     delegates inward to two nested children — the canonical boundary-port diagram, laid out
     ///     left-to-right.

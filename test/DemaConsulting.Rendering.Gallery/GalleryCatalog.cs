@@ -51,11 +51,15 @@ internal static class GalleryCatalog
     public const string ParallelEdgesPreservedVerticalSvg = "parallel-edges-preserved-vertical.svg";
     public const string PortsShowcaseHorizontalSvg = "ports-showcase-horizontal.svg";
     public const string PortsShowcaseVerticalSvg = "ports-showcase-vertical.svg";
+    public const string PortsShowcaseMultiConnectorHorizontalSvg = "ports-showcase-multi-connector-horizontal.svg";
+    public const string PortsShowcaseMultiConnectorVerticalSvg = "ports-showcase-multi-connector-vertical.svg";
     public const string BoundaryPortsShowcaseHorizontalSvg = "boundary-ports-showcase-horizontal.svg";
     public const string BoundaryPortsShowcaseVerticalSvg = "boundary-ports-showcase-vertical.svg";
     public const string BoundaryPortsShowcaseDeepChainSvg = "boundary-ports-showcase-deep-chain.svg";
     public const string PortsShowcaseHorizontalPng = "ports-showcase-horizontal.png";
     public const string PortsShowcaseVerticalPng = "ports-showcase-vertical.png";
+    public const string PortsShowcaseMultiConnectorHorizontalPng = "ports-showcase-multi-connector-horizontal.png";
+    public const string PortsShowcaseMultiConnectorVerticalPng = "ports-showcase-multi-connector-vertical.png";
     public const string ParallelEdgesMergedPng = "parallel-edges-merged.png";
     public const string ParallelEdgesPreservedPng = "parallel-edges-preserved.png";
     public const string ParallelEdgesPreservedVerticalPng = "parallel-edges-preserved-vertical.png";
@@ -224,6 +228,19 @@ internal static class GalleryCatalog
                     "A hub node with a named port on each of its top and bottom sides",
                     "The companion top/bottom case: a downward-flowing hub node, whose ports anchor on "
                     + "its top and bottom faces instead."),
+                new GalleryImage(
+                    PortsShowcaseMultiConnectorHorizontalSvg,
+                    "A hub node with two named ports on each of its left and right sides",
+                    "Same-face crowding with two independently-labelled ports per side (one "
+                    + "deliberately long): PortDistributor spreads both anchors on each face without "
+                    + "collapsing them onto one row, and the hub's title stays clear of both stacked "
+                    + "rows on either side."),
+                new GalleryImage(
+                    PortsShowcaseMultiConnectorVerticalSvg,
+                    "A hub node with two named ports on each of its top and bottom sides",
+                    "The companion top/bottom case: two ports per face spread horizontally instead of "
+                    + "vertically, proving the same crowding and title-collision protection when "
+                    + "PortDistributor works along the cross axis of a downward flow."),
             ]),
         new GallerySection(
             "Boundary and delegation ports",

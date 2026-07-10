@@ -73,6 +73,13 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         {
             var node = graphNodes[i];
             indexOf[node] = i;
+            // TitleReserveTop excludes a band from PortDistributor's left/right-face port placement
+            // (see PortDistributor.TitleReserveFor) to keep a *named* port's rendered label clear of
+            // the title. A node with no declared LayoutGraphPorts only has plain, unlabeled edge
+            // anchors on its faces — nothing rendered there could ever collide with the title text —
+            // so the reserve must stay 0.0 for it; otherwise every titled node's single/plain
+            // connector anchors would be shifted off-center for no real collision risk (e.g. a simple
+            // A -> B -> C pipeline with no named ports at all).
             engineNodes[i] = new LayerNode(
                 node.Width,
                 node.Height,
@@ -83,7 +90,9 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                 node.Label,
                 RealWidth: node.Width,
                 RealHeight: node.Height,
-                TitleReserveTop: LayeredLayoutMetrics.ResolveTitleReserveTop(node.Label != null, node.Keyword != null, assumedFontSize));
+                TitleReserveTop: node.HasPorts
+                    ? LayeredLayoutMetrics.ResolveTitleReserveTop(node.Label != null, node.Keyword != null, assumedFontSize)
+                    : 0.0);
 
             if (!node.HasPorts)
             {
@@ -302,6 +311,27 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                 + (PortLabelClearance * 2) + insetLeft + insetRight;
             var minHeight = assumedFontSize + (PortLabelClearance * 2) + effectiveTopReserve + insetBottom;
 
+            // SvgRenderer.EmitPortLabel draws a Left/Right port's ExternalLabel at
+            // (port.CentreY + FontSizeBody / 2) — an asymmetric downward shift from the port glyph's
+            // own centre, not the symmetric top/bottom clearance the row floor above assumes. Without
+            // compensating for that shift, half of the clearance above sits unused above the port row
+            // while the shifted-down label text (plus its own glyph descent) can run past the box's
+            // bottom edge — exactly what a single labeled port on a titled box's face produces (the
+            // title reserve leaves only one row for the port, so there is no slack elsewhere to absorb
+            // the shift). Add the same downward-shift amount as extra bottom margin, gated on the face
+            // actually carrying a named, labeled port: bySide (from sidePorts, already resolved above)
+            // is the same dictionary ResolveContentInsets uses and only records named
+            // LayoutGraphPort labels (unlike faceAnchors.AnyLabeled, which tracks the *edge's own*
+            // mid-line label instead of a port's ExternalLabel and would miss this case entirely) — an
+            // anonymous edge endpoint draws no label near the box face and needs no extra room.
+            var hasLabeledLeftOrRightAnchor = bySide != null
+                && ((bySide.TryGetValue(PortSide.Left, out var leftLabels) && leftLabels.Exists(l => !string.IsNullOrEmpty(l)))
+                    || (bySide.TryGetValue(PortSide.Right, out var rightLabels) && rightLabels.Exists(l => !string.IsNullOrEmpty(l))));
+            if (hasLabeledLeftOrRightAnchor)
+            {
+                minHeight += assumedFontSize / 2.0;
+            }
+
             // Port-label MaxLabelWidth floor (this fix): ResolveMaxLabelWidth halves the box's own placed
             // width to bound a Left/Right port label independently of ContentInsetLeft/Right, so a box that
             // only grew enough to fit the *inset* (insetLeft + insetRight + title) can still end up with
@@ -325,12 +355,24 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
             // anchor's actual label width, since — unlike height — label width varies by text). Only
             // ever raises minHeight/minWidth (never lowers either), and is a no-op for every face with
             // 0-1 anchors or no labeled anchors.
+            //
+            // "Labeled" here must include a named port's ExternalLabel, not just an edge's own
+            // mid-line Label: faceInfo.AnyLabeled is populated solely from emission.Edge.Label (see
+            // RecordAnchor), so a face whose anchors carry only port ExternalLabels (no edge labels
+            // at all, e.g. two named ports on one face with plain edges) would otherwise never
+            // trigger this floor and could render its stacked port labels crowded/overlapping — the
+            // exact same faceAnchors-vs-sidePorts distinction as hasLabeledLeftOrRightAnchor above.
+            // bySide (from sidePorts) is reused here for the same reason.
             if (faceAnchors.TryGetValue(i, out var byFace))
             {
                 var labelHeight = ConnectorLabelPlacer.EstimateLabelHeight(assumedFontSize);
                 foreach (var (side, faceInfo) in byFace)
                 {
-                    if (faceInfo.Total < 2 || !faceInfo.AnyLabeled)
+                    List<string>? sideLabels = null;
+                    bySide?.TryGetValue(side, out sideLabels);
+                    var sidePortLabeled = sideLabels != null && sideLabels.Exists(l => !string.IsNullOrEmpty(l));
+
+                    if (faceInfo.Total < 2 || (!faceInfo.AnyLabeled && !sidePortLabeled))
                     {
                         continue;
                     }
@@ -348,7 +390,24 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                     }
                     else
                     {
-                        var requiredUsable = faceInfo.MaxLabelWidth * (faceInfo.Total - 1);
+                        var sidePortMaxLabelWidth = 0.0;
+                        if (sidePortLabeled)
+                        {
+                            foreach (var label in sideLabels!)
+                            {
+                                if (string.IsNullOrEmpty(label))
+                                {
+                                    continue;
+                                }
+
+                                sidePortMaxLabelWidth = Math.Max(
+                                    sidePortMaxLabelWidth,
+                                    ConnectorLabelPlacer.EstimateLabelWidth(label, assumedFontSize));
+                            }
+                        }
+
+                        var maxLabelWidth = Math.Max(faceInfo.MaxLabelWidth, sidePortMaxLabelWidth);
+                        var requiredUsable = maxLabelWidth * (faceInfo.Total - 1);
                         var minWidthCandidate = requiredUsable + (2.0 * LayeredLayoutMetrics.ConnectorClearance);
                         minWidth = Math.Max(minWidth, minWidthCandidate);
                     }

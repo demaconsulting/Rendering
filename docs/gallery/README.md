@@ -142,6 +142,17 @@ ContentInsetLeft margin, measured with the Skia-backed text measurer.
 
 The companion top/bottom case: a downward-flowing hub node, whose ports anchor on its top and bottom faces instead.
 
+![A hub node with two named ports on each of its left and right sides](ports-showcase-multi-connector-horizontal.svg)
+
+Same-face crowding with two independently-labelled ports per side (one deliberately long): PortDistributor spreads both
+anchors on each face without collapsing them onto one row, and the hub's title stays clear of both stacked rows on
+either side.
+
+![A hub node with two named ports on each of its top and bottom sides](ports-showcase-multi-connector-vertical.svg)
+
+The companion top/bottom case: two ports per face spread horizontally instead of vertically, proving the same crowding
+and title-collision protection when PortDistributor works along the cross axis of a downward flow.
+
 ## Boundary and delegation ports
 
 The hierarchical engine's support for boundary (delegation) ports: a container may expose a named port carrying BOTH an

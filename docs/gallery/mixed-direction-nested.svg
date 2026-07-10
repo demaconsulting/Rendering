@@ -30,7 +30,7 @@
       <feComposite in="SourceGraphic" operator="over"/>
     </filter>
   </defs>
-  <rect x="20.00" y="183.00" width="120.00" height="52.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <rect x="20.00" y="184.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="80.00" y="209.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Intake</text>
   <rect x="210.00" y="20.00" width="184.00" height="378.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="302.00" y="33.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Pipeline</text>
@@ -42,8 +42,8 @@
   <text x="302.00" y="341.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Publish</text>
   <path d="M 302.00 126.00 L 302.00 196.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <path d="M 302.00 246.00 L 302.00 316.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <rect x="464.00" y="183.00" width="120.00" height="52.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <rect x="464.00" y="184.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="524.00" y="209.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Archive</text>
-  <path d="M 140.00 225.00 L 210.00 225.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 394.00 225.00 L 464.00 225.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 140.00 209.00 L 210.00 209.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 394.00 209.00 L 464.00 209.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
 </svg>

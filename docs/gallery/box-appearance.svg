@@ -40,8 +40,8 @@
   <text x="288.00" y="156.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="italic" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">ports</text>
   <text x="288.00" y="180.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">intake : FluidPort</text>
   <text x="288.00" y="198.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">exhaust : FluidPort</text>
-  <rect x="52.00" y="117.00" width="160.00" height="76.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <rect x="52.00" y="133.00" width="160.00" height="44.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="132.00" y="145.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">«part def»</text>
   <text x="132.00" y="164.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">ElectricMotor</text>
-  <path d="M 212.00 183.00 L 282.00 183.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle)"/>
+  <path d="M 212.00 155.00 L 282.00 155.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle)"/>
 </svg>

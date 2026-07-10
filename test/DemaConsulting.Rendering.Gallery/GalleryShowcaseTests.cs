@@ -307,6 +307,36 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
+    ///     Renders the multi-connector horizontal ports showcase to SVG, proving two independently
+    ///     labelled <see cref="LayoutGraphPort"/>s sharing a single left or right face spread evenly
+    ///     without collapsing onto one row, and that the hub's title stays clear of both stacked port
+    ///     rows on either side.
+    /// </summary>
+    [Fact]
+    public void Gallery_PortsShowcaseMultiConnectorHorizontal_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.PortsShowcaseMultiConnectorHorizontalSvg,
+            GalleryDiagrams.PortsShowcaseMultiConnectorHorizontal(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the multi-connector vertical ports showcase to SVG — the companion to
+    ///     <see cref="Gallery_PortsShowcaseMultiConnectorHorizontal_RendersSvg"/> — proving the same
+    ///     same-face crowding and title-collision protection when PortDistributor spreads anchors
+    ///     horizontally along a top/bottom face instead of vertically along a left/right one.
+    /// </summary>
+    [Fact]
+    public void Gallery_PortsShowcaseMultiConnectorVertical_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.PortsShowcaseMultiConnectorVerticalSvg,
+            GalleryDiagrams.PortsShowcaseMultiConnectorVertical(),
+            Themes.Dark);
+    }
+
+    /// <summary>
     ///     Renders the horizontal boundary-ports showcase to SVG, proving a container's boundary
     ///     (delegation) port emits one shared <see cref="LayoutPort"/> anchor carrying both an outward
     ///     external label and an inward internal label, with the sibling's external approach edge and
@@ -374,6 +404,32 @@ public sealed class GalleryShowcaseTests
         GalleryWriter.Png(
             GalleryCatalog.PortsShowcaseVerticalPng,
             GalleryDiagrams.PortsShowcaseVertical(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the multi-connector horizontal ports showcase to PNG, proving the raster path
+    ///     handles two labelled ports sharing a single left or right face.
+    /// </summary>
+    [Fact]
+    public void Gallery_PortsShowcaseMultiConnectorHorizontal_RendersPng()
+    {
+        GalleryWriter.Png(
+            GalleryCatalog.PortsShowcaseMultiConnectorHorizontalPng,
+            GalleryDiagrams.PortsShowcaseMultiConnectorHorizontal(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the multi-connector vertical ports showcase to PNG, proving the raster path
+    ///     handles two labelled ports sharing a single top or bottom face.
+    /// </summary>
+    [Fact]
+    public void Gallery_PortsShowcaseMultiConnectorVertical_RendersPng()
+    {
+        GalleryWriter.Png(
+            GalleryCatalog.PortsShowcaseMultiConnectorVerticalPng,
+            GalleryDiagrams.PortsShowcaseMultiConnectorVertical(),
             Themes.Dark);
     }
 
