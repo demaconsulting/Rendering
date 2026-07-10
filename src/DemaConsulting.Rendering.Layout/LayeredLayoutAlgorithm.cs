@@ -64,6 +64,8 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         // Map each input node to a positional index the layered engine works in terms of, and each
         // named port to the index of the node that owns it (a port has no independent box; it always
         // anchors to its owning node's placed rectangle).
+        var assumedFontSize = ResolveAssumedFontSize(graph, options);
+
         var indexOf = new Dictionary<LayoutGraphNode, int>(count);
         var portOwnerIndex = new Dictionary<LayoutGraphPort, int>();
         var engineNodes = new LayerNode[count];
@@ -80,7 +82,8 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                 node.FolderTabHeight,
                 node.Label,
                 RealWidth: node.Width,
-                RealHeight: node.Height);
+                RealHeight: node.Height,
+                TitleReserveTop: LayeredLayoutMetrics.ResolveTitleReserveTop(node.Label != null, node.Keyword != null, assumedFontSize));
 
             if (!node.HasPorts)
             {
@@ -117,7 +120,6 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         var direction = ToEngineDirection(ResolveDirection(graph, options));
         var nodeSpacing = ResolveNodeSpacing(graph, options);
         var mergeParallelEdges = ResolveMergeParallelEdges(graph, options);
-        var assumedFontSize = ResolveAssumedFontSize(graph, options);
 
         // Count how many raw input edges share each (source, target) pair, so the final connector
         // emission loop can tell whether an emitted line is a genuine single edge or the survivor of
@@ -280,9 +282,25 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
             var (insetLeft, insetRight, insetTop, insetBottom) =
                 ResolveContentInsets(bySide, assumedFontSize, hasTitle: graphNodes[i].Label != null);
 
+            // PortDistributor excludes engineNodes[i].TitleReserveTop from left/right-face port
+            // placement for every titled node that actually has a left/right anchor (see the
+            // layered pipeline's title-vs-side-port reservation), regardless of whether that anchor
+            // resolves to a named LayoutGraphPort. insetTop above only widens for *named* ports
+            // (sidePorts only tracks those), so an anonymous edge endpoint on a titled node's
+            // left/right face would otherwise have its usable band shrunk by the exclusion without
+            // minHeight ever growing to compensate; take whichever of the two is larger so every
+            // downstream minHeight floor below reflects the band PortDistributor will actually
+            // exclude. Gated on faceAnchors (unconditional anchor counts, unlike sidePorts) actually
+            // having a Left/Right entry, since TitleReserveTop is computed per titled node
+            // regardless of whether it has any side port at all — applying it unconditionally would
+            // over-reserve (and needlessly grow) every titled leaf, side ports or not.
+            var hasLeftOrRightAnchor = faceAnchors.TryGetValue(i, out var byFaceForReserve)
+                && (byFaceForReserve.ContainsKey(PortSide.Left) || byFaceForReserve.ContainsKey(PortSide.Right));
+            var effectiveTopReserve = Math.Max(insetTop, hasLeftOrRightAnchor ? engineNodes[i].TitleReserveTop : 0.0);
+
             var minWidth = PortLabelWidthEstimator.MeasureWidth(graphNodes[i].Label ?? string.Empty, assumedFontSize)
                 + (PortLabelClearance * 2) + insetLeft + insetRight;
-            var minHeight = assumedFontSize + (PortLabelClearance * 2) + insetTop + insetBottom;
+            var minHeight = assumedFontSize + (PortLabelClearance * 2) + effectiveTopReserve + insetBottom;
 
             // Port-label MaxLabelWidth floor (this fix): ResolveMaxLabelWidth halves the box's own placed
             // width to bound a Left/Right port label independently of ContentInsetLeft/Right, so a box that
@@ -320,7 +338,12 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                     if (side is PortSide.Left or PortSide.Right)
                     {
                         var requiredUsable = labelHeight * (faceInfo.Total - 1);
-                        var minHeightCandidate = requiredUsable + (2.0 * LayeredLayoutMetrics.ConnectorClearance);
+
+                        // Use effectiveTopReserve/insetBottom (which may now reserve a title band
+                        // excluded from left/right port placement — see the title-vs-side-port
+                        // reservation) so this candidate never replaces a title-aware minHeight with
+                        // a smaller, title-unaware one via the Math.Max below.
+                        var minHeightCandidate = requiredUsable + (2.0 * LayeredLayoutMetrics.ConnectorClearance) + effectiveTopReserve + insetBottom;
                         minHeight = Math.Max(minHeight, minHeightCandidate);
                     }
                     else
@@ -367,6 +390,23 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
             var (insetLeft, insetRight, insetTop, insetBottom) =
                 ResolveContentInsets(bySide, assumedFontSize, hasTitle: graphNodes[i].Label != null);
 
+            // A box whose ContentInsetTop was reserved specifically to keep a *left/right* port's
+            // label out of the title's own row (see ResolveContentInsets' left/right fallback branch)
+            // uses that inset as the title's own top-pinned band, excluded from port placement by
+            // PortDistributor's title-vs-side-port reservation (see
+            // LayeredLayoutMetrics.ResolveTitleReserveTop). BoxMetrics.TitleCursorTop's CenterTitle
+            // branch instead treats ContentInsetTop as space reserved by something else *above* the
+            // title, then centers the title in the box's *remaining* height — exactly the band where
+            // those left/right ports live. Centering would therefore pull the title back down into
+            // the ports it was just excluded from. A *top*-port box's ContentInsetTop means the
+            // opposite (space reserved above the title, by the top port itself), where centering
+            // below it is correct — see ResolveContentInsets, where the two reservations are mutually
+            // exclusive. Keep the title top-pinned (CenterTitle: false) only for the left/right case,
+            // and reserve centering for every other leaf (no ports, or top/bottom ports only).
+            var hasNamedLeftOrRightPort = bySide != null
+                && !bySide.ContainsKey(PortSide.Top)
+                && (bySide.ContainsKey(PortSide.Left) || bySide.ContainsKey(PortSide.Right));
+
             nodes.Add(new LayoutBox(
                 rect.X,
                 rect.Y,
@@ -384,7 +424,8 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                 ContentInsetLeft: insetLeft,
                 ContentInsetRight: insetRight,
                 ContentInsetTop: insetTop,
-                ContentInsetBottom: insetBottom));
+                ContentInsetBottom: insetBottom,
+                CenterTitle: graphNodes[i].Compartments.Count == 0 && !hasNamedLeftOrRightPort));
         }
 
         // Emit one connector (and, for a port endpoint, one LayoutPort) per emitted edge. When 2+ raw
@@ -604,6 +645,13 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
             {
                 bottom = Math.Max(bottom, titleClearance);
             }
+
+            // Deliberately no left/right-port fallback here: a box with only left/right ports and a
+            // title needs its *rendered* ContentInsetTop to stay 0 so the title still renders
+            // top-pinned at the box's own edge (see the box-emission site's CenterTitle gating) —
+            // the growth-floor need for this case is handled separately via
+            // engineNodes[i].TitleReserveTop/effectiveTopReserve in the Fix-5 growth loop, which does
+            // not depend on this function's return value.
         }
 
         return (left, right, top, bottom);
@@ -638,7 +686,7 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
     /// <param name="graph">The graph whose explicit declaration takes precedence.</param>
     /// <param name="options">The options consulted when the graph declares no value.</param>
     /// <returns>The assumed font size, in logical pixels.</returns>
-    private static double ResolveAssumedFontSize(LayoutGraph graph, LayoutOptions options)
+    internal static double ResolveAssumedFontSize(LayoutGraph graph, LayoutOptions options)
     {
         if (graph.TryGet(CoreOptions.AssumedFontSize, out var fromGraph))
         {

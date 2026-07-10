@@ -100,4 +100,97 @@ public sealed class BoxMetricsTests
         // Assert
         Assert.Throws<ArgumentNullException>(Act);
     }
+
+    /// <summary>No left/right ports means the existing inset passes through unchanged.</summary>
+    [Fact]
+    public void BoxMetrics_ResolveTitleVsSidePortContentInsetTop_NoSidePorts_ReturnsExistingInset()
+    {
+        // Arrange
+        var theme = Themes.Light;
+
+        // Act
+        var inset = BoxMetrics.ResolveTitleVsSidePortContentInsetTop(
+            theme,
+            hasLeftOrRightPorts: false,
+            hasLabel: true,
+            hasKeyword: true,
+            existingInsetTop: 5.0);
+
+        // Assert
+        Assert.Equal(5.0, inset);
+    }
+
+    /// <summary>No label and no keyword means there is no title to protect against.</summary>
+    [Fact]
+    public void BoxMetrics_ResolveTitleVsSidePortContentInsetTop_NoTitle_ReturnsExistingInset()
+    {
+        // Arrange
+        var theme = Themes.Light;
+
+        // Act
+        var inset = BoxMetrics.ResolveTitleVsSidePortContentInsetTop(
+            theme,
+            hasLeftOrRightPorts: true,
+            hasLabel: false,
+            hasKeyword: false,
+            existingInsetTop: 3.0);
+
+        // Assert
+        Assert.Equal(3.0, inset);
+    }
+
+    /// <summary>Left/right ports plus a title reserve at least the title-area height.</summary>
+    [Fact]
+    public void BoxMetrics_ResolveTitleVsSidePortContentInsetTop_SidePortsWithTitle_ReservesTitleAreaHeight()
+    {
+        // Arrange
+        var theme = Themes.Light;
+        var expectedTitleHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: true);
+
+        // Act
+        var inset = BoxMetrics.ResolveTitleVsSidePortContentInsetTop(
+            theme,
+            hasLeftOrRightPorts: true,
+            hasLabel: true,
+            hasKeyword: true,
+            existingInsetTop: 0.0);
+
+        // Assert
+        Assert.Equal(expectedTitleHeight, inset);
+    }
+
+    /// <summary>A larger pre-existing inset (e.g. from a compartment header) is preserved.</summary>
+    [Fact]
+    public void BoxMetrics_ResolveTitleVsSidePortContentInsetTop_ExistingInsetLarger_KeepsExistingInset()
+    {
+        // Arrange
+        var theme = Themes.Light;
+        var titleHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: false);
+        var largerExisting = titleHeight + 100.0;
+
+        // Act
+        var inset = BoxMetrics.ResolveTitleVsSidePortContentInsetTop(
+            theme,
+            hasLeftOrRightPorts: true,
+            hasLabel: true,
+            hasKeyword: false,
+            existingInsetTop: largerExisting);
+
+        // Assert
+        Assert.Equal(largerExisting, inset);
+    }
+
+    /// <summary>A null theme is rejected with an <see cref="ArgumentNullException"/>.</summary>
+    [Fact]
+    public void BoxMetrics_ResolveTitleVsSidePortContentInsetTop_NullTheme_ThrowsArgumentNullException()
+    {
+        // Arrange
+        Theme? theme = null;
+
+        // Act
+        void Act() => BoxMetrics.ResolveTitleVsSidePortContentInsetTop(theme!, true, true, true);
+
+        // Assert
+        Assert.Throws<ArgumentNullException>(Act);
+    }
 }

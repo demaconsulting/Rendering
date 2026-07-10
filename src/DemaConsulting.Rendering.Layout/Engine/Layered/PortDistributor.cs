@@ -58,7 +58,8 @@ internal sealed class PortDistributor : ILayoutStage
                     .ToList();
                 if (ShapeAnchorSupport.IsPlainRectangle(nodes[ni]))
                 {
-                    DistributePorts(sorted, augY[ni], nodes[ni].Height, augPortYSrc);
+                    var reserve = TitleReserveFor(graph.Direction, nodes[ni]);
+                    DistributePorts(sorted, augY[ni] + reserve, nodes[ni].Height - reserve, augPortYSrc);
                 }
                 else
                 {
@@ -99,7 +100,8 @@ internal sealed class PortDistributor : ILayoutStage
                 var node = nodes[ni];
                 if (ShapeAnchorSupport.IsPlainRectangle(node))
                 {
-                    DistributePorts(sorted, augY[ni], node.Height, augPortYTgt);
+                    var reserve = TitleReserveFor(graph.Direction, node);
+                    DistributePorts(sorted, augY[ni] + reserve, node.Height - reserve, augPortYTgt);
                 }
                 else
                 {
@@ -111,6 +113,22 @@ internal sealed class PortDistributor : ILayoutStage
         graph.AugPortYSrc = augPortYSrc;
         graph.AugPortYTgt = augPortYTgt;
     }
+
+    /// <summary>
+    /// Resolves the title band, in logical pixels, to exclude from left/right-face port placement for
+    /// <paramref name="node"/>: <see cref="LayerNode.TitleReserveTop"/> when the requested flow
+    /// direction leaves the abstract cross-axis band correlated with the box's real top edge, or 0
+    /// otherwise (see <see cref="LayerNode.TitleReserveTop"/> remarks). Capped at the node's own
+    /// height so a node too small to hold the reserve degrades to the plain full-span band instead of
+    /// producing a negative usable span.
+    /// </summary>
+    /// <param name="direction">The layout's requested flow direction.</param>
+    /// <param name="node">The real node whose title reserve is being resolved.</param>
+    /// <returns>The title band height to exclude, in logical pixels.</returns>
+    private static double TitleReserveFor(LayoutDirection direction, LayerNode node) =>
+        direction is LayoutDirection.Right or LayoutDirection.Left
+            ? Math.Min(node.TitleReserveTop, node.Height)
+            : 0.0;
 
     /// <summary>
     /// Evenly distributes port Y positions along a node face, with

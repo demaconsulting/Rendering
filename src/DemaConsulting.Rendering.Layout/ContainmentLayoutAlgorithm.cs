@@ -122,7 +122,8 @@ public sealed class ContainmentLayoutAlgorithm : ILayoutAlgorithm
                 Keyword: node.Keyword,
                 RoundedCornerRadius: node.RoundedCornerRadius,
                 FolderTabWidth: node.FolderTabWidth,
-                FolderTabHeight: node.FolderTabHeight);
+                FolderTabHeight: node.FolderTabHeight,
+                CenterTitle: node.Compartments.Count == 0);
         }
 
         // Pack the leaf boxes into rows within a width budget derived from a roughly 4:3 canvas, keeping

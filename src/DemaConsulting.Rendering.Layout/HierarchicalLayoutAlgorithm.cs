@@ -326,8 +326,15 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
         // from the combined pass, so a fan-in of boundary approaches routes through the corridor router's
         // own orthogonal channels rather than being patched onto a shared anchor.
         var engineDirection = ToEngineDirection(effective.Get(CoreOptions.Direction));
+
+        // The recursive merge-region pipeline's title-vs-side-port reserve is deliberately left at 0
+        // (no exclusion) for now: unlike the flat engine, a boundary-port container's own left/right
+        // anchor also has to satisfy the hierarchy-crossing dummy's already-delicate cross-axis pinning
+        // (see PinIncomingCrossings), and reserving a title band there was found to reintroduce a
+        // longer-bend detour in the internal-fan-out boundary-port scenario. See ROADMAP.md for the
+        // follow-up to extend the reservation here once that interaction is worked out.
         var region = MergeRegionGraphAssembler.Assemble(graph, boundaryPorts, effectiveSize);
-        var placement = RunRecursiveWithCascadingSizing(region, effectiveSize, engineDirection);
+        var placement = RunRecursiveWithCascadingSizing(region, effectiveSize, engineDirection, assumedFontSize: 0.0);
         var decomposed = MergeRegionDecomposer.Decompose(placement, engineDirection, composed);
 
         var crossLines = RouteCrossContainerEdges(routedEdges, decomposed.Boxes, decomposed.IndexOf, descendantToDirect, effective);
@@ -356,11 +363,16 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     /// grown in place as inner content demands more room so the next re-run reserves the larger box.
     /// </param>
     /// <param name="direction">The region's flow direction.</param>
+    /// <param name="assumedFontSize">
+    /// The <c>CoreOptions.AssumedFontSize</c>-derived font size used to reserve each node's title band
+    /// from left/right port placement.
+    /// </param>
     /// <returns>The fully-placed, size-stable recursive layout result.</returns>
     private static RecursiveLayoutResult RunRecursiveWithCascadingSizing(
         AssembledMergeRegion region,
         Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize,
-        LayoutDirection direction)
+        LayoutDirection direction,
+        double assumedFontSize)
     {
         var pipeline = LayeredLayoutPipeline.Builder()
             .Direction(direction)
@@ -372,7 +384,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
         var sizingPairs = new List<(LayoutGraphNode Container, MergeRegionLevel Child)>();
         CollectSizingPairs(region.Root, sizingPairs);
 
-        var result = pipeline.RunRecursive(region);
+        var result = pipeline.RunRecursive(region, assumedFontSize);
         for (var iteration = 0; iteration < MaxSizingIterations; iteration++)
         {
             var grew = false;
@@ -398,7 +410,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
                 break;
             }
 
-            result = pipeline.RunRecursive(region);
+            result = pipeline.RunRecursive(region, assumedFontSize);
         }
 
         return result;
@@ -621,7 +633,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
                     children.Add(Translate(childNode, offsetX, offsetY));
                 }
 
-                composed[i] = box with { Children = children };
+                composed[i] = box with { Children = children, CenterTitle = false };
             }
             else
             {

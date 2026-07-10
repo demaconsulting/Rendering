@@ -59,21 +59,69 @@ public static class BoxMetrics
     }
 
     /// <summary>
+    /// Computes the recommended <see cref="LayoutBox.ContentInsetTop"/> for a box that has left
+    /// and/or right ports and a title (name and/or keyword), so those ports never land in the
+    /// same row as the title text.
+    /// </summary>
+    /// <remarks>
+    /// This is the public counterpart of the title-vs-side-port reservation that
+    /// <c>LayeredLayoutAlgorithm</c> and <c>HierarchicalLayoutAlgorithm</c> apply automatically
+    /// when a <c>LayoutGraph</c> is laid out through this library's own algorithms. A caller that
+    /// instead constructs <see cref="LayoutBox"/> / port geometry directly — bypassing
+    /// <c>LayoutGraph</c> entirely, as an external layout strategy might — never runs through that
+    /// algorithm code path, so its left/right port labels get no automatic protection from the
+    /// box's own title. Call this helper while building such a box to opt into the same protection
+    /// without reimplementing the formula.
+    /// </remarks>
+    /// <param name="theme">Theme providing font and padding metrics.</param>
+    /// <param name="hasLeftOrRightPorts">Whether the box has any port anchored on its left or right edge.</param>
+    /// <param name="hasLabel">Whether the box has a name label.</param>
+    /// <param name="hasKeyword">Whether the box has a keyword line above the name.</param>
+    /// <param name="existingInsetTop">
+    /// Any <see cref="LayoutBox.ContentInsetTop"/> the caller already reserves for another reason
+    /// (e.g. a compartment header). The result never reserves less than this.
+    /// </param>
+    /// <returns>
+    /// The recommended <see cref="LayoutBox.ContentInsetTop"/>: <paramref name="existingInsetTop"/>
+    /// unchanged when there are no left/right ports or no title to protect against, otherwise the
+    /// larger of <paramref name="existingInsetTop"/> and the box's <see cref="TitleAreaHeight"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="theme"/> is <see langword="null"/>.</exception>
+    public static double ResolveTitleVsSidePortContentInsetTop(
+        Theme theme,
+        bool hasLeftOrRightPorts,
+        bool hasLabel,
+        bool hasKeyword,
+        double existingInsetTop = 0.0)
+    {
+        ArgumentNullException.ThrowIfNull(theme);
+
+        if (!hasLeftOrRightPorts || (!hasLabel && !hasKeyword))
+        {
+            return existingInsetTop;
+        }
+
+        return Math.Max(existingInsetTop, TitleAreaHeight(theme, hasLabel, hasKeyword));
+    }
+
+    /// <summary>
     /// Computes the Y coordinate at which a box's title block (keyword line, if any, then the bold
     /// name line) should begin, i.e. the position immediately before the leading
     /// <see cref="Theme.LabelPadding"/> gap that precedes the first line. Both renderers must call
     /// this so title placement never silently diverges between them.
     /// </summary>
     /// <remarks>
-    /// A box with children or compartments always has its title pinned directly under the top
-    /// (folder-tab-adjusted) edge, since the title acts as a header above that content. A leaf box
-    /// — no children and no compartments — instead has its title block centered vertically within
-    /// the box's own content height (excluding any port-reserved <c>ContentInset*</c> margins), so a
-    /// plain name-only box doesn't read as top-anchored with dead space below. This centering is
-    /// skipped when the box has a left- or right-side port (<see cref="LayoutBox.ContentInsetLeft"/>
-    /// or <see cref="LayoutBox.ContentInsetRight"/> greater than zero), because such a port's
-    /// inward-rendered label runs horizontally through the box's mid-height band and would otherwise
-    /// visually collide with a centered title.
+    /// A box with <see cref="LayoutBox.CenterTitle"/> <see langword="false"/> (the default) always
+    /// has its title pinned directly under the top (folder-tab-adjusted) edge, since a container's
+    /// title acts as a header above its content. A box with <see cref="LayoutBox.CenterTitle"/>
+    /// <see langword="true"/> — set only by a layout algorithm that knows the box is a genuine
+    /// atomic leaf — instead has its title block centered vertically within the box's own content
+    /// height (excluding any port-reserved <c>ContentInset*</c> margins), so a plain name-only box
+    /// doesn't read as top-anchored with dead space below. Once a box's <c>ContentInsetTop</c>
+    /// already reserves room for the title above any left/right port band (see the layout
+    /// algorithm's title-vs-side-port reservation), a left/right port can never land in the title's
+    /// row regardless of whether the title is centered or top-pinned, so no further special-casing
+    /// is needed here.
     /// </remarks>
     /// <param name="box">Box whose title position is being resolved.</param>
     /// <param name="theme">Theme providing font and padding metrics.</param>
@@ -90,13 +138,7 @@ public static class BoxMetrics
         var top = box.Shape == BoxShape.Folder ? box.Y + tabHeight : box.Y;
         var availableTop = top + box.ContentInsetTop;
 
-        // Leaf boxes (no children, no compartments) center the title block vertically within the
-        // box's own content height instead of pinning it to the top. Skip centering when the box
-        // has a left- or right-side port (ContentInsetLeft/Right > 0): those ports' inward-rendered
-        // labels run horizontally through the box's mid-height band, and a centered title would
-        // land in and visually collide with that same band.
-        var hasSidePort = box.ContentInsetLeft > 0.0 || box.ContentInsetRight > 0.0;
-        if (box.Children.Count == 0 && box.Compartments.Count == 0 && !hasSidePort)
+        if (box.CenterTitle)
         {
             var availableBottom = box.Y + box.Height - box.ContentInsetBottom;
             var titleHeight = TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
