@@ -31,27 +31,27 @@
     </filter>
   </defs>
   <rect x="12.00" y="12.00" width="90.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="57.00" y="25.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Core</text>
+  <text x="57.00" y="37.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Core</text>
   <rect x="126.00" y="12.00" width="150.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="201.00" y="25.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Model</text>
+  <text x="201.00" y="37.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Model</text>
   <rect x="12.00" y="86.00" width="110.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="67.00" y="99.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Layout</text>
+  <text x="67.00" y="111.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Layout</text>
   <rect x="146.00" y="86.00" width="70.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="181.00" y="99.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Svg</text>
+  <text x="181.00" y="111.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Svg</text>
   <rect x="240.00" y="86.00" width="80.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="280.00" y="99.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Skia</text>
+  <text x="280.00" y="111.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Skia</text>
   <rect x="12.00" y="160.00" width="200.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="112.00" y="173.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Abstractions</text>
+  <text x="112.00" y="185.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Abstractions</text>
   <rect x="12.00" y="234.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="72.00" y="247.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Themes</text>
+  <text x="72.00" y="259.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Themes</text>
   <rect x="156.00" y="234.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="221.00" y="247.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Options</text>
+  <text x="221.00" y="259.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Options</text>
   <rect x="12.00" y="308.00" width="110.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="67.00" y="321.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Engine</text>
+  <text x="67.00" y="333.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Engine</text>
   <rect x="146.00" y="308.00" width="140.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="216.00" y="321.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Registry</text>
+  <text x="216.00" y="333.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Registry</text>
   <rect x="12.00" y="382.00" width="150.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="87.00" y="395.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Renderer</text>
+  <text x="87.00" y="407.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Renderer</text>
   <rect x="186.00" y="382.00" width="90.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="231.00" y="395.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Graph</text>
+  <text x="231.00" y="407.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Graph</text>
 </svg>

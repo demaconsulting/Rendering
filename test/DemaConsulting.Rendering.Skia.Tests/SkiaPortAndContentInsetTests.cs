@@ -278,9 +278,13 @@ public sealed class SkiaPortAndContentInsetTests
     public void PngRenderer_RenderBoxTitle_AsymmetricContentInsets_StaysAtGeometricCenter()
     {
         // Arrange: two boxes, one with a symmetric (zero) inset and one with a large left inset only,
-        // both otherwise identical.
+        // both otherwise identical. Both carry a trivial nested child (tucked in a bottom corner well
+        // outside the title's scan band) so they are non-leaf and keep the title top-pinned rather
+        // than vertically centered, isolating this test's horizontal-position invariant from the
+        // leaf-box title-centering behavior exercised elsewhere.
         var renderer = new PngRenderer();
-        var plain = new LayoutBox(0, 0, 200, 100, "Hub", 0, BoxShape.Rectangle, [], []);
+        var nested = new LayoutBox(150, 90, 40, 8, null, 0, BoxShape.Rectangle, [], []);
+        var plain = new LayoutBox(0, 0, 200, 100, "Hub", 0, BoxShape.Rectangle, [], [nested]);
         var inset = plain with { ContentInsetLeft = 60.0, ContentInsetRight = 0.0 };
         var options = new RenderOptions(Themes.Light);
         var background = SKColor.Parse(Themes.Light.BackgroundColor);

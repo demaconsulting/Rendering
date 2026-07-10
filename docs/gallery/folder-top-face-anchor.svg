@@ -34,11 +34,11 @@
   <text x="112.00" y="176.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">«package»</text>
   <text x="112.00" y="195.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Utilities</text>
   <rect x="52.00" y="220.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="112.00" y="233.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">GlobMatcher</text>
+  <text x="112.00" y="245.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">GlobMatcher</text>
   <rect x="52.00" y="340.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="112.00" y="353.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">PathHelpers</text>
+  <text x="112.00" y="365.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">PathHelpers</text>
   <path d="M 112.00 270.00 L 112.00 340.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <rect x="52.00" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="112.00" y="33.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Client</text>
+  <text x="112.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Client</text>
   <path d="M 112.00 70.00 L 112.00 76.00 A 4.00 4.00 0 0 0 116.00 80.00 L 144.20 80.00 A 4.00 4.00 0 0 1 148.20 84.00 L 148.20 164.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
 </svg>

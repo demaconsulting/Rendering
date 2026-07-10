@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="312.00" height="438.00" viewBox="0 0 312.00 438.00">
+<svg xmlns="http://www.w3.org/2000/svg" width="331.00" height="438.00" viewBox="0 0 331.00 438.00">
   <defs>
     <marker id="line-end-open-chevron" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#C0C0D8" stroke-width="1.50"/>
@@ -31,13 +31,13 @@
     </filter>
   </defs>
   <rect x="41.00" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="101.00" y="33.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Monitor</text>
+  <text x="101.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Monitor</text>
   <rect x="191.00" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="251.00" y="33.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Operator</text>
+  <text x="251.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Operator</text>
   <rect x="84.00" y="210.00" width="184.00" height="208.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="176.00" y="255.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Controller</text>
   <rect x="116.00" y="336.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="176.00" y="349.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Driver</text>
+  <text x="176.00" y="361.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Driver</text>
   <path d="M 176.00 210.00 L 176.00 266.00 L 176.00 336.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <path d="M 101.00 70.00 L 101.00 76.00 A 4.00 4.00 0 0 0 105.00 80.00 L 172.00 80.00 A 4.00 4.00 0 0 1 176.00 84.00 L 176.00 140.00 L 176.00 210.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <path d="M 251.00 70.00 L 251.00 76.00 A 4.00 4.00 0 0 1 247.00 80.00 L 180.00 80.00 A 4.00 4.00 0 0 0 176.00 84.00 L 176.00 140.00 L 176.00 210.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>

@@ -31,8 +31,8 @@
     </filter>
   </defs>
   <rect x="20.00" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="80.00" y="33.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Producer</text>
+  <text x="80.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Producer</text>
   <rect x="210.00" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="270.00" y="33.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Consumer</text>
+  <text x="270.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Consumer</text>
   <path d="M 140.00 45.00 L 210.00 45.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
 </svg>
