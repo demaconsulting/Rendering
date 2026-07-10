@@ -237,16 +237,23 @@ internal static class MergeRegionGraphAssembler
     /// </summary>
     /// <param name="region">The assembled merge region whose every level is built.</param>
     /// <param name="direction">The flow direction each level's graph is laid out along.</param>
+    /// <param name="assumedFontSize">
+    /// The <c>CoreOptions.AssumedFontSize</c>-derived font size used to reserve each node's title band
+    /// from left/right port placement (see <see cref="LayeredLayoutMetrics.ResolveTitleReserveTop"/>).
+    /// Defaults to 0, which resolves every node's title reserve to 0 (no exclusion), for callers that
+    /// pre-date this parameter.
+    /// </param>
     /// <returns>A lookup from each level to its assembled layered graph and crossing bookkeeping.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="region"/> is <see langword="null"/>.</exception>
     public static IReadOnlyDictionary<MergeRegionLevel, LevelLayeredGraph> BuildAllLevelGraphs(
         AssembledMergeRegion region,
-        LayoutDirection direction)
+        LayoutDirection direction,
+        double assumedFontSize = 0.0)
     {
         ArgumentNullException.ThrowIfNull(region);
 
         var result = new Dictionary<MergeRegionLevel, LevelLayeredGraph>();
-        BuildAllLevelGraphs(region.Root, direction, result);
+        BuildAllLevelGraphs(region.Root, direction, assumedFontSize, result);
         return result;
     }
 
@@ -256,6 +263,7 @@ internal static class MergeRegionGraphAssembler
     /// </summary>
     /// <param name="level">The level to build a graph for.</param>
     /// <param name="direction">The flow direction each level's graph is laid out along.</param>
+    /// <param name="assumedFontSize">The font size used to resolve each node's title reserve.</param>
     /// <param name="sink">The accumulating level-to-graph lookup.</param>
     /// <remarks>
     /// Populates <paramref name="sink"/> in pre-order (a level before its children) and
@@ -267,12 +275,13 @@ internal static class MergeRegionGraphAssembler
     private static void BuildAllLevelGraphs(
         MergeRegionLevel level,
         LayoutDirection direction,
+        double assumedFontSize,
         Dictionary<MergeRegionLevel, LevelLayeredGraph> sink)
     {
-        sink[level] = BuildLevelGraph(level, direction);
+        sink[level] = BuildLevelGraph(level, direction, assumedFontSize);
         foreach (var (_, _, child) in level.Children)
         {
-            BuildAllLevelGraphs(child, direction, sink);
+            BuildAllLevelGraphs(child, direction, assumedFontSize, sink);
         }
     }
 
@@ -282,7 +291,7 @@ internal static class MergeRegionGraphAssembler
     /// dummy for the same port can find the corresponding parent-scope placement once that parent level
     /// has been placed.
     /// </summary>
-    /// <param name="levels">Every nesting level's assembled graph, as built by <see cref="BuildAllLevelGraphs(AssembledMergeRegion, LayoutDirection)"/>.</param>
+    /// <param name="levels">Every nesting level's assembled graph, as built by <see cref="BuildAllLevelGraphs(AssembledMergeRegion, LayoutDirection, double)"/>.</param>
     /// <returns>A lookup from boundary port to the level owning its external-face crossing and that crossing's node index.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="levels"/> is <see langword="null"/>.</exception>
     public static IReadOnlyDictionary<LayoutGraphPort, (MergeRegionLevel Level, int NodeIndex)> BuildExternalCrossingIndex(
@@ -314,7 +323,7 @@ internal static class MergeRegionGraphAssembler
     /// <remarks>
     /// Must run after the parent level's own placement stages have completed - guaranteed by
     /// <c>LayeredLayoutPipeline.RunRecursive</c>'s parent-before-child level iteration order, itself a
-    /// consequence of <see cref="BuildAllLevelGraphs(AssembledMergeRegion, LayoutDirection)"/>'s pre-order
+    /// consequence of <see cref="BuildAllLevelGraphs(AssembledMergeRegion, LayoutDirection, double)"/>'s pre-order
     /// population (see that method's remarks) - and before this level's own <c>BrandesKopfPlacer</c> runs.
     /// The pin is read from whichever abstract axis carries the cross-axis semantic for
     /// <paramref name="direction"/>: for <see cref="LayoutDirection.Down"/>/<see cref="LayoutDirection.Up"/>
@@ -413,9 +422,17 @@ internal static class MergeRegionGraphAssembler
     /// </remarks>
     /// <param name="level">The nesting level to build a layered graph for.</param>
     /// <param name="direction">The flow direction the level is laid out along; defaults to <see cref="LayoutDirection.Right"/>.</param>
+    /// <param name="assumedFontSize">
+    /// The <c>CoreOptions.AssumedFontSize</c>-derived font size used to reserve each node's title band
+    /// from left/right port placement; defaults to 0 (no reserve) for callers that pre-date this
+    /// parameter.
+    /// </param>
     /// <returns>The per-level layered graph and its hierarchy-crossing bookkeeping, ready to feed the recursive pipeline.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="level"/> is <see langword="null"/>.</exception>
-    internal static LevelLayeredGraph BuildLevelGraph(MergeRegionLevel level, LayoutDirection direction = LayoutDirection.Right)
+    internal static LevelLayeredGraph BuildLevelGraph(
+        MergeRegionLevel level,
+        LayoutDirection direction = LayoutDirection.Right,
+        double assumedFontSize = 0.0)
     {
         ArgumentNullException.ThrowIfNull(level);
 
@@ -433,7 +450,8 @@ internal static class MergeRegionGraphAssembler
                 node.FolderTabHeight,
                 node.Label,
                 RealWidth: width,
-                RealHeight: height));
+                RealHeight: height,
+                TitleReserveTop: LayeredLayoutMetrics.ResolveTitleReserveTop(node.Label != null, node.Keyword != null, assumedFontSize)));
         }
 
         var edges = new List<LayerEdge>();

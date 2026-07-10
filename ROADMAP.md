@@ -374,6 +374,14 @@ of preference:
   and the opposite-port squeeze above solves the cross-face collision. This keeps the feature
   focused and defers a general same-face "text fitting" concern to a separate, dedicated roadmap
   entry.
+  
+  **Update — real-world evidence for prioritizing this.** A SysML2Tools diagram (`LBO3AxisGantry`,
+  9 ports on one face, ~12.4px between 12px-font labels) surfaced actual same-face crowding in
+  practice, arguing for moving "widen port spacing to fit the widest label" (below) up in
+  priority rather than leaving it fully deferred. Not implemented in this pass — the fix above
+  only addresses the title-vs-port-band collision (a different axis of the same box), not
+  same-face spacing between sibling ports — but this is now a known, evidenced gap rather than a
+  purely hypothetical one.
 - **Widen port spacing to fit the widest label on a face.** `PortDistributor` would space ports
   apart using `ITextMeasurer`-measured widths rather than the fixed `EdgeSpacing` constant — a
   natural extension of the same measurer this entry already introduces, so no new architectural
@@ -573,11 +581,81 @@ centering item below, which is exactly this kind of interim fix.
 ## Leaf-box title should be vertically centered — resolved
 
 **Resolved.** Added `BoxMetrics.TitleCursorTop(LayoutBox, Theme)`, a shared formula both
-`SvgRenderer.RenderBoxTitle` and `SkiaRasterRenderer.RenderBoxTitle` now call. For a leaf box
-(`Children.Count == 0 && Compartments.Count == 0`) the title block is centered vertically within
-the box's own content height (excluding port-reserved `ContentInset*` margins); containers with
-children or compartments keep the existing top-pinned header behavior unchanged. This also closed
-the renderer-duplication gap for this one formula, as the "interim step" described above.
+`SvgRenderer.RenderBoxTitle` and `SkiaRasterRenderer.RenderBoxTitle` now call. Rather than
+inferring leaf status from `Children.Count == 0 && Compartments.Count == 0` at render time, the
+formula reads a stored `LayoutBox.CenterTitle` flag, set once by each algorithm at box-emission
+time: the flat engines (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`) set it from
+`Compartments.Count == 0` (every box they emit is a positional leaf, so this is a safe signal
+there), while `HierarchicalLayoutAlgorithm.ComposeBoxes` explicitly overrides it to `false` for
+boxes it composes with real nested `Children`. This split was needed after a regression surfaced
+in real-world use (a SysML2Tools diagram routed through the merge-region/hierarchical pipeline):
+that pipeline's root scope box is built with `Children: []` (its part-boxes/ports/lines are
+flattened siblings, not true nested children), so a naive `Children.Count == 0` leaf check
+wrongly centered the *root* box's title dead in the middle of the whole canvas, with connector
+lines routed straight through it. The `CenterTitle` flag now records the correct leaf/container
+distinction at the point where each algorithm actually knows it, rather than re-deriving it later
+from geometry that doesn't reliably distinguish "flattened root" from "genuine leaf". For a leaf
+box the title block is centered vertically within the box's own content height (excluding
+port-reserved `ContentInset*` margins); containers keep the existing top-pinned header behavior
+unchanged. This also closed the renderer-duplication gap for this one formula, as the "interim
+step" described above.
+
+## Title text colliding with left/right port labels — resolved
+
+**Resolved.** A box with left/right ports and a title/keyword previously had no protection from
+its own port labels landing directly on top of the title text — the reserved-margin mechanism
+above (see "Reserved title/compartment margins for ports on the top/bottom face") only ever
+reserved `ContentInsetTop`/`ContentInsetBottom` for *top/bottom*-port boxes, never for left/right
+ports sharing a face with a title. This was the root cause of a real-world SysML2Tools regression
+(`StepperMotorX`'s `encoder`/optical-sensor port labels rendering on top of `StepperMotorX :
+StepperMotor`; `LBO3AxisGantry`'s `J73` label fully hidden under the box's own title).
+
+Fixed by extending the same reservation to left/right ports: `LayeredLayoutMetrics
+.ResolveTitleReserveTop(hasLabel, hasKeyword, assumedFontSize)` computes the vertical band a
+box's own title/keyword needs, and `PortDistributor` now excludes that band from the top of the
+left/right port-placement range for plain-rectangle nodes (shaped nodes are an accepted, documented
+scope limit — see below). `LayeredLayoutAlgorithm.ResolveContentInsets` reserves the same amount
+into `ContentInsetTop` so the box also grows tall enough to fit both the title and the
+now-excluded port band, rather than merely displacing ports into space that was never added.
+
+This fix currently applies only to the **flat** engine (`LayeredLayoutAlgorithm` /
+`ContainmentLayoutAlgorithm`, i.e. `CoreOptions.Direction` of `Left`/`Right`, non-hierarchical
+graphs). The hierarchical/merge-region pipeline (`HierarchicalLayoutAlgorithm` /
+`MergeRegionGraphAssembler`) threads the same `assumedFontSize` parameter through its `LayerNode`
+construction but is deliberately called with `assumedFontSize: 0.0` for now (which resolves the
+reserve to exactly zero, a documented, intentional no-op) — enabling it there interacted badly
+with a boundary-port container's own already-delicate cross-axis anchor pinning (see
+`MergeRegionDecomposer`'s hierarchy-crossing dummy routing), reintroducing an extra routing bend
+in the internal-fan-out boundary-port test scenario. Extending this protection to
+container-with-boundary-port scenarios (the same pattern class as `LBO3AxisGantry`'s own
+container title, and `Controller`-style delegation boxes generally) is the natural follow-up, but
+needs its own dedicated investigation into how the reserve should interact with boundary-port
+anchor pinning, rather than being forced through as a byproduct of this fix.
+
+Also fixed a `Direction`-transposition and a named-vs-anonymous-port asymmetry discovered while
+implementing this: `PortDistributor`'s exclusion only makes sense when the cross-axis band
+genuinely maps to the box's real top edge, which is only true for non-transposed `Right`/`Left`
+flow (not `Down`/`Up`); and a box's growth-floor (`minHeight`) calculation previously only
+accounted for the reserve via `sidePorts`, which only tracks named `LayoutGraphPort`s, so a
+titled box with only anonymous/plain edge endpoints on its left/right face could have its port
+band shrunk by `PortDistributor` without ever growing to compensate. Fixed via
+`effectiveTopReserve = Math.Max(insetTop, engineNodes[i].TitleReserveTop)`, applied everywhere
+`insetTop` previously fed a `minHeight` floor.
+
+## Public helper for callers constructing raw `LayoutBox`/port geometry outside `LayoutGraph`
+
+**Resolved.** A caller that builds `LayoutBox`/port geometry directly — bypassing `LayoutGraph`
+and this library's own layout algorithms entirely, as an external layout strategy might (e.g. a
+SysML2Tools-style strategy that hand-computes box sizes and constructs raw `LayoutPort` records
+from routed-polyline endpoints) — never ran through `LayeredLayoutAlgorithm`/
+`HierarchicalLayoutAlgorithm`'s code path, so it got none of the title-vs-side-port protection
+described above, no matter how carefully it filled in `ContentInsetTop`. Added
+`BoxMetrics.ResolveTitleVsSidePortContentInsetTop(Theme, hasLeftOrRightPorts, hasLabel,
+hasKeyword, existingInsetTop)`, a small public helper in `Rendering.Abstractions` that computes
+the same recommended `ContentInsetTop` using `Theme`-derived font metrics (rather than the
+internal engines' single `assumedFontSize` heuristic), so an external strategy can opt into this
+protection with one call while constructing its own `LayoutBox`, without reimplementing the
+formula or needing a full rewrite onto the `LayoutGraphPort` object model.
 
 ## Canvas margin: box edges can sit flush against the rendered viewport boundary — resolved
 
@@ -590,6 +668,22 @@ local, never-swapped `nodes` parameter, so it never hit this. Fixed by reading
 `LayerNode` for exactly this purpose) instead of `Width`/`Height` in the cross-axis loop. Confirmed
 fix via `boundary-ports-showcase-vertical.svg`: `viewBox` width grew from `312` (flush against the
 `Operator` box's right edge at `x=311`) to the expected `331` (full padding on both sides).
+
+## Defensive exclusion zone for connector routing crossing a box's own title
+
+A box's title/keyword region can currently be crossed by a routed connector line if a caller
+supplies pre-positioned raw `LayoutBox`/`LayoutPort`/line geometry directly (bypassing
+`LayoutGraph` and this library's own routing), regardless of how carefully that caller reserves
+`ContentInset*` margins — nothing in the renderer or a routing helper defensively keeps a
+connector out of a box's own title band. Surfaced by the same SysML2Tools regression as the two
+"resolved" items above: `InterconnectionViewLayoutStrategy` built its root scope box with
+`Children: []` and flat sibling geometry, and (independent of the leaf-title-centering bug
+itself) nothing would have stopped a line from crossing that box's title even once its centering
+was fixed. Worth a defensive check — e.g. a shared helper that nudges/bends a line's waypoints
+around a box's title rectangle when it would otherwise cross it — but this is routing-side new
+surface area (not just a margin reservation) and hasn't been scoped in detail yet; deferred to a
+future pass rather than folded into the title-vs-port-margin fix above, which only protects
+against port labels, not arbitrary externally-supplied connector geometry.
 
 ## Process note
 

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="748.60" height="170.00" viewBox="0 0 748.60 170.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+      <line x1="7" y1="0" x2="7" y2="7" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#1E1E2E"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="20.00" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="80.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">SensorA</text>
+  <rect x="20.00" y="100.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="80.00" y="125.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">SensorB</text>
+  <rect x="210.00" y="49.40" width="328.60" height="71.20" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="374.30" y="62.40" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Hub</text>
+  <rect x="608.60" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="668.60" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">ActuatorA</text>
+  <rect x="608.60" y="100.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="668.60" y="125.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">ActuatorB</text>
+  <path d="M 140.00 45.00 L 146.00 45.00 A 4.00 4.00 0 0 1 150.00 49.00 L 150.00 87.20 A 4.00 4.00 0 0 0 154.00 91.20 L 210.00 91.20" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="206.00" y="87.20" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="220.00" y="97.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">a rather long telemetry feed</text>
+  <path d="M 140.00 125.00 L 146.00 125.00 A 4.00 4.00 0 0 0 150.00 121.00 L 150.00 114.80 A 4.00 4.00 0 0 1 154.00 110.80 L 210.00 110.80" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="206.00" y="106.80" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="220.00" y="116.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">heartbeat</text>
+  <path d="M 538.60 91.20 L 544.60 91.20 A 4.00 4.00 0 0 0 548.60 87.20 L 548.60 49.00 A 4.00 4.00 0 0 1 552.60 45.00 L 608.60 45.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="534.60" y="87.20" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="528.60" y="97.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">primary drive command</text>
+  <path d="M 538.60 110.80 L 544.60 110.80 A 4.00 4.00 0 0 1 548.60 114.80 L 548.60 121.00 A 4.00 4.00 0 0 0 552.60 125.00 L 608.60 125.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="534.60" y="106.80" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="528.60" y="116.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">diag</text>
+</svg>

@@ -55,6 +55,15 @@ namespace DemaConsulting.Rendering.Layout.Engine;
 /// The caller's true, never-swapped bounding-box height in logical pixels. See the
 /// <see cref="RealWidth"/> remarks.
 /// </param>
+/// <param name="TitleReserveTop">
+/// The vertical band, in logical pixels, that this node's title (keyword line, if any, then the name
+/// line) occupies at the top of the box, or 0 when the node has no title. <see cref="Layered.PortDistributor"/>
+/// excludes this band from left/right-face port placement (only when the requested flow direction is
+/// <see cref="LayoutDirection.Right"/> or <see cref="LayoutDirection.Left"/>, the only directions for
+/// which this abstract cross-axis band corresponds to the box's real top edge — see the layered
+/// pipeline's title-vs-side-port reservation), so a left/right port can never land in the same row as
+/// the box's own title.
+/// </param>
 internal readonly record struct LayerNode(
     double Width,
     double Height,
@@ -64,7 +73,8 @@ internal readonly record struct LayerNode(
     double? FolderTabHeight = null,
     string? Label = null,
     double RealWidth = 0.0,
-    double RealHeight = 0.0);
+    double RealHeight = 0.0,
+    double TitleReserveTop = 0.0);
 
 /// <summary>
 /// A directed edge (from a source node to a target node, by index) used for layering.

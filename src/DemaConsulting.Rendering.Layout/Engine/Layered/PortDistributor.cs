@@ -58,7 +58,8 @@ internal sealed class PortDistributor : ILayoutStage
                     .ToList();
                 if (ShapeAnchorSupport.IsPlainRectangle(nodes[ni]))
                 {
-                    DistributePorts(sorted, augY[ni], nodes[ni].Height, augPortYSrc);
+                    var reserve = TitleReserveFor(graph.Direction, nodes[ni]);
+                    DistributePorts(sorted, augY[ni] + reserve, nodes[ni].Height - reserve, augPortYSrc);
                 }
                 else
                 {
@@ -99,7 +100,8 @@ internal sealed class PortDistributor : ILayoutStage
                 var node = nodes[ni];
                 if (ShapeAnchorSupport.IsPlainRectangle(node))
                 {
-                    DistributePorts(sorted, augY[ni], node.Height, augPortYTgt);
+                    var reserve = TitleReserveFor(graph.Direction, node);
+                    DistributePorts(sorted, augY[ni] + reserve, node.Height - reserve, augPortYTgt);
                 }
                 else
                 {
@@ -113,16 +115,39 @@ internal sealed class PortDistributor : ILayoutStage
     }
 
     /// <summary>
-    /// Evenly distributes port Y positions along a node face, with
-    /// <see cref="ConnectorClearance"/> inset from the top and bottom edges.
+    /// Resolves the title band, in logical pixels, to exclude from left/right-face port placement for
+    /// <paramref name="node"/>: <see cref="LayerNode.TitleReserveTop"/> when the requested flow
+    /// direction leaves the abstract cross-axis band correlated with the box's real top edge, or 0
+    /// otherwise (see <see cref="LayerNode.TitleReserveTop"/> remarks). Capped at the node's own
+    /// height so a node too small to hold the reserve degrades to the plain full-span band instead of
+    /// producing a negative usable span.
+    /// </summary>
+    /// <param name="direction">The layout's requested flow direction.</param>
+    /// <param name="node">The real node whose title reserve is being resolved.</param>
+    /// <returns>The title band height to exclude, in logical pixels.</returns>
+    private static double TitleReserveFor(LayoutDirection direction, LayerNode node) =>
+        direction is LayoutDirection.Right or LayoutDirection.Left
+            ? Math.Min(node.TitleReserveTop, node.Height)
+            : 0.0;
+
+    /// <summary>
+    /// Distributes port Y positions along a node face by dividing it into <c>count</c> equal-width
+    /// areas and centering each port within its own area (ELK-style "equal spacing" convention).
     /// </summary>
     /// <remarks>
-    /// The requested inset is capped at half the node's cross-extent so a node too small to hold the
-    /// full <see cref="ConnectorClearance"/> on both faces degrades gracefully (ports collapse toward
-    /// the centre) rather than producing an inverted clamp range. This mirrors ELK, which distributes
-    /// ports within the available span and tolerates overlap for fixed-size nodes instead of failing
-    /// the layout. Nodes at least <c>2 &#215; ConnectorClearance</c> tall are unaffected (the cap is a
-    /// no-op), so realistic output is preserved exactly.
+    /// For <c>count</c> ports this places port <c>k</c> at the centre of the <c>k</c>-th of
+    /// <c>count</c> equal slices of the face: <c>(k + 0.5) / count</c> of the way along it. This
+    /// gives every port (including the first and last) a margin from its neighbors and from the
+    /// face's own edges that is proportional to the slice width, rather than a fixed absolute
+    /// clearance — e.g. for two ports this naturally produces the 0.25 / 0.5 / 0.25 margin/gap/margin
+    /// pattern (each port a quarter of the way in from its nearest edge, half the face apart from each
+    /// other), so a label centred on either port has room on both sides before the box's own edge.
+    /// The single-port case (<c>count == 1</c>) is simply the one-slice special case of the same
+    /// formula (centred on the whole face) and needs no separate branch. Because every computed
+    /// position is strictly between <paramref name="nodeTop"/> and
+    /// <c>nodeTop + nodeHeight</c> by construction, no clamp is needed even for a face far shorter
+    /// than any fixed clearance would tolerate (the small-face regression this stage must not throw
+    /// for).
     /// </remarks>
     private static void DistributePorts(
         IReadOnlyList<int> sortedEdgeIndices,
@@ -130,26 +155,10 @@ internal sealed class PortDistributor : ILayoutStage
         double nodeHeight,
         double[] portY)
     {
-        // Cap the inset so the [top + inset, top + height - inset] band never inverts for small nodes.
-        var inset = Math.Min(ConnectorClearance, nodeHeight / 2.0);
         var count = sortedEdgeIndices.Count;
         for (var k = 0; k < count; k++)
         {
-            double y;
-            if (count == 1)
-            {
-                y = nodeTop + (nodeHeight / 2.0);
-            }
-            else
-            {
-                var usable = nodeHeight - (2.0 * inset);
-                y = nodeTop + inset + (k * usable / (count - 1));
-            }
-
-            portY[sortedEdgeIndices[k]] = Math.Clamp(
-                y,
-                nodeTop + inset,
-                nodeTop + nodeHeight - inset);
+            portY[sortedEdgeIndices[k]] = nodeTop + ((k + 0.5) * nodeHeight / count);
         }
     }
 

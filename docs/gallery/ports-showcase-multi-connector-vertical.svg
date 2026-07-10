@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="408.00" height="364.00" viewBox="0 0 408.00 364.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+      <line x1="7" y1="0" x2="7" y2="7" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#1E1E2E"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="52.00" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="112.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">MonitorA</text>
+  <rect x="236.00" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="296.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">MonitorB</text>
+  <rect x="20.00" y="140.00" width="368.00" height="84.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="204.00" y="185.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Hub</text>
+  <rect x="52.00" y="294.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="112.00" y="319.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">ControlA</text>
+  <rect x="236.00" y="294.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="296.00" y="319.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">ControlB</text>
+  <path d="M 112.00 70.00 L 112.00 140.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="108.00" y="136.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="112.00" y="162.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">a rather long status feed</text>
+  <path d="M 296.00 70.00 L 296.00 140.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="292.00" y="136.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="296.00" y="162.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">alert</text>
+  <path d="M 112.00 224.00 L 112.00 234.00 A 0.00 0.00 0 0 1 112.00 234.00 L 112.00 234.00 A 0.00 0.00 0 0 0 112.00 234.00 L 112.00 294.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="108.00" y="220.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="112.00" y="214.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">primary control command</text>
+  <path d="M 296.00 224.00 L 296.00 234.00 A 0.00 0.00 0 0 1 296.00 234.00 L 296.00 234.00 A 0.00 0.00 0 0 0 296.00 234.00 L 296.00 294.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="292.00" y="220.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="296.00" y="214.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">backup</text>
+</svg>

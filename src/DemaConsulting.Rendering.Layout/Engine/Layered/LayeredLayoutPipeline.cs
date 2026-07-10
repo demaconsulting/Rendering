@@ -76,13 +76,18 @@ internal sealed class LayeredLayoutPipeline
     ///     </para>
     /// </remarks>
     /// <param name="region">The assembled merge region to lay out.</param>
+    /// <param name="assumedFontSize">
+    /// The <c>CoreOptions.AssumedFontSize</c>-derived font size used to reserve each node's title band
+    /// from left/right port placement; defaults to 0 (no reserve) for callers that pre-date this
+    /// parameter.
+    /// </param>
     /// <returns>The per-level placed graphs and crossing-placement lookup for the decomposition step.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="region"/> is <see langword="null"/>.</exception>
-    public RecursiveLayoutResult RunRecursive(AssembledMergeRegion region)
+    public RecursiveLayoutResult RunRecursive(AssembledMergeRegion region, double assumedFontSize = 0.0)
     {
         ArgumentNullException.ThrowIfNull(region);
 
-        var levels = MergeRegionGraphAssembler.BuildAllLevelGraphs(region, Direction);
+        var levels = MergeRegionGraphAssembler.BuildAllLevelGraphs(region, Direction, assumedFontSize);
 
         // Stages 1-3 (+ crossing tag): normalize axes and break cycles per level, assign level-relative
         // layers across the whole region, then split long edges and tag the hierarchy-crossing dummies.

@@ -83,6 +83,18 @@ public sealed record LayoutCompartment(
 /// on the bottom side of the box, because the box has at least one port anchored there. Zero (the
 /// default) when the node has no ports on that side.
 /// </param>
+/// <param name="CenterTitle">
+/// Whether a renderer should center the title/keyword block vertically within the box's own content
+/// height instead of pinning it directly under the top (folder-tab-adjusted) edge. <see langword="false"/>
+/// (the default) preserves the original top-pinned behavior for every pre-existing call site,
+/// including hand-built or legacy-flat <see cref="LayoutTree"/>s that never opted in. Only a layout
+/// algorithm that knows a given box is a genuine atomic leaf (no visually-nested content of any
+/// kind, including content the algorithm can't see because it wasn't modeled via <see cref="Children"/>)
+/// should set this <see langword="true"/>; it is deliberately not inferred from
+/// <see cref="Children"/>/<see cref="Compartments"/> being empty, since a caller-constructed box that
+/// spans a large area with content positioned as flat siblings (rather than true nested
+/// <see cref="Children"/>) would otherwise be misidentified as a small leaf eligible for centering.
+/// </param>
 public sealed record LayoutBox(
     double X,
     double Y,
@@ -100,4 +112,5 @@ public sealed record LayoutBox(
     double ContentInsetLeft = 0.0,
     double ContentInsetRight = 0.0,
     double ContentInsetTop = 0.0,
-    double ContentInsetBottom = 0.0) : LayoutNode;
+    double ContentInsetBottom = 0.0,
+    bool CenterTitle = false) : LayoutNode;
