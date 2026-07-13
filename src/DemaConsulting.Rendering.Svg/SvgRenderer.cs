@@ -598,14 +598,33 @@ public sealed class SvgRenderer : IRenderer
     {
         // Compartments start below the title area (keyword + label), computed via shared metrics
         var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
+
+        // Deliberately based on the computed title-area height (labelAreaHeight > 0), not on
+        // "is Label/Keyword set": a theme with zero title padding/font-size would give
+        // labelAreaHeight == 0 even with a Label present, and the leading divider must still be
+        // skipped in that case to avoid the stray-line bug this fix addresses (see below).
+        var titleAreaOccupiesSpace = labelAreaHeight > 0;
         var compartmentY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + labelAreaHeight;
 
+        var isFirstCompartment = true;
         foreach (var compartment in box.Compartments)
         {
-            // Full-width horizontal divider at the top of this compartment
-            sb.Append(CultureInfo.InvariantCulture,
-                $"""  <line x1="{F(box.X * scale)}" y1="{F(compartmentY * scale)}" x2="{F((box.X + box.Width) * scale)}" y2="{F(compartmentY * scale)}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
-            sb.AppendLine();
+            // The divider above the first compartment only has something to separate from when the
+            // title area above it occupies real space. With no such space, this divider would sit
+            // in the un-reserved region near the box's own top edge — redundant for a plain
+            // rectangle (any coinciding lines are invisible duplicates) but a genuine visible defect
+            // for shapes whose top edge isn't a plain straight line across the full width (e.g.
+            // Note's folded corner cutout), where the full-width divider ignores the cut and renders
+            // as a stray line past the fold.
+            if (!isFirstCompartment || titleAreaOccupiesSpace)
+            {
+                // Full-width horizontal divider at the top of this compartment
+                sb.Append(CultureInfo.InvariantCulture,
+                    $"""  <line x1="{F(box.X * scale)}" y1="{F(compartmentY * scale)}" x2="{F((box.X + box.Width) * scale)}" y2="{F(compartmentY * scale)}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
+                sb.AppendLine();
+            }
+
+            isFirstCompartment = false;
 
             // Draw optional bold compartment title
             if (compartment.Title != null)

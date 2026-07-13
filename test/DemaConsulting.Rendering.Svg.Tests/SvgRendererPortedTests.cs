@@ -285,6 +285,54 @@ public sealed class SvgRendererPortedTests
     }
 
     /// <summary>
+    ///     Render a LayoutBox with a Note shape, a compartment, and no Label/Keyword does not emit a
+    ///     divider line before the first compartment, since with no title area the divider would sit
+    ///     on the box's own top edge and (unlike a plain rectangle) protrude past the Note shape's
+    ///     folded-corner cutout as a stray line.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_Render_NoteBoxWithCompartmentAndNoTitle_OmitsLeadingDivider()
+    {
+        // Arrange: a Note-shaped box with a compartment but no Label/Keyword
+        var renderer = new SvgRenderer();
+        var compartment = new LayoutCompartment(null, ["Some body text"]);
+        var box = new LayoutBox(10, 10, 150, 80, null, 0, BoxShape.Note, [compartment], []);
+        var layout = new LayoutTree(200, 120, [box]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert: no full-width divider <line> element is drawn at the box's own top edge (the
+        // previously buggy behavior), but the compartment row text still renders. Parsing as XML
+        // and inspecting the element's attributes (rather than matching a literal substring) keeps
+        // this robust to harmless formatting/attribute-ordering changes in the SVG serialization.
+        // Expected coordinates are derived from box/options.Scale (rather than hard-coded) so the
+        // assertion stays correct if the fixture's geometry ever changes.
+        var expectedX1 = box.X * options.Scale;
+        var expectedY = box.Y * options.Scale;
+        var expectedX2 = (box.X + box.Width) * options.Scale;
+
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var document = System.Xml.Linq.XDocument.Parse(svgText);
+        var hasStrayDivider = document.Descendants()
+            .Where(e => e.Name.LocalName == "line")
+            .Any(e =>
+                e.Attribute("x1") is { } x1 && IsClose(x1.Value, expectedX1) &&
+                e.Attribute("y1") is { } y1 && IsClose(y1.Value, expectedY) &&
+                e.Attribute("x2") is { } x2 && IsClose(x2.Value, expectedX2) &&
+                e.Attribute("y2") is { } y2 && IsClose(y2.Value, expectedY));
+        Assert.False(hasStrayDivider);
+        Assert.Contains("Some body text", svgText, StringComparison.Ordinal);
+    }
+
+    /// <summary>Parses an SVG numeric attribute value and compares it to an expected value within a small tolerance.</summary>
+    private static bool IsClose(string attributeValue, double expected) =>
+        Math.Abs(double.Parse(attributeValue, System.Globalization.CultureInfo.InvariantCulture) - expected) < 0.01;
+
+    /// <summary>
     ///     Render a LayoutBox with RoundedRectangle shape produces SVG output containing an
     ///     rx attribute, confirming that rounded corners are applied via the rx/ry attributes.
     /// </summary>
