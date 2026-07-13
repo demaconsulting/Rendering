@@ -308,16 +308,22 @@ public sealed class SvgRendererPortedTests
         // previously buggy behavior), but the compartment row text still renders. Parsing as XML
         // and inspecting the element's attributes (rather than matching a literal substring) keeps
         // this robust to harmless formatting/attribute-ordering changes in the SVG serialization.
+        // Expected coordinates are derived from box/options.Scale (rather than hard-coded) so the
+        // assertion stays correct if the fixture's geometry ever changes.
+        var expectedX1 = box.X * options.Scale;
+        var expectedY = box.Y * options.Scale;
+        var expectedX2 = (box.X + box.Width) * options.Scale;
+
         output.Position = 0;
         var svgText = ReadAllText(output);
         var document = System.Xml.Linq.XDocument.Parse(svgText);
         var hasStrayDivider = document.Descendants()
             .Where(e => e.Name.LocalName == "line")
             .Any(e =>
-                IsClose(e.Attribute("x1")!.Value, 10.0) &&
-                IsClose(e.Attribute("y1")!.Value, 10.0) &&
-                IsClose(e.Attribute("x2")!.Value, 160.0) &&
-                IsClose(e.Attribute("y2")!.Value, 10.0));
+                e.Attribute("x1") is { } x1 && IsClose(x1.Value, expectedX1) &&
+                e.Attribute("y1") is { } y1 && IsClose(y1.Value, expectedY) &&
+                e.Attribute("x2") is { } x2 && IsClose(x2.Value, expectedX2) &&
+                e.Attribute("y2") is { } y2 && IsClose(y2.Value, expectedY));
         Assert.False(hasStrayDivider);
         Assert.Contains("Some body text", svgText, StringComparison.Ordinal);
     }

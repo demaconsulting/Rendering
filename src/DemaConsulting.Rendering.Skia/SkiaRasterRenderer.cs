@@ -508,8 +508,8 @@ public abstract class SkiaRasterRenderer : IRenderer
         var scale = (float)options.Scale;
 
         // Compartments start below the title area (keyword + label), computed via shared metrics
-        var hasTitleArea = box.Label != null || box.Keyword != null;
         var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
+        var hasTitleArea = labelAreaHeight > 0;
         var compartmentY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + labelAreaHeight;
 
         var isFirstCompartment = true;

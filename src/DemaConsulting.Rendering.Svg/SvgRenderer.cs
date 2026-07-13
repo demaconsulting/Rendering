@@ -597,8 +597,8 @@ public sealed class SvgRenderer : IRenderer
     private static void RenderBoxCompartments(StringBuilder sb, LayoutBox box, Theme theme, double scale)
     {
         // Compartments start below the title area (keyword + label), computed via shared metrics
-        var hasTitleArea = box.Label != null || box.Keyword != null;
         var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
+        var hasTitleArea = labelAreaHeight > 0;
         var compartmentY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + labelAreaHeight;
 
         var isFirstCompartment = true;
