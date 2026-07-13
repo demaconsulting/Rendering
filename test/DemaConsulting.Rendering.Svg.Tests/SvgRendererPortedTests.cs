@@ -285,6 +285,37 @@ public sealed class SvgRendererPortedTests
     }
 
     /// <summary>
+    ///     Render a LayoutBox with a Note shape, a compartment, and no Label/Keyword does not emit a
+    ///     divider line before the first compartment, since with no title area the divider would sit
+    ///     on the box's own top edge and (unlike a plain rectangle) protrude past the Note shape's
+    ///     folded-corner cutout as a stray line.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_Render_NoteBoxWithCompartmentAndNoTitle_OmitsLeadingDivider()
+    {
+        // Arrange: a Note-shaped box with a compartment but no Label/Keyword
+        var renderer = new SvgRenderer();
+        var compartment = new LayoutCompartment(null, ["Some body text"]);
+        var box = new LayoutBox(10, 10, 150, 80, null, 0, BoxShape.Note, [compartment], []);
+        var layout = new LayoutTree(200, 120, [box]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert: no full-width divider line is drawn at the box's own top edge (the previously
+        // buggy behavior), but the compartment row text still renders
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        Assert.DoesNotContain(
+            "x1=\"10.00\" y1=\"10.00\" x2=\"160.00\" y2=\"10.00\"",
+            svgText,
+            StringComparison.Ordinal);
+        Assert.Contains("Some body text", svgText, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     ///     Render a LayoutBox with RoundedRectangle shape produces SVG output containing an
     ///     rx attribute, confirming that rounded corners are applied via the rx/ry attributes.
     /// </summary>

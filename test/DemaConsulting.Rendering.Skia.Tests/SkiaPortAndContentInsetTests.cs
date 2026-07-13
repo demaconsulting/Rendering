@@ -218,6 +218,43 @@ public sealed class SkiaPortAndContentInsetTests
     }
 
     /// <summary>
+    ///     Proves that rendering a Note-shaped box with a compartment and no Label/Keyword does not
+    ///     draw a stray divider line protruding past the note's folded-corner cutout. With no title
+    ///     area, the first compartment's divider would land exactly on the box's own top edge; for a
+    ///     plain rectangle that's an invisible duplicate, but for Note it must not extend past the
+    ///     diagonal fold (from xFold to the right edge) as a visible artifact.
+    /// </summary>
+    [Fact]
+    public void PngRenderer_Render_NoteBoxWithCompartmentAndNoTitle_NoStrayLinePastFold()
+    {
+        // Arrange: a Note-shaped box with a compartment but no Label/Keyword
+        var renderer = new PngRenderer();
+        var compartment = new LayoutCompartment(null, ["Some body text"]);
+        var box = new LayoutBox(10, 10, 150, 80, null, 0, BoxShape.Note, [compartment], []);
+        var options = new RenderOptions(Themes.Light);
+        var background = SKColor.Parse(Themes.Light.BackgroundColor);
+
+        using var stream = new MemoryStream();
+        renderer.Render(new LayoutTree(200, 120, [box]), options, stream);
+        stream.Position = 0;
+        using var data = SKData.Create(stream);
+        using var bitmap = SKBitmap.Decode(data);
+
+        // Compute the fold's scaled x-position (matching RenderNotePng's own geometry) and scan a
+        // narrow band at the box's top edge: any foreground pixel to the right of the fold there
+        // would be the stray divider line, since the box outline itself is diagonal in that region.
+        var fold = Math.Min(Math.Min(box.Width, box.Height) * NotationMetrics.NoteFoldFraction, NotationMetrics.NoteFoldMaxSize);
+        var scale = options.Scale;
+        var xFold = (int)((box.X + box.Width - fold) * scale);
+        var yTop = (int)(box.Y * scale);
+
+        var rightmost = RightmostForegroundX(bitmap, background, yStart: yTop, yEnd: yTop + 1, xStart: xFold + 2);
+
+        // Assert: no stray foreground pixel found past the fold at the top edge
+        Assert.Equal(-1, rightmost);
+    }
+
+    /// <summary>
     ///     Proves that when 3+ parallel labeled connectors force the label placer to nudge labels
     ///     downward to avoid collisions, the raster renderer grows the bitmap (rather than sizing it
     ///     from the pre-label-placement box/routing geometry alone) so every label stays fully within

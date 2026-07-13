@@ -508,14 +508,22 @@ public abstract class SkiaRasterRenderer : IRenderer
         var scale = (float)options.Scale;
 
         // Compartments start below the title area (keyword + label), computed via shared metrics
+        var hasTitleArea = box.Label != null || box.Keyword != null;
         var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
         var compartmentY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + labelAreaHeight;
 
+        var isFirstCompartment = true;
         foreach (var compartment in box.Compartments)
         {
-            // Draw a full-width horizontal divider at the top of this compartment
-            using (var divPaint = new SKPaint())
+            // The divider above the first compartment only has something to separate from when a
+            // keyword/label title area precedes it. With no title area, this divider would sit
+            // exactly on the box's own top edge — redundant for a plain rectangle (the two lines
+            // coincide) but a genuine visible defect for shapes whose top edge isn't a plain
+            // straight line across the full width (e.g. Note's folded corner cutout), where the
+            // full-width divider ignores the cut and renders as a stray line past the fold.
+            if (!isFirstCompartment || hasTitleArea)
             {
+                using var divPaint = new SKPaint();
                 divPaint.Color = strokeColor;
                 divPaint.Style = SKPaintStyle.Stroke;
                 divPaint.StrokeWidth = (float)theme.StrokeWidth * scale;
@@ -526,6 +534,8 @@ public abstract class SkiaRasterRenderer : IRenderer
                     (float)(compartmentY * scale),
                     divPaint);
             }
+
+            isFirstCompartment = false;
 
             // Draw the optional bold compartment title
             if (compartment.Title != null)
