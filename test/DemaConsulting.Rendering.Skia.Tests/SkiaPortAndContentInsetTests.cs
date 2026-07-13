@@ -239,6 +239,7 @@ public sealed class SkiaPortAndContentInsetTests
         stream.Position = 0;
         using var data = SKData.Create(stream);
         using var bitmap = SKBitmap.Decode(data);
+        Assert.NotNull(bitmap);
 
         // Compute the fold's scaled x-position (matching RenderNotePng's own geometry) and scan a
         // vertical band just below the box's top edge. The divider (a ~1.5px stroke) can land
@@ -247,10 +248,11 @@ public sealed class SkiaPortAndContentInsetTests
         // has a 1:1 slope (rise == run == fold size) starting at (xFold, yTop), so the scan's xStart
         // is offset past where that diagonal (plus its anti-aliasing) could reach within the band,
         // ensuring only a genuine stray horizontal divider - not the legitimate fold edge - would be
-        // detected.
+        // detected. xFold uses Math.Ceiling (not truncation) so the scan never starts left of the
+        // true fold boundary, which would otherwise risk sampling the diagonal's anti-aliased edge.
         var fold = Math.Min(Math.Min(box.Width, box.Height) * NotationMetrics.NoteFoldFraction, NotationMetrics.NoteFoldMaxSize);
         var scale = options.Scale;
-        var xFold = (int)((box.X + box.Width - fold) * scale);
+        var xFold = (int)Math.Ceiling((box.X + box.Width - fold) * scale);
         var yTop = (int)(box.Y * scale);
         const int bandHeight = 4;
         const int diagonalClearance = 3;
