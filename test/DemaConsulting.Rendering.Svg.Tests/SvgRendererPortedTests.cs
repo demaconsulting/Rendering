@@ -304,16 +304,27 @@ public sealed class SvgRendererPortedTests
         // Act
         renderer.Render(layout, options, output);
 
-        // Assert: no full-width divider line is drawn at the box's own top edge (the previously
-        // buggy behavior), but the compartment row text still renders
+        // Assert: no full-width divider <line> element is drawn at the box's own top edge (the
+        // previously buggy behavior), but the compartment row text still renders. Parsing as XML
+        // and inspecting the element's attributes (rather than matching a literal substring) keeps
+        // this robust to harmless formatting/attribute-ordering changes in the SVG serialization.
         output.Position = 0;
         var svgText = ReadAllText(output);
-        Assert.DoesNotContain(
-            "x1=\"10.00\" y1=\"10.00\" x2=\"160.00\" y2=\"10.00\"",
-            svgText,
-            StringComparison.Ordinal);
+        var document = System.Xml.Linq.XDocument.Parse(svgText);
+        var hasStrayDivider = document.Descendants()
+            .Where(e => e.Name.LocalName == "line")
+            .Any(e =>
+                IsClose(e.Attribute("x1")!.Value, 10.0) &&
+                IsClose(e.Attribute("y1")!.Value, 10.0) &&
+                IsClose(e.Attribute("x2")!.Value, 160.0) &&
+                IsClose(e.Attribute("y2")!.Value, 10.0));
+        Assert.False(hasStrayDivider);
         Assert.Contains("Some body text", svgText, StringComparison.Ordinal);
     }
+
+    /// <summary>Parses an SVG numeric attribute value and compares it to an expected value within a small tolerance.</summary>
+    private static bool IsClose(string attributeValue, double expected) =>
+        Math.Abs(double.Parse(attributeValue, System.Globalization.CultureInfo.InvariantCulture) - expected) < 0.01;
 
     /// <summary>
     ///     Render a LayoutBox with RoundedRectangle shape produces SVG output containing an

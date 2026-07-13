@@ -241,14 +241,26 @@ public sealed class SkiaPortAndContentInsetTests
         using var bitmap = SKBitmap.Decode(data);
 
         // Compute the fold's scaled x-position (matching RenderNotePng's own geometry) and scan a
-        // narrow band at the box's top edge: any foreground pixel to the right of the fold there
-        // would be the stray divider line, since the box outline itself is diagonal in that region.
+        // vertical band just below the box's top edge. The divider (a ~1.5px stroke) can land
+        // partially on adjacent rows once anti-aliased, so a single row risked missing or flaking
+        // on the regression; scanning several rows makes the check reliable. The diagonal fold edge
+        // has a 1:1 slope (rise == run == fold size) starting at (xFold, yTop), so the scan's xStart
+        // is offset past where that diagonal (plus its anti-aliasing) could reach within the band,
+        // ensuring only a genuine stray horizontal divider - not the legitimate fold edge - would be
+        // detected.
         var fold = Math.Min(Math.Min(box.Width, box.Height) * NotationMetrics.NoteFoldFraction, NotationMetrics.NoteFoldMaxSize);
         var scale = options.Scale;
         var xFold = (int)((box.X + box.Width - fold) * scale);
         var yTop = (int)(box.Y * scale);
+        const int bandHeight = 4;
+        const int diagonalClearance = 3;
 
-        var rightmost = RightmostForegroundX(bitmap, background, yStart: yTop, yEnd: yTop + 1, xStart: xFold + 2);
+        var rightmost = RightmostForegroundX(
+            bitmap,
+            background,
+            yStart: yTop,
+            yEnd: yTop + bandHeight,
+            xStart: xFold + bandHeight + diagonalClearance);
 
         // Assert: no stray foreground pixel found past the fold at the top edge
         Assert.Equal(-1, rightmost);
