@@ -510,11 +510,10 @@ public abstract class SkiaRasterRenderer : IRenderer
         // Compartments start below the title area (keyword + label), computed via shared metrics
         var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
 
-        // Deliberately geometric, not semantic: this asks "does the title area occupy non-zero
-        // vertical space" (i.e. does compartmentY differ from box.Y), not "is Label/Keyword set".
-        // A theme with zero title padding/font-size would give labelAreaHeight == 0 even with a
-        // Label present — and in that case compartmentY *does* coincide with box.Y, so the leading
-        // divider must still be skipped to avoid the stray-line bug this fix addresses.
+        // Deliberately based on the computed title-area height (labelAreaHeight > 0), not on
+        // "is Label/Keyword set": a theme with zero title padding/font-size would give
+        // labelAreaHeight == 0 even with a Label present, and the leading divider must still be
+        // skipped in that case to avoid the stray-line bug this fix addresses (see below).
         var titleAreaOccupiesSpace = labelAreaHeight > 0;
         var compartmentY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + labelAreaHeight;
 
@@ -523,10 +522,11 @@ public abstract class SkiaRasterRenderer : IRenderer
         {
             // The divider above the first compartment only has something to separate from when the
             // title area above it occupies real space. With no such space, this divider would sit
-            // exactly on the box's own top edge — redundant for a plain rectangle (the two lines
-            // coincide) but a genuine visible defect for shapes whose top edge isn't a plain
-            // straight line across the full width (e.g. Note's folded corner cutout), where the
-            // full-width divider ignores the cut and renders as a stray line past the fold.
+            // in the un-reserved region near the box's own top edge — redundant for a plain
+            // rectangle (any coinciding lines are invisible duplicates) but a genuine visible defect
+            // for shapes whose top edge isn't a plain straight line across the full width (e.g.
+            // Note's folded corner cutout), where the full-width divider ignores the cut and renders
+            // as a stray line past the fold.
             if (!isFirstCompartment || titleAreaOccupiesSpace)
             {
                 using var divPaint = new SKPaint();
