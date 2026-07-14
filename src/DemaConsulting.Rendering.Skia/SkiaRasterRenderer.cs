@@ -1298,10 +1298,14 @@ public abstract class SkiaRasterRenderer : IRenderer
     };
 
     /// <summary>
-    /// Draws one port label offset from the port centre using the interior-side formula for
+    /// Draws one port label offset from the port center using the interior-side formula for
     /// <paramref name="offsetSide"/> (the port's own side for an inward label, the opposite side for an
     /// outward one), so an inward and an outward label on one boundary port sit symmetrically about the
-    /// port centre.
+    /// port center. A boundary port (one carrying both an <see cref="LayoutPort.InternalLabel"/> and an
+    /// <see cref="LayoutPort.ExternalLabel"/>) reserves extra clearance beyond the plain port-glyph
+    /// offset — see <c>SvgRenderer.EmitPortLabel</c>'s matching remarks for why: its external label is
+    /// deliberately drawn on the same outward face its external approach edge may terminate with an
+    /// end-marker glyph, which would otherwise visually collide with the label text.
     /// </summary>
     private static void DrawPortLabel(SKCanvas canvas, LayoutPort port, string text, PortSide offsetSide, RenderOptions options)
     {
@@ -1310,7 +1314,8 @@ public abstract class SkiaRasterRenderer : IRenderer
         var strokeColor = SKColor.Parse(theme.StrokeColor);
 
         // Offset the label far enough from the port square so it does not overlap.
-        var offset = NotationMetrics.PortHalfSize + theme.LabelPadding;
+        var offset = NotationMetrics.PortHalfSize + theme.LabelPadding
+            + (port.InternalLabel != null && port.ExternalLabel != null ? NotationMetrics.EndMarkerLength : 0.0);
         var (labelX, labelY, align) = offsetSide switch
         {
             PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, SKTextAlign.Center),
@@ -1323,7 +1328,17 @@ public abstract class SkiaRasterRenderer : IRenderer
         using var font = CreateFont((float)theme.FontSizeBody * scale, bold: false, italic: false);
         var maxLabelWidth = (float)(port.MaxLabelWidth * scale);
         font.Size = FitFontSize(font, text, maxLabelWidth, font.Size);
-        canvas.DrawText(text, (float)(labelX * scale), (float)(labelY * scale), align, font, textPaint);
+
+        // labelY is a *center* Y, matching SvgRenderer.EmitPortLabel's dominant-baseline="middle"
+        // semantics (the same offset formula is shared by both renderers). SKCanvas.DrawText instead
+        // takes a baseline Y, so drawing at labelY directly would float the glyph body above that
+        // center (an ascent-heavy font renders mostly above its baseline) instead of straddling it —
+        // exactly the PNG/SVG divergence visible when comparing a port label against its connecting
+        // line. Recover the equivalent baseline from the font's own ascent/descent metrics so both
+        // renderers place the glyph body identically relative to labelY.
+        var metrics = font.Metrics;
+        var baselineY = (float)(labelY * scale) - ((metrics.Ascent + metrics.Descent) / 2.0f);
+        canvas.DrawText(text, (float)(labelX * scale), baselineY, align, font, textPaint);
     }
 
     /// <summary>

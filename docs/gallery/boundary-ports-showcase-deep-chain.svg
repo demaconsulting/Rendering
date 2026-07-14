@@ -42,9 +42,9 @@
   <path d="M 280.00 133.00 L 312.00 133.00 L 318.00 133.00 A 4.00 4.00 0 0 1 322.00 137.00 L 322.00 141.00 A 4.00 4.00 0 0 0 326.00 145.00 L 382.00 145.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <path d="M 140.00 133.00 L 210.00 133.00 L 280.00 133.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <rect x="378.00" y="141.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
-  <text x="392.00" y="151.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">handle</text>
-  <text x="372.00" y="151.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">relay</text>
+  <text x="402.00" y="151.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">handle</text>
+  <text x="362.00" y="151.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">relay</text>
   <rect x="276.00" y="129.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
-  <text x="290.00" y="139.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">route</text>
-  <text x="270.00" y="139.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">request</text>
+  <text x="300.00" y="139.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">route</text>
+  <text x="260.00" y="139.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">request</text>
 </svg>

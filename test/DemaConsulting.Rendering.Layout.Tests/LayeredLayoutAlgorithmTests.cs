@@ -4,6 +4,7 @@
 
 using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Abstractions;
+using DemaConsulting.Rendering.Layout.Engine.Layered;
 
 namespace DemaConsulting.Rendering.Layout.Tests;
 
@@ -855,6 +856,223 @@ public class LayeredLayoutAlgorithmTests
         Assert.True(
             outLayoutPort.MaxLabelWidth >= measuredRightWidth,
             $"Expected right MaxLabelWidth >= {measuredRightWidth}, was {outLayoutPort.MaxLabelWidth}.");
+    }
+
+    /// <summary>
+    ///     Proves that a titled node with two labeled ports stacked on its left (or right) face reserves
+    ///     enough bottom clearance for the bottom-most port's downward-shifted label
+    ///     (<c>SvgRenderer.EmitPortLabel</c> and the Skia renderer's equivalent draw a Left/Right port's
+    ///     <see cref="LayoutGraphPort.ExternalLabel"/> at <c>CentreY + FontSizeBody / 2</c>, not centered
+    ///     on the port row). Regression coverage for the gallery bug where "Hub"'s bottom-most labeled
+    ///     port ("heartbeat"/"diag") rendered its label past the box's own bottom border: the growth
+    ///     floor's per-port compensation for this downward shift was a flat addend divided across every
+    ///     port's own equal-height slice (PortDistributor.DistributePorts centers each port within its
+    ///     own equal-height slice of the face), so it was fully absorbed only when a face carried
+    ///     exactly one port — a face with 2+ labeled ports lost most of that compensation to the other
+    ///     slices. Asserts the bottom-most port's own margin to the box's bottom edge covers both the
+    ///     downward shift itself and the shifted label's own half-height (2 * FontSizeBody / 2 =
+    ///     assumedFontSize), matching the margin the single-port case already achieves comfortably.
+    /// </summary>
+    [Fact]
+    public void Apply_TitledNodeWithTwoLeftPortLabels_BottomPortRetainsDownwardShiftMargin()
+    {
+        const double assumedFontSize = 12.0; // CoreOptions.AssumedFontSize default
+        var graph = new LayoutGraph();
+        var sourceA = graph.AddNode("sourceA", 80, 30);
+        var sourceB = graph.AddNode("sourceB", 80, 30);
+        var target = graph.AddNode("target", 80, 30);
+        var hub = graph.AddNode("hub", 200, 60);
+        hub.Label = "Hub";
+        var topLeftPort = hub.Ports.AddPort("telemetry");
+        topLeftPort.ExternalLabel = "telemetry";
+        var bottomLeftPort = hub.Ports.AddPort("heartbeat");
+        bottomLeftPort.ExternalLabel = "heartbeat";
+        graph.AddEdge("e1", sourceA, topLeftPort);
+        graph.AddEdge("e2", sourceB, bottomLeftPort);
+        graph.AddEdge("e3", hub, target);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var hubBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Hub");
+        var ports = tree.Nodes.OfType<LayoutPort>()
+            .Where(p => p.Side == PortSide.Left)
+            .OrderBy(p => p.CentreY)
+            .ToList();
+        Assert.Equal(2, ports.Count);
+
+        var boxBottom = hubBox.Y + hubBox.Height;
+        var bottomPortMargin = boxBottom - ports[^1].CentreY;
+        Assert.True(
+            bottomPortMargin >= assumedFontSize,
+            $"Expected bottom-most left port's margin to box bottom ({bottomPortMargin}) to be at least "
+            + $"{assumedFontSize} — enough room for SvgRenderer.EmitPortLabel's own "
+            + "CentreY + FontSizeBody / 2 downward shift plus the shifted label's own half-height.");
+    }
+
+    /// <summary>
+    ///     Proves that a node with several <em>unlabeled</em> outgoing edges fanning out from one face
+    ///     still grows tall enough to give each connector a minimum clearance slice, even though none
+    ///     of the edges or ports carry any label. Regression coverage for the reported "Motherboard"
+    ///     bug: a face with 2+ anchors used to skip the entire growth floor whenever
+    ///     <c>!faceInfo.AnyLabeled &amp;&amp; !sidePortLabeled</c>, so a box with a pile of unlabeled
+    ///     ports never grew to give them room — <c>PortDistributor.DistributePorts</c> still
+    ///     spread the anchors proportionally, but within whatever (possibly tiny) caller-supplied
+    ///     height happened to already exist, visually bunching several connector exit points close
+    ///     together. Asserts the box grows past its small caller-supplied height to at least
+    ///     <c>2 * ConnectorClearance</c> per anchor (mirroring the labeled-face floor's baseline term),
+    ///     and that adjacent anchor spacing on the fanned-out face is at least that same clearance.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeWithSeveralUnlabeledOutgoingEdges_TooSmall_AutoGrowsHeight()
+    {
+        var graph = new LayoutGraph();
+        var board = graph.AddNode("board", 140, 20);
+        var cpu = graph.AddNode("cpu", 80, 30);
+        cpu.Label = "cpu";
+        var storage = graph.AddNode("storage", 80, 30);
+        storage.Label = "storage";
+        var network = graph.AddNode("network", 80, 30);
+        network.Label = "network";
+        var graphics = graph.AddNode("graphics", 80, 30);
+        graphics.Label = "graphics";
+        graph.AddEdge("e1", board, cpu);
+        graph.AddEdge("e2", board, storage);
+        graph.AddEdge("e3", board, network);
+        graph.AddEdge("e4", board, graphics);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == null);
+        var expectedFloor = 2.0 * LayeredLayoutMetrics.ConnectorClearance * 4;
+        Assert.True(
+            boardBox.Height >= expectedFloor,
+            $"Expected board height to grow to at least {expectedFloor} (2 * ConnectorClearance * "
+            + $"Total) for its 4 unlabeled outgoing anchors, was {boardBox.Height}.");
+
+        // Assert: the fix's user-visible goal — the 4 anchors on the board's own face are actually
+        // spread apart by at least one ConnectorClearance each, not merely bunched within a taller box.
+        // (All 4 lines in this graph originate from board, so no extra source-filtering is needed.)
+        var anchorYs = tree.Nodes.OfType<LayoutLine>()
+            .Select(l => l.Waypoints[0].Y)
+            .OrderBy(y => y)
+            .ToList();
+        Assert.Equal(4, anchorYs.Count);
+        for (var i = 1; i < anchorYs.Count; i++)
+        {
+            Assert.True(
+                anchorYs[i] - anchorYs[i - 1] >= LayeredLayoutMetrics.ConnectorClearance - 1e-6,
+                $"Expected adjacent unlabeled anchors to be spaced at least {LayeredLayoutMetrics.ConnectorClearance}px "
+                + $"apart, was {anchorYs[i] - anchorYs[i - 1]}.");
+        }
+    }
+
+    /// <summary>
+    ///     Top/Bottom-face mirror of <see cref="Apply_NodeWithSeveralUnlabeledOutgoingEdges_TooSmall_AutoGrowsHeight"/>:
+    ///     proves the growth-floor fix applies along the width axis too. The Left/Right branch's
+    ///     unlabeled-face floor was fixed to scale by <c>faceInfo.Total</c>
+    ///     (<c>clearanceBasedHeight</c>), but the Top/Bottom branch's width floor was initially left
+    ///     using the old flat <c>2 * ConnectorClearance</c> term regardless of port count — reproducing
+    ///     the exact same bunching bug rotated 90 degrees for several unlabeled ports fanning out from
+    ///     a node's bottom face (forced here via <see cref="LayoutFlowDirection.Down"/>). Asserts the
+    ///     board grows wide enough to give each of 4 unlabeled anchors at least
+    ///     <c>2 * ConnectorClearance</c> of its own width.
+    /// </summary>
+    [Fact]
+    public void Apply_NodeWithSeveralUnlabeledOutgoingEdges_TooNarrow_AutoGrowsWidth()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+        var board = graph.AddNode("board", 20, 20);
+        var cpu = graph.AddNode("cpu", 30, 30);
+        cpu.Label = "cpu";
+        var storage = graph.AddNode("storage", 30, 30);
+        storage.Label = "storage";
+        var network = graph.AddNode("network", 30, 30);
+        network.Label = "network";
+        var graphics = graph.AddNode("graphics", 30, 30);
+        graphics.Label = "graphics";
+        graph.AddEdge("e1", board, cpu);
+        graph.AddEdge("e2", board, storage);
+        graph.AddEdge("e3", board, network);
+        graph.AddEdge("e4", board, graphics);
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == null);
+        var expectedFloor = 2.0 * LayeredLayoutMetrics.ConnectorClearance * 4;
+        Assert.True(
+            boardBox.Width >= expectedFloor,
+            $"Expected board width to grow to at least {expectedFloor} (2 * ConnectorClearance * "
+            + $"Total) for its 4 unlabeled outgoing anchors on the Bottom face, was {boardBox.Width}.");
+
+        // Assert: the fix's user-visible goal — the 4 anchors on the board's own face are actually
+        // spread apart by at least one ConnectorClearance each, not merely bunched within a wider box.
+        // (All 4 lines in this graph originate from board, so no extra source-filtering is needed.)
+        var anchorXs = tree.Nodes.OfType<LayoutLine>()
+            .Select(l => l.Waypoints[0].X)
+            .OrderBy(x => x)
+            .ToList();
+        Assert.Equal(4, anchorXs.Count);
+        for (var i = 1; i < anchorXs.Count; i++)
+        {
+            Assert.True(
+                anchorXs[i] - anchorXs[i - 1] >= LayeredLayoutMetrics.ConnectorClearance - 1e-6,
+                $"Expected adjacent unlabeled anchors to be spaced at least {LayeredLayoutMetrics.ConnectorClearance}px "
+                + $"apart, was {anchorXs[i] - anchorXs[i - 1]}.");
+        }
+    }
+
+    /// <summary>
+    ///     Proves that a titled node with several <em>unlabeled</em> named ports on one face still
+    ///     excludes the title band from port placement — even though nothing rendered at those anchors
+    ///     could ever collide with the title text, <c>PortDistributor.TitleReserveFor</c> keys
+    ///     its exclusion off <c>LayerNode.TitleReserveTop</c>, which is populated whenever the
+    ///     node <see cref="LayoutGraphNode.HasPorts"/> — regardless of whether any individual port
+    ///     carries an <see cref="LayoutGraphPort.ExternalLabel"/> — so a titled box's unlabeled ports
+    ///     are placed no differently than labeled ones with respect to the title. Combines this with
+    ///     the growth-floor regression above: uses 6 unlabeled ports (rather than 4) so the
+    ///     <c>2 * ConnectorClearance</c>-per-port floor (120) clearly exceeds the height a titled box
+    ///     would already reach from its title band alone — otherwise the growth assertion would pass
+    ///     even without the fix, since a title reserves height on its own regardless of port count.
+    /// </summary>
+    [Fact]
+    public void Apply_TitledNodeWithSeveralUnlabeledPorts_PortsAvoidTitleBandAndAutoGrowsHeight()
+    {
+        const int portCount = 6;
+        var graph = new LayoutGraph();
+        var board = graph.AddNode("board", 140, 20);
+        board.Label = "board : Motherboard";
+
+        for (var k = 0; k < portCount; k++)
+        {
+            var target = graph.AddNode($"target{k}", 80, 30);
+            var port = board.Ports.AddPort($"p{k}"); // no ExternalLabel set — carries no text at all
+            graph.AddEdge($"e{k}", port, target);
+        }
+
+        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+
+        var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "board : Motherboard");
+        var expectedFloor = 2.0 * LayeredLayoutMetrics.ConnectorClearance * portCount;
+        Assert.True(
+            boardBox.Height >= expectedFloor,
+            $"Expected board height to grow to at least {expectedFloor} (2 * ConnectorClearance * "
+            + $"Total) for its {portCount} unlabeled ports, was {boardBox.Height}.");
+
+        var layoutPorts = tree.Nodes.OfType<LayoutPort>().Where(p => p.Side == PortSide.Right).ToList();
+        Assert.Equal(portCount, layoutPorts.Count);
+
+        // The title band sits at the very top of the box; every port must be placed strictly below it
+        // (using a generous lower bound of one title-sized band, matching ResolveTitleReserveTop's
+        // "roughly double assumedFontSize" comment) even though none of them carry any text.
+        const double assumedFontSize = 12.0; // CoreOptions.AssumedFontSize default
+        var titleBandBottom = boardBox.Y + (2.0 * assumedFontSize);
+        Assert.All(
+            layoutPorts,
+            p => Assert.True(
+                p.CentreY > titleBandBottom,
+                $"Expected port at CentreY {p.CentreY} to sit below the title band (bottom "
+                + $"{titleBandBottom}), even though it carries no label."));
     }
 
     /// <summary>
