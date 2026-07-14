@@ -424,7 +424,7 @@ public abstract class SkiaRasterRenderer : IRenderer
         SKPaint fillPaint,
         SKPaint strokePaint)
     {
-        var fold = Math.Min(Math.Min(box.Width, box.Height) * NotationMetrics.NoteFoldFraction, NotationMetrics.NoteFoldMaxSize);
+        var fold = BoxMetrics.NoteFoldSize(box);
 
         var x = (float)(box.X * scale);
         var y = (float)(box.Y * scale);
@@ -529,15 +529,25 @@ public abstract class SkiaRasterRenderer : IRenderer
             // as a stray line past the fold.
             if (!isFirstCompartment || titleAreaOccupiesSpace)
             {
+                // A Note's folded corner cuts its top-right corner short, so any full-width divider
+                // whose Y would still fall within that cutout (possible for a non-first compartment
+                // immediately following an empty leading one) must be pushed down to at least the
+                // fold's bottom edge; otherwise the line overshoots the cut and reads as a stray
+                // mark crossing the folded corner. Only the drawn line's Y is clamped here, not
+                // compartmentY itself, so row text position is unaffected.
+                var dividerY = box.Shape == BoxShape.Note
+                    ? Math.Max(compartmentY, box.Y + BoxMetrics.NoteFoldSize(box))
+                    : compartmentY;
+
                 using var divPaint = new SKPaint();
                 divPaint.Color = strokeColor;
                 divPaint.Style = SKPaintStyle.Stroke;
                 divPaint.StrokeWidth = (float)theme.StrokeWidth * scale;
                 canvas.DrawLine(
                     (float)(box.X * scale),
-                    (float)(compartmentY * scale),
+                    (float)(dividerY * scale),
                     (float)((box.X + box.Width) * scale),
-                    (float)(compartmentY * scale),
+                    (float)(dividerY * scale),
                     divPaint);
             }
 

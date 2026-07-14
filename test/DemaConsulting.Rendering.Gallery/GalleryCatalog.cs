@@ -33,6 +33,7 @@ internal static class GalleryCatalog
     // single edit that keeps the committed artifacts and the index in lockstep.
     public const string LayeredPipelineSvg = "layered-pipeline.svg";
     public const string IsolatedNodeLayerGapSvg = "isolated-node-layer-gap.svg";
+    public const string ParallelEdgesIntoCompartmentBoxSvg = "parallel-edges-into-compartment-box.svg";
     public const string ContainmentPackedSvg = "containment-packed.svg";
     public const string HierarchicalNestedSvg = "hierarchical-nested.svg";
     public const string OrthogonalObstacleSvg = "orthogonal-obstacle.svg";
@@ -106,6 +107,15 @@ internal static class GalleryCatalog
                     + "clusters isolated nodes at the end of the layer's order, and coordinate "
                     + "assignment squeezes any resulting gap down to the standard node spacing, instead "
                     + "of inheriting the dummy's unrelated port-alignment floor as an inflated gap."),
+                new GalleryImage(
+                    ParallelEdgesIntoCompartmentBoxSvg,
+                    "Nine edges docking on a compartment box without crossing its interior",
+                    "Regression coverage for the parallel-edges-into-compartment-box fix: nine "
+                    + "unmerged edges from a small Source box converge on a taller Target box's "
+                    + "nine-row compartment. ConnectorRouter now treats every box, including a "
+                    + "connection's own endpoints, as a hard obstacle for the whole route (not just "
+                    + "the final docking stub), so a connector squeezed by other already-routed "
+                    + "connectors can no longer detour straight through its own target box's interior."),
             ]),
         new GallerySection(
             "Flow direction",

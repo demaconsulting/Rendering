@@ -26,7 +26,7 @@ obstacle avoidance, and produced `LayoutLine` styling are all observed on real o
 
 A verification run passes when every named scenario below asserts without unexpected exception, and
 the referenced tests cover each `Rendering-Layout-ConnectorRouter-*` requirement. Any wrong anchor
-face, waypoint that enters a non-endpoint obstacle interior, incorrect line styling passthrough,
+face, waypoint that enters an obstacle's strict interior, incorrect line styling passthrough,
 out-of-order batch result, or non-argument-null exception for invalid input constitutes a failure.
 
 ### Test Scenarios
@@ -51,9 +51,12 @@ out-of-order batch result, or non-argument-null exception for invalid input cons
 - **Obstacle avoidance** (`Rendering-Layout-ConnectorRouter-AvoidsObstacles`):
   `Route_ObstacleBetweenEndpoints_RoutesAroundInterior` confirms the route is orthogonal and never
   enters an intervening box's interior.
-- **Endpoint exclusion** (`Rendering-Layout-ConnectorRouter-ExcludesEndpoints`):
-  `Route_EndpointBoxes_AreExcludedFromObstacles` confirms the connector reaches the endpoints' boundary
-  anchors even though both boxes appear in the box list.
+- **Endpoint boxes as ordinary obstacles** (`Rendering-Layout-ConnectorRouter-ExcludesEndpoints`):
+  `Route_EndpointBoxes_ReachBoundaryAnchorsViaApproachStub` confirms the connector still reaches the
+  endpoints' boundary anchors even though both boxes are treated as obstacles, and
+  `Route_NineParallelEdgesIntoCompartmentBox_DoNotCrossTargetInterior` confirms a batch of parallel
+  connectors converging on one box face never cuts through that box's (or the source box's) interior,
+  reproducing a previously reported defect.
 - **Styling carried** (`Rendering-Layout-ConnectorRouter-CarriesStyling`):
   `Route_Connection_CarriesRequestedStyling` confirms the requested target marker, line style, and
   label flow onto the produced line while the source end stays unmarked.
@@ -94,7 +97,8 @@ level rather than introducing a new `ConnectorRouter`-level responsibility:
 - **`Rendering-Layout-ConnectorRouter-AvoidsObstacles`**:
   Route_ObstacleBetweenEndpoints_RoutesAroundInterior
 - **`Rendering-Layout-ConnectorRouter-ExcludesEndpoints`**:
-  Route_EndpointBoxes_AreExcludedFromObstacles
+  Route_EndpointBoxes_ReachBoundaryAnchorsViaApproachStub,
+  Route_NineParallelEdgesIntoCompartmentBox_DoNotCrossTargetInterior
 - **`Rendering-Layout-ConnectorRouter-CarriesStyling`**:
   Route_Connection_CarriesRequestedStyling
 - **`Rendering-Layout-ConnectorRouter-BatchOrder`**:

@@ -37,7 +37,7 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("e1", a, b);
         graph.AddEdge("e2", b, c);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
         var lines = tree.Nodes.OfType<LayoutLine>().ToList();
@@ -74,7 +74,7 @@ public class LayeredLayoutAlgorithmTests
         node.FolderTabWidth = 70.0;
         node.FolderTabHeight = 22.0;
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var box = Assert.Single(tree.Nodes.OfType<LayoutBox>());
         Assert.Equal(BoxShape.RoundedRectangle, box.Shape);
@@ -96,7 +96,7 @@ public class LayeredLayoutAlgorithmTests
         var graph = new LayoutGraph();
         graph.AddNode("plain", 80, 40);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var box = Assert.Single(tree.Nodes.OfType<LayoutBox>());
         Assert.Equal(BoxShape.Rectangle, box.Shape);
@@ -110,7 +110,7 @@ public class LayeredLayoutAlgorithmTests
     [Fact]
     public void Apply_EmptyGraph_ReturnsEmptyCanvas()
     {
-        var tree = new LayeredLayoutAlgorithm().Apply(new LayoutGraph(), new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(new LayoutGraph(), new LayoutOptions());
 
         Assert.Empty(tree.Nodes);
         Assert.True(tree.Width > 0);
@@ -124,7 +124,7 @@ public class LayeredLayoutAlgorithmTests
     public void Apply_NullGraph_Throws()
     {
         Assert.Throws<ArgumentNullException>(
-            () => new LayeredLayoutAlgorithm().Apply(null!, new LayoutOptions()));
+            () => new LayeredLayoutAlgorithm().ApplyCore(null!, new LayoutOptions()));
     }
 
     /// <summary>
@@ -134,7 +134,7 @@ public class LayeredLayoutAlgorithmTests
     public void Apply_NullOptions_Throws()
     {
         Assert.Throws<ArgumentNullException>(
-            () => new LayeredLayoutAlgorithm().Apply(new LayoutGraph(), null!));
+            () => new LayeredLayoutAlgorithm().ApplyCore(new LayoutGraph(), null!));
     }
 
     /// <summary>
@@ -155,7 +155,7 @@ public class LayeredLayoutAlgorithmTests
         var options = new LayoutOptions();
         options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
 
         var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
         Assert.Equal(3, boxes.Count);
@@ -178,11 +178,11 @@ public class LayeredLayoutAlgorithmTests
     {
         var algorithm = new LayeredLayoutAlgorithm();
 
-        var right = algorithm.Apply(BuildChain(), new LayoutOptions());
+        var right = algorithm.ApplyCore(BuildChain(), new LayoutOptions());
 
         var downOptions = new LayoutOptions();
         downOptions.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
-        var down = algorithm.Apply(BuildChain(), downOptions);
+        var down = algorithm.ApplyCore(BuildChain(), downOptions);
 
         // Rightward is wide-and-short; downward is tall-and-narrow. They must not be identical.
         Assert.True(right.Width > right.Height);
@@ -204,7 +204,7 @@ public class LayeredLayoutAlgorithmTests
         var graph = BuildChain();
         graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         Assert.True(tree.Height > tree.Width);
     }
@@ -216,7 +216,7 @@ public class LayeredLayoutAlgorithmTests
     [Fact]
     public void Apply_DefaultDirection_FlowsLeftToRight()
     {
-        var tree = new LayeredLayoutAlgorithm().Apply(BuildChain(), new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(BuildChain(), new LayoutOptions());
 
         var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
         Assert.True(boxes[0].X < boxes[1].X);
@@ -254,7 +254,7 @@ public class LayeredLayoutAlgorithmTests
         Assert.All(new[] { a, b, c }, node => Assert.False(node.HasChildren));
 
         // Act: lay the flat graph out with the bundled algorithm
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: the placed structure matches the classic flat result (one box per node,
         // one connector per edge, left-to-right chain ordering)
@@ -294,7 +294,7 @@ public class LayeredLayoutAlgorithmTests
         options.Set(CoreOptions.Direction, direction);
 
         // Act: laying out must not throw regardless of direction.
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
 
         // Assert: a valid placed tree with one box per node and one connector per edge.
         var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
@@ -328,7 +328,7 @@ public class LayeredLayoutAlgorithmTests
         var options = new LayoutOptions();
         options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
 
         var targetBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Utilities");
         var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
@@ -357,7 +357,7 @@ public class LayeredLayoutAlgorithmTests
         var options = new LayoutOptions();
         options.Set(CoreOptions.Direction, LayoutFlowDirection.Up);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
 
         var sourceBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Utilities");
         var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
@@ -385,7 +385,7 @@ public class LayeredLayoutAlgorithmTests
         target.FolderTabHeight = 24.0;
         graph.AddEdge("uses", source, target);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var targetBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Utilities");
         var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
@@ -415,7 +415,7 @@ public class LayeredLayoutAlgorithmTests
         var options = new LayoutOptions();
         options.Set(CoreOptions.Direction, LayoutFlowDirection.Left);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
 
         var targetBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Utilities");
         var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
@@ -443,7 +443,7 @@ public class LayeredLayoutAlgorithmTests
         var options = new LayoutOptions();
         options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
 
         var targetBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Design Note");
         var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
@@ -467,7 +467,7 @@ public class LayeredLayoutAlgorithmTests
     [Fact]
     public void Apply_RectangleChain_MatchesPreShapeAwarenessOutput()
     {
-        var tree = new LayeredLayoutAlgorithm().Apply(BuildChain(), new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(BuildChain(), new LayoutOptions());
 
         var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
         var lines = tree.Nodes.OfType<LayoutLine>().ToList();
@@ -499,7 +499,7 @@ public class LayeredLayoutAlgorithmTests
     [Fact]
     public void Apply_DefaultNodeSpacing_MatchesPriorEngineBehavior()
     {
-        var tree = new LayeredLayoutAlgorithm().Apply(BuildFanOut(), new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(BuildFanOut(), new LayoutOptions());
 
         Assert.Equal(-5.0, SiblingGap(tree), 6);
     }
@@ -514,11 +514,11 @@ public class LayeredLayoutAlgorithmTests
     {
         var smallOptions = new LayoutOptions();
         smallOptions.Set(CoreOptions.NodeSpacing, 40.0);
-        var smallGap = SiblingGap(new LayeredLayoutAlgorithm().Apply(BuildFanOut(), smallOptions));
+        var smallGap = SiblingGap(new LayeredLayoutAlgorithm().ApplyCore(BuildFanOut(), smallOptions));
 
         var largeOptions = new LayoutOptions();
         largeOptions.Set(CoreOptions.NodeSpacing, 100.0);
-        var largeGap = SiblingGap(new LayeredLayoutAlgorithm().Apply(BuildFanOut(), largeOptions));
+        var largeGap = SiblingGap(new LayeredLayoutAlgorithm().ApplyCore(BuildFanOut(), largeOptions));
 
         Assert.True(largeGap > smallGap);
     }
@@ -535,13 +535,13 @@ public class LayeredLayoutAlgorithmTests
         graphWithOverride.Set(CoreOptions.NodeSpacing, 100.0);
         var options = new LayoutOptions();
         options.Set(CoreOptions.NodeSpacing, 40.0);
-        var overriddenGap = SiblingGap(new LayeredLayoutAlgorithm().Apply(graphWithOverride, options));
+        var overriddenGap = SiblingGap(new LayeredLayoutAlgorithm().ApplyCore(graphWithOverride, options));
 
         var graphOnly = BuildFanOut();
         graphOnly.Set(CoreOptions.NodeSpacing, 100.0);
-        var graphOnlyGap = SiblingGap(new LayeredLayoutAlgorithm().Apply(graphOnly, new LayoutOptions()));
+        var graphOnlyGap = SiblingGap(new LayeredLayoutAlgorithm().ApplyCore(graphOnly, new LayoutOptions()));
 
-        var optionsOnlyGap = SiblingGap(new LayeredLayoutAlgorithm().Apply(BuildFanOut(), options));
+        var optionsOnlyGap = SiblingGap(new LayeredLayoutAlgorithm().ApplyCore(BuildFanOut(), options));
 
         // The graph's 100.0 wins over the options' 40.0, matching a graph-only resolution...
         Assert.Equal(graphOnlyGap, overriddenGap, 6);
@@ -589,7 +589,7 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("e3", a, b);
 
         // Act
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: only one connector survives.
         var lines = tree.Nodes.OfType<LayoutLine>().ToList();
@@ -616,7 +616,7 @@ public class LayeredLayoutAlgorithmTests
         options.Set(CoreOptions.MergeParallelEdges, false);
 
         // Act
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
 
         // Assert: all three connectors survive, each keeping its own label.
         var lines = tree.Nodes.OfType<LayoutLine>().ToList();
@@ -642,7 +642,7 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("e3", a, b).Label = "audit";
 
         // Act
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: exactly one line survives, and its label is omitted (not "primary", the first
         // edge's label).
@@ -662,7 +662,7 @@ public class LayeredLayoutAlgorithmTests
         var b = graph.AddNode("b", 80, 40);
         graph.AddEdge("e1", a, b).Label = "only";
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
         Assert.Equal("only", line.MidpointLabel);
@@ -685,7 +685,7 @@ public class LayeredLayoutAlgorithmTests
         var options = new LayoutOptions();
         options.Set(CoreOptions.MergeParallelEdges, true);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
 
         Assert.Equal(2, tree.Nodes.OfType<LayoutLine>().Count());
     }
@@ -707,7 +707,7 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("e1", port, target);
 
         // Act
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: exactly one port is emitted, carrying the external label.
         var ports = tree.Nodes.OfType<LayoutPort>().ToList();
@@ -737,7 +737,7 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("e1", source, port);
 
         // Act
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: the target box (which receives the port) has a positive left inset, while its
         // other three sides (and the port-free source box) stay zero.
@@ -770,7 +770,7 @@ public class LayeredLayoutAlgorithmTests
         port.ExternalLabel = "output";
         graph.AddEdge("e1", port, target);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var port1 = Assert.Single(tree.Nodes.OfType<LayoutPort>());
         Assert.False(double.IsPositiveInfinity(port1.MaxLabelWidth));
@@ -800,7 +800,7 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("e1", source, port);
 
         // Act
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: the target box grew past its caller-supplied 80px width to accommodate the floor.
         var targetBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == null && b.ContentInsetLeft > 0);
@@ -838,7 +838,7 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("e1", source, inPort);
         graph.AddEdge("e2", outPort, target);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var hubBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.ContentInsetLeft > 0 && b.ContentInsetRight > 0);
         Assert.True(hubBox.Width > 80.0, $"Expected hub width to grow past 80, was {hubBox.Width}.");
@@ -891,7 +891,7 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("e2", sourceB, bottomLeftPort);
         graph.AddEdge("e3", hub, target);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var hubBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Hub");
         var ports = tree.Nodes.OfType<LayoutPort>()
@@ -940,7 +940,7 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("e3", board, network);
         graph.AddEdge("e4", board, graphics);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == null);
         var expectedFloor = 2.0 * LayeredLayoutMetrics.ConnectorClearance * 4;
@@ -996,7 +996,7 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("e3", board, network);
         graph.AddEdge("e4", board, graphics);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == null);
         var expectedFloor = 2.0 * LayeredLayoutMetrics.ConnectorClearance * 4;
@@ -1050,7 +1050,7 @@ public class LayeredLayoutAlgorithmTests
             graph.AddEdge($"e{k}", port, target);
         }
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "board : Motherboard");
         var expectedFloor = 2.0 * LayeredLayoutMetrics.ConnectorClearance * portCount;
@@ -1087,7 +1087,7 @@ public class LayeredLayoutAlgorithmTests
         var node = graph.AddNode("roomy", 400, 300);
         node.Label = "Roomy";
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var box = Assert.Single(tree.Nodes.OfType<LayoutBox>());
         Assert.Equal(400.0, box.Width, 3);
@@ -1121,7 +1121,7 @@ public class LayeredLayoutAlgorithmTests
         options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
         // Act
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
 
         // Assert: the hub box grew taller than its caller-supplied 50px height.
         var hubBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Hub");
@@ -1165,7 +1165,7 @@ public class LayeredLayoutAlgorithmTests
         var options = new LayoutOptions();
         options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
 
         var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
         for (var i = 0; i < boxes.Count; i++)
@@ -1187,8 +1187,8 @@ public class LayeredLayoutAlgorithmTests
     {
         var graph = BuildFanOut();
 
-        var tree1 = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
-        var tree2 = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree1 = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+        var tree2 = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var boxes1 = tree1.Nodes.OfType<LayoutBox>().ToList();
         var boxes2 = tree2.Nodes.OfType<LayoutBox>().ToList();
@@ -1229,7 +1229,7 @@ public class LayeredLayoutAlgorithmTests
         graph.AddEdge("audit", producer, consumer).Label = "audit";
 
         // Act
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         var lines = tree.Nodes.OfType<LayoutLine>().Where(l => l.MidpointLabel != null).ToList();
         Assert.Equal(3, lines.Count);
@@ -1288,7 +1288,7 @@ public class LayeredLayoutAlgorithmTests
         options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
         // Act
-        var tree = new LayeredLayoutAlgorithm().Apply(graph, options);
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
 
         var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
         Assert.Equal(2, boxes.Count);

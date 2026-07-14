@@ -39,6 +39,7 @@
 
     <!-- Polyfill Configuration -->
     <PolyArgumentExceptions>true</PolyArgumentExceptions>
+    <PolyUseEmbeddedAttribute>true</PolyUseEmbeddedAttribute>
 
     <!-- SBOM Configuration -->
     <GenerateSBOM>true</GenerateSBOM>
@@ -74,6 +75,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="DemaConsulting.Rendering.Abstractions.Tests" />
+    <InternalsVisibleTo Include="DemaConsulting.Rendering.Layout" />
+    <InternalsVisibleTo Include="DemaConsulting.Rendering.Layout.Tests" />
   </ItemGroup>
 
   <ItemGroup>

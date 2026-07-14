@@ -41,8 +41,8 @@ public sealed class HierarchicalLayoutAlgorithmTests
             var options = LayoutOptions.ForAlgorithm("layered");
 
             // Act
-            var expected = new LayeredLayoutAlgorithm().Apply(graph, options);
-            var actual = new HierarchicalLayoutAlgorithm().Apply(graph, options);
+            var expected = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
+            var actual = new HierarchicalLayoutAlgorithm().ApplyCore(graph, options);
 
             // Assert
             AssertTreesIdentical($"layered seed {seed}", expected, actual);
@@ -64,8 +64,8 @@ public sealed class HierarchicalLayoutAlgorithmTests
             var options = LayoutOptions.ForAlgorithm("containment");
 
             // Act
-            var expected = new ContainmentLayoutAlgorithm().Apply(graph, options);
-            var actual = new HierarchicalLayoutAlgorithm().Apply(graph, options);
+            var expected = new ContainmentLayoutAlgorithm().ApplyCore(graph, options);
+            var actual = new HierarchicalLayoutAlgorithm().ApplyCore(graph, options);
 
             // Assert
             AssertTreesIdentical($"containment seed {seed}", expected, actual);
@@ -91,7 +91,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         graph.AddNode("outside", 80, 40);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: the container box is present and carries nested boxes
         var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
@@ -140,8 +140,8 @@ public sealed class HierarchicalLayoutAlgorithmTests
         overrideGroup.Children.AddNode("child", 80, 40);
 
         // Act
-        var defaultTree = new HierarchicalLayoutAlgorithm().Apply(defaultGraph, LayoutOptions.ForAlgorithm("layered"));
-        var overrideTree = new HierarchicalLayoutAlgorithm().Apply(overrideGraph, LayoutOptions.ForAlgorithm("layered"));
+        var defaultTree = new HierarchicalLayoutAlgorithm().ApplyCore(defaultGraph, LayoutOptions.ForAlgorithm("layered"));
+        var overrideTree = new HierarchicalLayoutAlgorithm().ApplyCore(overrideGraph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: the override container is exactly (100 - 24) taller than the default container, and
         // its nested child is offset down by that same difference.
@@ -176,8 +176,8 @@ public sealed class HierarchicalLayoutAlgorithmTests
         overrideGroup.Children.AddNode("child", 80, 40);
 
         // Act
-        var plainTree = new HierarchicalLayoutAlgorithm().Apply(plainGraph, LayoutOptions.ForAlgorithm("layered"));
-        var overrideTree = new HierarchicalLayoutAlgorithm().Apply(overrideGraph, LayoutOptions.ForAlgorithm("layered"));
+        var plainTree = new HierarchicalLayoutAlgorithm().ApplyCore(plainGraph, LayoutOptions.ForAlgorithm("layered"));
+        var overrideTree = new HierarchicalLayoutAlgorithm().ApplyCore(overrideGraph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: both containers are sized identically, since neither reserves a title band.
         var plainContainer = Assert.Single(plainTree.Nodes.OfType<LayoutBox>());
@@ -208,8 +208,8 @@ public sealed class HierarchicalLayoutAlgorithmTests
         folderGroup.Children.AddNode("child", 80, 40);
 
         // Act
-        var rectangleTree = new HierarchicalLayoutAlgorithm().Apply(rectangleGraph, LayoutOptions.ForAlgorithm("layered"));
-        var folderTree = new HierarchicalLayoutAlgorithm().Apply(folderGraph, LayoutOptions.ForAlgorithm("layered"));
+        var rectangleTree = new HierarchicalLayoutAlgorithm().ApplyCore(rectangleGraph, LayoutOptions.ForAlgorithm("layered"));
+        var folderTree = new HierarchicalLayoutAlgorithm().ApplyCore(folderGraph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: the folder container is exactly tab-height taller, and its child is offset down by
         // that same additional amount, so the child never overlaps the recessed title area.
@@ -243,7 +243,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         graph.AddNode("peer", 80, 40);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("containment"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("containment"));
 
         // Assert: the container was composed with nested children
         var containerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>(), box => box.Children.Count > 0);
@@ -269,7 +269,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         graph.AddNode("peer", 80, 40);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert
         var containerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>(), box => box.Children.Count > 0);
@@ -300,7 +300,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         graph.AddNode("outside", 80, 40);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: the nested chain stacks vertically (strictly increasing Y), proving the container's own
         // Down override was honored rather than falling back to the top-level Right default.
@@ -332,7 +332,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         level2.Children.AddEdge("b-c", leafB, leafC);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: level3 leaves stack vertically, proving Down cascaded through the unset level2 scope.
         var outerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>());
@@ -365,7 +365,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         level2.Children.AddEdge("b-c", leafB, leafC);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: level3 leaves flow horizontally, not vertically, proving level2's own Right override
         // took precedence over level1's inherited Down.
@@ -413,7 +413,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         level2.Children.AddEdge("a-b", leafA, leafB);
 
         // Act
-        _ = new HierarchicalLayoutAlgorithm(registry).Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        _ = new HierarchicalLayoutAlgorithm(registry).ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: the leaf-scope call (level2's own children graph, the flat fast path) received the
         // EdgeRouting override cascaded down from level1, and its own Marker override, not level1's.
@@ -448,7 +448,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         graph.AddEdge("cross", aChild, bChild);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("containment"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("containment"));
 
         // Assert: the cross-container edge is still routed (the scope's own EdgeRouting override,
         // cascaded via the effective snapshot, was consulted rather than being silently ignored).
@@ -476,7 +476,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         graph.AddEdge("cross", aChild, bChild);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("containment"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("containment"));
 
         // Assert: exactly one routed line exists at the root (the cross-container edge)
         var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
@@ -519,7 +519,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         graph.AddEdge("client-api", client, api);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: the single top-level cross-container line does not pass through the interior of either
         // endpoint container box (the wide container or the leaf).
@@ -576,7 +576,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         // Act: the "containment" leaf algorithm packs boxes deterministically and routes its own edges
         // with ConnectorRouter, so the root scope's leaf-routed batch and its cross-container batch are
         // both driven by the same underlying router — exactly like the real diagram's regression.
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("containment"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("containment"));
 
         // Assert: the two connectors landing on "target" reach distinct anchor points.
         var lines = tree.Nodes.OfType<LayoutLine>().ToList();
@@ -612,7 +612,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         unrelated.Children.AddNode("unrelated-child", 60, 40);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: exactly one LayoutPort is emitted, carrying the port's external label, and exactly
         // one LayoutLine connects the two boxes — the connector is routed, not dropped, even though
@@ -659,7 +659,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         b.Children.AddEdge("b-to-c", port, c);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: exactly one LayoutPort, carrying BOTH labels, on B's boundary.
         var emitted = Assert.Single(tree.Nodes.OfType<LayoutPort>());
@@ -719,7 +719,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         b.Children.AddEdge("b-c2", port, c2);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: exactly one LayoutPort carrying both labels despite the fan-out.
         var emitted = Assert.Single(tree.Nodes.OfType<LayoutPort>());
@@ -769,7 +769,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         b.Children.AddEdge("q-c2", q, c2);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: two distinct anchors, each carrying its own labels.
         var emitted = tree.Nodes.OfType<LayoutPort>().ToList();
@@ -826,7 +826,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         b.Children.AddEdge("q-c2", q, c2);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         AssertConnectorProvenancePreserved(tree, "A1", "C1", "A2", "C2");
     }
@@ -866,7 +866,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         b.Children.AddEdge("q-c2", q, c2);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         AssertConnectorProvenancePreserved(tree, "A1", "C1", "A2", "C2");
     }
@@ -972,7 +972,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
 
         // Act / Assert
         var ex = Assert.Throws<NotSupportedException>(
-            () => new HierarchicalLayoutAlgorithm().Apply(graph, new LayoutOptions()));
+            () => new HierarchicalLayoutAlgorithm().ApplyCore(graph, new LayoutOptions()));
         Assert.Contains("container boundary", ex.Message, StringComparison.Ordinal);
     }
 
@@ -1003,7 +1003,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         sibling.Children.AddNode("sibling-child", 60, 40);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: the "group" container box holds the emitted LayoutPort among its (translated)
         // children, positioned within the composed container box's absolute bounds.
@@ -1063,7 +1063,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         engine.RoundedCornerRadius = 14.0;
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert
         var folder = Assert.Single(tree.Nodes.OfType<LayoutBox>());
@@ -1092,7 +1092,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         b.Children.AddNode("leaf", 80, 40);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: the nesting depth is reflected in the composed box tree
         var outer = Assert.Single(tree.Nodes.OfType<LayoutBox>());
@@ -1120,7 +1120,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         var outside = graph.AddNode("outside", 64, 48);
 
         // Act
-        _ = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        _ = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: every original node keeps its exact input dimensions (bit-for-bit)
         AssertExact("group.Width", 10, group.Width);
@@ -1141,7 +1141,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
     public void Apply_EmptyGraph_ReturnsEmptyCanvas()
     {
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(new LayoutGraph(), LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(new LayoutGraph(), LayoutOptions.ForAlgorithm("layered"));
 
         // Assert
         Assert.Empty(tree.Nodes);
@@ -1164,8 +1164,8 @@ public sealed class HierarchicalLayoutAlgorithmTests
         var options = LayoutOptions.ForAlgorithm("layered");
 
         // Act
-        var expected = new LayeredLayoutAlgorithm().Apply(graph, options);
-        var actual = new HierarchicalLayoutAlgorithm().Apply(graph, options);
+        var expected = new LayeredLayoutAlgorithm().ApplyCore(graph, options);
+        var actual = new HierarchicalLayoutAlgorithm().ApplyCore(graph, options);
 
         // Assert: identical to the layered algorithm, and the single box carries no children
         AssertTreesIdentical("empty-children", expected, actual);
@@ -1181,7 +1181,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
     {
         // Act / Assert
         Assert.Throws<ArgumentNullException>(
-            () => new HierarchicalLayoutAlgorithm().Apply(null!, new LayoutOptions()));
+            () => new HierarchicalLayoutAlgorithm().ApplyCore(null!, new LayoutOptions()));
     }
 
     /// <summary>
@@ -1192,7 +1192,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
     {
         // Act / Assert
         Assert.Throws<ArgumentNullException>(
-            () => new HierarchicalLayoutAlgorithm().Apply(new LayoutGraph(), null!));
+            () => new HierarchicalLayoutAlgorithm().ApplyCore(new LayoutGraph(), null!));
     }
 
     /// <summary>
@@ -1220,9 +1220,9 @@ public sealed class HierarchicalLayoutAlgorithmTests
 
             // Act
             var explicitHierarchical = new HierarchicalLayoutAlgorithm()
-                .Apply(graph, LayoutOptions.ForAlgorithm(HierarchicalLayoutAlgorithm.AlgorithmId));
+                .ApplyCore(graph, LayoutOptions.ForAlgorithm(HierarchicalLayoutAlgorithm.AlgorithmId));
             var layered = new LayeredLayoutAlgorithm()
-                .Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+                .ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
             // Assert: explicit "hierarchical" resolves to the layered leaf, bit-for-bit
             AssertTreesIdentical($"explicit-hierarchical seed {seed}", layered, explicitHierarchical);
@@ -1246,7 +1246,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         graph.AddNode("peer", 80, 40);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: the container was composed with its two nested children
         var containerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>(), box => box.Children.Count > 0);
@@ -1268,7 +1268,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         graph.AddNode("peer", 80, 40);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: the container was composed with its nested child
         var containerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>(), box => box.Children.Count > 0);
@@ -1290,7 +1290,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         var graph = BuildDelegationChain(leafWidth: 120, leafHeight: 50);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: one anchor per level (three in total), each on its own container's boundary.
         var ports = tree.Nodes.OfType<LayoutPort>().ToList();
@@ -1337,7 +1337,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         var options = LayoutOptions.ForAlgorithm("layered");
 
         // Act
-        var actual = new HierarchicalLayoutAlgorithm().Apply(graph, options);
+        var actual = new HierarchicalLayoutAlgorithm().ApplyCore(graph, options);
 
         // Assert: the layout matches the captured leaf-path golden snapshot exactly (bit level).
         Assert.Equal(NoBoundaryPortGolden, DumpTree(actual));
@@ -1359,7 +1359,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         var graph = BuildDelegationChain(leafWidth, leafHeight);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: the innermost leaf keeps its intrinsic size.
         var l1 = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "L1");
@@ -1706,24 +1706,25 @@ public sealed class HierarchicalLayoutAlgorithmTests
 
     /// <summary>
     ///     A leaf-algorithm test double that records the exact <see cref="LayoutGraph"/> and
-    ///     <see cref="LayoutOptions"/> instance every <see cref="Apply"/> call receives, then delegates
-    ///     to a real inner algorithm so the composed layout remains valid. It advertises the inner
-    ///     algorithm's own <see cref="Id"/> so it can be registered in its place, transparently observing
-    ///     every scope <see cref="HierarchicalLayoutAlgorithm"/> places with that algorithm identifier.
+    ///     <see cref="LayoutOptions"/> instance every <see cref="ApplyCore"/> call receives, then
+    ///     delegates to a real inner algorithm so the composed layout remains valid. It advertises the
+    ///     inner algorithm's own <see cref="Id"/> so it can be registered in its place, transparently
+    ///     observing every scope <see cref="HierarchicalLayoutAlgorithm"/> places with that algorithm
+    ///     identifier.
     /// </summary>
-    private sealed class RecordingLayoutAlgorithm(ILayoutAlgorithm inner) : ILayoutAlgorithm
+    private sealed class RecordingLayoutAlgorithm(LayoutAlgorithmBase inner) : LayoutAlgorithmBase
     {
-        /// <summary>The graph/options pair captured from every <see cref="Apply"/> invocation, in call order.</summary>
+        /// <summary>The graph/options pair captured from every <see cref="ApplyCore"/> invocation, in call order.</summary>
         public List<(LayoutGraph Graph, LayoutOptions Options)> Calls { get; } = [];
 
         /// <inheritdoc/>
-        public string Id => inner.Id;
+        public override string Id => inner.Id;
 
         /// <inheritdoc/>
-        public LayoutTree Apply(LayoutGraph graph, LayoutOptions options)
+        protected internal override LayoutTree ApplyCore(LayoutGraph graph, LayoutOptions options)
         {
             Calls.Add((graph, options));
-            return inner.Apply(graph, options);
+            return inner.ApplyCore(graph, options);
         }
     }
 }

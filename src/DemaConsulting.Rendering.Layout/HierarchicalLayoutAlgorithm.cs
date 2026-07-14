@@ -57,8 +57,8 @@ namespace DemaConsulting.Rendering.Layout;
 ///     The engine never mutates the caller's input graph. When a level must be re-sized to account for
 ///     nested content, it builds an internal <em>sized view</em> graph (same node order, container nodes
 ///     carrying their effective size, in-scope edges only) and lays that out, leaving the caller's graph
-///     untouched. The engine is stateless and its <see cref="Apply"/> is safe to call concurrently on
-///     distinct graphs.
+///     untouched. The engine is stateless and its <see cref="LayoutAlgorithmBase.Apply(LayoutGraph)"/> is
+///     safe to call concurrently on distinct graphs.
 ///     </para>
 ///     <para>
 ///     <strong>Leaf-algorithm contract.</strong> This engine builds each scope's cascaded effective
@@ -83,14 +83,14 @@ namespace DemaConsulting.Rendering.Layout;
 ///     graph.AddNode("outside", 80, 40);                   // a sibling leaf at the root
 ///
 ///     // Pack the root with the containment algorithm; containers recurse with their own algorithm.
-///     var options = LayoutOptions.ForAlgorithm("containment");
-///     var tree = new HierarchicalLayoutAlgorithm().Apply(graph, options);
+///     graph.Set(CoreOptions.Algorithm, "containment");
+///     var tree = new HierarchicalLayoutAlgorithm().Apply(graph);
 ///
 ///     // Hand the composed tree to a renderer (for example the SVG renderer).
 ///     // new SvgRenderer().Render(tree, new RenderOptions(Themes.Light), stream);
 ///     </code>
 /// </example>
-public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
+public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
 {
     /// <summary>
     /// The stable algorithm identifier <c>"hierarchical"</c> under which this algorithm is selected and
@@ -209,7 +209,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     }
 
     /// <inheritdoc/>
-    public string Id => AlgorithmId;
+    public override string Id => AlgorithmId;
 
     /// <inheritdoc/>
     /// <exception cref="ArgumentNullException">
@@ -218,7 +218,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
     /// <exception cref="KeyNotFoundException">
     /// Thrown when a scope selects a layout algorithm identifier that is not registered.
     /// </exception>
-    public LayoutTree Apply(LayoutGraph graph, LayoutOptions options)
+    protected internal override LayoutTree ApplyCore(LayoutGraph graph, LayoutOptions options)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(options);
@@ -250,7 +250,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
         if (!anyContainer)
         {
-            return algo.Apply(graph, effective);
+            return algo.ApplyCore(graph, effective);
         }
 
         // Hierarchical path (SeparateChildren): recurse into each container child, size it to fit, place
@@ -277,7 +277,7 @@ public sealed class HierarchicalLayoutAlgorithm : ILayoutAlgorithm
 
         // Place this level with the resolved leaf algorithm over the sized view. The leaf algorithm
         // emits one box per node in Nodes order, so placed boxes align with graph.Nodes by index.
-        var placed = algo.Apply(view, effective);
+        var placed = algo.ApplyCore(view, effective);
         var placedBoxes = placed.Nodes.OfType<LayoutBox>().ToList();
         var placedLines = placed.Nodes.OfType<LayoutLine>().ToList();
         var placedPorts = placed.Nodes.OfType<LayoutPort>().ToList();

@@ -43,7 +43,7 @@ public sealed class ContainmentLayoutAlgorithmTests
         node.FolderTabHeight = 24.0;
 
         // Act
-        var tree = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert
         var box = Assert.Single(tree.Nodes.OfType<LayoutBox>());
@@ -74,7 +74,7 @@ public sealed class ContainmentLayoutAlgorithmTests
         d.Label = "D";
 
         // Act
-        var tree = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: one box per node, emitted in input order
         var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
@@ -120,7 +120,7 @@ public sealed class ContainmentLayoutAlgorithmTests
         e2.TargetEnd = EndMarkerStyle.HollowDiamond;
 
         // Act
-        var tree = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: one line per edge, each carrying its styling and a routed polyline
         var lines = tree.Nodes.OfType<LayoutLine>().ToList();
@@ -151,7 +151,7 @@ public sealed class ContainmentLayoutAlgorithmTests
         graph.AddEdge("e", a, b);
 
         // Act
-        var tree = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: the three boxes packed onto one row, with the middle box between the endpoints
         var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
@@ -180,7 +180,7 @@ public sealed class ContainmentLayoutAlgorithmTests
     public void Apply_EmptyGraph_ReturnsEmptyCanvas()
     {
         // Act
-        var tree = new ContainmentLayoutAlgorithm().Apply(new LayoutGraph(), new LayoutOptions());
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(new LayoutGraph(), new LayoutOptions());
 
         // Assert
         Assert.Empty(tree.Nodes);
@@ -206,7 +206,7 @@ public sealed class ContainmentLayoutAlgorithmTests
         graph.AddEdge("out", a, inner);
 
         // Act
-        var tree = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: only the in-graph edge is routed; the out-of-graph edge is skipped
         var lines = tree.Nodes.OfType<LayoutLine>().ToList();
@@ -221,7 +221,7 @@ public sealed class ContainmentLayoutAlgorithmTests
     {
         // Act / Assert
         Assert.Throws<ArgumentNullException>(
-            () => new ContainmentLayoutAlgorithm().Apply(null!, new LayoutOptions()));
+            () => new ContainmentLayoutAlgorithm().ApplyCore(null!, new LayoutOptions()));
     }
 
     /// <summary>
@@ -232,7 +232,7 @@ public sealed class ContainmentLayoutAlgorithmTests
     {
         // Act / Assert
         Assert.Throws<ArgumentNullException>(
-            () => new ContainmentLayoutAlgorithm().Apply(new LayoutGraph(), null!));
+            () => new ContainmentLayoutAlgorithm().ApplyCore(new LayoutGraph(), null!));
     }
 
     /// <summary>
@@ -260,7 +260,7 @@ public sealed class ContainmentLayoutAlgorithmTests
         graph.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
 
         // Act
-        var tree = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
         // Assert: the edge is still routed using the graph's own (orthogonal) style.
         var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());

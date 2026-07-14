@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering;
+using DemaConsulting.Rendering.Abstractions;
 using DemaConsulting.Rendering.Layout.Engine.Layered;
 
 namespace DemaConsulting.Rendering.Layout.Tests.Engine.Layered;
@@ -10,7 +11,7 @@ namespace DemaConsulting.Rendering.Layout.Tests.Engine.Layered;
 /// <summary>
 ///     Full-waypoint orthogonality tests for the boundary-port decomposition
 ///     (<see cref="MergeRegionDecomposer"/>) exercised end-to-end through the public
-///     <see cref="HierarchicalLayoutAlgorithm.Apply"/> surface. These are the genuine regression tests
+///     <see cref="LayoutAlgorithmBase.Apply(LayoutGraph)"/> surface. These are the genuine regression tests
 ///     for the shipped fan-in defect: every connector that terminates at a shared boundary anchor must
 ///     be strictly orthogonal along its <em>whole</em> polyline — every consecutive waypoint pair sharing
 ///     exactly one coordinate — so no edge is ever patched onto the anchor with a raw diagonal segment.
@@ -54,7 +55,7 @@ public sealed class MergeRegionDecomposerTests
         controller.Children.AddEdge("command-driver", command, driver);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: exactly one shared anchor, and every edge reaching it is orthogonal along its whole path.
         AssertEveryEdgeAtSharedAnchorIsOrthogonal(tree, expectedReachingAnchor: 3);
@@ -95,7 +96,7 @@ public sealed class MergeRegionDecomposerTests
         controller.Children.AddEdge("command-logger", command, logger);
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: exactly one shared anchor, and every edge reaching it is orthogonal along its whole path.
         AssertEveryEdgeAtSharedAnchorIsOrthogonal(tree, expectedReachingAnchor: 4);
@@ -137,7 +138,7 @@ public sealed class MergeRegionDecomposerTests
         toLogger.Label = "to-logger";
 
         // Act
-        var tree = new HierarchicalLayoutAlgorithm().Apply(graph, LayoutOptions.ForAlgorithm("layered"));
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: both delegation connectors take a minimal-bend (at most 3 segments / 2 bends) path
         // with no direction reversal along the way - not the old 5-segment/4-bend detour.

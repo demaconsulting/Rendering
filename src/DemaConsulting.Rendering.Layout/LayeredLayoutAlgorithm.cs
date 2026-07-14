@@ -11,7 +11,7 @@ namespace DemaConsulting.Rendering.Layout;
 /// <summary>
 /// The bundled ELK-style layered layout algorithm: arranges the input graph into Sugiyama layers and
 /// routes edges orthogonally, producing a placed <see cref="LayoutTree"/> of boxes and connectors.
-/// This is the reference <see cref="ILayoutAlgorithm"/> implementation; it wraps the reusable layered
+/// This is the reference <see cref="LayoutAlgorithmBase"/> implementation; it wraps the reusable layered
 /// pipeline under <c>Engine/Layered/</c>. It honors <see cref="CoreOptions.Direction"/> so the layers
 /// progress right, left, down, or up (a downward flow lays action-flow and state-transition diagrams
 /// out top-to-bottom), <see cref="CoreOptions.NodeSpacing"/> so the minimum gap between nodes stacked
@@ -25,7 +25,7 @@ namespace DemaConsulting.Rendering.Layout;
 /// <c>Rendering.Abstractions</c>, also consumed by <c>Rendering.Svg</c>'s renderer so layout-time and
 /// render-time measurements never disagree) at <see cref="CoreOptions.AssumedFontSize"/>.
 /// </summary>
-public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
+public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
 {
     /// <summary>
     /// The stable algorithm identifier <c>"layered"</c> under which this algorithm is selected and
@@ -50,10 +50,10 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
     private const double PortSideTolerance = 0.01;
 
     /// <inheritdoc/>
-    public string Id => AlgorithmId;
+    public override string Id => AlgorithmId;
 
     /// <inheritdoc/>
-    public LayoutTree Apply(LayoutGraph graph, LayoutOptions options)
+    protected internal override LayoutTree ApplyCore(LayoutGraph graph, LayoutOptions options)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(options);

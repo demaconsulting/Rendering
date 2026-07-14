@@ -97,12 +97,12 @@ public sealed class LayoutAlgorithmsTests
         Assert.False(second.Contains("stub"));
     }
 
-    /// <summary>A minimal <see cref="ILayoutAlgorithm"/> stub used to prove registry independence.</summary>
-    private sealed class StubAlgorithm : ILayoutAlgorithm
+    /// <summary>A minimal <see cref="LayoutAlgorithmBase"/> stub used to prove registry independence.</summary>
+    private sealed class StubAlgorithm : LayoutAlgorithmBase
     {
-        public string Id => "stub";
+        public override string Id => "stub";
 
-        public LayoutTree Apply(LayoutGraph graph, LayoutOptions options) =>
+        protected internal override LayoutTree ApplyCore(LayoutGraph graph, LayoutOptions options) =>
             new(1, 1, []);
     }
 }

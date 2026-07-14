@@ -34,6 +34,13 @@ layer with a dummy bend point created by an unrelated long edge (LongSource to L
 clusters isolated nodes at the end of the layer's order, and coordinate assignment squeezes any resulting gap down to
 the standard node spacing, instead of inheriting the dummy's unrelated port-alignment floor as an inflated gap.
 
+![Nine edges docking on a compartment box without crossing its interior](parallel-edges-into-compartment-box.svg)
+
+Regression coverage for the parallel-edges-into-compartment-box fix: nine unmerged edges from a small Source box
+converge on a taller Target box's nine-row compartment. ConnectorRouter now treats every box, including a connection's
+own endpoints, as a hard obstacle for the whole route (not just the final docking stub), so a connector squeezed by
+other already-routed connectors can no longer detour straight through its own target box's interior.
+
 ## Flow direction
 
 The same directed graph laid out in two flow directions, selected with the direction option, plus a nested container
