@@ -153,10 +153,10 @@ either side.
 The companion top/bottom case: two ports per face spread horizontally instead of vertically, proving the same crowding
 and title-collision protection when PortDistributor works along the cross axis of a downward flow.
 
-![A titled hub node with several unlabeled ports fanning out to five other boxes](ports-showcase-unlabeled-fan-out.svg)
+![A titled hub node with several unlabeled ports fanning out to four other boxes](ports-showcase-unlabeled-fan-out.svg)
 
 A face with several ports carrying no label or text at all still grows the box tall enough to keep them from bunching
-together — the growth floor applies unconditionally to any face with two or more anchors, not only labelled ones.
+together — the growth floor applies unconditionally to any face with two or more anchors, not only labeled ones.
 
 ## Boundary and delegation ports
 

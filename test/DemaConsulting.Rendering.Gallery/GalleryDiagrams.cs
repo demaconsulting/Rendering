@@ -574,7 +574,8 @@ internal static class GalleryDiagrams
     ///     unlabeled connectors used to never grow past its caller-supplied size to give them room,
     ///     visually bunching several connector exit points close together near the face's centre.
     /// </summary>
-    /// <returns>A six-node graph whose central hub has five unlabeled outgoing ports.</returns>
+    /// <returns>A six-node graph whose central hub has four unlabeled outgoing ports (a fifth node,
+    /// <c>memory</c>, hangs off <c>cpu</c> rather than the hub directly).</returns>
     public static LayoutGraph PortsShowcaseUnlabeledFanOut()
     {
         var graph = new LayoutGraph();

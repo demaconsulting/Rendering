@@ -943,10 +943,11 @@ public class LayeredLayoutAlgorithmTests
         var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
 
         var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == null);
+        var expectedFloor = 2.0 * connectorClearance * 4;
         Assert.True(
-            boardBox.Height >= 4 * connectorClearance,
-            $"Expected board height to grow to at least {4 * connectorClearance} for its 4 unlabeled "
-            + $"outgoing anchors, was {boardBox.Height}.");
+            boardBox.Height >= expectedFloor,
+            $"Expected board height to grow to at least {expectedFloor} (2 * ConnectorClearance * "
+            + $"Total) for its 4 unlabeled outgoing anchors, was {boardBox.Height}.");
     }
 
     /// <summary>
@@ -983,10 +984,11 @@ public class LayeredLayoutAlgorithmTests
         var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
 
         var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == null);
+        var expectedFloor = 2.0 * connectorClearance * 4;
         Assert.True(
-            boardBox.Width >= 4 * connectorClearance,
-            $"Expected board width to grow to at least {4 * connectorClearance} for its 4 unlabeled "
-            + $"outgoing anchors on the Bottom face, was {boardBox.Width}.");
+            boardBox.Width >= expectedFloor,
+            $"Expected board width to grow to at least {expectedFloor} (2 * ConnectorClearance * "
+            + $"Total) for its 4 unlabeled outgoing anchors on the Bottom face, was {boardBox.Width}.");
     }
 
     /// <summary>
@@ -1023,10 +1025,11 @@ public class LayeredLayoutAlgorithmTests
         var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
 
         var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "board : Motherboard");
+        var expectedFloor = 2.0 * connectorClearance * portCount;
         Assert.True(
-            boardBox.Height >= portCount * connectorClearance,
-            $"Expected board height to grow to at least {portCount * connectorClearance} for its "
-            + $"{portCount} unlabeled ports, was {boardBox.Height}.");
+            boardBox.Height >= expectedFloor,
+            $"Expected board height to grow to at least {expectedFloor} (2 * ConnectorClearance * "
+            + $"Total) for its {portCount} unlabeled ports, was {boardBox.Height}.");
 
         var layoutPorts = tree.Nodes.OfType<LayoutPort>().Where(p => p.Side == PortSide.Right).ToList();
         Assert.Equal(portCount, layoutPorts.Count);

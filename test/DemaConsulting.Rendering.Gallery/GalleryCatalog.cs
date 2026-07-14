@@ -245,10 +245,10 @@ internal static class GalleryCatalog
                     + "PortDistributor works along the cross axis of a downward flow."),
                 new GalleryImage(
                     PortsShowcaseUnlabeledFanOutSvg,
-                    "A titled hub node with several unlabeled ports fanning out to five other boxes",
+                    "A titled hub node with several unlabeled ports fanning out to four other boxes",
                     "A face with several ports carrying no label or text at all still grows the box "
                     + "tall enough to keep them from bunching together — the growth floor applies "
-                    + "unconditionally to any face with two or more anchors, not only labelled ones."),
+                    + "unconditionally to any face with two or more anchors, not only labeled ones."),
             ]),
         new GallerySection(
             "Boundary and delegation ports",
