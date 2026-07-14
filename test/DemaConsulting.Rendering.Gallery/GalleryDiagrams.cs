@@ -572,7 +572,7 @@ internal static class GalleryDiagrams
     ///     with 2+ anchors still reserves adequate per-port clearance even when none of them carry any
     ///     text at all. Mirrors the externally reported "Motherboard" bug: a box with a pile of plain,
     ///     unlabeled connectors used to never grow past its caller-supplied size to give them room,
-    ///     visually bunching several connector exit points close together near the face's centre.
+    ///     visually bunching several connector exit points close together near the face's center.
     /// </summary>
     /// <returns>A six-node graph whose central hub has four unlabeled outgoing ports (a fifth node,
     /// <c>memory</c>, hangs off <c>cpu</c> rather than the hub directly).</returns>

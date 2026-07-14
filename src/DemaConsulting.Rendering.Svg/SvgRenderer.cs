@@ -1011,10 +1011,10 @@ public sealed class SvgRenderer : IRenderer
     };
 
     /// <summary>
-    /// Emits one port <c>&lt;text&gt;</c> label offset from the port centre toward the interior of the
+    /// Emits one port <c>&lt;text&gt;</c> label offset from the port center toward the interior of the
     /// box on <paramref name="offsetSide"/> (which equals the port's own side for an inward label and the
     /// opposite side for an outward one), using the same offset formula for both so an inward and an
-    /// outward label on one boundary port sit symmetrically about the port centre. A boundary port (one
+    /// outward label on one boundary port sit symmetrically about the port center. A boundary port (one
     /// carrying both an <see cref="LayoutPort.InternalLabel"/> and an <see cref="LayoutPort.ExternalLabel"/>)
     /// reserves extra clearance beyond the plain port-glyph offset: unlike a plain port's single label —
     /// always drawn on the side <em>away</em> from wherever its own connecting edge's arrowhead could
@@ -1023,7 +1023,7 @@ public sealed class SvgRenderer : IRenderer
     /// (<see cref="NotationMetrics.EndMarkerLength"/> long). Without this extra clearance the label text
     /// and that marker visually collide (see the "command"/"dispatch" gallery regression). Applying the
     /// same widened offset to both the internal and external label keeps them symmetric about the port
-    /// centre even though only the external side is ever actually at risk in practice.
+    /// center even though only the external side is ever actually at risk in practice.
     /// </summary>
     private static void EmitPortLabel(StringBuilder sb, LayoutPort port, string text, PortSide offsetSide, Theme theme, double scale)
     {

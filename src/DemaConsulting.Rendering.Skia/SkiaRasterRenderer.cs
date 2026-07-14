@@ -1298,10 +1298,10 @@ public abstract class SkiaRasterRenderer : IRenderer
     };
 
     /// <summary>
-    /// Draws one port label offset from the port centre using the interior-side formula for
+    /// Draws one port label offset from the port center using the interior-side formula for
     /// <paramref name="offsetSide"/> (the port's own side for an inward label, the opposite side for an
     /// outward one), so an inward and an outward label on one boundary port sit symmetrically about the
-    /// port centre. A boundary port (one carrying both an <see cref="LayoutPort.InternalLabel"/> and an
+    /// port center. A boundary port (one carrying both an <see cref="LayoutPort.InternalLabel"/> and an
     /// <see cref="LayoutPort.ExternalLabel"/>) reserves extra clearance beyond the plain port-glyph
     /// offset — see <c>SvgRenderer.EmitPortLabel</c>'s matching remarks for why: its external label is
     /// deliberately drawn on the same outward face its external approach edge may terminate with an

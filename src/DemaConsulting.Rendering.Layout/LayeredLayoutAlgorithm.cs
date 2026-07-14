@@ -406,7 +406,7 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
 
                         // Same asymmetric-downward-label-shift compensation as the single-port
                         // minHeight floor above (SvgRenderer.EmitPortLabel draws a Left/Right port's
-                        // ExternalLabel at CentreY + FontSizeBody/2, not centred on the port row) —
+                        // ExternalLabel at CentreY + FontSizeBody/2, not centered on the port row) —
                         // without it, this multi-port candidate can win the Math.Max below yet still
                         // leave no slack for the bottom-most labeled port's downward-shifted text,
                         // which then runs past the box's bottom edge exactly as the single-port case
@@ -446,7 +446,7 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
 
                         // Same equal-area-slice reasoning as the Left/Right branch above, but along
                         // the width axis: each port's slice must be at least as wide as the widest
-                        // same-side label so a Top/Bottom label (rendered centred on its port) never
+                        // same-side label so a Top/Bottom label (rendered centered on its port) never
                         // overlaps its neighbor's label or overflows past the box's own edge. When no
                         // label is present, fall back to a per-anchor connector-clearance floor (scaled
                         // by Total, matching the Left/Right branch's clearanceBasedHeight) so unlabeled
