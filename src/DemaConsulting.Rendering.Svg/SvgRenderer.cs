@@ -1028,7 +1028,7 @@ public sealed class SvgRenderer : IRenderer
     private static void EmitPortLabel(StringBuilder sb, LayoutPort port, string text, PortSide offsetSide, Theme theme, double scale)
     {
         var offset = NotationMetrics.PortHalfSize + theme.LabelPadding
-            + (port.InternalLabel != null ? NotationMetrics.EndMarkerLength : 0.0);
+            + (port.InternalLabel != null && port.ExternalLabel != null ? NotationMetrics.EndMarkerLength : 0.0);
         var (labelX, labelY, anchor) = offsetSide switch
         {
             PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, TextAnchorMiddle),

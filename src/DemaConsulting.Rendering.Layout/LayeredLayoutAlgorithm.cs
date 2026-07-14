@@ -413,12 +413,12 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                         // would without this term. PortDistributor.DistributePorts centers each of
                         // faceInfo.Total ports within its own equal-height slice of the added band, so
                         // a flat addition here is only fully absorbed by the bottom-most slice's own
-                        // half-height when there is exactly one slice (Total == 1); for Total >= 2 a
-                        // flat addend is instead divided across every slice's half-height (each slice
-                        // gains only addend / (2 * Total)), silently eroding the intended margin as
-                        // Total grows. Scale by faceInfo.Total so every slice's half-height still gains
-                        // the full assumedFontSize / 2 the single-port case relies on, regardless of
-                        // how many ports share the face.
+                        // height when there is exactly one slice (Total == 1); for Total >= 2 a flat
+                        // addend is instead divided across every slice's height (each slice gains only
+                        // addend / Total), silently eroding the intended margin as Total grows. Scale
+                        // by faceInfo.Total so every slice's height still gains the full
+                        // assumedFontSize / 2 the single-port case relies on, regardless of how many
+                        // ports share the face.
                         if (sidePortLabeled)
                         {
                             minHeightCandidate += assumedFontSize / 2.0 * faceInfo.Total;
@@ -865,5 +865,3 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         _ => LayoutDirection.Right,
     };
 }
-
-

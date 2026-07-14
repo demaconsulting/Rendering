@@ -1315,7 +1315,7 @@ public abstract class SkiaRasterRenderer : IRenderer
 
         // Offset the label far enough from the port square so it does not overlap.
         var offset = NotationMetrics.PortHalfSize + theme.LabelPadding
-            + (port.InternalLabel != null ? NotationMetrics.EndMarkerLength : 0.0);
+            + (port.InternalLabel != null && port.ExternalLabel != null ? NotationMetrics.EndMarkerLength : 0.0);
         var (labelX, labelY, align) = offsetSide switch
         {
             PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, SKTextAlign.Center),

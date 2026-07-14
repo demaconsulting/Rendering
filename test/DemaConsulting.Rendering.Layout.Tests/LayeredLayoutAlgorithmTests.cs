@@ -4,6 +4,7 @@
 
 using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Abstractions;
+using DemaConsulting.Rendering.Layout.Engine.Layered;
 
 namespace DemaConsulting.Rendering.Layout.Tests;
 
@@ -924,7 +925,6 @@ public class LayeredLayoutAlgorithmTests
     [Fact]
     public void Apply_NodeWithSeveralUnlabeledOutgoingEdges_TooSmall_AutoGrowsHeight()
     {
-        const double connectorClearance = 10.0; // LayeredLayoutMetrics.ConnectorClearance
         var graph = new LayoutGraph();
         var board = graph.AddNode("board", 140, 20);
         var cpu = graph.AddNode("cpu", 80, 30);
@@ -943,11 +943,27 @@ public class LayeredLayoutAlgorithmTests
         var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
 
         var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == null);
-        var expectedFloor = 2.0 * connectorClearance * 4;
+        var expectedFloor = 2.0 * LayeredLayoutMetrics.ConnectorClearance * 4;
         Assert.True(
             boardBox.Height >= expectedFloor,
             $"Expected board height to grow to at least {expectedFloor} (2 * ConnectorClearance * "
             + $"Total) for its 4 unlabeled outgoing anchors, was {boardBox.Height}.");
+
+        // Assert: the fix's user-visible goal — the 4 anchors on the board's own face are actually
+        // spread apart by at least one ConnectorClearance each, not merely bunched within a taller box.
+        // (All 4 lines in this graph originate from board, so no extra source-filtering is needed.)
+        var anchorYs = tree.Nodes.OfType<LayoutLine>()
+            .Select(l => l.Waypoints[0].Y)
+            .OrderBy(y => y)
+            .ToList();
+        Assert.Equal(4, anchorYs.Count);
+        for (var i = 1; i < anchorYs.Count; i++)
+        {
+            Assert.True(
+                anchorYs[i] - anchorYs[i - 1] >= LayeredLayoutMetrics.ConnectorClearance - 1e-6,
+                $"Expected adjacent unlabeled anchors to be spaced at least {LayeredLayoutMetrics.ConnectorClearance}px "
+                + $"apart, was {anchorYs[i] - anchorYs[i - 1]}.");
+        }
     }
 
     /// <summary>
@@ -964,7 +980,6 @@ public class LayeredLayoutAlgorithmTests
     [Fact]
     public void Apply_NodeWithSeveralUnlabeledOutgoingEdges_TooNarrow_AutoGrowsWidth()
     {
-        const double connectorClearance = 10.0; // LayeredLayoutMetrics.ConnectorClearance
         var graph = new LayoutGraph();
         graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
         var board = graph.AddNode("board", 20, 20);
@@ -984,11 +999,27 @@ public class LayeredLayoutAlgorithmTests
         var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
 
         var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == null);
-        var expectedFloor = 2.0 * connectorClearance * 4;
+        var expectedFloor = 2.0 * LayeredLayoutMetrics.ConnectorClearance * 4;
         Assert.True(
             boardBox.Width >= expectedFloor,
             $"Expected board width to grow to at least {expectedFloor} (2 * ConnectorClearance * "
             + $"Total) for its 4 unlabeled outgoing anchors on the Bottom face, was {boardBox.Width}.");
+
+        // Assert: the fix's user-visible goal — the 4 anchors on the board's own face are actually
+        // spread apart by at least one ConnectorClearance each, not merely bunched within a wider box.
+        // (All 4 lines in this graph originate from board, so no extra source-filtering is needed.)
+        var anchorXs = tree.Nodes.OfType<LayoutLine>()
+            .Select(l => l.Waypoints[0].X)
+            .OrderBy(x => x)
+            .ToList();
+        Assert.Equal(4, anchorXs.Count);
+        for (var i = 1; i < anchorXs.Count; i++)
+        {
+            Assert.True(
+                anchorXs[i] - anchorXs[i - 1] >= LayeredLayoutMetrics.ConnectorClearance - 1e-6,
+                $"Expected adjacent unlabeled anchors to be spaced at least {LayeredLayoutMetrics.ConnectorClearance}px "
+                + $"apart, was {anchorXs[i] - anchorXs[i - 1]}.");
+        }
     }
 
     /// <summary>
@@ -1007,25 +1038,22 @@ public class LayeredLayoutAlgorithmTests
     [Fact]
     public void Apply_TitledNodeWithSeveralUnlabeledPorts_PortsAvoidTitleBandAndAutoGrowsHeight()
     {
-        const double connectorClearance = 10.0; // LayeredLayoutMetrics.ConnectorClearance
         const int portCount = 6;
         var graph = new LayoutGraph();
         var board = graph.AddNode("board", 140, 20);
         board.Label = "board : Motherboard";
 
-        var ports = new List<LayoutGraphPort>();
         for (var k = 0; k < portCount; k++)
         {
             var target = graph.AddNode($"target{k}", 80, 30);
             var port = board.Ports.AddPort($"p{k}"); // no ExternalLabel set — carries no text at all
             graph.AddEdge($"e{k}", port, target);
-            ports.Add(port);
         }
 
         var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
 
         var boardBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "board : Motherboard");
-        var expectedFloor = 2.0 * connectorClearance * portCount;
+        var expectedFloor = 2.0 * LayeredLayoutMetrics.ConnectorClearance * portCount;
         Assert.True(
             boardBox.Height >= expectedFloor,
             $"Expected board height to grow to at least {expectedFloor} (2 * ConnectorClearance * "
