@@ -4,6 +4,7 @@
 
 using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Layout.Engine;
+using DemaConsulting.Rendering.Layout.Engine.Layered;
 
 namespace DemaConsulting.Rendering.Layout.Tests.Engine.Layered;
 
@@ -12,14 +13,17 @@ namespace DemaConsulting.Rendering.Layout.Tests.Engine.Layered;
 ///     both the legacy monolithic engine (<see cref="LegacyInterconnectionLayoutEngineOracle"/>)
 ///     and the refactored <see cref="InterconnectionLayoutEngine"/> façade and asserts that every
 ///     field of the resulting <c>LayerResult</c> is bit-for-bit identical: rectangles, total
-///     dimensions, node layers, and every connector waypoint. No numeric tolerance is allowed.
+///     dimensions, node layers, and every connector waypoint. No numeric tolerance is allowed,
+///     except for the one documented, intentional divergence identified by
+///     <see cref="HasIsolatedNode"/> (the isolated-node layer-gap fix).
 /// </summary>
 public sealed class LayeredPipelineEquivalenceTests
 {
     /// <summary>
     ///     The pipeline reproduces the legacy engine exactly across two thousand pseudo-randomly
     ///     generated graphs spanning empty, disconnected, cyclic, parallel-edge, self-loop, and
-    ///     long-edge topologies with varied node sizes.
+    ///     long-edge topologies with varied node sizes, excluding the graphs the isolated-node
+    ///     layer-gap fix intentionally changes (see <see cref="HasIsolatedNode"/>).
     /// </summary>
     [Fact]
     public void Pipeline_MatchesLegacyOracle_OnRandomGraphs()
@@ -27,6 +31,22 @@ public sealed class LayeredPipelineEquivalenceTests
         for (var seed = 0; seed < 2000; seed++)
         {
             var (nodes, edges) = BuildRandomGraph(seed);
+
+            // A genuinely isolated node (zero incident edges) is the one documented, intentional
+            // behavior divergence between the frozen legacy oracle and the refactored pipeline: the
+            // legacy oracle still reproduces the isolated-node layer-gap bug (CrossingMinimizer's
+            // barycenter sort falling back to the node's arbitrary index, and BrandesKopfPlacer's
+            // one-directional compaction floor inheriting an unrelated node's pulled-down position),
+            // while the refactored pipeline's fix (isolated-node clustering plus a trailing-run gap
+            // squeeze) always sorts every isolated node to one end of its layer — a real behavior
+            // change, not a bit-level rounding difference, so it is excluded from this bit-for-bit gate.
+            // See docs/reqstream/rendering-layout/engine/layered-pipeline.yaml for the requirement this
+            // corresponds to.
+            if (HasIsolatedNode(nodes, edges))
+            {
+                continue;
+            }
+
             AssertEquivalent($"random seed {seed}", nodes, edges);
         }
     }
@@ -185,6 +205,51 @@ public sealed class LayeredPipelineEquivalenceTests
         }
 
         return (nodes, edges);
+    }
+
+    /// <summary>
+    ///     Returns whether the graph contains at least one genuinely isolated real node — a node with
+    ///     no incident augmented sub-edge (as either a source or a target) after cycle-breaking, layer
+    ///     assignment, and long-edge splitting. This mirrors, in the actual pipeline classes, the exact
+    ///     "isolated" definition <c>CrossingMinimizer</c> and <c>BrandesKopfPlacer</c> use, so it also
+    ///     correctly identifies a node whose only input edges are self-loops or parallel duplicates that
+    ///     do not survive into the augmented graph. Such a node is the one documented, intentional
+    ///     behavior divergence between the frozen legacy oracle and the refactored pipeline's
+    ///     isolated-node layer-gap fix (see the remarks on
+    ///     <see cref="Pipeline_MatchesLegacyOracle_OnRandomGraphs"/>).
+    /// </summary>
+    /// <param name="nodes">The graph's nodes.</param>
+    /// <param name="edges">The graph's edges.</param>
+    /// <returns><see langword="true"/> if at least one real node has zero incident augmented edges.</returns>
+    private static bool HasIsolatedNode(List<LayerNode> nodes, List<LayerEdge> edges)
+    {
+        if (nodes.Count == 0)
+        {
+            return false;
+        }
+
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right);
+        new CycleBreaker().Apply(graph);
+        new LayerAssigner().Apply(graph);
+        new LongEdgeSplitter().Apply(graph);
+
+        var hasIncidentEdge = new bool[graph.AugNodes.Count];
+        foreach (var ae in graph.AugEdges)
+        {
+            hasIncidentEdge[ae.Source] = true;
+            hasIncidentEdge[ae.Target] = true;
+        }
+
+        // Only the first N augmented nodes correspond to real input nodes (dummies are appended after).
+        for (var i = 0; i < graph.N; i++)
+        {
+            if (!hasIncidentEdge[i])
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

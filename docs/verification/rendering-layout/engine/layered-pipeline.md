@@ -5,8 +5,11 @@ Part of the Rendering Layout Verification.
 This document maps the layered-pipeline unit requirements to named test scenarios.
 
 The pipeline stages are exercised individually, and the assembled pipeline is checked for byte-exact
-equivalence with the legacy oracle. Dependencies are real (each stage operates on a `LayeredGraph`);
-nothing is mocked.
+equivalence with the legacy oracle on every topology except the one documented, intentional
+divergence: a graph containing a genuinely isolated node (see
+`Rendering-Layout-LayeredPipeline-IsolatedNodeSpacing`), where the refactored pipeline's isolated-node
+layer-gap fix deliberately changes geometry that the frozen legacy oracle still reproduces with the
+bug. Dependencies are real (each stage operates on a `LayeredGraph`); nothing is mocked.
 
 #### Verification Approach
 
@@ -134,6 +137,17 @@ failure.
   `BrandesKopfPlacer_Apply_ChainGraph_AssignsCoordinateArrays`,
   `BrandesKopfPlacer_Apply_ColumnsAreLeftToRightInLayerOrder`, and
   `BrandesKopfPlacer_Apply_SymmetricFork_CentersSourceBetweenTargets`.
+- **Isolated node spacing** (`Rendering-Layout-LayeredPipeline-IsolatedNodeSpacing`):
+  `CrossingMinimizer_Apply_IsolatedNodeAmongDummyChain_ClustersIsolatedNodesAtLayerEnd` confirms a
+  genuinely isolated real node always forms a contiguous suffix within its layer's order, even beside
+  a busy dummy chain. `BrandesKopfPlacer_Apply_IsolatedNodeAfterPulledDownNeighbor_SqueezesGapToNodeSpacing`
+  confirms the gap ahead of that trailing run is squeezed down to exactly `NodeSpacing` after an
+  unrelated neighbor's Y position has been pulled far down by port-alignment.
+  `BrandesKopfPlacer_Apply_AddingIsolatedNode_LeavesEdgeBearingNodesUnchanged` confirms adding an
+  isolated node never moves any edge-bearing (dummy or real) node's Y coordinate. The
+  `IsolatedNodeLayerGap` gallery diagram (`Gallery_IsolatedNodeLayerGap_RendersSvg`) demonstrates the
+  regression end-to-end: before the fix the isolated node sat 127.04px from its column neighbor
+  (versus a 30px `NodeSpacing`); after the fix the gap is exactly 30.00px.
 - **Port distribution** (`Rendering-Layout-LayeredPipeline-PortDistribution`):
   `PortDistributor_Apply_SingleEdge_PortsLieWithinNodeFaces`,
   `PortDistributor_Apply_AssignsPortYForEverySubEdge`, and
@@ -246,6 +260,11 @@ failure.
   BrandesKopfPlacer_Apply_ChainGraph_AssignsCoordinateArrays,
   BrandesKopfPlacer_Apply_ColumnsAreLeftToRightInLayerOrder,
   BrandesKopfPlacer_Apply_SymmetricFork_CentersSourceBetweenTargets
+- **`Rendering-Layout-LayeredPipeline-IsolatedNodeSpacing`**:
+  CrossingMinimizer_Apply_IsolatedNodeAmongDummyChain_ClustersIsolatedNodesAtLayerEnd,
+  BrandesKopfPlacer_Apply_IsolatedNodeAfterPulledDownNeighbor_SqueezesGapToNodeSpacing,
+  BrandesKopfPlacer_Apply_AddingIsolatedNode_LeavesEdgeBearingNodesUnchanged,
+  Gallery_IsolatedNodeLayerGap_RendersSvg
 - **`Rendering-Layout-LayeredPipeline-PortDistribution`**:
   PortDistributor_Apply_SingleEdge_PortsLieWithinNodeFaces, PortDistributor_Apply_AssignsPortYForEverySubEdge,
   PortDistributor_Apply_SmallFace_PortsLieWithinNodeFacesWithoutThrowing

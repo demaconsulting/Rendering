@@ -235,6 +235,28 @@ sections:
           - BrandesKopfPlacer_Apply_ColumnsAreLeftToRightInLayerOrder
           - BrandesKopfPlacer_Apply_SymmetricFork_CentersSourceBetweenTargets
 
+      - id: Rendering-Layout-LayeredPipeline-IsolatedNodeSpacing
+        title: >-
+          A genuinely isolated real node (zero incident augmented edges) shall be ordered to one end of
+          its layer by the crossing-minimization stage, and shall be spaced no more than NodeSpacing
+          from its nearest neighbor in that layer by the coordinate-assignment stage, regardless of
+          where an unrelated edge or dummy chain elsewhere in the layer happens to land.
+        justification: |
+          The crossing-minimization stage's barycenter sort previously fell back to a node's arbitrary
+          current index whenever it had no same-layer-adjacent neighbors, letting an isolated node land
+          next to an unrelated dummy chain; because Brandes-Kopf's one-directional vertical compaction
+          treats whatever is ordered above a node as a hard floor, and a dummy carries zero height, the
+          isolated node could inherit a compaction floor meant for an unrelated edge and end up far
+          below its true neighbor. Clustering every isolated node to one end of the layer's order, and
+          then squeezing the gap ahead of that trailing run down to exactly NodeSpacing, turns scattered
+          inflated gaps into ordinary, predictable spacing without touching the position of any
+          edge-bearing node (dummy or real).
+        tests:
+          - CrossingMinimizer_Apply_IsolatedNodeAmongDummyChain_ClustersIsolatedNodesAtLayerEnd
+          - BrandesKopfPlacer_Apply_IsolatedNodeAfterPulledDownNeighbor_SqueezesGapToNodeSpacing
+          - BrandesKopfPlacer_Apply_AddingIsolatedNode_LeavesEdgeBearingNodesUnchanged
+          - Gallery_IsolatedNodeLayerGap_RendersSvg
+
       - id: Rendering-Layout-LayeredPipeline-PortDistribution
         title: >-
           The port-distribution stage shall assign each sub-edge a source-side and target-side port

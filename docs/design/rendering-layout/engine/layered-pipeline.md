@@ -89,9 +89,17 @@ The default stage sequence added by `AddDefaultStages` runs in this order:
    per intermediate layer so the connector routes through inter-layer corridors rather than through
    intervening boxes. A span-one edge gains no dummy node.
 4. **CrossingMinimizer.** Orders the augmented nodes within each layer, using alternating sweep
-   passes, to reduce edge crossings while keeping every augmented node in its layer group.
+   passes, to reduce edge crossings while keeping every augmented node in its layer group. A node
+   with no same-layer-adjacent neighbors in the current sweep direction falls back to a stable-index
+   key unless it is genuinely isolated (zero incident augmented edges in either direction), in which
+   case it is sorted to the trailing end of its layer instead — clustering every isolated node in a
+   layer together rather than letting it land arbitrarily beside an unrelated dummy chain.
 5. **BrandesKopfPlacer.** Assigns every augmented node absolute coordinates, with layer columns
-   ordered left to right and symmetric forks centered between their targets.
+   ordered left to right and symmetric forks centered between their targets. After coordinate
+   assignment, a trailing run of isolated nodes at the end of a layer's order (as produced by
+   `CrossingMinimizer`) has the gap ahead of it squeezed down to exactly `NodeSpacing`, without
+   moving any edge-bearing node, so an isolated node can no longer inherit an inflated compaction
+   floor left over from an unrelated node's port-alignment pull.
 6. **PortDistributor.** Distributes connector ports along each box face and assigns each sub-edge a
    source-side and target-side port that lies within the corresponding node face. The clearance inset
    is capped at half the face extent so a box too small to hold the full clearance on both edges
@@ -243,6 +251,7 @@ public layout result contract.
 | Rendering-Layout-LayeredPipeline-LongEdgeSplitting | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-CrossingMinimization | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-CoordinateAssignment | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-IsolatedNodeSpacing | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-PortDistribution | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-OrthogonalRouting | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-BackEdgeApproach | Layered pipeline behavior described above |

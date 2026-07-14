@@ -84,6 +84,65 @@ public sealed class CrossingMinimizerTests
         Assert.True(after < before, $"expected fewer crossings after ordering (before={before}, after={after})");
     }
 
+    /// <summary>
+    ///     A genuinely isolated node (zero edges) inserted mid-layer, alongside an unrelated long edge
+    ///     that forces a same-layer dummy elsewhere, ends up clustered at the tail of its layer's order
+    ///     rather than sandwiched between two edge-bearing nodes — regression coverage for the
+    ///     isolated-node layer-gap fix (Option A: <c>SortByBarycenter</c> keys a neighbor-less node with
+    ///     <see cref="double.PositiveInfinity"/> instead of its arbitrary current index).
+    /// </summary>
+    [Fact]
+    public void CrossingMinimizer_Apply_IsolatedNodeAmongDummyChain_ClustersIsolatedNodesAtLayerEnd()
+    {
+        // Arrange: layer 0 holds "entry" (index 0), a genuinely isolated node with zero edges (index 1,
+        // inserted between entry and longSource so its arbitrary index sits mid-layer), and
+        // "longSource" (index 2); "longSource" feeds a span-three edge that forces two dummy nodes into
+        // the interior layers, an unrelated routing corridor that has nothing to do with the isolated
+        // node.
+        var nodes = new List<LayerNode>
+        {
+            new(60, 40), // 0: entry
+            new(60, 40), // 1: isolated (zero edges)
+            new(60, 40), // 2: longSource
+            new(60, 40), // 3: hubTarget (entry's target, one layer in)
+            new(60, 40), // 4: longTarget (longSource's span-three target)
+        };
+        var edges = new List<LayerEdge> { new(0, 3), new(2, 4), new(3, 4) };
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right);
+        new CycleBreaker().Apply(graph);
+        new LayerAssigner().Apply(graph);
+        new LongEdgeSplitter().Apply(graph);
+        new CrossingMinimizer().Apply(graph);
+
+        // Assert: every isolated (zero-incident-edge) augmented node forms a contiguous suffix of its
+        // layer's order — once the scan (left to right) reaches the first isolated node, every
+        // remaining node in that layer must also be isolated (i.e. no edge-bearing node follows it).
+        var hasIncidentEdge = new bool[graph.AugNodes.Count];
+        foreach (var ae in graph.AugEdges)
+        {
+            hasIncidentEdge[ae.Source] = true;
+            hasIncidentEdge[ae.Target] = true;
+        }
+
+        foreach (var layer in graph.Groups)
+        {
+            var seenIsolated = false;
+            foreach (var nodeIndex in layer)
+            {
+                if (!hasIncidentEdge[nodeIndex])
+                {
+                    seenIsolated = true;
+                    continue;
+                }
+
+                Assert.False(
+                    seenIsolated,
+                    "an edge-bearing node followed an isolated node in the same layer, so the isolated "
+                    + "node was not clustered at the layer's tail");
+            }
+        }
+    }
+
     /// <summary>Groups augmented-node indices by layer, preserving the natural index order.</summary>
     /// <param name="augNodes">The augmented nodes.</param>
     /// <returns>One ordered index list per layer, in ascending node-index order.</returns>

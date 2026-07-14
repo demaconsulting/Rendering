@@ -38,6 +38,66 @@ internal static class GalleryDiagrams
     }
 
     /// <summary>
+    ///     Regression coverage (and visual evidence) for the isolated-node layer-gap fix: a genuinely
+    ///     isolated real node (zero incident edges) shares layer 0 with an unrelated node whose single
+    ///     outgoing edge targets the bottom-most node of a tall next layer, pulling its own vertical
+    ///     position far down to straighten that edge. Before the fix, the crossing minimizer's
+    ///     barycenter sort fell back to the isolated node's arbitrary insertion index, which could sort
+    ///     it directly between an ordinary node and the pulled-down node; the layered algorithm's
+    ///     Brandes-Köpf coordinate assignment could then leave the isolated node's own position
+    ///     untouched while its neighbor was dragged far away, producing a gap many times larger than the
+    ///     standard node spacing.
+    /// </summary>
+    /// <returns>
+    ///     A layered graph whose first layer holds an ordinary fan-out source (<c>entry</c>), one
+    ///     genuinely isolated node (<c>isolated</c>, added between <c>entry</c> and <c>farSource</c> so
+    ///     its insertion index sits between them), and an unrelated source (<c>farSource</c>) whose
+    ///     single edge targets the bottom-most node of a tall five-node hub column, pulling
+    ///     <c>farSource</c>'s own position far down within layer 0.</returns>
+    public static LayoutGraph IsolatedNodeLayerGap()
+    {
+        var graph = new LayoutGraph();
+
+        // Layer 0: an ordinary fan-out source, an unrelated source whose single outgoing edge targets
+        // the bottom-most node of a tall next layer (pulling its own vertical position far down to
+        // straighten that edge), and one genuinely isolated node with zero edges inserted between them
+        // by insertion order — the pre-fix fallback sort key for a neighbor-less node — so it can land
+        // sandwiched between an ordinary node and the pulled-down node.
+        var entry = AddLabelled(graph, "entry", "Entry");
+        AddLabelled(graph, "isolated", "Isolated");
+        var farSource = AddLabelled(graph, "farSource", "FarSource");
+
+        // Layer 1 (the "hub column"): a tall stack of ordinary nodes fed by entry, so the coordinate
+        // assignment pass spreads them across a wide vertical range.
+        var hubA = AddLabelled(graph, "hubA", "HubA");
+        var hubB = AddLabelled(graph, "hubB", "HubB");
+        var hubC = AddLabelled(graph, "hubC", "HubC");
+        var hubD = AddLabelled(graph, "hubD", "HubD");
+        var hubE = AddLabelled(graph, "hubE", "HubE");
+
+        // Layer 2: the ordinary hub target.
+        var sink = AddLabelled(graph, "sink", "Sink");
+
+        Connect(graph, "entry-hubA", entry, hubA);
+        Connect(graph, "entry-hubB", entry, hubB);
+        Connect(graph, "entry-hubC", entry, hubC);
+        Connect(graph, "entry-hubD", entry, hubD);
+        Connect(graph, "entry-hubE", entry, hubE);
+        Connect(graph, "hubA-sink", hubA, sink);
+        Connect(graph, "hubB-sink", hubB, sink);
+        Connect(graph, "hubC-sink", hubC, sink);
+        Connect(graph, "hubD-sink", hubD, sink);
+        Connect(graph, "hubE-sink", hubE, sink);
+
+        // The unrelated edge: entirely disconnected from the hub fan-out, but it targets the
+        // bottom-most hub node, so vertical alignment pulls farSource's own layer-0 position far down
+        // to straighten it — exercising the same "inherited unrelated floor" mechanism the fix targets.
+        Connect(graph, "farSource-hubE", farSource, hubE);
+
+        return graph;
+    }
+
+    /// <summary>
     ///     A set of differently-sized sibling boxes with no edges, suited to the containment algorithm
     ///     which shelf-packs them left-to-right and wraps them into a compact block. The varied widths
     ///     make the row packing visible, distinguishing it from the layered algorithm's connectivity-driven
