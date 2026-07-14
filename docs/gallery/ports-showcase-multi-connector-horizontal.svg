@@ -34,22 +34,22 @@
   <text x="80.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">SensorA</text>
   <rect x="20.00" y="100.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="80.00" y="125.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">SensorB</text>
-  <rect x="210.00" y="49.40" width="328.60" height="71.20" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="374.30" y="62.40" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Hub</text>
+  <rect x="210.00" y="43.00" width="328.60" height="84.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="374.30" y="56.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Hub</text>
   <rect x="608.60" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="668.60" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">ActuatorA</text>
   <rect x="608.60" y="100.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="668.60" y="125.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">ActuatorB</text>
-  <path d="M 140.00 45.00 L 146.00 45.00 A 4.00 4.00 0 0 1 150.00 49.00 L 150.00 87.20 A 4.00 4.00 0 0 0 154.00 91.20 L 210.00 91.20" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <rect x="206.00" y="87.20" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
-  <text x="220.00" y="97.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">a rather long telemetry feed</text>
-  <path d="M 140.00 125.00 L 146.00 125.00 A 4.00 4.00 0 0 0 150.00 121.00 L 150.00 114.80 A 4.00 4.00 0 0 1 154.00 110.80 L 210.00 110.80" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <rect x="206.00" y="106.80" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
-  <text x="220.00" y="116.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">heartbeat</text>
-  <path d="M 538.60 91.20 L 544.60 91.20 A 4.00 4.00 0 0 0 548.60 87.20 L 548.60 49.00 A 4.00 4.00 0 0 1 552.60 45.00 L 608.60 45.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <rect x="534.60" y="87.20" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
-  <text x="528.60" y="97.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">primary drive command</text>
-  <path d="M 538.60 110.80 L 544.60 110.80 A 4.00 4.00 0 0 1 548.60 114.80 L 548.60 121.00 A 4.00 4.00 0 0 0 552.60 125.00 L 608.60 125.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <rect x="534.60" y="106.80" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
-  <text x="528.60" y="116.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">diag</text>
+  <path d="M 140.00 45.00 L 146.00 45.00 A 4.00 4.00 0 0 1 150.00 49.00 L 150.00 84.00 A 4.00 4.00 0 0 0 154.00 88.00 L 210.00 88.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="206.00" y="84.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="220.00" y="94.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">a rather long telemetry feed</text>
+  <path d="M 140.00 125.00 L 146.00 125.00 A 4.00 4.00 0 0 0 150.00 121.00 L 150.00 118.00 A 4.00 4.00 0 0 1 154.00 114.00 L 210.00 114.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="206.00" y="110.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="220.00" y="120.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">heartbeat</text>
+  <path d="M 538.60 88.00 L 544.60 88.00 A 4.00 4.00 0 0 0 548.60 84.00 L 548.60 49.00 A 4.00 4.00 0 0 1 552.60 45.00 L 608.60 45.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="534.60" y="84.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="528.60" y="94.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">primary drive command</text>
+  <path d="M 538.60 114.00 L 544.60 114.00 A 4.00 4.00 0 0 1 548.60 118.00 L 548.60 121.00 A 4.00 4.00 0 0 0 552.60 125.00 L 608.60 125.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="534.60" y="110.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="528.60" y="120.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">diag</text>
 </svg>

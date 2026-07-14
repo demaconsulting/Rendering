@@ -363,6 +363,14 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
             // trigger this floor and could render its stacked port labels crowded/overlapping — the
             // exact same faceAnchors-vs-sidePorts distinction as hasLabeledLeftOrRightAnchor above.
             // bySide (from sidePorts) is reused here for the same reason.
+            //
+            // Any face with 2+ anchors — labeled or not — still needs enough physical room to keep
+            // adjacent port glyphs and their outgoing connector routing from visually crowding each
+            // other; a box is allowed to say "I have enough ports on me that I need to spread them
+            // out a bit" even when none of those ports carry any text. Only the label-driven terms
+            // below (labelHeight/labelWidth scaling, and the downward-shift compensation) are gated
+            // on actual labels being present, since they have no meaning otherwise; the baseline
+            // per-anchor connector-clearance floor applies unconditionally whenever Total >= 2.
             if (faceAnchors.TryGetValue(i, out var byFace))
             {
                 var labelHeight = ConnectorLabelPlacer.EstimateLabelHeight(assumedFontSize);
@@ -371,8 +379,9 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                     List<string>? sideLabels = null;
                     bySide?.TryGetValue(side, out sideLabels);
                     var sidePortLabeled = sideLabels != null && sideLabels.Exists(l => !string.IsNullOrEmpty(l));
+                    var anyLabeled = faceInfo.AnyLabeled || sidePortLabeled;
 
-                    if (faceInfo.Total < 2 || (!faceInfo.AnyLabeled && !sidePortLabeled))
+                    if (faceInfo.Total < 2)
                     {
                         continue;
                     }
@@ -385,9 +394,36 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                         // old endpoint-inclusive linear formula gave) — require that per-slice height
                         // to be at least the label's own line height, with no separate outer-edge
                         // buffer term needed since the outermost slice's own half-height already gives
-                        // proportional corner clearance.
-                        var minHeightCandidate = Math.Max(labelHeight * faceInfo.Total, 2.0 * LayeredLayoutMetrics.ConnectorClearance)
+                        // proportional corner clearance. When no label is present, fall back to a
+                        // per-anchor connector-clearance floor so unlabeled ports still get enough
+                        // absolute room to avoid crowding (scaled by Total, unlike the historical flat
+                        // 2 * ConnectorClearance floor, which never bound in practice for the labeled
+                        // case anyway and was too weak on its own for several unlabeled ports).
+                        var labelBasedHeight = anyLabeled ? labelHeight * faceInfo.Total : 0.0;
+                        var clearanceBasedHeight = 2.0 * LayeredLayoutMetrics.ConnectorClearance * faceInfo.Total;
+                        var minHeightCandidate = Math.Max(labelBasedHeight, clearanceBasedHeight)
                             + effectiveTopReserve + insetBottom;
+
+                        // Same asymmetric-downward-label-shift compensation as the single-port
+                        // minHeight floor above (SvgRenderer.EmitPortLabel draws a Left/Right port's
+                        // ExternalLabel at CentreY + FontSizeBody/2, not centred on the port row) —
+                        // without it, this multi-port candidate can win the Math.Max below yet still
+                        // leave no slack for the bottom-most labeled port's downward-shifted text,
+                        // which then runs past the box's bottom edge exactly as the single-port case
+                        // would without this term. PortDistributor.DistributePorts centers each of
+                        // faceInfo.Total ports within its own equal-height slice of the added band, so
+                        // a flat addition here is only fully absorbed by the bottom-most slice's own
+                        // half-height when there is exactly one slice (Total == 1); for Total >= 2 a
+                        // flat addend is instead divided across every slice's half-height (each slice
+                        // gains only addend / (2 * Total)), silently eroding the intended margin as
+                        // Total grows. Scale by faceInfo.Total so every slice's half-height still gains
+                        // the full assumedFontSize / 2 the single-port case relies on, regardless of
+                        // how many ports share the face.
+                        if (sidePortLabeled)
+                        {
+                            minHeightCandidate += assumedFontSize / 2.0 * faceInfo.Total;
+                        }
+
                         minHeight = Math.Max(minHeight, minHeightCandidate);
                     }
                     else
@@ -411,9 +447,16 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
                         // Same equal-area-slice reasoning as the Left/Right branch above, but along
                         // the width axis: each port's slice must be at least as wide as the widest
                         // same-side label so a Top/Bottom label (rendered centred on its port) never
-                        // overlaps its neighbor's label or overflows past the box's own edge.
+                        // overlaps its neighbor's label or overflows past the box's own edge. When no
+                        // label is present, fall back to a per-anchor connector-clearance floor (scaled
+                        // by Total, matching the Left/Right branch's clearanceBasedHeight) so unlabeled
+                        // Top/Bottom ports still get enough absolute room to avoid crowding — a flat,
+                        // unscaled floor here would reproduce the same bunching bug the Left/Right
+                        // branch was fixed for, just rotated 90 degrees.
                         var maxLabelWidth = Math.Max(faceInfo.MaxLabelWidth, sidePortMaxLabelWidth);
-                        var minWidthCandidate = Math.Max(maxLabelWidth * faceInfo.Total, 2.0 * LayeredLayoutMetrics.ConnectorClearance);
+                        var labelBasedWidth = anyLabeled ? maxLabelWidth * faceInfo.Total : 0.0;
+                        var clearanceBasedWidth = 2.0 * LayeredLayoutMetrics.ConnectorClearance * faceInfo.Total;
+                        var minWidthCandidate = Math.Max(labelBasedWidth, clearanceBasedWidth);
                         minWidth = Math.Max(minWidth, minWidthCandidate);
                     }
                 }
@@ -698,8 +741,14 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
             // A renderer draws a top/bottom port's label roughly (PortLabelClearance + 1.5 x
             // assumedFontSize) away from the box edge, regardless of the inset value; the box title
             // starts immediately after the inset, so the inset itself must be at least that deep (with
-            // margin) for a box that has both a title and a top/bottom port to avoid overlap.
-            var titleClearance = (2.0 * assumedFontSize) + (2.0 * PortLabelClearance);
+            // margin) for a box that has both a title and a top/bottom port to avoid overlap. A
+            // boundary port (one with both an InternalLabel and an ExternalLabel) additionally offsets
+            // its InternalLabel by NotationMetrics.EndMarkerLength beyond a plain port's offset (see
+            // SvgRenderer.EmitPortLabel's remarks), pushing the label that much further toward the
+            // title; this function only sees the aggregated per-side label text (not whether any of
+            // it came from a boundary port), so the clearance is unconditionally widened by that same
+            // amount to safely cover the worst case.
+            var titleClearance = (2.0 * assumedFontSize) + (2.0 * PortLabelClearance) + NotationMetrics.EndMarkerLength;
             if (top > 0.0)
             {
                 top = Math.Max(top, titleClearance);
@@ -816,3 +865,5 @@ public sealed class LayeredLayoutAlgorithm : ILayoutAlgorithm
         _ => LayoutDirection.Right,
     };
 }
+
+

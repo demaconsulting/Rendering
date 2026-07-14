@@ -337,6 +337,20 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
+    ///     Renders the unlabeled-port-fan-out showcase to SVG, proving a titled hub node with several
+    ///     unlabeled ports on one face still grows tall enough to spread them apart instead of bunching
+    ///     them together — regression coverage for the reported "Motherboard" clustering bug.
+    /// </summary>
+    [Fact]
+    public void Gallery_PortsShowcaseUnlabeledFanOut_RendersSvg()
+    {
+        GalleryWriter.Svg(
+            GalleryCatalog.PortsShowcaseUnlabeledFanOutSvg,
+            GalleryDiagrams.PortsShowcaseUnlabeledFanOut(),
+            Themes.Dark);
+    }
+
+    /// <summary>
     ///     Renders the horizontal boundary-ports showcase to SVG, proving a container's boundary
     ///     (delegation) port emits one shared <see cref="LayoutPort"/> anchor carrying both an outward
     ///     external label and an inward internal label, with the sibling's external approach edge and
@@ -430,6 +444,19 @@ public sealed class GalleryShowcaseTests
         GalleryWriter.Png(
             GalleryCatalog.PortsShowcaseMultiConnectorVerticalPng,
             GalleryDiagrams.PortsShowcaseMultiConnectorVertical(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the unlabeled-port-fan-out showcase to PNG, proving the raster path also grows a
+    ///     titled hub with several unlabeled ports tall enough to spread them apart.
+    /// </summary>
+    [Fact]
+    public void Gallery_PortsShowcaseUnlabeledFanOut_RendersPng()
+    {
+        GalleryWriter.Png(
+            GalleryCatalog.PortsShowcaseUnlabeledFanOutPng,
+            GalleryDiagrams.PortsShowcaseUnlabeledFanOut(),
             Themes.Dark);
     }
 

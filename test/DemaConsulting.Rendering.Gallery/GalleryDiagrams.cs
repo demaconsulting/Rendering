@@ -567,6 +567,44 @@ internal static class GalleryDiagrams
     }
 
     /// <summary>
+    ///     A titled hub node with several <em>unlabeled</em> ports fanning out to unevenly-spaced
+    ///     targets — regression coverage (and visual evidence) for the growth-floor fix ensuring a face
+    ///     with 2+ anchors still reserves adequate per-port clearance even when none of them carry any
+    ///     text at all. Mirrors the externally reported "Motherboard" bug: a box with a pile of plain,
+    ///     unlabeled connectors used to never grow past its caller-supplied size to give them room,
+    ///     visually bunching several connector exit points close together near the face's centre.
+    /// </summary>
+    /// <returns>A six-node graph whose central hub has five unlabeled outgoing ports.</returns>
+    public static LayoutGraph PortsShowcaseUnlabeledFanOut()
+    {
+        var graph = new LayoutGraph();
+
+        var board = graph.AddNode("board", 140, 50);
+        board.Label = "board : Motherboard";
+
+        var cpu = AddLabelled(graph, "cpu", "cpu : Cpu");
+        var memory = AddLabelled(graph, "memory", "memory : Ram");
+        var storage = AddLabelled(graph, "storage", "storage : Ssd");
+        var network = AddLabelled(graph, "network", "network : NetworkCard");
+        var graphics = AddLabelled(graph, "graphics", "graphics : Gpu");
+
+        var cpuPort = board.Ports.AddPort("cpu-link");
+        Connect(graph, "board-cpu", cpuPort, cpu, null);
+        Connect(graph, "cpu-memory", cpu, memory, null);
+
+        var storagePort = board.Ports.AddPort("storage-link");
+        Connect(graph, "board-storage", storagePort, storage, null);
+
+        var networkPort = board.Ports.AddPort("network-link");
+        Connect(graph, "board-network", networkPort, network, null);
+
+        var graphicsPort = board.Ports.AddPort("graphics-link");
+        Connect(graph, "board-graphics", graphicsPort, graphics, null);
+
+        return graph;
+    }
+
+    /// <summary>
     ///     A sibling node joined to a container's <em>boundary (delegation) port</em>, which in turn
     ///     delegates inward to two nested children — the canonical boundary-port diagram, laid out
     ///     left-to-right.
