@@ -269,6 +269,53 @@ public sealed class SkiaPortAndContentInsetTests
     }
 
     /// <summary>
+    ///     Proves that when a Note-shaped box has an empty leading compartment followed by a
+    ///     populated compartment, the second compartment's divider (a full-width horizontal line
+    ///     unconditionally drawn since it isn't the specially-guarded first compartment) is never
+    ///     drawn inside the folded-corner cutout: no divider-colored pixel appears at the box's
+    ///     interior mid-width column above the fold's bottom edge.
+    /// </summary>
+    [Fact]
+    public void PngRenderer_Render_NoteBoxWithEmptyLeadingCompartment_NoDividerAboveFoldBottom()
+    {
+        // Arrange: a Note-shaped box with an empty leading compartment then a populated one
+        var renderer = new PngRenderer();
+        var emptyCompartment = new LayoutCompartment(null, []);
+        var contentCompartment = new LayoutCompartment(null, ["Some body text"]);
+        var box = new LayoutBox(10, 10, 150, 80, null, 0, BoxShape.Note, [emptyCompartment, contentCompartment], []);
+        var options = new RenderOptions(Themes.Light);
+        var background = SKColor.Parse(Themes.Light.BackgroundColor);
+
+        using var stream = new MemoryStream();
+        renderer.Render(new LayoutTree(200, 120, [box]), options, stream);
+        stream.Position = 0;
+        using var data = SKData.Create(stream);
+        using var bitmap = SKBitmap.Decode(data);
+        Assert.NotNull(bitmap);
+
+        // Scan an interior mid-width column (away from the border strokes and the fold's diagonal
+        // edge) from the box's top edge down to the fold's bottom edge, where a full-width divider
+        // would otherwise cross. Any divider found here must be at or below the fold's bottom.
+        var fold = BoxMetrics.NoteFoldSize(box);
+        var scale = options.Scale;
+        var midX = (int)((box.X + box.Width / 2.0) * scale);
+        var yTop = (int)(box.Y * scale);
+        var yFoldBottom = (int)((box.Y + fold) * scale);
+
+        var strayDivider = false;
+        for (var y = yTop + 1; y < yFoldBottom - 1; y++)
+        {
+            if (bitmap!.GetPixel(midX, y) != background)
+            {
+                strayDivider = true;
+                break;
+            }
+        }
+
+        Assert.False(strayDivider);
+    }
+
+    /// <summary>
     ///     Proves that when 3+ parallel labeled connectors force the label placer to nudge labels
     ///     downward to avoid collisions, the raster renderer grows the bitmap (rather than sizing it
     ///     from the pre-label-placement box/routing geometry alone) so every label stays fully within

@@ -136,6 +136,47 @@ internal static class GalleryDiagrams
     }
 
     /// <summary>
+    ///     Regression coverage (and visual evidence) for the parallel-edges-into-compartment-box fix: a
+    ///     small source box and a much taller target box with a nine-row compartment, joined by nine
+    ///     distinct unmerged edges (mirroring <see cref="CoreOptions.MergeParallelEdges"/> set to
+    ///     <see langword="false"/>). Before the fix, <c>ConnectorRouter</c> excluded a connection's own
+    ///     endpoint boxes from the hard-obstacle set for its <em>entire</em> route rather than just its
+    ///     final docking stub, so a later connector squeezed by earlier already-routed connectors' soft
+    ///     obstacles could detour straight through its own target box's interior — cutting across the
+    ///     compartment's row text — before curving back out to its real anchor. After the fix, every box
+    ///     (including a connection's own endpoints) is a hard obstacle for the rest of the path.
+    /// </summary>
+    /// <returns>
+    ///     A flat graph suited to the containment algorithm: a small <c>Source</c> box and a taller
+    ///     <c>Target</c> box carrying a nine-row compartment, joined by nine distinct edges.
+    /// </returns>
+    public static LayoutGraph ParallelEdgesIntoCompartmentBox()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, false);
+
+        var source = graph.AddNode("source", 130, 50);
+        source.Label = "Source";
+
+        var target = graph.AddNode("target", 130, 242);
+        target.Label = "Target";
+        target.Compartments =
+        [
+            new LayoutCompartment(
+                "rows",
+                ["row1", "row2", "row3", "row4", "row5", "row6", "row7", "row8", "row9"]),
+        ];
+
+        for (var i = 0; i < 9; i++)
+        {
+            var edge = graph.AddEdge($"source-target-{i}", source, target);
+            edge.TargetEnd = EndMarkerStyle.FilledDiamond;
+        }
+
+        return graph;
+    }
+
+    /// <summary>
     ///     A container node holding a nested child graph, plus an external leaf joined to a child by a
     ///     cross-container edge — the canonical hierarchical (nested) diagram.
     /// </summary>

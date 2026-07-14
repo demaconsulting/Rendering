@@ -14,8 +14,8 @@ public class RegistryTests
 {
     /// <summary>
     ///     Proves that a registered algorithm can be found by identifier and that resolving it returns
-    ///     an instance whose <see cref="ILayoutAlgorithm.Apply"/> can be invoked through the contract to
-    ///     produce a placed layout tree.
+    ///     an instance whose <see cref="LayoutAlgorithmBase.Apply(LayoutGraph)"/> can be invoked through
+    ///     the contract to produce a placed layout tree.
     /// </summary>
     [Fact]
     public void LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm()
@@ -26,7 +26,7 @@ public class RegistryTests
 
         // Act
         var algorithm = registry.Resolve("fake");
-        var tree = algorithm.Apply(new LayoutGraph(), new LayoutOptions());
+        var tree = algorithm.Apply(new LayoutGraph());
 
         // Assert: the algorithm is resolved by identifier and its Apply contract method can be invoked,
         // producing the placed layout tree it was implemented to return.
@@ -93,14 +93,14 @@ public class RegistryTests
         Assert.Equal("text/plain", registry.ResolveByExtension("TEXT").MediaType);
     }
 
-    private sealed class FakeAlgorithm : ILayoutAlgorithm
+    private sealed class FakeAlgorithm : LayoutAlgorithmBase
     {
         public const double PlacedWidth = 42.0;
         public const double PlacedHeight = 24.0;
 
-        public string Id => "fake";
+        public override string Id => "fake";
 
-        public LayoutTree Apply(LayoutGraph graph, LayoutOptions options) => new(PlacedWidth, PlacedHeight, []);
+        protected internal override LayoutTree ApplyCore(LayoutGraph graph, LayoutOptions options) => new(PlacedWidth, PlacedHeight, []);
     }
 
     private sealed class FakeRenderer : IRenderer

@@ -39,7 +39,7 @@ namespace DemaConsulting.Rendering;
 ///     <description>
 ///     Lay it out with the <c>DemaConsulting.Rendering.Layout</c> package: the one-call
 ///     <c>LayoutEngine.Layout(graph)</c> facade resolves whatever algorithm the graph
-///     declares, or select a specific <c>ILayoutAlgorithm</c> (<c>layered</c>, <c>containment</c>,
+///     declares, or select a specific <c>LayoutAlgorithmBase</c> (<c>layered</c>, <c>containment</c>,
 ///     or the recursive <c>hierarchical</c> engine) yourself. This yields a placed
 ///     <see cref="LayoutTree"/>.
 ///     </description>
@@ -53,7 +53,7 @@ namespace DemaConsulting.Rendering;
 ///   </item>
 /// </list>
 /// <para>
-/// The <c>DemaConsulting.Rendering.Abstractions</c> package defines the <c>ILayoutAlgorithm</c> and
+/// The <c>DemaConsulting.Rendering.Abstractions</c> package defines the <c>LayoutAlgorithmBase</c> and
 /// <c>IRenderer</c> service-provider contracts, their registries, and the <c>Theme</c> that styles
 /// output. The dependency pipeline is <em>model &#8592; Abstractions &#8592; Layout &#8592;
 /// Svg/Skia</em>, so this model package depends on nothing and is the natural place to begin reading.
@@ -61,9 +61,9 @@ namespace DemaConsulting.Rendering;
 /// <para>
 /// Configuration is <strong>open</strong> and <strong>property-based</strong>: algorithms and
 /// renderers read only the properties they understand, so unknown or not-yet-honoured properties
-/// default harmlessly. New diagram families and output formats are added additively by implementing
-/// <c>ILayoutAlgorithm</c> or <c>IRenderer</c> and registering them — no existing contract changes.
-/// The public surface deliberately mirrors the
+/// default harmlessly. New diagram families and output formats are added additively by deriving from
+/// <c>LayoutAlgorithmBase</c> or implementing <c>IRenderer</c> and registering them — no existing
+/// contract changes. The public surface deliberately mirrors the
 /// <see href="https://eclipse.dev/elk/">Eclipse Layout Kernel (ELK)</see> so ELK users are
 /// immediately at home.
 /// </para>

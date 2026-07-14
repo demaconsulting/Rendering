@@ -37,7 +37,7 @@ public sealed class LayoutEngineTests
         var graph = BuildFlatGraph();
 
         // Act
-        var expected = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var expected = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
         var actual = LayoutEngine.Layout(graph);
 
         // Assert
@@ -56,7 +56,7 @@ public sealed class LayoutEngineTests
         graph.Set(CoreOptions.Algorithm, "layered");
 
         // Act
-        var expected = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var expected = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
         var actual = LayoutEngine.Layout(graph);
 
         // Assert
@@ -75,7 +75,7 @@ public sealed class LayoutEngineTests
         graph.Set(CoreOptions.Algorithm, "containment");
 
         // Act
-        var expected = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
+        var expected = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
         var actual = LayoutEngine.Layout(graph);
 
         // Assert
@@ -233,18 +233,18 @@ public sealed class LayoutEngineTests
             $"expected {expected:R} but got {actual:R}");
 
     /// <summary>
-    ///     A minimal <see cref="ILayoutAlgorithm"/> stub returning a recognizable sentinel canvas so a
+    ///     A minimal <see cref="LayoutAlgorithmBase"/> stub returning a recognizable sentinel canvas so a
     ///     test can prove it — and not a bundled algorithm — was the one applied.
     /// </summary>
-    private sealed class StubAlgorithm : ILayoutAlgorithm
+    private sealed class StubAlgorithm : LayoutAlgorithmBase
     {
         public const double SentinelWidth = 4242.0;
 
         public const double SentinelHeight = 2424.0;
 
-        public string Id => "stub";
+        public override string Id => "stub";
 
-        public LayoutTree Apply(LayoutGraph graph, LayoutOptions options) =>
+        protected internal override LayoutTree ApplyCore(LayoutGraph graph, LayoutOptions options) =>
             new(SentinelWidth, SentinelHeight, []);
     }
 }

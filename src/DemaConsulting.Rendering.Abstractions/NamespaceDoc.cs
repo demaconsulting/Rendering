@@ -5,13 +5,13 @@
 namespace DemaConsulting.Rendering.Abstractions;
 
 /// <summary>
-/// The service-provider interface (SPI) tier: the pluggable <see cref="ILayoutAlgorithm"/> and
+/// The service-provider interface (SPI) tier: the pluggable <see cref="LayoutAlgorithmBase"/> and
 /// <see cref="IRenderer"/> contracts, their registries, and the <see cref="Theme"/> that sit between
 /// the diagram model and the concrete layout and render implementations.
 /// </summary>
 /// <remarks>
 /// <para>
-/// It defines the <see cref="ILayoutAlgorithm"/> contract (turn an unplaced <c>LayoutGraph</c> into
+/// It defines the <see cref="LayoutAlgorithmBase"/> contract (turn an unplaced <c>LayoutGraph</c> into
 /// a placed <c>LayoutTree</c>) and the <see cref="IRenderer"/> contract (draw a <c>LayoutTree</c> to
 /// an output format), the <see cref="LayoutAlgorithmRegistry"/> and <see cref="RendererRegistry"/>
 /// that resolve them by identifier, and the <see cref="Theme"/> (with the built-in

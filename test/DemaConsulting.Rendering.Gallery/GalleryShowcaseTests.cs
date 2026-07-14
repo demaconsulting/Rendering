@@ -50,6 +50,23 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
+    ///     Renders the parallel-edges-into-compartment-box regression diagram to SVG, proving
+    ///     <c>ConnectorRouter</c> keeps nine parallel connectors converging on a compartment box outside
+    ///     its interior instead of cutting across its rows.
+    /// </summary>
+    [Fact]
+    public void Gallery_ParallelEdgesIntoCompartmentBox_RendersSvg()
+    {
+        var graph = GalleryDiagrams.ParallelEdgesIntoCompartmentBox();
+        graph.Set(CoreOptions.Algorithm, "containment");
+
+        GalleryWriter.Svg(
+            GalleryCatalog.ParallelEdgesIntoCompartmentBoxSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
     ///     Renders the containment-packed diagram to SVG, proving the containment algorithm packs
     ///     sibling boxes into a valid document.
     /// </summary>

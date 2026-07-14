@@ -45,7 +45,7 @@ namespace DemaConsulting.Rendering.Layout;
 ///     The single-argument overload resolves against a shared default registry of the bundled algorithms
 ///     (see <see cref="LayoutAlgorithms.CreateDefaultRegistry"/>). Because the bundled algorithms are
 ///     stateless, that shared registry is safe to read concurrently. Callers that want to add or replace
-///     algorithms — for example to register a custom <see cref="ILayoutAlgorithm"/> — pass their own
+/// algorithms — for example to register a custom <see cref="LayoutAlgorithmBase"/> — pass their own
 ///     registry to the two-argument overload.
 ///     </para>
 /// </remarks>
@@ -140,10 +140,11 @@ public static class LayoutEngine
 
         var algorithmId = ResolveAlgorithm(graph);
 
-        // The graph carries every explicit setting a leaf algorithm needs; seed the cascade with an
-        // empty LayoutOptions rather than accepting a caller-supplied one, so the graph itself is the
-        // single place options are configured (see the "Algorithm resolution" remarks above).
-        return registry.Resolve(algorithmId).Apply(graph, new LayoutOptions());
+        // The graph carries every explicit setting a leaf algorithm needs; the single-argument Apply
+        // seeds the cascade with an empty LayoutOptions rather than accepting a caller-supplied one, so
+        // the graph itself is the single place options are configured (see the "Algorithm resolution"
+        // remarks above).
+        return registry.Resolve(algorithmId).Apply(graph);
     }
 
     /// <summary>

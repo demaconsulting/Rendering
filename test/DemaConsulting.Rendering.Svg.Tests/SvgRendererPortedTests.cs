@@ -328,6 +328,49 @@ public sealed class SvgRendererPortedTests
         Assert.Contains("Some body text", svgText, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    ///     Render a LayoutBox with a Note shape, no Label/Keyword, and an empty leading compartment
+    ///     followed by a compartment with content does not draw the second compartment's divider
+    ///     inside the folded-corner cutout. The empty leading compartment isn't the special-cased
+    ///     "first compartment" that the title-area guard exempts, so without a fold-aware clamp the
+    ///     divider above the second compartment would land at (or above) the box's top edge and
+    ///     protrude past the fold as a stray line, the same defect the leading-divider fix addressed.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_Render_NoteBoxWithEmptyLeadingCompartment_ClampsSecondDividerBelowFold()
+    {
+        // Arrange: a Note-shaped box with an empty leading compartment then a populated one
+        var renderer = new SvgRenderer();
+        var emptyCompartment = new LayoutCompartment(null, []);
+        var contentCompartment = new LayoutCompartment(null, ["Some body text"]);
+        var box = new LayoutBox(10, 10, 150, 80, null, 0, BoxShape.Note, [emptyCompartment, contentCompartment], []);
+        var layout = new LayoutTree(200, 120, [box]);
+        var options = new RenderOptions(Themes.Light);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert: every full-width divider line drawn for this box is at or below the fold's
+        // bottom edge, never inside the folded-corner cutout.
+        var foldBottomY = (box.Y + BoxMetrics.NoteFoldSize(box)) * options.Scale;
+
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var document = System.Xml.Linq.XDocument.Parse(svgText);
+        var dividerYs = document.Descendants()
+            .Where(e => e.Name.LocalName == "line")
+            .Where(e =>
+                e.Attribute("x1") is { } x1 && IsClose(x1.Value, box.X * options.Scale) &&
+                e.Attribute("x2") is { } x2 && IsClose(x2.Value, (box.X + box.Width) * options.Scale))
+            .Select(e => double.Parse(e.Attribute("y1")!.Value, System.Globalization.CultureInfo.InvariantCulture))
+            .ToList();
+
+        Assert.NotEmpty(dividerYs);
+        Assert.All(dividerYs, y => Assert.True(y >= foldBottomY - 0.01, $"Divider at y={y} is above the fold bottom {foldBottomY}"));
+        Assert.Contains("Some body text", svgText, StringComparison.Ordinal);
+    }
+
     /// <summary>Parses an SVG numeric attribute value and compares it to an expected value within a small tolerance.</summary>
     private static bool IsClose(string attributeValue, double expected) =>
         Math.Abs(double.Parse(attributeValue, System.Globalization.CultureInfo.InvariantCulture) - expected) < 0.01;

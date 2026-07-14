@@ -65,9 +65,10 @@ public sealed record ConnectorRouteOptions(
 /// <para>
 /// The orchestration is deliberately model-agnostic: boxes are matched to their connections by
 /// instance identity, and no domain concept (names, kinds, qualified references) enters the routing.
-/// For each connection the two endpoint boxes are excluded from the obstacle set — a connector must
-/// be free to leave and enter the boxes it joins — while every other box becomes a <see cref="Rect"/>
-/// obstacle the route steers around by <see cref="ConnectorRouteOptions.Clearance"/>.
+/// Every box on the canvas, including a connection's own two endpoints, becomes a <see cref="Rect"/>
+/// obstacle the route steers around by <see cref="ConnectorRouteOptions.Clearance"/>; a connector still
+/// leaves and enters the boxes it joins cleanly because each anchor is stepped off its box with a
+/// perpendicular stub longer than the clearance before the obstacle-avoiding search begins.
 /// </para>
 /// <para>
 /// Source and target anchors are chosen on the box faces that front each other, based on the boxes'
@@ -121,8 +122,9 @@ public static class ConnectorRouter
     /// same order.
     /// </summary>
     /// <param name="boxes">
-    /// All placed boxes on the canvas. Boxes other than a connection's two endpoints act as obstacles
-    /// for that connection's route.
+    /// All placed boxes on the canvas, including each connection's own two endpoints. Every box acts
+    /// as a hard obstacle for the routes; a connection's own endpoints still permit a clean
+    /// leave/enter because anchors are stepped off their box before obstacle avoidance begins.
     /// </param>
     /// <param name="connections">The connectors to route, each naming a source and target box.</param>
     /// <param name="options">Routing options, including the routing style and obstacle clearance.</param>
@@ -195,8 +197,9 @@ public static class ConnectorRouter
     /// Routes a single <paramref name="connection"/> among the placed <paramref name="boxes"/>.
     /// </summary>
     /// <param name="boxes">
-    /// All placed boxes on the canvas. Every box except the connection's two endpoints acts as an
-    /// obstacle for this route.
+    /// All placed boxes on the canvas, including the connection's own two endpoints. Every box acts as
+    /// a hard obstacle for this route; the connection's own endpoints still permit a clean leave/enter
+    /// because anchors are stepped off their box before obstacle avoidance begins.
     /// </param>
     /// <param name="connection">The connector to route.</param>
     /// <param name="options">Routing options, including the routing style and obstacle clearance.</param>
@@ -244,9 +247,10 @@ public static class ConnectorRouter
     }
 
     /// <summary>
-    /// Builds the obstacle set for <paramref name="connection"/> — every other box, plus any already
-    /// routed <paramref name="extraSoftObstacles"/> treated as soft (cost-penalized, never hard-blocking)
-    /// obstacles — and routes it between the already chosen <paramref name="anchors"/>.
+    /// Builds the obstacle set for <paramref name="connection"/> — every box on the canvas, including
+    /// this connection's own two endpoints, plus any already routed <paramref name="extraSoftObstacles"/>
+    /// treated as soft (cost-penalized, never hard-blocking) obstacles — and routes it between the
+    /// already chosen <paramref name="anchors"/>.
     /// </summary>
     private static LayoutLine RouteWithAnchors(
         IReadOnlyList<LayoutBox> boxes,
@@ -260,16 +264,16 @@ public static class ConnectorRouter
         var source = ResolveAnchorPoint(from, anchors.SourceSide, anchors.SourceAlong, options.Clearance);
         var target = ResolveAnchorPoint(to, anchors.TargetSide, anchors.TargetAlong, options.Clearance);
 
-        // The hard obstacle set is every box except this connection's own endpoints, matched by
-        // instance identity. The connector must be free to leave and enter the boxes it joins.
+        // The hard obstacle set is every box on the canvas, including this connection's own endpoints.
+        // The connector still leaves and enters the boxes it joins cleanly: OrthogonalEdgeRouter steps
+        // off each anchor with a perpendicular stub longer than the obstacle clearance before searching
+        // for a path, so the free-space search always starts and ends safely outside its own box's
+        // inflated obstacle footprint. Treating the endpoints as real obstacles for the *rest* of the
+        // route is what stops a path from cutting across its own target box's interior (e.g. through a
+        // compartment's content) when steering around other already-routed connectors.
         var obstacles = new List<Rect>(boxes.Count);
         foreach (var box in boxes)
         {
-            if (ReferenceEquals(box, from) || ReferenceEquals(box, to))
-            {
-                continue;
-            }
-
             obstacles.Add(new Rect(box.X, box.Y, box.Width, box.Height));
         }
 

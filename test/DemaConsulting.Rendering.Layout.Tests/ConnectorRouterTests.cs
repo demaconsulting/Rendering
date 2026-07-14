@@ -379,17 +379,18 @@ public sealed class ConnectorRouterTests
     }
 
     /// <summary>
-    ///     The two endpoint boxes are excluded from the obstacle set: the connector reaches their
-    ///     boundary anchors even though both boxes are present in the box list. If they were treated
-    ///     as obstacles, no clean approach to their faces would exist.
+    ///     Both endpoint boxes are ordinary obstacles, yet the connector still reaches their boundary
+    ///     anchors cleanly: the underlying orthogonal edge router steps each anchor off its face with a
+    ///     perpendicular approach stub that clears the endpoint before pathfinding, then reattaches the
+    ///     true anchor when assembling the final path.
     /// </summary>
     [Fact]
-    public void Route_EndpointBoxes_AreExcludedFromObstacles()
+    public void Route_EndpointBoxes_ReachBoundaryAnchorsViaApproachStub()
     {
         // Arrange: two large adjacent boxes with only a narrow gap between their facing edges. The
         // source anchor sits on the source's right face and the target anchor on the target's left
-        // face; both anchors lie on box boundaries that only route cleanly when the endpoints are
-        // excluded from the obstacle set.
+        // face; both anchors lie on box boundaries that only route cleanly via each endpoint's
+        // approach stub.
         var from = Box(0, 0, 120, 120);
         var to = Box(140, 0, 120, 120);
         var boxes = new[] { from, to };
@@ -397,8 +398,7 @@ public sealed class ConnectorRouterTests
         // Act
         var line = ConnectorRouter.Route(boxes, new Connection(from, to), new ConnectorRouteOptions());
 
-        // Assert: a clean, straight orthogonal hop between the facing faces (only possible because
-        // neither endpoint box is an obstacle)
+        // Assert: a clean, straight orthogonal hop between the facing faces
         AssertAllSegmentsOrthogonal(line.Waypoints);
         Assert.Equal(from.X + from.Width, line.Waypoints[0].X, 6);
         Assert.Equal(to.X, line.Waypoints[^1].X, 6);
@@ -406,6 +406,7 @@ public sealed class ConnectorRouterTests
         // Neither endpoint's interior is crossed, confirming the anchors reached the boundaries.
         Assert.DoesNotContain(line.Waypoints, p => IsStrictlyInside(p, from) || IsStrictlyInside(p, to));
     }
+
 
     /// <summary>
     ///     The routed <see cref="LayoutLine"/> carries the connection's requested target end marker,
@@ -713,6 +714,45 @@ public sealed class ConnectorRouterTests
         // Assert
         Assert.All(lines, line => AssertAllSegmentsOrthogonal(line.Waypoints));
         AssertNoCollinearOverlapAcrossLines(lines);
+    }
+
+    /// <summary>
+    ///     Reproduces the SysML2Tools rendering defect: nine parallel, unmerged edges from a small
+    ///     source box converge on the left face of a much taller multi-row-compartment target box.
+    ///     Before the fix, routing each connection excluded <em>both</em> connection endpoints from the
+    ///     hard-obstacle set for the whole path (not just the immediate approach stub), so a later
+    ///     connector squeezed by earlier already-routed connectors' soft obstacles was free to detour
+    ///     straight through its own target box's interior — visually cutting across the compartment's
+    ///     row text — before curving back out to its real anchor. After the fix, every box (including a
+    ///     connection's own endpoints) is a hard obstacle for the rest of the path; only the short
+    ///     perpendicular docking stub the underlying router already adds is exempt.
+    /// </summary>
+    [Fact]
+    public void Route_NineParallelEdgesIntoCompartmentBox_DoNotCrossTargetInterior()
+    {
+        // Arrange: geometry mirroring the reported bug — a small port box to the left of a much taller
+        // box with a nine-row ports compartment, joined by nine distinct unmerged edges (mirroring
+        // CoreOptions.MergeParallelEdges = false).
+        var eePort = Box(12, 12, 130, 50, "EEPort");
+        var lbo = Box(166, 12, 130, 242, "LBO");
+        var boxes = new[] { eePort, lbo };
+
+        var connections = Enumerable.Range(0, 9)
+            .Select(_ => new Connection(eePort, lbo, EndMarkerStyle.FilledDiamond))
+            .ToArray();
+
+        // Act
+        var lines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+
+        // Assert: every routed connector reaches LBO's face without any segment cutting through
+        // either box's own strict interior (including its own endpoints).
+        var lboRect = new Rect(lbo.X, lbo.Y, lbo.Width, lbo.Height);
+        var eePortRect = new Rect(eePort.X, eePort.Y, eePort.Width, eePort.Height);
+        Assert.All(lines, line =>
+        {
+            AssertNoSegmentCrossesObstacle(line.Waypoints, lboRect);
+            AssertNoSegmentCrossesObstacle(line.Waypoints, eePortRect);
+        });
     }
 
     /// <summary>

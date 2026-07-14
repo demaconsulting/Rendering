@@ -63,14 +63,17 @@ sections:
 
       - id: Rendering-Layout-ConnectorRouter-ExcludesEndpoints
         title: >-
-          ConnectorRouter shall exclude a connection's two endpoint boxes, matched by instance
-          identity, from the obstacle set used to route that connection.
+          ConnectorRouter shall treat a connection's own endpoint boxes as ordinary obstacles while
+          still letting the connector leave and enter their faces, by routing through a perpendicular
+          approach stub that clears each endpoint before the true anchor is reattached.
         justification: |
-          A connector must be free to leave and enter the boxes it joins; treating the endpoint boxes
-          as obstacles would block the connector's own anchors. Endpoints are matched by reference so
-          no domain concept enters the routing.
+          Excluding endpoint boxes entirely left a gap through which an unrelated, already-routed
+          connector's soft obstacles could squeeze a later connector into its own target box's
+          interior. Treating endpoints as solid obstacles and relying on the router's existing
+          stub-then-dock approach keeps the connector's own docking free while closing that gap.
         tests:
-          - Route_EndpointBoxes_AreExcludedFromObstacles
+          - Route_EndpointBoxes_ReachBoundaryAnchorsViaApproachStub
+          - Route_NineParallelEdgesIntoCompartmentBox_DoNotCrossTargetInterior
 
       - id: Rendering-Layout-ConnectorRouter-CarriesStyling
         title: >-

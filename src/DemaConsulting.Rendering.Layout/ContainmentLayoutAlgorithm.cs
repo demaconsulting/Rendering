@@ -9,7 +9,7 @@ namespace DemaConsulting.Rendering.Layout;
 /// <summary>
 /// The bundled containment layout algorithm: arranges the input graph's top-level nodes by packing them
 /// into rows within a width budget, then routes each edge around the packed boxes with the selected
-/// <see cref="CoreOptions.EdgeRouting"/> style. This is a second reference <see cref="ILayoutAlgorithm"/>
+/// <see cref="CoreOptions.EdgeRouting"/> style. This is a second reference <see cref="LayoutAlgorithmBase"/>
 /// implementation alongside the layered algorithm; it composes the reusable
 /// <see cref="ContainmentLayout"/> packer and the <see cref="ConnectorRouter"/> orchestration.
 /// </summary>
@@ -53,13 +53,13 @@ namespace DemaConsulting.Rendering.Layout;
 ///     graph.AddEdge("e2", a, c);
 ///
 ///     // Pack the nodes into rows and route the edges around them.
-///     var tree = new ContainmentLayoutAlgorithm().Apply(graph, new LayoutOptions());
+///     var tree = new ContainmentLayoutAlgorithm().Apply(graph);
 ///
 ///     // Hand the placed tree to a renderer (for example the SVG renderer).
 ///     // new SvgRenderer().Render(tree, new RenderOptions(Themes.Light), stream);
 ///     </code>
 /// </example>
-public sealed class ContainmentLayoutAlgorithm : ILayoutAlgorithm
+public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
 {
     /// <summary>
     /// The stable algorithm identifier <c>"containment"</c> under which this algorithm is selected and
@@ -90,10 +90,10 @@ public sealed class ContainmentLayoutAlgorithm : ILayoutAlgorithm
     private const double NodeSpacing = 24.0;
 
     /// <inheritdoc/>
-    public string Id => AlgorithmId;
+    public override string Id => AlgorithmId;
 
     /// <inheritdoc/>
-    public LayoutTree Apply(LayoutGraph graph, LayoutOptions options)
+    protected internal override LayoutTree ApplyCore(LayoutGraph graph, LayoutOptions options)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(options);

@@ -493,8 +493,7 @@ public sealed class SvgRenderer : IRenderer
     /// </summary>
     private static void RenderNoteOutline(StringBuilder sb, LayoutBox box, Theme theme, string fillColor, double scale)
     {
-        var fold = Math.Min(box.Width, box.Height) * NotationMetrics.NoteFoldFraction;
-        fold = Math.Min(fold, NotationMetrics.NoteFoldMaxSize);
+        var fold = BoxMetrics.NoteFoldSize(box);
 
         var x = box.X * scale;
         var y = box.Y * scale;
@@ -618,9 +617,19 @@ public sealed class SvgRenderer : IRenderer
             // as a stray line past the fold.
             if (!isFirstCompartment || titleAreaOccupiesSpace)
             {
+                // A Note's folded corner cuts its top-right corner short, so any full-width divider
+                // whose Y would still fall within that cutout (possible for a non-first compartment
+                // immediately following an empty leading one) must be pushed down to at least the
+                // fold's bottom edge; otherwise the line overshoots the cut and reads as a stray
+                // mark crossing the folded corner. Only the drawn line's Y is clamped here, not
+                // compartmentY itself, so row text position is unaffected.
+                var dividerY = box.Shape == BoxShape.Note
+                    ? Math.Max(compartmentY, box.Y + BoxMetrics.NoteFoldSize(box))
+                    : compartmentY;
+
                 // Full-width horizontal divider at the top of this compartment
                 sb.Append(CultureInfo.InvariantCulture,
-                    $"""  <line x1="{F(box.X * scale)}" y1="{F(compartmentY * scale)}" x2="{F((box.X + box.Width) * scale)}" y2="{F(compartmentY * scale)}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
+                    $"""  <line x1="{F(box.X * scale)}" y1="{F(dividerY * scale)}" x2="{F((box.X + box.Width) * scale)}" y2="{F(dividerY * scale)}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
                 sb.AppendLine();
             }
 

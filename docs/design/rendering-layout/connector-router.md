@@ -62,8 +62,13 @@ implementations are:
    the margin. The result is then clamped into the chosen face's usable connectable extents (again
    applying the same clearance inset when an extent is long enough) and projected inward to the real
    outline. The chosen `PortSide` is retained so the route exits and enters perpendicular to the face.
-2. **Obstacle set.** Builds a `Rect` per box, excluding the connection's two endpoint boxes matched
-   by reference identity, so the connector is free to leave and enter the boxes it joins.
+2. **Obstacle set.** Builds a `Rect` per box, including the connection's own two endpoint boxes. The
+   connector remains free to leave and enter the boxes it joins because the underlying
+   `OrthogonalEdgeRouter` steps each anchor off its face by a perpendicular stub longer than any
+   clearance level it tries before pathfinding, then reattaches the true anchor when assembling the
+   final path; treating endpoints as ordinary obstacles closes the gap through which an unrelated,
+   already-routed connector's soft obstacles could otherwise squeeze a later connector into its own
+   target box's interior.
 3. **Dispatch.** Routes through the router realizing `options.EdgeRouting`. Today `Orthogonal` maps to
    the internal `OrthogonalEdgeRouter.RouteWithStatus`, which is the implementation behind the enum
    value and remains internal to the Layout system. The dispatch is a single-arm switch structured so

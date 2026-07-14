@@ -27,6 +27,25 @@ public static class BoxMetrics
     }
 
     /// <summary>
+    /// Computes the size of the folded-corner cutout drawn at the top-right of a
+    /// <see cref="BoxShape.Note"/> box: a fraction of the box's shorter side
+    /// (<see cref="NotationMetrics.NoteFoldFraction"/>), capped at
+    /// <see cref="NotationMetrics.NoteFoldMaxSize"/>. The same value is the horizontal inset from
+    /// the right edge and the vertical inset from the top edge, since the fold cutout is a
+    /// right-angle triangle. Both renderers, and anything reasoning about how close a horizontal
+    /// divider may safely approach a Note box's top edge, must call this so the fold's drawn
+    /// geometry and any content clearance never disagree.
+    /// </summary>
+    /// <param name="box">The Note-shaped box whose fold size is resolved.</param>
+    /// <returns>The fold size in logical pixels.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="box"/> is <see langword="null"/>.</exception>
+    public static double NoteFoldSize(LayoutBox box)
+    {
+        ArgumentNullException.ThrowIfNull(box);
+        return Math.Min(Math.Min(box.Width, box.Height) * NotationMetrics.NoteFoldFraction, NotationMetrics.NoteFoldMaxSize);
+    }
+
+    /// <summary>
     /// Computes the height of the title area of a box: the vertical space reserved at the top
     /// for the optional keyword line and the bold name line.
     /// </summary>
