@@ -95,6 +95,12 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
         // Assign Y coordinates using the Brandes-Köpf balanced four-layout algorithm.
         var augY = BkAssignYCoordinates(augNodes, groups, augEdges, nodeSpacing);
 
+        // Squeeze any inflated gap ahead of a trailing run of isolated (zero-incident-edge) nodes back
+        // down to nodeSpacing. This must run after BkAssignYCoordinates (whose final RelaxPortCentroids
+        // pass only ever enforces a *minimum* gap and never shrinks an already-larger one) and before the
+        // PinnedCrossAxis loop below, so a pinned hierarchy-crossing dummy's value still wins afterward.
+        SqueezeTrailingIsolatedNodes(augNodes, groups, augEdges, augY, nodeSpacing);
+
         // Honor any pinned cross-axis coordinate: a hierarchy-crossing dummy tagged with
         // AugNode.PinnedCrossAxis (set by MergeRegionGraphAssembler.PinIncomingCrossings for the
         // recursive pipeline) must anchor to its parent scope's already-resolved boundary-port position
@@ -111,6 +117,97 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
         }
 
         return (augX, augY, columnX, maxColWidth);
+    }
+
+    /// <summary>
+    /// Slides every trailing run of isolated (zero-incident-edge) nodes in each layer so the gap
+    /// between the last edge-bearing node and the first isolated node following it is exactly
+    /// <paramref name="nodeSpacing"/>, and every isolated node after that is re-stacked at exactly
+    /// <paramref name="nodeSpacing"/> increments using its own height — without touching the Y
+    /// coordinate of any edge-bearing node (dummy or real).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="CrossingMinimizer"/>'s barycenter ordering clusters every isolated node at one end of
+    /// its layer's order (see its <c>SortByBarycenter</c> remarks), so within a single layer the
+    /// isolated nodes always form one contiguous trailing run rather than being scattered among
+    /// edge-bearing nodes. That still leaves the *gap* ahead of the run unconstrained: the classic
+    /// Brandes-Köpf compaction (<see cref="BkAssignYCoordinates"/>) can place an edge-bearing node (most
+    /// often a zero-height corridor dummy) far down its layer to straighten an unrelated edge, and its
+    /// <c>PlaceBlock</c> compaction constraint is one-directional — it only ever guarantees the next
+    /// node in layer order sits <em>at least</em> <paramref name="nodeSpacing"/> below it, never that it
+    /// sits <em>close</em> to it. The subsequent <c>RelaxPortCentroids</c> pass has no port-alignment
+    /// pull of its own for an isolated node (an isolated node has zero incident edges, so
+    /// <c>desiredForLayer[i]</c> is left equal to its current position), and its own isotonic-regression
+    /// projection only enforces a minimum gap, never shrinks an already-larger one. The net effect,
+    /// uncorrected, is a gap many times <paramref name="nodeSpacing"/> between an edge-bearing node and
+    /// the isolated run that follows it, even though the isolated node has no edge of its own pulling it
+    /// there. This pass runs once, after every other Y-assignment pass has settled, and only ever moves
+    /// nodes it identifies as isolated — closer to their predecessor, never farther, and never past
+    /// where an edge-bearing node already sits — so it cannot introduce a crossing, cannot violate the
+    /// layer's existing order, and cannot regress an already-tight layout (a layer whose trailing run is
+    /// already at exactly <paramref name="nodeSpacing"/> is rewritten to the same values).
+    /// </para>
+    /// <para>
+    /// The zero-incident-edge definition mirrors <c>RelaxPortCentroids</c>'s own <c>incident[i].Count ==
+    /// 0</c> check (that method's <c>incident</c> lookup is local to it, so this is a small, deliberate
+    /// re-derivation of the same definition from <paramref name="augEdges"/> rather than an attempt to
+    /// share private state across methods).
+    /// </para>
+    /// </remarks>
+    /// <param name="augNodes">Every augmented node (real and dummy), read for each node's height.</param>
+    /// <param name="groups">The per-layer node order, already clustering isolated nodes at one end.</param>
+    /// <param name="augEdges">The augmented sub-edges, used to identify zero-incident-edge nodes.</param>
+    /// <param name="y">The Y coordinates to squeeze in place.</param>
+    /// <param name="nodeSpacing">The minimum required gap between consecutive same-layer nodes.</param>
+    private static void SqueezeTrailingIsolatedNodes(
+        List<AugNode> augNodes,
+        List<List<int>> groups,
+        List<AugEdge> augEdges,
+        double[] y,
+        double nodeSpacing)
+    {
+        // Mirrors RelaxPortCentroids's incident[i].Count == 0 definition of "isolated": a node with no
+        // edge touching it as either a source or a target.
+        var hasIncidentEdge = new bool[augNodes.Count];
+        foreach (var e in augEdges)
+        {
+            hasIncidentEdge[e.Source] = true;
+            hasIncidentEdge[e.Target] = true;
+        }
+
+        foreach (var layer in groups)
+        {
+            // Find the maximal trailing run of isolated nodes at the end of this layer's order.
+            var runStart = layer.Count;
+            for (var i = layer.Count - 1; i >= 0; i--)
+            {
+                if (hasIncidentEdge[layer[i]])
+                {
+                    break;
+                }
+
+                runStart = i;
+            }
+
+            // Nothing to squeeze: no trailing isolated run, or the whole layer is isolated (no
+            // edge-bearing node to anchor the run against).
+            if (runStart == layer.Count || runStart == 0)
+            {
+                continue;
+            }
+
+            // Anchor on the last edge-bearing node's already-settled bottom edge, then re-stack the rest
+            // of the isolated run at exactly nodeSpacing increments using each node's own height.
+            var anchor = layer[runStart - 1];
+            var bottom = y[anchor] + augNodes[anchor].Height;
+            for (var i = runStart; i < layer.Count; i++)
+            {
+                var node = layer[i];
+                y[node] = bottom + nodeSpacing;
+                bottom = y[node] + augNodes[node].Height;
+            }
+        }
     }
 
     /// <summary>

@@ -275,14 +275,49 @@ internal sealed class CrossingMinimizer : ILayoutStage
             leftNeighbors[ae.Target].Add(ae.Source);
         }
 
+        var isolated = BuildIsolatedFlags(numAug, augEdges);
+
         // Two forward passes give the interior layers a stable order relative to the pinned layer 0.
         for (var pass = 0; pass < 2; pass++)
         {
             for (var l = 1; l < groups.Count; l++)
             {
-                SortByBarycenter(groups[l], groups[l - 1], leftNeighbors);
+                SortByBarycenter(groups[l], groups[l - 1], leftNeighbors, isolated);
             }
         }
+    }
+
+    /// <summary>
+    /// Builds a per-augmented-node flag reporting whether the node has zero incident
+    /// <see cref="AugEdge"/>s in <em>either</em> direction — i.e. it is genuinely disconnected from the
+    /// rest of the graph, not merely a leaf or root relative to one sweep direction.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="SortByBarycenter"/> is called once per sweep direction with only that direction's
+    /// neighbor lists (<c>leftNeighbors</c> or <c>rightNeighbors</c>). A perfectly ordinary node with no
+    /// outgoing edges (a "sink" partway through the layering, not just in the final layer) has an empty
+    /// <c>rightNeighbors</c> entry and would otherwise be mistaken for an isolated node during an
+    /// upward/right-facing sweep, even though it has real incoming edges from the left. This flag is
+    /// computed once from the full, direction-agnostic <paramref name="augEdges"/> list — a node counts
+    /// as isolated here only when it never appears as a <see cref="AugEdge.Source"/> or
+    /// <see cref="AugEdge.Target"/> at all — so <see cref="SortByBarycenter"/> can tell "no neighbors this
+    /// direction" apart from "no neighbors, ever" and only cluster the latter at the trailing end of the
+    /// layer.
+    /// </remarks>
+    /// <param name="numAug">The number of augmented nodes.</param>
+    /// <param name="augEdges">The augmented sub-edges.</param>
+    /// <returns>An array indexed by augmented-node index; <see langword="true"/> for genuinely isolated nodes.</returns>
+    private static bool[] BuildIsolatedFlags(int numAug, List<AugEdge> augEdges)
+    {
+        var isolated = new bool[numAug];
+        Array.Fill(isolated, true);
+        foreach (var ae in augEdges)
+        {
+            isolated[ae.Source] = false;
+            isolated[ae.Target] = false;
+        }
+
+        return isolated;
     }
 
     /// <summary>Groups augmented-node indices by layer.</summary>
@@ -323,20 +358,22 @@ internal sealed class CrossingMinimizer : ILayoutStage
             leftNeighbors[ae.Target].Add(ae.Source);
         }
 
+        var isolated = BuildIsolatedFlags(numAug, augEdges);
+
         for (var sweep = 0; sweep < BarycentricSweeps; sweep++)
         {
             if (sweep % 2 == 0)
             {
                 for (var l = 1; l < groups.Count; l++)
                 {
-                    SortByBarycenter(groups[l], groups[l - 1], leftNeighbors);
+                    SortByBarycenter(groups[l], groups[l - 1], leftNeighbors, isolated);
                 }
             }
             else
             {
                 for (var l = groups.Count - 2; l >= 0; l--)
                 {
-                    SortByBarycenter(groups[l], groups[l + 1], rightNeighbors);
+                    SortByBarycenter(groups[l], groups[l + 1], rightNeighbors, isolated);
                 }
             }
         }
@@ -344,9 +381,54 @@ internal sealed class CrossingMinimizer : ILayoutStage
 
     /// <summary>
     /// Sorts <paramref name="layer"/> by the average position of each node's neighbors in
-    /// <paramref name="adjacentLayer"/>; nodes without neighbors keep their current relative order.
+    /// <paramref name="adjacentLayer"/>; nodes with no neighbors at all in the graph are clustered at the
+    /// trailing end of the layer (after every neighbor-bearing node) rather than kept at their current
+    /// index. Nodes that simply have no neighbor on <em>this</em> side (e.g. a leaf during a
+    /// right-facing sweep) keep the prior stable-index fallback so their ordering is unaffected.
     /// </summary>
-    private static void SortByBarycenter(List<int> layer, List<int> adjacentLayer, List<int>[] neighbors)
+    /// <remarks>
+    /// A node with no same-layer-adjacent neighbors in <paramref name="neighbors"/> falls into one of two
+    /// distinct cases, distinguished by <paramref name="isolated"/>:
+    ///     <list type="bullet">
+    ///         <item>
+    ///         It is genuinely isolated — zero incident edges anywhere in the graph. A dummy bend-point
+    ///         node always has at least one incident edge by construction, so only a real node can be
+    ///         isolated this way. Falling back to the node's current index (<c>i</c>) for such a node lets
+    ///         it land anywhere in the layer, including directly beside an unrelated dummy chain whose
+    ///         barycenter key happens to sort near that index; because dummies carry zero height, this
+    ///         later shows up in <see cref="BrandesKopfPlacer"/>'s coordinate assignment as a single
+    ///         inflated gap (the isolated node inherits the dummy's compaction floor). Using
+    ///         <see cref="double.PositiveInfinity"/> instead pushes every isolated node to the end of the
+    ///         layer's barycenter order, past every neighbor-bearing node (dummy or real), so isolated
+    ///         nodes always end up contiguous with each other at one end of the layer — turning scattered
+    ///         inflated gaps into at most one gap, which <see cref="BrandesKopfPlacer"/> then squeezes down
+    ///         to <see cref="NodeSpacing"/>.
+    ///         </item>
+    ///         <item>
+    ///         It has real edges, just none of them run to <paramref name="adjacentLayer"/> on this
+    ///         particular sweep (e.g. a node with no outgoing edges evaluated during a right-facing sweep,
+    ///         whose only edges are incoming from the left). Such a node is not isolated and must keep the
+    ///         original stable-index fallback (<c>key = i</c>) exactly as before this change, otherwise an
+    ///         ordinary leaf/root node would be misclassified as isolated and reordered on every sweep that
+    ///         looks the "wrong" way, changing layouts for graphs that contain no isolated node at all.
+    ///         </item>
+    ///     </list>
+    /// The final <c>Original</c> tie-break still applies among nodes sharing the same key (including
+    /// isolated nodes, which all share <see cref="double.PositiveInfinity"/>), so relative order among
+    /// them is preserved exactly as it was before this change.
+    /// </remarks>
+    /// <param name="layer">The layer whose node order is updated in place.</param>
+    /// <param name="adjacentLayer">The neighboring layer used as the ordering reference for this sweep.</param>
+    /// <param name="neighbors">Per-node neighbor lists in the direction of this sweep (left or right).</param>
+    /// <param name="isolated">
+    /// Per-node flag reporting whether the node has zero incident edges in either direction at all, as
+    /// produced by <see cref="BuildIsolatedFlags"/>.
+    /// </param>
+    private static void SortByBarycenter(
+        List<int> layer,
+        List<int> adjacentLayer,
+        List<int>[] neighbors,
+        bool[] isolated)
     {
         var position = new Dictionary<int, int>();
         for (var i = 0; i < adjacentLayer.Count; i++)
@@ -359,7 +441,20 @@ internal sealed class CrossingMinimizer : ILayoutStage
         {
             var node = layer[i];
             var ns = neighbors[node].Where(position.ContainsKey).ToList();
-            var key = ns.Count > 0 ? ns.Average(x => position[x]) : i;
+            double key;
+            if (ns.Count > 0)
+            {
+                key = ns.Average(x => position[x]);
+            }
+            else if (isolated[node])
+            {
+                key = double.PositiveInfinity;
+            }
+            else
+            {
+                key = i;
+            }
+
             keyed.Add((node, key, i));
         }
 

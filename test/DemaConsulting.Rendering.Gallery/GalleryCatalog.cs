@@ -32,6 +32,7 @@ internal static class GalleryCatalog
     // Stable output filenames. Facts and the index both reference these constants so a rename is a
     // single edit that keeps the committed artifacts and the index in lockstep.
     public const string LayeredPipelineSvg = "layered-pipeline.svg";
+    public const string IsolatedNodeLayerGapSvg = "isolated-node-layer-gap.svg";
     public const string ContainmentPackedSvg = "containment-packed.svg";
     public const string HierarchicalNestedSvg = "hierarchical-nested.svg";
     public const string OrthogonalObstacleSvg = "orthogonal-obstacle.svg";
@@ -90,6 +91,21 @@ internal static class GalleryCatalog
                     HierarchicalNestedSvg,
                     "Hierarchical nested diagram",
                     "A container node holding a nested child graph, with a cross-container edge."),
+            ]),
+        new GallerySection(
+            "Layout regressions",
+            "Small graphs that reproduce and pin down a specific layout bug once fixed, kept as "
+            + "permanent visual and numeric evidence that it stays fixed.",
+            [
+                new GalleryImage(
+                    IsolatedNodeLayerGapSvg,
+                    "A hub column with an isolated node beside a routing-corridor dummy",
+                    "Regression coverage for the isolated-node layer-gap fix: a genuinely isolated "
+                    + "node (Isolated, zero edges) shares its layer with a dummy bend point created by "
+                    + "an unrelated long edge (LongSource to LongTarget). The crossing minimizer now "
+                    + "clusters isolated nodes at the end of the layer's order, and coordinate "
+                    + "assignment squeezes any resulting gap down to the standard node spacing, instead "
+                    + "of inheriting the dummy's unrelated port-alignment floor as an inflated gap."),
             ]),
         new GallerySection(
             "Flow direction",

@@ -32,6 +32,24 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
+    ///     Renders the isolated-node layer-gap regression diagram to SVG, proving the crossing minimizer
+    ///     and Brandes-Köpf coordinate assignment keep a genuinely isolated node at standard node
+    ///     spacing from its layer neighbor even when an unrelated routing-corridor dummy shares its
+    ///     layer.
+    /// </summary>
+    [Fact]
+    public void Gallery_IsolatedNodeLayerGap_RendersSvg()
+    {
+        var graph = GalleryDiagrams.IsolatedNodeLayerGap();
+        graph.Set(CoreOptions.Algorithm, "layered");
+
+        GalleryWriter.Svg(
+            GalleryCatalog.IsolatedNodeLayerGapSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
     ///     Renders the containment-packed diagram to SVG, proving the containment algorithm packs
     ///     sibling boxes into a valid document.
     /// </summary>
