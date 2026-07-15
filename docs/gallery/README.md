@@ -14,9 +14,7 @@ Each group's own page has the full diagram set with detailed captions explaining
 relevant, which bug it guards against. This page just points the way and shows a taste of each.
 
 | Group | What it's about |
-
 | --- | --- |
-
 | [Flow pipeline](flow-pipeline/README.md) | A single connected, directed flow — pipelines and direction changes |
 | [Connectivity and clusters](connectivity-and-clusters/README.md) | Connected vs. disconnected input and clusters |
 | [Nested hierarchy](nested-hierarchy/README.md) | Parent/child containment and boundary-port delegation |
