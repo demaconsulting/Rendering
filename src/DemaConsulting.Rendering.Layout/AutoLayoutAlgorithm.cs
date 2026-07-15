@@ -124,9 +124,34 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
     /// </summary>
     private const double ComponentAspectRatio = 4.0 / 3.0;
 
-    private readonly HierarchicalLayoutAlgorithm _hierarchical = new();
+    private readonly HierarchicalLayoutAlgorithm _hierarchical;
     private readonly LayeredLayoutAlgorithm _layered = new();
     private readonly ContainmentLayoutAlgorithm _containment = new();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AutoLayoutAlgorithm"/> class.
+    /// </summary>
+    /// <remarks>
+    ///     The internal <see cref="HierarchicalLayoutAlgorithm"/> instance used to recurse into
+    ///     container-routed groups is built with a registry that includes this engine itself under its
+    ///     own <see cref="AlgorithmId"/>, in addition to the bundled leaf algorithms. This is what makes
+    ///     "auto" behave as documented for <see cref="CoreOptions.Algorithm"/>'s inheritance rules: a
+    ///     nested container scope that does not re-declare its own algorithm inherits "auto" like any
+    ///     other cascaded option value, and — because the recursion registry can resolve "auto" back to
+    ///     this same instance — that scope is re-classified by this algorithm's own connectivity-based
+    ///     routing, exactly as if a caller had selected "auto" for it directly. "Auto" is therefore
+    ///     re-evaluated at every scope it cascades to, never resolved once and locked in as a fixed
+    ///     concrete choice for descendant scopes. A raw <see cref="HierarchicalLayoutAlgorithm"/>
+    ///     constructed independently of this class still has zero knowledge of "auto" and continues to
+    ///     surface a resolution error for it, preserving that engine's documented independence.
+    /// </remarks>
+    public AutoLayoutAlgorithm()
+    {
+        _hierarchical = new HierarchicalLayoutAlgorithm(new LayoutAlgorithmRegistry()
+            .Register(_layered)
+            .Register(_containment)
+            .Register(this));
+    }
 
     /// <inheritdoc/>
     public override string Id => AlgorithmId;
@@ -244,7 +269,12 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
         }
 
         // Fast path: exactly one group overall means nothing needs to be split — delegate straight to
-        // that group's algorithm on the original, unmodified graph.
+        // that group's algorithm on the original, unmodified graph. This is safe for every routed
+        // algorithm, including HierarchicalLayoutAlgorithm: when this graph's own cascaded options
+        // resolve CoreOptions.Algorithm to "auto" (the normal way a caller selects this engine), that
+        // same "auto" value survives into HierarchicalLayoutAlgorithm's own top-scope resolution, but
+        // its recursion registry (built in this class's constructor) resolves "auto" back to this same
+        // instance rather than throwing — re-running this algorithm's own classification for that scope.
         if (routedGroups.Count == 1 && singletons.Count == 0)
         {
             return routedGroups[0].Algorithm.ApplyCore(graph, options);
@@ -256,19 +286,12 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
         }
 
         // Genuine multi-group case: capture the graph's own cascaded options once (so a graph-level
-        // override still applies to every split-off piece), split each group into its own freshly-built
-        // sub-graph, lay each out independently, and pack the results into one combined tree.
-        //
-        // The captured options must not keep carrying this graph's own CoreOptions.Algorithm value
-        // (typically "auto" itself, since that is how a caller selected this algorithm in the first
-        // place): each split-off group's leaf/hierarchical algorithm was already chosen by the routing
-        // rule above, but HierarchicalLayoutAlgorithm re-reads CoreOptions.Algorithm from its own
-        // effective options to resolve ITS OWN top scope's leaf algorithm, and "auto" is never a
-        // registered leaf identifier there. Resetting it to the layered default (the same default
-        // HierarchicalLayoutAlgorithm itself falls back to when nothing declares an override) restores
-        // the cascade to exactly what an ordinary caller not using "auto" would see.
+        // override, including "auto" itself, still applies to every split-off piece), split each group
+        // into its own freshly-built sub-graph, lay each out independently, and pack the results into one
+        // combined tree. A split-off piece routed to HierarchicalLayoutAlgorithm resolves "auto" the same
+        // way the fast path above does — back to this instance, via the recursion registry — so nested
+        // container scopes are re-classified rather than defaulting to a fixed leaf choice.
         var effective = graph.OverlayOnto(options);
-        effective.Set(CoreOptions.Algorithm, LayeredLayoutAlgorithm.AlgorithmId);
 
         var trees = new List<LayoutTree>(routedGroups.Count + (singletons.Count > 0 ? 1 : 0));
         foreach (var (members, algorithm) in routedGroups)

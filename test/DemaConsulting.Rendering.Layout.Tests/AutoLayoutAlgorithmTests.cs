@@ -295,10 +295,12 @@ public sealed class AutoLayoutAlgorithmTests
     ///     Proves that when the graph itself explicitly declares <c>CoreOptions.Algorithm = "auto"</c>
     ///     (as a caller resolving the algorithm from the graph's own options, rather than passing it
     ///     directly, would do) and the multi-group split path routes one group to hierarchical, the
-    ///     hierarchical algorithm's own recursive scope resolution does not attempt to resolve "auto"
-    ///     from its own leaf-only registry and throw. Regression test for a bug where the captured
-    ///     effective options still carried the root graph's own "auto" value down into a nested
-    ///     algorithm's cascade.
+    ///     hierarchical algorithm's own recursive scope resolution does not throw when it re-reads
+    ///     "auto" from its cascaded options: its recursion registry resolves "auto" back to this same
+    ///     <see cref="AutoLayoutAlgorithm"/> instance instead of a leaf-only registry that lacks it.
+    ///     Regression test for a bug where the captured effective options still carried the root graph's
+    ///     own "auto" value down into a nested algorithm's cascade, and that cascade had no way to
+    ///     resolve it.
     /// </summary>
     [Fact]
     public void Apply_GraphDeclaresAutoAlgorithmWithNestedContainerGroup_DoesNotThrow()
@@ -324,6 +326,103 @@ public sealed class AutoLayoutAlgorithmTests
         // Assert: no exception was thrown, and every box (the outer container, the inner container, the
         // two leaves, and the solo singleton) made it into the combined tree.
         Assert.Equal(5, CountBoxesRecursively(tree.Nodes));
+    }
+
+    /// <summary>
+    ///     Proves that when the graph itself explicitly declares <c>CoreOptions.Algorithm = "auto"</c>
+    ///     and the <em>entire</em> graph is a single component containing a nested container (so routing
+    ///     takes the zero-copy single-group fast path straight to <see cref="HierarchicalLayoutAlgorithm"/>
+    ///     on the original, unmodified graph — not the split-and-pack path), the hierarchical algorithm's
+    ///     own top-scope resolution does not throw <see cref="KeyNotFoundException"/> when it re-reads
+    ///     "auto" from its cascaded options. Regression test for a bug where the fast path handed the
+    ///     untouched original options straight to <see cref="HierarchicalLayoutAlgorithm"/>, whose first
+    ///     step (<c>graph.OverlayOnto(options)</c>) picks up the root graph's own "auto" override
+    ///     unchanged, and its recursion registry (at the time) had no way to resolve that identifier.
+    /// </summary>
+    [Fact]
+    public void Apply_GraphDeclaresAutoAlgorithmAsSoleHierarchicalGroup_DoesNotThrow()
+    {
+        // Arrange: the graph itself declares "auto", and its only top-level node is a two-level-deep
+        // nested container with no other top-level node or edge, so routing produces exactly one group
+        // (routed to hierarchical) and no singletons — the single-group fast path.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "auto");
+
+        var outer = graph.AddNode("outer", 10, 10);
+        var inner = outer.Children.AddNode("inner", 10, 10);
+        var leaf1 = inner.Children.AddNode("leaf1", 80, 40);
+        var leaf2 = inner.Children.AddNode("leaf2", 80, 40);
+        inner.Children.AddEdge("leaf1-leaf2", leaf1, leaf2);
+
+        // Act
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+
+        // Assert: no exception was thrown, and every box (the outer container, the inner container, and
+        // the two leaves) made it into the tree.
+        Assert.Equal(4, CountBoxesRecursively(tree.Nodes));
+    }
+
+    /// <summary>
+    ///     Proves that "auto" is re-evaluated at every scope it cascades to, rather than being resolved
+    ///     once at the root and then locked in as a fixed concrete choice for every descendant scope.
+    ///     A container whose own children mix a connected pair with an unrelated singleton — inheriting
+    ///     "auto" from the root without re-declaring it — must be classified by this algorithm's own
+    ///     connectivity-based routing (packing the singleton separately via containment) exactly like a
+    ///     top-level "auto" graph would, not simply handed to a single fixed leaf algorithm (which would
+    ///     lay every member out uniformly, with no special packing for the singleton). Regression test
+    ///     for a design gap where a container-scope fix merely avoided throwing by forcing a fixed leaf
+    ///     choice onto every descendant scope, rather than honoring "auto"'s documented inheritance rule
+    ///     that an unset option keeps re-evaluating at each level.
+    /// </summary>
+    [Fact]
+    public void Apply_AutoInheritedByNestedContainer_ReclassifiesMixedConnectivityAtThatScope()
+    {
+        // Arrange: two structurally-identical graphs, differing only in how the container's own children
+        // scope resolves its algorithm. Both containers hold a connected pair ("a"-"b") plus an unrelated
+        // singleton ("solo"). "inherited" lets the root's "auto" cascade down unset; "forcedLayered"
+        // instead explicitly overrides the children scope to plain "layered", so its singleton is laid
+        // out uniformly alongside the pair rather than packed separately via containment.
+        static LayoutTree Build(bool forceLayeredOnChildren)
+        {
+            var graph = new LayoutGraph();
+            graph.Set(CoreOptions.Algorithm, "auto");
+
+            var outer = graph.AddNode("outer", 10, 10);
+            outer.Label = "outer";
+            if (forceLayeredOnChildren)
+            {
+                outer.Children.Set(CoreOptions.Algorithm, LayeredLayoutAlgorithm.AlgorithmId);
+            }
+
+            var a = outer.Children.AddNode("a", 80, 40);
+            var b = outer.Children.AddNode("b", 80, 40);
+            outer.Children.AddEdge("a-b", a, b);
+            outer.Children.AddNode("solo", 80, 40);
+
+            return new AutoLayoutAlgorithm().Apply(graph);
+        }
+
+        // Act
+        var inheritedTree = Build(forceLayeredOnChildren: false);
+        var forcedLayeredTree = Build(forceLayeredOnChildren: true);
+
+        var inheritedOuter = inheritedTree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "outer");
+        var forcedLayeredOuter = forcedLayeredTree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "outer");
+
+        // Assert: every box made it into both trees (the outer container, "a", "b", and "solo").
+        Assert.Equal(4, CountBoxesRecursively(inheritedTree.Nodes));
+        Assert.Equal(4, CountBoxesRecursively(forcedLayeredTree.Nodes));
+
+        // Assert: the inherited-"auto" container is sized differently from the forced-plain-"layered"
+        // container, proving the inherited case actually re-ran this algorithm's own component
+        // classification (splitting the singleton into its own containment-packed bucket) instead of
+        // resolving to the same fixed leaf treatment as an explicit "layered" override.
+        Assert.True(
+            Math.Abs(inheritedOuter.Width - forcedLayeredOuter.Width) > 0.5 ||
+            Math.Abs(inheritedOuter.Height - forcedLayeredOuter.Height) > 0.5,
+            $"expected the inherited-\"auto\" container ({inheritedOuter.Width:R}x{inheritedOuter.Height:R}) to be " +
+            $"sized differently from the forced-\"layered\" container ({forcedLayeredOuter.Width:R}x{forcedLayeredOuter.Height:R}), " +
+            "proving the nested scope was reclassified by \"auto\" rather than defaulting to a fixed leaf choice");
     }
 
     /// <summary>Counts every <see cref="LayoutBox"/> in a node list, recursing into each box's children.</summary>
