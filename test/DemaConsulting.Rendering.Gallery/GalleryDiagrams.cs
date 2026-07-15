@@ -1011,6 +1011,46 @@ internal static class GalleryDiagrams
     }
 
     /// <summary>
+    ///     A three-level-deep compound container whose intermediate and innermost scopes each mix a
+    ///     connected pair with an unrelated singleton, none of them re-declaring
+    ///     <see cref="CoreOptions.Algorithm"/>. Every nested scope inherits <c>"auto"</c> from the root
+    ///     graph and must be independently re-classified there — proving <c>"auto"</c> is re-evaluated
+    ///     at each level it cascades to (routing the connected pair through layered and the singleton
+    ///     through containment at every scope), rather than being resolved once at the root and then
+    ///     applied uniformly to every descendant scope.
+    /// </summary>
+    /// <returns>A graph with a two-level nested container plus an unrelated root-level singleton.</returns>
+    public static LayoutGraph AutoDeepNestedMixedConnectivity()
+    {
+        var graph = new LayoutGraph();
+
+        // Level 1: the outer container.
+        var outer = graph.AddNode("outer", 10, 10);
+        outer.Label = "Outer";
+
+        // Level 2 (inside outer.Children): a connected pair, an unrelated singleton, and another
+        // container going one level deeper still.
+        var mid1 = AddLabelled(outer.Children, "mid1", "Mid1");
+        var mid2 = AddLabelled(outer.Children, "mid2", "Mid2");
+        Connect(outer.Children, "mid1-mid2", mid1, mid2);
+        AddLabelled(outer.Children, "midSolo", "MidSolo");
+
+        var deepContainer = outer.Children.AddNode("deepContainer", 10, 10);
+        deepContainer.Label = "DeepContainer";
+
+        // Level 3 (inside deepContainer.Children): again a connected pair plus an unrelated singleton.
+        var d1 = AddLabelled(deepContainer.Children, "d1", "D1");
+        var d2 = AddLabelled(deepContainer.Children, "d2", "D2");
+        Connect(deepContainer.Children, "d1-d2", d1, d2);
+        AddLabelled(deepContainer.Children, "dSolo", "DSolo");
+
+        // An unrelated root-level singleton forces the genuine multi-group split path at the root too.
+        AddLabelled(graph, "rootSolo", "RootSolo");
+
+        return graph;
+    }
+
+    /// <summary>
     ///     Twelve small, wide sibling boxes with no edges, suited to the containment algorithm's
     ///     column-count-based content-width candidate: without it, the area-based width estimate alone
     ///     would under-size the packing budget for this shape and pack the boxes into a single narrow

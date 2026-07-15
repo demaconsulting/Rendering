@@ -35,6 +35,12 @@ independently, and packs the results into one combined canvas.
 "auto" routes any component containing a container node through the hierarchical algorithm regardless of its size, while
 the unrelated isolated sibling is packed alongside it through the shared containment bucket.
 
+![Three-level nested container mixing connected pairs and singletons](auto-deep-nested-mixed-connectivity.svg)
+
+Every nested scope inherits "auto" without re-declaring it, and each one is independently re-classified there: the
+connected pair routes through layered and the singleton is packed alongside it through containment, at every level of
+nesting — not just the root.
+
 ## Boundary and delegation ports
 
 The hierarchical engine's support for boundary (delegation) ports: a container may expose a named port carrying BOTH an

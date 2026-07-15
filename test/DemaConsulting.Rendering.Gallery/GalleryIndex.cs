@@ -47,8 +47,11 @@ internal static class GalleryIndex
             + "each one demonstrates and, where relevant, which bug it guards against. This page just "
             + "points the way and shows a taste of each.");
 
-        AppendParagraph(builder, "| Group | What it's about |");
-        AppendParagraph(builder, "| --- | --- |");
+        // Written directly (not via AppendParagraph) so the header and separator rows are not
+        // blank-line-separated from each other or from the data rows: a Markdown table is one
+        // contiguous block, and a blank line between its rows would break it into separate tables.
+        builder.Append("| Group | What it's about |").Append('\n');
+        builder.Append("| --- | --- |").Append('\n');
         foreach (var group in GalleryCatalog.Groups)
         {
             builder
