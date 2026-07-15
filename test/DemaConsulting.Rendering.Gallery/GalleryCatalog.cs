@@ -85,6 +85,8 @@ internal static class GalleryCatalog
     public const string HierarchicalNestedPng = "nested-hierarchy/hierarchical-nested.png";
     public const string AutoNestedRoutesHierarchicalSvg =
         "nested-hierarchy/auto-nested-routes-hierarchical.svg";
+    public const string AutoDeepNestedMixedConnectivitySvg =
+        "nested-hierarchy/auto-deep-nested-mixed-connectivity.svg";
     public const string BoundaryPortsShowcaseHorizontalSvg =
         "nested-hierarchy/boundary-ports-showcase-horizontal.svg";
     public const string BoundaryPortsShowcaseHorizontalPng =
@@ -353,6 +355,13 @@ internal static class GalleryCatalog
                             + "hierarchical algorithm regardless of its size, while the unrelated "
                             + "isolated sibling is packed alongside it through the shared containment "
                             + "bucket."),
+                        new GalleryImage(
+                            AutoDeepNestedMixedConnectivitySvg,
+                            "Three-level nested container mixing connected pairs and singletons",
+                            "Every nested scope inherits \"auto\" without re-declaring it, and each one "
+                            + "is independently re-classified there: the connected pair routes through "
+                            + "layered and the singleton is packed alongside it through containment, at "
+                            + "every level of nesting — not just the root."),
                     ]),
                 new GallerySection(
                     "Boundary and delegation ports",

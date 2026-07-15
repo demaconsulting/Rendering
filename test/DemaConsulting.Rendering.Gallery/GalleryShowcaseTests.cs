@@ -754,6 +754,30 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
+    ///     Renders a three-level-deep nested container to SVG, where the middle and innermost scopes
+    ///     each mix a connected pair with an unrelated singleton and neither re-declares
+    ///     <see cref="CoreOptions.Algorithm"/>. Proves "auto" is re-evaluated at every scope it cascades
+    ///     to (routing each scope's connected pair through layered and its singleton through
+    ///     containment independently) rather than being resolved once at the root and applied
+    ///     uniformly to every descendant scope. Regression coverage for a bug where a nested scope that
+    ///     inherited "auto" without re-declaring it either threw <see cref="KeyNotFoundException"/> or,
+    ///     under an earlier incomplete fix, was silently flattened to a single fixed leaf algorithm.
+    /// </summary>
+    [Fact]
+    public void Gallery_AutoDeepNestedMixedConnectivity_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.AutoDeepNestedMixedConnectivity();
+        graph.Set(CoreOptions.Algorithm, "auto");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.AutoDeepNestedMixedConnectivitySvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
     ///     Renders twelve small, wide boxes packed by the containment algorithm to SVG, proving the
     ///     column-count-based content-width candidate keeps the algorithm from packing them into one
     ///     long, narrow column, wrapping them into a balanced grid of columns instead.
