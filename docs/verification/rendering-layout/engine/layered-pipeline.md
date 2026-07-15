@@ -179,6 +179,18 @@ failure.
   triangle components, each with a short cycle producing a long back edge, and confirms the routed
   back-edge corridor reflects the parent graph's configured `BackEdgeEntryApproach` in every packed
   component instead of always reverting to the class default.
+- **Component packing wired into Place** (`Rendering-Layout-LayeredPipeline-ComponentPackingWiredIntoPlace`):
+  `Place_DisconnectedComponents_PacksEachComponentSeparately` confirms `InterconnectionLayoutEngine.Place`
+  itself (with no caller-added stage) splits a disconnected graph into its connected components, lays
+  each out independently, and packs them into non-overlapping bounding boxes.
+- **Component packing composes safely inside a pipeline**
+  (`Rendering-Layout-LayeredPipeline-ComponentPackerIdempotentNormalization`):
+  `ComponentPacker_Apply_ComposedInDownPipeline_DoesNotDoubleSwapAxes` confirms that composing
+  `ComponentPacker` as an inner stage of a `LayeredLayoutPipeline` for a Down-direction graph does not
+  double-swap the input node axes: `AxisTransform.NormalizeInputAxes` is idempotent
+  (`LayeredGraph.InputAxesNormalized`), so the pipeline's own normalization call followed by
+  `ComponentPacker.Apply`'s internal call swaps the axes exactly once, matching the direct
+  `ComponentPacker.WithDefaultStages().Apply(graph)` call path.
 - **Shared state** (`Rendering-Layout-LayeredPipeline-SharedState`):
   `LayeredGraph_Constructor_ValidInput_StoresNodesEdgesDirectionAndCount`,
   `LayeredGraph_Constructor_NullNodes_ThrowsArgumentNullException`, and
@@ -286,6 +298,10 @@ failure.
   ComponentPacker_Apply_MultiComponent_ParallelAndSelfEdges_MergesAlignedWaypoints
 - **`Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach`**:
   ComponentPacker_Apply_MultiComponent_PropagatesBackEdgeEntryApproach
+- **`Rendering-Layout-LayeredPipeline-ComponentPackingWiredIntoPlace`**:
+  Place_DisconnectedComponents_PacksEachComponentSeparately
+- **`Rendering-Layout-LayeredPipeline-ComponentPackerIdempotentNormalization`**:
+  ComponentPacker_Apply_ComposedInDownPipeline_DoesNotDoubleSwapAxes
 - **`Rendering-Layout-LayeredPipeline-SharedState`**:
   LayeredGraph_Constructor_ValidInput_StoresNodesEdgesDirectionAndCount,
   LayeredGraph_Constructor_NullNodes_ThrowsArgumentNullException,

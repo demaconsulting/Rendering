@@ -324,6 +324,119 @@ public sealed class OrthogonalEdgeRouterTests
     }
 
     /// <summary>
+    ///     Direct, low-level regression test for the connector-router "coiled/looping" robustness bug
+    ///     (see <c>OrthogonalEdgeRouter.AddSoftCandidate</c> and
+    ///     <c>OrthogonalEdgeRouter.EnvelopeDepartureCost</c>), isolated from
+    ///     <c>ConnectorRouter</c>'s anchor-distribution logic by calling <see cref="OrthogonalEdgeRouter.RouteWithStatus"/>
+    ///     directly. Several soft obstacles are pre-seeded at ever-increasing offsets outside the true
+    ///     source/target gap, simulating the "stair-stepping" candidate lane a stack of already-routed
+    ///     parallel connectors produced before the fix — each successive connector's own soft-obstacle
+    ///     avoidance offset its candidate lane a little further out, with no ceiling, until a lane landed
+    ///     behind (outside the X-span of) the source box's own footprint. Before the fix, the unbounded
+    ///     soft-obstacle-derived grid candidates let A* pick one of these behind-the-box lanes; after the
+    ///     fix, the candidates are clamped to the source/target envelope, and any residual temptation to
+    ///     leave it is priced by <c>EnvelopeDepartureCost</c>, so the route stays within the gap.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_SaturatedNarrowGapSoftObstacles_StaysWithinEnvelope()
+    {
+        // Arrange: a narrow 24px gap between two boxes (source right edge at X=142, target left edge at
+        // X=166, mirroring the reported repro geometry), with three already-routed parallel connectors'
+        // interior segments pre-seeded as soft obstacles: one occupying the gap's natural shared lane,
+        // and two marching progressively further left — the second sitting right at the source box's
+        // own edge, the third already behind (inside the X-span of) the source box.
+        var source = new Point2D(142, 43.5);
+        var target = new Point2D(166, 187.5);
+        var softObstacles = new[]
+        {
+            new Rect(153, 20, 2, 200),
+            new Rect(141, 20, 2, 200),
+            new Rect(129, 20, 2, 200),
+        };
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(
+            source, target, obstacles: [], clearance: 12, softObstacles: softObstacles);
+
+        // Assert: a valid route was found and every waypoint stays within the source/target X envelope
+        // (a small allowance covers the router's own approach stub) — no waypoint lands at or behind
+        // X=141/129, which sit outside the [142,166] gap the two endpoints actually define.
+        Assert.False(result.Crossed);
+        AssertAllSegmentsOrthogonal(result.Waypoints);
+        const double allowance = 4.0;
+        Assert.All(
+            result.Waypoints,
+            p => Assert.True(
+                p.X >= 142 - allowance && p.X <= 166 + allowance,
+                $"Waypoint ({p.X},{p.Y}) lies outside the source/target X envelope [142,166]."));
+    }
+
+    /// <summary>
+    ///     Direct, low-level regression test for the connector-to-connector transversal-crossing fix
+    ///     (see <c>OrthogonalEdgeRouter.SoftObstacleCrossingCount</c>/<c>SoftObstacleCrossingCost</c>),
+    ///     isolated from <c>ConnectorRouter</c>'s anchor-distribution logic by calling
+    ///     <see cref="OrthogonalEdgeRouter.RouteWithStatus"/> directly. A single vertical-oriented soft
+    ///     obstacle (thin in X, tall in Y — the shape <c>ConnectorRouter.AddLineObstacles</c> builds for
+    ///     an already-routed connector's vertical trunk segment) is seeded so that it crosses one of two
+    ///     otherwise equally-cheap single-turn "L" routes between the source and target, leaving the
+    ///     other entirely clear — a genuinely bounded-cost, no-extra-turn alternative. Before the fix,
+    ///     <c>SoftObstacleOverlapLength</c> priced this perpendicular crossing identically to a trivial
+    ///     few-pixel parallel overlap (bounded by the obstacle's own ~2px thin dimension, regardless of
+    ///     the crossing move's own length), so the two L-routes tied on cost and the crossing one could
+    ///     be (and was) picked, cutting straight across another connector's trunk; after the fix, the
+    ///     new flat <c>SoftObstacleCrossingCost</c> breaks the tie in favor of the non-crossing route.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_VerticalOrientedSoftObstacleAcrossOneLRoute_PrefersNonCrossingAlternative()
+    {
+        // Arrange: source and target are diagonal from one another, so a bounded-cost, single-turn
+        // "L" route exists in two equally-Manhattan-length flavors — turn early (go vertical first,
+        // then horizontal) or turn late (go horizontal first, then vertical) — that differ only in
+        // which one crosses the seeded obstacle. A single vertical-oriented soft obstacle (thin in X,
+        // tall in Y — the shape <c>ConnectorRouter.AddLineObstacles</c> builds for an already-routed
+        // connector's vertical trunk) sits at x = 100 spanning y in [-1, 19], squarely across the
+        // "turn late" route's y = 0 leg, but entirely clear of the "turn early" route's y = 50 leg. Both
+        // L-shaped routes cost the same but for the new crossing term, so the fix alone — with no
+        // length- or turn-penalty advantage needed — decides which one A* prefers.
+        var source = new Point2D(0, 0);
+        var target = new Point2D(200, 50);
+        var softObstacles = new[] { new Rect(100, -1, 2, 20) };
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(
+            source, target, obstacles: [], clearance: 10, softObstacles: softObstacles);
+
+        // Assert: a valid orthogonal route was found (soft obstacles never hard-block).
+        Assert.False(result.Crossed);
+        AssertAllSegmentsOrthogonal(result.Waypoints);
+
+        // Assert: no segment of the route transversally crosses the vertical-oriented obstacle — i.e.
+        // no horizontal segment spans fully from strictly left of x = [100,102] to strictly right of
+        // it while sitting at a y within the obstacle's [-1,19] span. This is the concrete check the
+        // fix exists to satisfy: the two L-shaped routes are otherwise equally cheap, so the crossing
+        // route must be avoided purely because of the new crossing cost.
+        for (var i = 0; i + 1 < result.Waypoints.Count; i++)
+        {
+            var p1 = result.Waypoints[i];
+            var p2 = result.Waypoints[i + 1];
+            if (Math.Abs(p1.Y - p2.Y) > 1e-9)
+            {
+                // Vertical segment: never transversally crosses another vertical-oriented obstacle.
+                continue;
+            }
+
+            var y = p1.Y;
+            var xLo = Math.Min(p1.X, p2.X);
+            var xHi = Math.Max(p1.X, p2.X);
+            var crosses = y > -1 && y < 19 && xLo < 100 && xHi > 102;
+            Assert.False(
+                crosses,
+                $"Segment ({p1.X},{p1.Y})-({p2.X},{p2.Y}) transversally crosses the seeded vertical " +
+                "soft obstacle instead of taking the equally-cheap non-crossing alternative.");
+        }
+    }
+
+    /// <summary>
     ///     A null source anchor is rejected.
     /// </summary>
     [Fact]

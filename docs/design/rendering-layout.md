@@ -5,8 +5,8 @@
 `DemaConsulting.Rendering.Layout` is the placement system for the Rendering stack. A caller supplies a
 `LayoutGraph` plus `LayoutOptions`; the system returns a placed `LayoutTree` of boxes and orthogonally
 routed connectors that downstream renderers can draw without layout knowledge. The system exposes
-bundled algorithms for layered, containment, and hierarchical layout, built on reusable geometric
-engines.
+bundled algorithms for layered, containment, hierarchical, and auto (meta-algorithm) layout, built on
+reusable geometric engines.
 
 The system is composed of one subsystem and a set of public algorithm and facade units:
 
@@ -16,19 +16,21 @@ DemaConsulting.Rendering.Layout (System)
 │   ├── OrthogonalEdgeRouter (Unit)
 │   ├── ContainmentPacker (Unit)
 │   ├── InterconnectionLayoutEngine (Unit)
-│   └── LayeredPipeline (Unit)
+│   ├── LayeredPipeline (Unit)
+│   └── LayoutTreePacker (Unit)
 ├── EdgeRoutingOption (Unit)
 ├── ConnectorRouter (Unit)
 ├── ContainmentLayout (Unit)
 ├── ContainmentLayoutAlgorithm (Unit)
 ├── HierarchicalLayoutAlgorithm (Unit)
 ├── DefaultLayout (Unit)
-└── LayeredLayoutAlgorithm (Unit)
+├── LayeredLayoutAlgorithm (Unit)
+└── AutoLayoutAlgorithm (Unit)
 ```
 
 - **Engine** — reusable, model-agnostic geometric engines (orthogonal routing, containment packing,
-  interconnection placement, and the ELK-style layered stage pipeline). Detailed in Engine Subsystem
-  Design.
+  interconnection placement, the ELK-style layered stage pipeline, and layout-tree packing). Detailed
+  in Engine Subsystem Design.
 - **EdgeRoutingOption** — routing-style configuration keys. Detailed in EdgeRoutingOption Unit Design.
 - **ConnectorRouter** — routes connectors among already placed boxes. Detailed in ConnectorRouter Unit
   Design.
@@ -42,24 +44,29 @@ DemaConsulting.Rendering.Layout (System)
   Design.
 - **LayeredLayoutAlgorithm** — public layered algorithm. Detailed in LayeredLayoutAlgorithm Unit
   Design.
+- **AutoLayoutAlgorithm** — public auto-routing meta-algorithm that splits a graph into connected
+  components, routes each to whichever bundled leaf algorithm best suits its shape, and packs the
+  results into one combined tree. Detailed in AutoLayoutAlgorithm Unit Design.
 
 The public algorithms implement `ILayoutAlgorithm` from Rendering.Abstractions and compose the Engine
 subsystem's model-agnostic geometry. The `DefaultLayout` facade resolves the requested algorithm from
 the bundled registry. The hierarchical algorithm composes leaf algorithms per container and routes
-cross-container edges at the owning scope.
+cross-container edges at the owning scope. The auto algorithm composes the other three bundled
+algorithms per connected component and packs their independently-placed results with `LayoutTreePacker`.
 
 ## External Interfaces
 
 - **`ILayoutAlgorithm` implementations** — outbound; `LayeredLayoutAlgorithm`,
-  `ContainmentLayoutAlgorithm`, and `HierarchicalLayoutAlgorithm` each realize the Abstractions layout
-  contract, accepting a `LayoutGraph` plus `LayoutOptions` and returning a placed `LayoutTree`. Each
-  advertises an identifier (`layered`, `containment`, `hierarchical`) for registry resolution.
+  `ContainmentLayoutAlgorithm`, `HierarchicalLayoutAlgorithm`, and `AutoLayoutAlgorithm` each realize
+  the Abstractions layout contract, accepting a `LayoutGraph` plus `LayoutOptions` and returning a
+  placed `LayoutTree`. Each advertises an identifier (`layered`, `containment`, `hierarchical`,
+  `auto`) for registry resolution.
 - **`LayoutEngine` facade / bundled registry (DefaultLayout)** — outbound entry points; resolve and run
   the requested (or default) algorithm.
 - **`EdgeRoutingOption`** — outbound `LayoutProperty` keys that select connector routing style.
 - **Engine APIs (`OrthogonalEdgeRouter`, `ContainmentPacker`, `InterconnectionLayoutEngine`,
-  `LayeredPipeline`)** — internal geometric services composed by the public algorithms; not intended
-  for direct renderer use.
+  `LayeredPipeline`, `LayoutTreePacker`)** — internal geometric services composed by the public
+  algorithms; not intended for direct renderer use.
 
 ## Dependencies
 
@@ -80,7 +87,7 @@ architectural segregation (IEC 62304 §5.3.3).
 ```text
 LayoutGraph + LayoutOptions
         │
-        ▼  selected ILayoutAlgorithm (layered / containment / hierarchical)
+        ▼  selected ILayoutAlgorithm (layered / containment / hierarchical / auto)
    Engine geometry (layered pipeline, packing, routing)
         │
         ▼

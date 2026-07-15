@@ -1,0 +1,123 @@
+---
+# DemaConsulting.Rendering.Layout - AutoLayoutAlgorithm Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the auto-layout-algorithm unit.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: AutoLayoutAlgorithm Requirements
+    requirements:
+      - id: Rendering-Layout-AutoAlgorithm-Identity
+        title: >-
+          AutoLayoutAlgorithm shall expose the stable identifier under which it is selected and
+          registered.
+        justification: |
+          Renderers and registries select an algorithm by its identifier; a stable, well-known value
+          lets the auto meta-algorithm be resolved by name.
+        tests:
+          - Id_IsAuto
+
+      - id: Rendering-Layout-AutoAlgorithm-RoutesConnectedCluster
+        title: >-
+          AutoLayoutAlgorithm shall route a connected component of two or more nodes with no children
+          anywhere in it (including a single node with only a self-loop) through the layered algorithm.
+        justification: |
+          A component with genuine connectivity and no nesting is exactly the shape the layered
+          algorithm's Sugiyama layering is built for, so routing it there produces the same quality
+          layout a caller would get by selecting layered directly.
+        tests:
+          - Apply_SingleConnectedComponent_MatchesLayeredAlgorithmDirectly
+          - Apply_SingleNodeWithSelfLoop_RoutesToLayeredNotContainment
+          - Apply_MultipleDisconnectedClusters_PacksEachClusterWithoutOverlap
+
+      - id: Rendering-Layout-AutoAlgorithm-RoutesContainer
+        title: >-
+          AutoLayoutAlgorithm shall route any component containing a node with children through the
+          hierarchical algorithm, regardless of the component's overall size or connectivity.
+        justification: |
+          A container node needs the hierarchical engine's recursive placement to lay out its own
+          children even when the container itself is otherwise isolated or unconnected; routing by
+          nesting rather than by connectivity alone ensures nested content is never flattened.
+        tests:
+          - Apply_IsolatedNodeWithChildren_MatchesHierarchicalAlgorithmDirectly
+          - Apply_NestedContainers_RoutesToHierarchical
+
+      - id: Rendering-Layout-AutoAlgorithm-RoutesSingletonBucket
+        title: >-
+          AutoLayoutAlgorithm shall gather every truly childless, edgeless singleton node in the graph
+          into one shared bucket routed through the containment algorithm.
+        justification: |
+          A singleton with no children and no incident edges carries no connectivity or nesting
+          information a layered or hierarchical layout could use; packing every such node together
+          through the containment algorithm's balanced-block packer is the only routing that produces a
+          meaningful arrangement for it.
+        tests:
+          - Apply_AllIsolatedSingletons_MatchesContainmentAlgorithmDirectly
+          - Apply_ClusterPlusIsolatedSingletons_PacksBothGroupsWithoutOverlap
+
+      - id: Rendering-Layout-AutoAlgorithm-FastPathEquivalence
+        title: >-
+          When the routing rule produces exactly one group overall, AutoLayoutAlgorithm shall delegate
+          the unmodified graph directly to that group's leaf algorithm and produce a result
+          byte-for-byte identical to invoking that algorithm directly.
+        justification: |
+          The common case is a single, fully (or mostly) connected diagram; that case must never pay any
+          splitting, copying, or repacking cost, and must never differ from what a caller would get by
+          selecting the equivalent leaf algorithm directly.
+        tests:
+          - Apply_SingleConnectedComponent_MatchesLayeredAlgorithmDirectly
+          - Apply_AllIsolatedSingletons_MatchesContainmentAlgorithmDirectly
+          - Apply_IsolatedNodeWithChildren_MatchesHierarchicalAlgorithmDirectly
+          - Apply_NestedContainers_RoutesToHierarchical
+          - Apply_SingleNodeWithSelfLoop_RoutesToLayeredNotContainment
+
+      - id: Rendering-Layout-AutoAlgorithm-MultiGroupPacking
+        title: >-
+          When the routing rule produces 2+ groups, AutoLayoutAlgorithm shall lay out each group
+          independently on its own copied sub-graph and pack every resulting placed tree into one
+          combined layout tree with no two groups' bounding boxes overlapping.
+        justification: |
+          A graph mixing multiple independent clusters, containers, and singletons must still produce
+          one coherent, non-overlapping combined diagram rather than requiring the caller to lay out and
+          compose each piece by hand.
+        tests:
+          - Apply_ClusterPlusIsolatedSingletons_PacksBothGroupsWithoutOverlap
+          - Apply_MultipleDisconnectedClusters_PacksEachClusterWithoutOverlap
+
+      - id: Rendering-Layout-AutoAlgorithm-CascadesOptions
+        title: >-
+          AutoLayoutAlgorithm shall capture the graph's own cascaded options once before splitting and
+          apply them as the fallback options to every split-off group, and shall reset the captured
+          algorithm-selection option so a hierarchical-routed group's own nested cascade never attempts
+          to resolve the meta-algorithm's own identifier from a leaf-only registry.
+        justification: |
+          A graph-level option override (direction, spacing, edge routing, and so on) must still apply
+          to every split-off piece exactly as it would have applied to the whole graph. Without
+          resetting the captured algorithm-selection option, a graph that declares "auto" explicitly and
+          also splits into a hierarchical-routed group throws a lookup error instead of producing a
+          layout, since the hierarchical algorithm's own leaf-only registry never contains "auto".
+        tests:
+          - Apply_GraphLevelOptionOverride_AppliesToSplitComponents
+          - Apply_GraphDeclaresAutoAlgorithmWithNestedContainerGroup_DoesNotThrow
+
+      - id: Rendering-Layout-AutoAlgorithm-EmptyGraph
+        title: >-
+          When given a graph with no nodes, AutoLayoutAlgorithm shall return an empty placed layout
+          tree.
+        justification: |
+          An empty graph is a valid degenerate case that must yield a well-formed empty canvas rather
+          than an error.
+        tests:
+          - Apply_EmptyGraph_ReturnsEmptyTree
+
+      - id: Rendering-Layout-AutoAlgorithm-Validation
+        title: >-
+          AutoLayoutAlgorithm shall reject a null graph or null options argument with an argument-null
+          error.
+        justification: |
+          Failing fast on null arguments prevents undefined behavior and surfaces caller errors at the
+          public boundary.
+        tests:
+          - Apply_NullGraph_ThrowsArgumentNullException
+          - ApplyCore_NullOptions_ThrowsArgumentNullException

@@ -41,6 +41,31 @@ internal static class GalleryWriter
     {
         var tree = LayoutEngine.Layout(graph);
         var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+        using (var stream = File.Create(path))
+        {
+            SvgRenderer.Render(tree, new RenderOptions(theme), stream);
+        }
+
+        AssertValidSvg(path);
+    }
+
+    /// <summary>
+    ///     Renders a pre-built <paramref name="tree"/> directly to <paramref name="fileName"/> as SVG,
+    ///     bypassing <see cref="LayoutEngine.Layout(LayoutGraph)"/> entirely, and asserts the result is a
+    ///     well-formed SVG document. Every other gallery group exists to show what the layout engine
+    ///     itself produces, so this overload must be used only by diagrams belonging to the
+    ///     <c>custom-rendering</c> gallery group — the one group whose whole point is a hand-built box
+    ///     arrangement, honestly labelled as bypassing the engine, rather than algorithm output.
+    /// </summary>
+    /// <param name="fileName">Stable output filename (for example <c>custom-rendering/my-diagram.svg</c>).</param>
+    /// <param name="tree">The already-laid-out tree to render.</param>
+    /// <param name="theme">The theme to render with.</param>
+    public static void Svg(string fileName, LayoutTree tree, Theme theme)
+    {
+        var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
         using (var stream = File.Create(path))
         {
@@ -65,6 +90,7 @@ internal static class GalleryWriter
     {
         var tree = LayoutEngine.Layout(graph);
         var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
         using (var stream = File.Create(path))
         {

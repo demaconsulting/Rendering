@@ -73,6 +73,9 @@ words:
   - collinearity
   - collinearly
   - pathfinding
+  - transversal
+  - transversally
+  - unwidened
   # Non-ASCII terms retained verbatim in extracted source comments
   - façade
   - Köpf

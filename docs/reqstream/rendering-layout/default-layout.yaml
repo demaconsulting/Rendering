@@ -11,8 +11,8 @@ sections:
       - id: Rendering-Layout-DefaultRegistry-BundledAlgorithms
         title: >-
           The default layout-algorithm registry factory shall return a registry from which each of the
-          three bundled algorithms — layered, containment, and hierarchical — resolves by its identifier,
-          and each call shall return an independently mutable registry.
+          four bundled algorithms — layered, containment, hierarchical, and auto — resolves by its
+          identifier, and each call shall return an independently mutable registry.
         justification: |
           A batteries-included factory removes the boilerplate of registering the bundled algorithms by
           hand; returning a fresh, independent registry on every call lets a caller extend or replace an
@@ -21,7 +21,8 @@ sections:
           - CreateDefaultRegistry_ResolvesLayeredAlgorithm
           - CreateDefaultRegistry_ResolvesContainmentAlgorithm
           - CreateDefaultRegistry_ResolvesHierarchicalAlgorithm
-          - CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms
+          - CreateDefaultRegistry_ResolvesAutoAlgorithm
+          - CreateDefaultRegistry_RegistersOnlyTheFourBundledAlgorithms
           - CreateDefaultRegistry_ReturnsIndependentInstances
 
       - id: Rendering-Layout-LayoutEngine-DefaultAlgorithm

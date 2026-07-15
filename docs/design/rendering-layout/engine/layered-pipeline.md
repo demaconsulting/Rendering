@@ -124,13 +124,30 @@ The default stage sequence added by `AddDefaultStages` runs in this order:
    for the requested direction. The Right direction is the identity; Down, Left, and Up are rotations
    or flips. It also normalizes the input node axes at the start of `Run`.
 
-`ComponentPacker` is an optional composite stage added explicitly by callers that lay out potentially
-disconnected graphs. It splits the graph into connected components, runs an inner stage sequence on
-each, and packs the results without overlap in a deterministic order, translating each component's
-boxes and waypoints together. Each component is laid out through a freshly constructed child
-`LayeredGraph`, which copies the parent graph's `BackEdgeEntryApproach` so a caller-customized
-reversed-edge clearance is honored consistently whether the input graph is packed into one component
-or several.
+`ComponentPacker` is a composite stage that splits the graph into connected components, runs an inner
+stage sequence on each, and packs the results without overlap in a deterministic order, translating
+each component's boxes and waypoints together. It begins by calling `AxisTransform.NormalizeInputAxes`
+on the supplied graph, exactly as `LayeredLayoutPipeline.Run` does before its own stage sequence, so it
+remains a fully self-contained stage regardless of call site. `NormalizeInputAxes` is idempotent — a
+`LayeredGraph.InputAxesNormalized` flag guards the one-time Down/Up axis swap — so composing
+`ComponentPacker` as an inner stage of a `LayeredLayoutPipeline` that already normalized the same graph
+is safe and does not double-swap (and thereby undo) the Down/Up axis normalization. Each component is
+laid out through a freshly constructed child `LayeredGraph`, which copies the parent graph's
+`BackEdgeEntryApproach` so a caller-customized reversed-edge clearance is honored consistently whether
+the input graph is packed into one component or several. `InterconnectionLayoutEngine.Place` — and
+therefore the public `LayeredLayoutAlgorithm` — wraps the default stage sequence with
+`ComponentPacker.WithDefaultStages(...)`
+unconditionally, so every disconnected input laid out through the layered algorithm is automatically
+split, laid out per component, and packed; a caller never has to add this stage explicitly to get
+component-aware packing. `HierarchicalLayoutAlgorithm`'s own per-level flat runs (`RunRecursive` and
+`AddRecursiveStages`) deliberately do *not* route through `ComponentPacker`: a hierarchical scope's
+flat level is a single level of one container's already-grouped children, and the flat-graph
+equivalence guarantee that `HierarchicalLayoutAlgorithm` must preserve (byte-identical output for an
+unnested graph) depends on each level running the exact same stage sequence `LayeredLayoutAlgorithm`
+runs directly — adding `ComponentPacker` only inside the hierarchical recursion, and not at
+`LayeredLayoutAlgorithm`'s own entry point (before this change), would have made the two diverge for a
+disconnected flat graph. Wiring `ComponentPacker` into `InterconnectionLayoutEngine.Place` itself keeps
+both call paths consistent without special-casing the hierarchical recursion.
 
 #### Layered Pipeline Boundary Ports
 
@@ -258,6 +275,7 @@ public layout result contract.
 | Rendering-Layout-LayeredPipeline-LongEdgeJoining | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-ComponentPacking | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-ComponentPackingWiredIntoPlace | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-SharedState | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-InputValidation | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-ShapeAwareAnchors | Layered pipeline behavior described above |

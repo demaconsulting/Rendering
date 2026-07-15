@@ -64,9 +64,16 @@ matrix linking each requirement to the passing tests named in its verification s
 
 In-house items have artifacts in these parallel locations:
 
-- Requirements: `docs/reqstream/{system}/{system}.yaml` (kebab-case)
-- Design docs: `docs/design/{system}/{system}.md` (kebab-case)
-- Verification design: `docs/verification/{system}/{system}.md` (kebab-case)
+- Requirements: `docs/reqstream/{system-name}.yaml` (system-level) and
+  `docs/reqstream/{system-name}/{unit-name}.yaml` (unit-level, kebab-case; nested one level
+  further under a subsystem folder when the unit belongs to one, e.g.
+  `docs/reqstream/{system-name}/{subsystem-name}/{unit-name}.yaml`)
+- Design docs: `docs/design/{system-name}.md` (system-level) and
+  `docs/design/{system-name}/{unit-name}.md` (unit-level, kebab-case; nested under a subsystem
+  folder the same way as requirements)
+- Verification design: `docs/verification/{system-name}.md` (system-level) and
+  `docs/verification/{system-name}/{unit-name}.md` (unit-level, kebab-case; nested under a
+  subsystem folder the same way as requirements)
 - Source code: `src/{System}/.../{Item}.cs` (PascalCase for C#)
 - Tests: `test/{System}.Tests/.../{Item}Tests.cs` (PascalCase for C#)
 

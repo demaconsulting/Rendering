@@ -22,9 +22,11 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_LayeredPipeline_RendersSvg()
     {
+        // Arrange
         var graph = GalleryDiagrams.LayeredPipeline();
         graph.Set(CoreOptions.Algorithm, "layered");
 
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.LayeredPipelineSvg,
             graph,
@@ -40,9 +42,11 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_IsolatedNodeLayerGap_RendersSvg()
     {
+        // Arrange
         var graph = GalleryDiagrams.IsolatedNodeLayerGap();
         graph.Set(CoreOptions.Algorithm, "layered");
 
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.IsolatedNodeLayerGapSvg,
             graph,
@@ -57,12 +61,31 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ParallelEdgesIntoCompartmentBox_RendersSvg()
     {
+        // Arrange
         var graph = GalleryDiagrams.ParallelEdgesIntoCompartmentBox();
         graph.Set(CoreOptions.Algorithm, "containment");
 
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.ParallelEdgesIntoCompartmentBoxSvg,
             graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the parallel-edges-into-compartment-box-side-by-side regression diagram to SVG,
+    ///     proving <c>ConnectorRouter</c> clamps soft-obstacle lane candidates to the Source/Target box
+    ///     pair's own envelope (and penalizes, without blocking, any move that still leaves it) so nine
+    ///     parallel connectors routed across a narrow inter-box gap never loop a route back behind the
+    ///     box it already left.
+    /// </summary>
+    [Fact]
+    public void Gallery_ParallelEdgesIntoCompartmentBoxSideBySide_RendersSvg()
+    {
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.ParallelEdgesIntoCompartmentBoxSideBySideSvg,
+            GalleryDiagrams.ParallelEdgesIntoCompartmentBoxSideBySide(Themes.Dark),
             Themes.Dark);
     }
 
@@ -73,9 +96,11 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ContainmentPacked_RendersSvg()
     {
+        // Arrange
         var graph = GalleryDiagrams.ContainmentPacked();
         graph.Set(CoreOptions.Algorithm, "containment");
 
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.ContainmentPackedSvg,
             graph,
@@ -89,6 +114,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_HierarchicalNested_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.HierarchicalNestedSvg,
             GalleryDiagrams.HierarchicalNested(),
@@ -102,6 +128,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_OrthogonalObstacle_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.OrthogonalObstacleSvg,
             GalleryDiagrams.OrthogonalObstacle(),
@@ -115,10 +142,12 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_DirectionRight_RendersSvg()
     {
+        // Arrange
         var graph = GalleryDiagrams.DirectionShowcase();
         graph.Set(CoreOptions.Algorithm, "layered");
         graph.Set(CoreOptions.Direction, LayoutFlowDirection.Right);
 
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.DirectionRightSvg,
             graph,
@@ -132,10 +161,12 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_DirectionDown_RendersSvg()
     {
+        // Arrange
         var graph = GalleryDiagrams.DirectionShowcase();
         graph.Set(CoreOptions.Algorithm, "layered");
         graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.DirectionDownSvg,
             graph,
@@ -150,6 +181,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_MixedDirectionNested_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.MixedDirectionNestedSvg,
             GalleryDiagrams.MixedDirectionNested(),
@@ -163,6 +195,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ThemeLight_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.ThemeLightPng,
             GalleryDiagrams.ThemeShowcase(),
@@ -176,6 +209,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ThemeDark_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.ThemeDarkPng,
             GalleryDiagrams.ThemeShowcase(),
@@ -189,6 +223,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ThemePrint_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.ThemePrintPng,
             GalleryDiagrams.ThemeShowcase(),
@@ -202,9 +237,11 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_LayeredPipeline_RendersPng()
     {
+        // Arrange
         var graph = GalleryDiagrams.LayeredPipeline();
         graph.Set(CoreOptions.Algorithm, "layered");
 
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.LayeredPipelinePng,
             graph,
@@ -218,6 +255,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_HierarchicalNested_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.HierarchicalNestedPng,
             GalleryDiagrams.HierarchicalNested(),
@@ -233,6 +271,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_BoxAppearance_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.BoxAppearanceSvg,
             GalleryDiagrams.BoxAppearance(),
@@ -246,6 +285,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_FolderTopFaceAnchor_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.FolderTopFaceAnchorSvg,
             GalleryDiagrams.FolderTopFaceAnchor(),
@@ -260,6 +300,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ShapeGallery_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.ShapeGallerySvg,
             GalleryDiagrams.ShapeGallery(),
@@ -275,6 +316,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ParallelEdgesPreserved_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.ParallelEdgesPreservedSvg,
             GalleryDiagrams.ParallelEdgesPreserved(),
@@ -290,6 +332,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ParallelEdgesMerged_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.ParallelEdgesMergedSvg,
             GalleryDiagrams.ParallelEdgesMerged(),
@@ -306,6 +349,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ParallelEdgesPreservedVertical_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.ParallelEdgesPreservedVerticalSvg,
             GalleryDiagrams.ParallelEdgesPreservedVertical(),
@@ -321,6 +365,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_PortsShowcaseHorizontal_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.PortsShowcaseHorizontalSvg,
             GalleryDiagrams.PortsShowcaseHorizontal(),
@@ -335,6 +380,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_PortsShowcaseVertical_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.PortsShowcaseVerticalSvg,
             GalleryDiagrams.PortsShowcaseVertical(),
@@ -350,6 +396,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_PortsShowcaseMultiConnectorHorizontal_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.PortsShowcaseMultiConnectorHorizontalSvg,
             GalleryDiagrams.PortsShowcaseMultiConnectorHorizontal(),
@@ -365,6 +412,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_PortsShowcaseMultiConnectorVertical_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.PortsShowcaseMultiConnectorVerticalSvg,
             GalleryDiagrams.PortsShowcaseMultiConnectorVertical(),
@@ -379,6 +427,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_PortsShowcaseUnlabeledFanOut_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.PortsShowcaseUnlabeledFanOutSvg,
             GalleryDiagrams.PortsShowcaseUnlabeledFanOut(),
@@ -394,6 +443,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_BoundaryPortsShowcaseHorizontal_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.BoundaryPortsShowcaseHorizontalSvg,
             GalleryDiagrams.BoundaryPortsShowcaseHorizontal(),
@@ -409,6 +459,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_BoundaryPortsShowcaseVertical_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.BoundaryPortsShowcaseVerticalSvg,
             GalleryDiagrams.BoundaryPortsShowcaseVertical(),
@@ -424,6 +475,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_BoundaryPortsShowcaseDeepChain_RendersSvg()
     {
+        // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.BoundaryPortsShowcaseDeepChainSvg,
             GalleryDiagrams.BoundaryPortsShowcaseDeepChain(),
@@ -437,6 +489,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_PortsShowcaseHorizontal_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.PortsShowcaseHorizontalPng,
             GalleryDiagrams.PortsShowcaseHorizontal(),
@@ -450,6 +503,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_PortsShowcaseVertical_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.PortsShowcaseVerticalPng,
             GalleryDiagrams.PortsShowcaseVertical(),
@@ -463,6 +517,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_PortsShowcaseMultiConnectorHorizontal_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.PortsShowcaseMultiConnectorHorizontalPng,
             GalleryDiagrams.PortsShowcaseMultiConnectorHorizontal(),
@@ -476,6 +531,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_PortsShowcaseMultiConnectorVertical_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.PortsShowcaseMultiConnectorVerticalPng,
             GalleryDiagrams.PortsShowcaseMultiConnectorVertical(),
@@ -489,6 +545,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_PortsShowcaseUnlabeledFanOut_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.PortsShowcaseUnlabeledFanOutPng,
             GalleryDiagrams.PortsShowcaseUnlabeledFanOut(),
@@ -502,6 +559,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ParallelEdgesMerged_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.ParallelEdgesMergedPng,
             GalleryDiagrams.ParallelEdgesMerged(),
@@ -515,6 +573,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ParallelEdgesPreserved_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.ParallelEdgesPreservedPng,
             GalleryDiagrams.ParallelEdgesPreserved(),
@@ -528,6 +587,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_ParallelEdgesPreservedVertical_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.ParallelEdgesPreservedVerticalPng,
             GalleryDiagrams.ParallelEdgesPreservedVertical(),
@@ -541,6 +601,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_BoundaryPortsShowcaseHorizontal_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.BoundaryPortsShowcaseHorizontalPng,
             GalleryDiagrams.BoundaryPortsShowcaseHorizontal(),
@@ -554,6 +615,7 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_BoundaryPortsShowcaseVertical_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.BoundaryPortsShowcaseVerticalPng,
             GalleryDiagrams.BoundaryPortsShowcaseVertical(),
@@ -567,9 +629,185 @@ public sealed class GalleryShowcaseTests
     [Fact]
     public void Gallery_BoundaryPortsShowcaseDeepChain_RendersPng()
     {
+        // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.BoundaryPortsShowcaseDeepChainPng,
             GalleryDiagrams.BoundaryPortsShowcaseDeepChain(),
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders a small, fully-connected pipeline laid out by the layered algorithm to SVG, kept as
+    ///     a visual baseline for comparison against the disconnected-graph diagrams in the same
+    ///     "auto" meta-algorithm section.
+    /// </summary>
+    [Fact]
+    public void Gallery_LayeredRegressionBaseline_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.LayeredRegressionBaseline();
+        graph.Set(CoreOptions.Algorithm, "layered");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.LayeredRegressionBaselineSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders one connected cluster packed alongside three isolated singleton boxes to SVG,
+    ///     proving the "auto" meta-algorithm routes the cluster through the layered algorithm and
+    ///     gathers the singletons into one shared bucket routed through the containment algorithm,
+    ///     then packs both pieces into one canvas.
+    /// </summary>
+    [Fact]
+    public void Gallery_AutoClusterPlusIsolated_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.AutoClusterPlusIsolated();
+        graph.Set(CoreOptions.Algorithm, "auto");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.AutoClusterPlusIsolatedSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders three disconnected two-node clusters, each routed and packed independently, to SVG,
+    ///     proving the "auto" meta-algorithm treats each connected component as its own layered-routed
+    ///     piece before packing all three results into one combined canvas.
+    /// </summary>
+    [Fact]
+    public void Gallery_AutoMultipleDisconnectedClusters_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.MultipleDisconnectedClusters();
+        graph.Set(CoreOptions.Algorithm, "auto");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.AutoMultipleDisconnectedClustersSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the same three disconnected clusters laid out directly by the layered algorithm to
+    ///     SVG — the companion direct-"layered" sibling of
+    ///     <see cref="Gallery_AutoMultipleDisconnectedClusters_RendersSvg"/>, proving the layered
+    ///     algorithm's own internal component packing handles the same disconnected graph.
+    /// </summary>
+    [Fact]
+    public void Gallery_LayeredMultipleDisconnectedClusters_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.MultipleDisconnectedClusters();
+        graph.Set(CoreOptions.Algorithm, "layered");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.LayeredMultipleDisconnectedClustersSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders five entirely isolated boxes packed by the "auto" algorithm to SVG, proving that a
+    ///     graph of nothing but childless, edgeless singletons is gathered into the shared bucket and
+    ///     routed through the containment algorithm unchanged, taking its zero-copy fast path.
+    /// </summary>
+    [Fact]
+    public void Gallery_AutoAllIsolated_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.AutoAllIsolated();
+        graph.Set(CoreOptions.Algorithm, "auto");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.AutoAllIsolatedSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders a nested container routed to hierarchical alongside an unrelated isolated box to
+    ///     SVG, proving the "auto" meta-algorithm routes any component containing a container node
+    ///     through the hierarchical algorithm regardless of its size, while the unrelated isolated
+    ///     sibling is packed alongside it through the shared containment bucket.
+    /// </summary>
+    [Fact]
+    public void Gallery_AutoNestedRoutesHierarchical_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.AutoNestedRoutesHierarchical();
+        graph.Set(CoreOptions.Algorithm, "auto");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.AutoNestedRoutesHierarchicalSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders twelve small, wide boxes packed by the containment algorithm to SVG, proving the
+    ///     column-count-based content-width candidate keeps the algorithm from packing them into one
+    ///     long, narrow column, wrapping them into a balanced grid of columns instead.
+    /// </summary>
+    [Fact]
+    public void Gallery_ContainmentManySmallWideBoxes_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.ContainmentManySmallWideBoxes();
+        graph.Set(CoreOptions.Algorithm, "containment");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.ContainmentManySmallWideBoxesSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the containment edge-count gap-widening diagram to SVG, proving the containment
+    ///     algorithm packs two tall peer boxes side by side and widens the horizontal gap between them in
+    ///     proportion to the eight parallel connectors routed through it, so the connectors fan into
+    ///     distinct lanes.
+    /// </summary>
+    [Fact]
+    public void Gallery_ContainmentParallelEdgesSideBySide_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.ContainmentParallelEdgesSideBySide();
+        graph.Set(CoreOptions.Algorithm, "containment");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.ContainmentParallelEdgesSideBySideSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the hierarchical cross-container edge-count gap-widening diagram to SVG, proving the
+    ///     hierarchical engine places two peer containers side by side and widens the gap between them
+    ///     for the eight cross-container connectors that fan child-to-child through it.
+    /// </summary>
+    [Fact]
+    public void Gallery_HierarchicalParallelEdgesSideBySide_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.HierarchicalParallelEdgesSideBySide();
+        graph.Set(CoreOptions.Algorithm, "hierarchical");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.HierarchicalParallelEdgesSideBySideSvg,
+            graph,
             Themes.Dark);
     }
 }

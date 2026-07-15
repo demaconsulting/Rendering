@@ -9,15 +9,18 @@ Unit scenarios live in the Engine unit verification documents:
 - ContainmentPacker Unit Verification
 - InterconnectionLayoutEngine Unit Verification
 - Layered Pipeline Unit Verification
+- LayoutTreePacker Unit Verification
+- EdgeCountGapWidener Unit Verification
 
 #### Verification Approach
 
 The Engine subsystem is verified through its unit-level xUnit tests: each engine
-(`OrthogonalEdgeRouter`, `ContainmentPacker`, `InterconnectionLayoutEngine`, `LayeredPipeline`) is
-exercised directly on real inputs, and the assembled layered pipeline is byte-compared to a legacy
-oracle. Because the engines have no shared runtime state, the subsystem does not require additional
-integration mocks at its boundary — the unit tests together constitute the subsystem verification.
-See each linked Unit Verification for engine-specific approach and mocking notes.
+(`OrthogonalEdgeRouter`, `ContainmentPacker`, `InterconnectionLayoutEngine`, `LayeredPipeline`,
+`LayoutTreePacker`, `EdgeCountGapWidener`) is exercised directly on real inputs, and the assembled
+layered pipeline is byte-compared to a legacy oracle. Because the engines have no shared runtime
+state, the subsystem does not require additional integration mocks at its boundary — the unit
+tests together constitute the subsystem verification. See each linked Unit Verification for
+engine-specific approach and mocking notes.
 
 #### Test Environment
 

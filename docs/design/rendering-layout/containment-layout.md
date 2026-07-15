@@ -17,10 +17,14 @@ here.
 
 The unit comprises the public static class plus two records:
 
-- `ContainmentOptions(MaxContentWidth, HorizontalGap, VerticalGap, Padding)` — an immutable record
-  selecting the row-wrap content width and the spacing. `MaxContentWidth` is required; `HorizontalGap`
-  and `VerticalGap` default to `8.0` and `Padding` defaults to `12.0` logical pixels. The names and
-  defaults mirror ELK's content-area, `spacing.nodeNode`, and `padding` vocabulary.
+- `ContainmentOptions(MaxContentWidth, HorizontalGap, VerticalGap, Padding, EdgeCounts)` — an immutable
+  record selecting the row-wrap content width and the spacing. `MaxContentWidth` is required;
+  `HorizontalGap` and `VerticalGap` default to `8.0` and `Padding` defaults to `12.0` logical pixels.
+  The names and defaults mirror ELK's content-area, `spacing.nodeNode`, and `padding` vocabulary.
+  `EdgeCounts` is an optional `IReadOnlyDictionary<(int First, int Second), int>` keyed by the unordered
+  index pair (`First < Second`) that carries the number of parallel connectors routed between two
+  adjacent same-row children; it defaults to `null`, in which case packing is byte-identical to the
+  prior behaviour.
 - `ContainmentResult(Width, Height, Children)` — an immutable record carrying the enclosing region size
   (including outer padding) and the input boxes repositioned to their packed, region-relative
   coordinates, in input order.
@@ -45,6 +49,18 @@ The operation is deterministic and order-preserving, never overlaps two children
 within the reported region (which includes the outer padding on every side), places a child wider than
 the content width alone on its own row while widening the region to contain it, and returns a
 padding-only region for an empty input.
+
+**Edge-count-aware horizontal gap widening.** When `EdgeCounts` is supplied, `Pack` passes it through
+to `ContainmentPacker`, which widens the horizontal gap between two adjacent children that land on the
+*same row* to the connector-corridor width for the edge count recorded for that index pair, using the
+shared `EdgeCountGapWidener` formula (`max(baseGap, 2·ConnectorClearance + (n − 1)·EdgeSpacing)`). This
+reserves a distinct routing lane for each of a fan of parallel connectors instead of crushing them into
+one narrow channel, exactly the reservation the layered pipeline already makes between its columns. The
+widening is deliberately scoped so existing behaviour is preserved on three axes: the row-wrap decision
+is computed against the *un-widened* gap so no wrap point ever moves; a pair the wrap decision splits
+across two rows is never widened (it is no longer an adjacent same-row pair); and the *vertical* gap
+between rows is never touched, so a vertical stack keeps its exact prior geometry. A `null` `EdgeCounts`
+(the default) or an edge count of zero or one leaves placement byte-identical.
 
 ### ContainmentLayout Error Handling
 
@@ -72,4 +88,7 @@ draw. It is independent of the layered pipeline and can be used on any set of si
 | Rendering-Layout-ContainmentLayout-EmptyInput | ContainmentLayout behavior described above |
 | Rendering-Layout-ContainmentLayout-PreservesFields | ContainmentLayout behavior described above |
 | Rendering-Layout-ContainmentLayout-Defaults | ContainmentLayout behavior described above |
+| Rendering-Layout-ContainmentLayout-EdgeCountGapWidening | ContainmentLayout behavior described above |
+| Rendering-Layout-ContainmentLayout-EdgeCountGapWideningOptedOut | ContainmentLayout behavior described above |
+| Rendering-Layout-ContainmentLayout-EdgeCountGapWideningRowScoped | ContainmentLayout behavior described above |
 | Rendering-Layout-ContainmentLayout-Validation | ContainmentLayout behavior described above |

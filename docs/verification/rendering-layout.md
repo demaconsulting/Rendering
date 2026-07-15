@@ -12,13 +12,15 @@ linked documents below; this file maps only the Rendering.Layout system requirem
 - HierarchicalLayoutAlgorithm Unit Verification
 - DefaultLayout Unit Verification
 - LayeredLayoutAlgorithm Unit Verification
+- AutoLayoutAlgorithm Unit Verification
 
 ## Verification Approach
 
 Rendering.Layout is verified through deterministic in-process xUnit tests over synthetic layout graphs
 and geometry inputs. System coverage is established by representative scenarios for each public system
 capability: named layered layout, reusable geometric engines, the staged pipeline, connector routing,
-containment placement, containment and hierarchical algorithms, and the default layout facade.
+containment placement, containment and hierarchical algorithms, the default layout facade, and the
+auto-routing meta-algorithm.
 
 Legacy-oracle and byte-identity routing tests remain unit-level evidence in the linked verification
 documents. This system document records only the acceptance criteria and system-requirement coverage.
@@ -64,6 +66,9 @@ verification files; representative system-level coverage is:
 - **`Rendering-Layout-HierarchicalLayout`**: `Id_IsHierarchical`,
   `Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly` (see
   HierarchicalLayoutAlgorithm Unit Verification).
-- **`Rendering-Layout-DefaultLayout`**: `CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms`,
+- **`Rendering-Layout-DefaultLayout`**: `CreateDefaultRegistry_RegistersOnlyTheFourBundledAlgorithms`,
   `Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly` (see
   DefaultLayout Unit Verification).
+- **`Rendering-Layout-AutoAlgorithm`**: `Id_IsAuto`,
+  `Apply_ClusterPlusIsolatedSingletons_PacksBothGroupsWithoutOverlap` (see
+  AutoLayoutAlgorithm Unit Verification).

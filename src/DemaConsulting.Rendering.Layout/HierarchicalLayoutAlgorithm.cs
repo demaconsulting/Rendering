@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering.Abstractions;
+using DemaConsulting.Rendering.Layout.Engine;
 using DemaConsulting.Rendering.Layout.Engine.Layered;
 
 namespace DemaConsulting.Rendering.Layout;
@@ -308,15 +309,30 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         if (boundaryPorts.Count == 0)
         {
             // Hard invariant: a hierarchical scope with containers but zero boundary ports keeps its
-            // existing leaf-pass + cross-container-router output, byte-for-byte unchanged.
-            var leafCrossLines = RouteCrossContainerEdges(routedEdges, composed, indexOf, descendantToDirect, effective);
-            var leafNodes = new List<LayoutNode>(composed.Length + placedLines.Count + placedPorts.Count + leafCrossLines.Count);
-            leafNodes.AddRange(composed);
-            leafNodes.AddRange(placedLines);
-            leafNodes.AddRange(placedPorts);
+            // existing leaf-pass + cross-container-router output, byte-for-byte unchanged — except that
+            // a pair of horizontally-adjacent sibling containers joined by a fan of parallel
+            // cross-container connectors first has the gap between them widened so those connectors get
+            // distinct routing lanes. A pair joined by zero or one cross-container edge is never widened,
+            // so every existing single-edge/no-edge scope stays byte-identical.
+            var (widenedBoxes, widenedLines, widenedPorts, widenedWidth) = WidenSiblingContainerGaps(
+                composed, indexOf, routedEdges, descendantToDirect, placedLines, placedPorts, placed.Width);
+
+            var leafCrossLines = RouteCrossContainerEdges(routedEdges, widenedBoxes, indexOf, descendantToDirect, effective);
+            var leafNodes = new List<LayoutNode>(
+                widenedBoxes.Length + widenedLines.Count + widenedPorts.Count + leafCrossLines.Count);
+            leafNodes.AddRange(widenedBoxes);
+            leafNodes.AddRange(widenedLines);
+            leafNodes.AddRange(widenedPorts);
             leafNodes.AddRange(leafCrossLines);
-            return new LayoutTree(placed.Width, placed.Height, leafNodes);
+            return new LayoutTree(widenedWidth, placed.Height, leafNodes);
         }
+
+        // Deferred (see ROADMAP.md): extend the edge-count-aware sibling-gap widening above to the
+        // boundary-port combined-pass path below. That path composes geometry through the recursive
+        // merge-region pipeline (MergeRegionGraphAssembler / RunRecursiveWithCascadingSizing /
+        // MergeRegionDecomposer), not the ComposeBoxes path the widening pass operates on, so it needs
+        // its own separately-designed widening inside the corridor router rather than a post-placement
+        // half-plane shift. This is an explicit, disclosed scope reduction, not an oversight.
 
         // Single combined pass (ELK-style recursive hierarchy handling): assemble the hierarchy-aware
         // graph spanning every nesting level, lay it all out in one coordinated placement (growing each
@@ -688,6 +704,189 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     }
 
     /// <summary>
+    /// Widens the horizontal gap between horizontally-adjacent sibling container boxes that a fan of
+    /// parallel cross-container connectors must route through, so those connectors get distinct
+    /// orthogonal lanes instead of being crushed into one narrow channel.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     The leaf algorithm sizes the gap between two placed sibling boxes from its own internal
+    ///     spacing, which is unaware of the cross-container edges this scope's router
+    ///     (<see cref="RouteCrossContainerEdges"/>) is about to fan through that gap — those edges live
+    ///     only in <paramref name="routedEdges"/>, never in the sized view the leaf pass laid out. This
+    ///     pass closes that gap: it counts the cross-container edges between each pair of direct-member
+    ///     containers, and for any pair placed side by side (their vertical extents overlap and no third
+    ///     box lies between them) widens their separating gap to the same corridor width the layered
+    ///     pipeline reserves for that many parallel edges, via the shared
+    ///     <see cref="EdgeCountGapWidener"/>. A pair joined by zero or one cross-container edge is never
+    ///     widened, so a scope without a genuine fan is returned byte-for-byte unchanged.
+    ///     </para>
+    ///     <para>
+    ///     Widening is applied as a rigid half-plane shift: inserting extra space at a vertical cut line
+    ///     translates every box, line, and port at or right of that cut by the same amount, which keeps
+    ///     all already-placed geometry (container interiors, internal leaf connectors, ports) internally
+    ///     consistent and non-overlapping. This is sound for the flat side-by-side sibling arrangement
+    ///     this no-boundary-port path produces; a box straddling a cut line is not expected there and is
+    ///     the reason the combined-pass boundary-port path is handled separately (see the caller's
+    ///     deferral note referencing ROADMAP.md).
+    ///     </para>
+    /// </remarks>
+    /// <param name="composed">The composed top-level boxes of this scope, aligned with its nodes by index.</param>
+    /// <param name="indexOf">Map from each direct-member node to its positional index in <paramref name="composed"/>.</param>
+    /// <param name="routedEdges">The cross-container edges this scope routes, per <see cref="ClassifyEdges"/>.</param>
+    /// <param name="descendantToDirect">Map from every descendant node to the direct member that owns it.</param>
+    /// <param name="placedLines">The leaf pass's placed connector lines for this scope.</param>
+    /// <param name="placedPorts">The leaf pass's placed ports for this scope.</param>
+    /// <param name="width">The scope's current total width, in logical pixels, before any widening.</param>
+    /// <returns>
+    /// The (possibly) widened boxes, lines, and ports, plus the scope's total width grown by the sum of
+    /// every inserted gap. When no pair qualifies for widening, the inputs are returned unchanged.
+    /// </returns>
+    private static (LayoutBox[] Composed, List<LayoutLine> Lines, List<LayoutPort> Ports, double Width) WidenSiblingContainerGaps(
+        LayoutBox[] composed,
+        Dictionary<LayoutGraphNode, int> indexOf,
+        List<LayoutGraphEdge> routedEdges,
+        Dictionary<LayoutGraphNode, LayoutGraphNode> descendantToDirect,
+        List<LayoutLine> placedLines,
+        List<LayoutPort> placedPorts,
+        double width)
+    {
+        // Count the cross-container edges between each unordered pair of direct-member containers,
+        // resolving each endpoint to the direct member that owns it exactly as the router does.
+        var pairCounts = new Dictionary<(int First, int Second), int>();
+        foreach (var edge in routedEdges)
+        {
+            var sourceDirect = descendantToDirect[(LayoutGraphNode)edge.Source];
+            var targetDirect = descendantToDirect[(LayoutGraphNode)edge.Target];
+            var s = indexOf[sourceDirect];
+            var t = indexOf[targetDirect];
+            if (s == t)
+            {
+                continue;
+            }
+
+            var key = s < t ? (s, t) : (t, s);
+            pairCounts.TryGetValue(key, out var existing);
+            pairCounts[key] = existing + 1;
+        }
+
+        // Collect a horizontal cut for every side-by-side pair whose connector fan needs more room than
+        // the leaf pass already left. Each cut records the original left edge of the right box and the
+        // extra width to insert there.
+        var cuts = new List<(double CutX, double Extra)>();
+        foreach (var ((first, second), count) in pairCounts)
+        {
+            if (count <= 1)
+            {
+                continue;
+            }
+
+            var boxA = composed[first];
+            var boxB = composed[second];
+
+            // Require a genuine side-by-side placement: the two boxes' vertical extents overlap and one
+            // sits entirely to the left of the other with a non-negative gap between them.
+            var verticalOverlap = boxA.Y < boxB.Y + boxB.Height && boxB.Y < boxA.Y + boxA.Height;
+            if (!verticalOverlap)
+            {
+                continue;
+            }
+
+            var left = boxA.X <= boxB.X ? boxA : boxB;
+            var right = boxA.X <= boxB.X ? boxB : boxA;
+            var gap = right.X - (left.X + left.Width);
+            if (gap < 0.0)
+            {
+                continue;
+            }
+
+            // Skip the pair when a third box lies horizontally between them in the same vertical band:
+            // the two are not immediate neighbors, so inserting space at the right box would not widen
+            // the true channel the fan routes through.
+            var hasIntervening = false;
+            for (var k = 0; k < composed.Length; k++)
+            {
+                if (k == first || k == second)
+                {
+                    continue;
+                }
+
+                var other = composed[k];
+                var otherVerticalOverlap = other.Y < right.Y + right.Height && right.Y < other.Y + other.Height;
+                if (otherVerticalOverlap &&
+                    other.X >= left.X + left.Width &&
+                    other.X + other.Width <= right.X)
+                {
+                    hasIntervening = true;
+                    break;
+                }
+            }
+
+            if (hasIntervening)
+            {
+                continue;
+            }
+
+            var extra = EdgeCountGapWidener.Widen(gap, count) - gap;
+            if (extra > 0.0)
+            {
+                cuts.Add((right.X, extra));
+            }
+        }
+
+        // No qualifying pair: return the inputs unchanged so the scope stays byte-identical.
+        if (cuts.Count == 0)
+        {
+            return (composed, placedLines, placedPorts, width);
+        }
+
+        // Apply every cut as a rigid half-plane shift: an element is pushed right by the summed extra of
+        // all cuts at or left of its own left edge. Using each element's leftmost coordinate against the
+        // original (pre-shift) cut positions makes overlapping cuts compose additively and deterministic.
+        double ShiftFor(double leftX) => cuts.Where(cut => cut.CutX <= leftX).Sum(cut => cut.Extra);
+
+        var shiftedBoxes = new LayoutBox[composed.Length];
+        for (var i = 0; i < composed.Length; i++)
+        {
+            var shift = ShiftFor(composed[i].X);
+            shiftedBoxes[i] = shift > 0.0 ? (LayoutBox)Translate(composed[i], shift, 0.0) : composed[i];
+        }
+
+        var shiftedLines = new List<LayoutLine>(placedLines.Count);
+        foreach (var line in placedLines)
+        {
+            // Shift each waypoint by its own individual position against the cuts, not the line's
+            // leftmost point against the cuts: an unrelated line between two other top-level siblings
+            // can geometrically thread through the x-region of an inserted cut (a common outcome for
+            // Sugiyama-style routing), and shifting such a straddling line as one rigid unit would move
+            // its far end away from a box that never moved, detaching the connector from its endpoint.
+            var changed = false;
+            var waypoints = new List<Point2D>(line.Waypoints.Count);
+            foreach (var point in line.Waypoints)
+            {
+                var pointShift = ShiftFor(point.X);
+                if (pointShift > 0.0)
+                {
+                    changed = true;
+                }
+
+                waypoints.Add(pointShift > 0.0 ? new Point2D(point.X + pointShift, point.Y) : point);
+            }
+
+            shiftedLines.Add(changed ? line with { Waypoints = waypoints } : line);
+        }
+
+        var shiftedPorts = new List<LayoutPort>(placedPorts.Count);
+        foreach (var port in placedPorts)
+        {
+            var shift = ShiftFor(port.CentreX);
+            shiftedPorts.Add(shift > 0.0 ? (LayoutPort)Translate(port, shift, 0.0) : port);
+        }
+
+        return (shiftedBoxes, shiftedLines, shiftedPorts, width + cuts.Sum(cut => cut.Extra));
+    }
+
+    /// <summary>
     /// Classifies every edge of <paramref name="graph"/>, purely from graph structure, into the edges
     /// this scope's leaf algorithm should route locally and the edges this scope's router must handle
     /// instead.
@@ -713,12 +912,15 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     ///     leaf algorithm exactly like a flat, container-free graph would route it. This scope's own
     ///     router (<see cref="RouteCrossContainerEdges"/>, built on the box-only
     ///     <see cref="ConnectorRouter"/>/<see cref="Connection"/>) has no port concept, so a port edge
-    ///     that would otherwise be classified as a genuine cross-container edge — or promoted into the
-    ///     router's batch because it shares a box with one — instead throws
+    ///     that would otherwise be classified as a genuine cross-container edge instead throws
     ///     <see cref="NotSupportedException"/>: full boundary-crossing port support (anchoring, routing)
     ///     is a separate, not-yet-designed Phase 2 effort (see ROADMAP.md), so this deliberately fails
     ///     loudly rather than silently dropping the edge or routing it incorrectly as a plain box
-    ///     connector.
+    ///     connector. A same-scope port edge is never promoted into the router's batch even when one of
+    ///     its direct members is also touched by an unrelated genuine cross-container edge: since the
+    ///     edge itself never crosses a container boundary, the leaf algorithm can always route it
+    ///     correctly, so promoting it would trade a working local route for an unsupported one the
+    ///     box-only router cannot execute.
     ///     </para>
     /// </remarks>
     /// <param name="graph">The scope whose edges are classified.</param>
@@ -726,9 +928,11 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// <param name="portOwner">Map from every descendant's named port to the node that owns it.</param>
     /// <returns>The edges to route locally, and the edges this scope's router must handle.</returns>
     /// <exception cref="NotSupportedException">
-    /// Thrown when a named-port edge would cross a container boundary (a genuine cross-container edge,
-    /// or a same-scope edge promoted into the router's batch because it shares a box with one) — this
-    /// hierarchical engine does not yet support routing or anchoring a port across a container boundary.
+    /// Thrown when a named-port edge is a genuine cross-container edge (at least one endpoint nested
+    /// relative to this scope) — this hierarchical engine does not yet support routing or anchoring a
+    /// port across a container boundary. A same-scope port edge is never promoted into the router's
+    /// batch, so it never triggers this exception even when it shares a box with a genuine
+    /// cross-container edge.
     /// </exception>
     private static (HashSet<LayoutGraphEdge> LeafEdges, List<LayoutGraphEdge> RoutedEdges) ClassifyEdges(
         LayoutGraph graph,
@@ -787,15 +991,15 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         var leafEdges = new HashSet<LayoutGraphEdge>();
         foreach (var (edge, sourceDirect, targetDirect) in directDirect)
         {
-            if (conflicted.Contains(sourceDirect) || conflicted.Contains(targetDirect))
+            // A port edge never crosses a container boundary in this branch (both direct members are
+            // literally direct), so it can always be routed locally by the leaf algorithm — it is never
+            // promoted into the box-only router's batch, even when a sibling box it shares is also
+            // touched by an unrelated genuine cross-container edge.
+            var isPortEdge = edge.Source is LayoutGraphPort || edge.Target is LayoutGraphPort;
+            if (!isPortEdge && (conflicted.Contains(sourceDirect) || conflicted.Contains(targetDirect)))
             {
                 // Promoted into the router's batch because it shares a box with a genuine
-                // cross-container edge; the same box-only router limitation applies here too.
-                if (edge.Source is LayoutGraphPort || edge.Target is LayoutGraphPort)
-                {
-                    throw new NotSupportedException(boundaryPortMessage);
-                }
-
+                // cross-container edge, so one coordinated pass anchors every connector on that face.
                 routedEdges.Add(edge);
             }
             else

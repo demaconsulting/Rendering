@@ -29,6 +29,9 @@ includes:
   - docs/reqstream/rendering-layout/containment-layout.yaml
   - docs/reqstream/rendering-layout/containment-layout-algorithm.yaml
   - docs/reqstream/rendering-layout/hierarchical-layout-algorithm.yaml
+  - docs/reqstream/rendering-layout/auto-layout-algorithm.yaml
+  - docs/reqstream/rendering-layout/engine/layout-tree-packer.yaml
+  - docs/reqstream/rendering-layout/engine/edge-count-gap-widener.yaml
   - docs/reqstream/rendering-layout/default-layout.yaml
   - docs/reqstream/rendering-svg.yaml
   - docs/reqstream/rendering-svg/svg-renderer.yaml

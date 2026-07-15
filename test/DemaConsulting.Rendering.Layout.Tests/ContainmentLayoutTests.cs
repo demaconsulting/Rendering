@@ -231,6 +231,47 @@ public sealed class ContainmentLayoutTests
     }
 
     /// <summary>
+    ///     Supplying an <see cref="ContainmentOptions.EdgeCounts"/> entry for an adjacent same-row pair
+    ///     widens exactly that horizontal gap to the connector-corridor width, pushing the second box
+    ///     right while leaving the first at the origin.
+    /// </summary>
+    [Fact]
+    public void Pack_EdgeCounts_WidensIndicatedRowGap()
+    {
+        // Arrange: two boxes that share a row, with eight connectors between the (0, 1) pair
+        var children = new[] { Box(60, 40, "first"), Box(60, 40, "second") };
+        var edgeCounts = new Dictionary<(int First, int Second), int> { [(0, 1)] = 8 };
+
+        // Act
+        var result = ContainmentLayout.Pack(
+            children, new ContainmentOptions(MaxContentWidth: 400, EdgeCounts: edgeCounts));
+
+        // Assert: the pair stays on one row and the gap between them equals the corridor width
+        // (2*10 + 7*16 = 132) rather than the default 8px horizontal gap.
+        Assert.Equal(result.Children[0].Y, result.Children[1].Y);
+        var gap = result.Children[1].X - (result.Children[0].X + result.Children[0].Width);
+        Assert.Equal(132.0, gap);
+    }
+
+    /// <summary>
+    ///     Omitting <see cref="ContainmentOptions.EdgeCounts"/> leaves placement at the default
+    ///     horizontal gap, byte-identical to the pre-existing no-counts behaviour.
+    /// </summary>
+    [Fact]
+    public void Pack_WithoutEdgeCounts_UsesDefaultGap()
+    {
+        // Arrange: the same two boxes, but no edge counts supplied
+        var children = new[] { Box(60, 40, "first"), Box(60, 40, "second") };
+
+        // Act
+        var result = ContainmentLayout.Pack(children, new ContainmentOptions(MaxContentWidth: 400));
+
+        // Assert: the boxes are separated only by the default 8px horizontal gap
+        var gap = result.Children[1].X - (result.Children[0].X + result.Children[0].Width);
+        Assert.Equal(8.0, gap);
+    }
+
+    /// <summary>
     ///     Determines whether two boxes overlap with a positive-area intersection.
     /// </summary>
     private static bool Overlaps(LayoutBox a, LayoutBox b)

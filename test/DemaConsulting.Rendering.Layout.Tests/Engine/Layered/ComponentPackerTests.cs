@@ -136,6 +136,44 @@ public sealed class ComponentPackerTests
     }
 
     /// <summary>
+    ///     Composing <see cref="ComponentPacker"/> as an inner stage of a <see cref="LayeredLayoutPipeline"/>
+    ///     for a Down/Up graph does not double-swap the input node axes. Regression test: before
+    ///     <see cref="AxisTransform.NormalizeInputAxes"/> was made idempotent via
+    ///     <see cref="LayeredGraph.InputAxesNormalized"/>, the pipeline's own normalization call followed by
+    ///     <see cref="ComponentPacker.Apply"/>'s internal call swapped the same graph's node axes twice,
+    ///     undoing the swap and handing the direction-agnostic stages the wrong along/cross extents.
+    /// </summary>
+    [Fact]
+    public void ComponentPacker_Apply_ComposedInDownPipeline_DoesNotDoubleSwapAxes()
+    {
+        // Arrange: a tall/wide node whose Down-direction along-extent (height) differs sharply from its
+        // Right-direction along-extent (width), so a double-swap would be detectable via node placement.
+        var wideNode = new LayerNode(200.0, 20.0);
+        var nodes = new List<LayerNode> { wideNode, wideNode };
+        var edges = new List<LayerEdge> { new(0, 1) };
+
+        // Reference: run ComponentPacker directly (single normalization) for a Down graph.
+        var direct = new LayeredGraph(CloneNodes(nodes), CloneEdges(edges), LayoutDirection.Down);
+        ComponentPacker.WithDefaultStages().Apply(direct);
+
+        // Act: compose ComponentPacker as the sole stage of a pipeline, which normalizes the graph's axes
+        // itself before running its stage list — exercising the double-normalization seam.
+        var composed = new LayeredGraph(CloneNodes(nodes), CloneEdges(edges), LayoutDirection.Down);
+        var pipeline = LayeredLayoutPipeline.Builder()
+            .Direction(LayoutDirection.Down)
+            .AddStage(ComponentPacker.WithDefaultStages())
+            .Build();
+        pipeline.Run(composed);
+
+        // Assert: both paths normalize the axes exactly once, so the packed node layout matches.
+        for (var i = 0; i < nodes.Count; i++)
+        {
+            Assert.Equal(direct.AugX[i], composed.AugX[i], 6);
+            Assert.Equal(direct.AugY[i], composed.AugY[i], 6);
+        }
+    }
+
+    /// <summary>
     ///     Repeated layouts of the same disconnected graph produce identical coordinates, confirming a
     ///     deterministic component order.
     /// </summary>

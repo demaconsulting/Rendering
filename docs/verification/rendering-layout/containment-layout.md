@@ -15,7 +15,9 @@ ordering, wrapping, region sizing, and field preservation are all observed on pr
 
 - **Framework**: xUnit v3 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
-- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutTests.cs`.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutTests.cs`, with the
+  underlying engine also covered by
+  `test/DemaConsulting.Rendering.Layout.Tests/Engine/ContainmentPackerTests.cs`.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory child list and `ContainmentOptions` instance.
 - **Isolation**: each test builds its own inputs; the unit is stateless between calls.
@@ -53,6 +55,17 @@ invalid input constitutes a failure.
 - **Option defaults** (`Rendering-Layout-ContainmentLayout-Defaults`):
   `ContainmentOptions_Defaults_AreSensibleGapsAndPadding` confirms the default gaps are eight pixels and
   the default padding is twelve pixels.
+- **Edge-count gap widening** (`Rendering-Layout-ContainmentLayout-EdgeCountGapWidening`):
+  `Pack_EdgeCounts_WidensIndicatedRowGap` and `Pack_SameRowEdgeCount_WidensHorizontalGap` confirm the
+  horizontal gap between two adjacent same-row children grows to the connector-corridor width for the
+  supplied edge count.
+- **Edge-count gap widening opted out** (`Rendering-Layout-ContainmentLayout-EdgeCountGapWideningOptedOut`):
+  `Pack_WithoutEdgeCounts_UsesDefaultGap` and `Pack_NullEdgeCounts_ByteIdenticalToNoCounts` confirm
+  placement is byte-identical when no EdgeCounts lookup (or an explicit null lookup) is supplied.
+- **Edge-count gap widening is row-scoped**
+  (`Rendering-Layout-ContainmentLayout-EdgeCountGapWideningRowScoped`):
+  `Pack_DifferentRowPair_Unaffected` confirms a pair the wrap decision splits across two rows is never
+  widened, regardless of its supplied edge count.
 - **Validation** (`Rendering-Layout-ContainmentLayout-Validation`): `Pack_NullChildren_Throws`,
   `Pack_NullOptions_Throws`, and `Pack_NullChildElement_Throws` confirm null arguments are rejected with
   an argument-null error.
@@ -75,5 +88,11 @@ invalid input constitutes a failure.
   Pack_PreservesNonPositionFields
 - **`Rendering-Layout-ContainmentLayout-Defaults`**:
   ContainmentOptions_Defaults_AreSensibleGapsAndPadding
+- **`Rendering-Layout-ContainmentLayout-EdgeCountGapWidening`**:
+  Pack_EdgeCounts_WidensIndicatedRowGap, Pack_SameRowEdgeCount_WidensHorizontalGap
+- **`Rendering-Layout-ContainmentLayout-EdgeCountGapWideningOptedOut`**:
+  Pack_WithoutEdgeCounts_UsesDefaultGap, Pack_NullEdgeCounts_ByteIdenticalToNoCounts
+- **`Rendering-Layout-ContainmentLayout-EdgeCountGapWideningRowScoped`**:
+  Pack_DifferentRowPair_Unaffected
 - **`Rendering-Layout-ContainmentLayout-Validation`**:
   Pack_NullChildren_Throws, Pack_NullOptions_Throws, Pack_NullChildElement_Throws

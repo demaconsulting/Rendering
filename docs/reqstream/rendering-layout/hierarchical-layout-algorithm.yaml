@@ -76,23 +76,70 @@ sections:
         tests:
           - Apply_CrossContainerEdge_RoutesAroundInterveningContainer
 
+      - id: Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening
+        title: >-
+          On the no-boundary-port placement path, HierarchicalLayoutAlgorithm shall widen the horizontal
+          gap between two horizontally-adjacent sibling containers to the connector-corridor width for the
+          number of cross-container edges routed between them.
+        justification: |
+          Cross-container edges never appear in the per-scope sized view the leaf algorithm lays out, so
+          the leaf alone cannot reserve room for a fan of them between two sibling containers. A
+          post-placement pass over the composed boxes, reusing the shared corridor-width formula
+          (EdgeCountGapWidener), widens only the horizontal gap of a genuinely side-by-side pair so the
+          connectors get distinct lanes.
+        tests:
+          - Apply_SiblingContainersWithEightCrossEdges_WidensGapToCorridorWidth
+
+      - id: Rendering-Layout-HierarchicalLayout-SiblingContainerGapWideningSingleEdgeUnaffected
+        title: >-
+          The sibling-container gap widening shall leave a pair joined by zero or one cross-container
+          edge byte-identical to its prior placement.
+        justification: |
+          Gating the widening pass on more than one edge keeps every existing single-edge and no-edge
+          scope byte-identical to its behavior before the widening feature existed, since a lone
+          connector never needed a widened corridor.
+        tests:
+          - Apply_SiblingContainersWithSingleCrossEdge_LeavesGapUnwidened
+
+      - id: Rendering-Layout-HierarchicalLayout-SiblingGapWideningPortPathUnaffected
+        title: >-
+          The sibling-container gap widening pass shall leave the boundary-port combined-pass path
+          unchanged, including the resolved shared anchor for parallel boundary-port approaches.
+        justification: |
+          The boundary-port combined recursive pass produces its geometry from a different pipeline
+          (the merge-region assembly and decomposition) than the no-boundary-port placement path the
+          widening pass runs on; confining the widening pass to the no-boundary-port branch keeps the
+          combined pass, and the anchors it resolves, untouched.
+        tests:
+          - Apply_BoundaryPortWithParallelApproaches_ResolvesToOneSharedAnchorUnaffectedByWidening
+          - HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange
+
       - id: Rendering-Layout-HierarchicalLayout-CascadesOptions
         title: >-
-          HierarchicalLayoutAlgorithm shall resolve every CoreOptions property (Algorithm, Direction,
-          EdgeRouting, HierarchyHandling, NodeSpacing, LayerSpacing) for a scope by walking to the
+          HierarchicalLayoutAlgorithm shall resolve a CoreOptions property for a scope by walking to the
           nearest ancestor scope with an explicit override, falling back to the property's own default
           only when no scope in the chain declares one.
         justification: |
           A leaf algorithm reads a CoreOptions property from the options it is given, in preference to
-          the shared root options. Without a generalized per-scope cascade, a caller-supplied override on
-          a nested container would be silently dropped and the container would fall back to the parent
-          options' value (or the property default) instead — as previously happened for every property
-          except Algorithm. Generalizing the mechanism (via PropertyHolder.OverlayOnto) fixes this for
-          all six properties at once rather than one at a time.
+          the shared root options. Without a per-scope cascade, a caller-supplied override on a nested
+          container would be silently dropped and the container would fall back to the parent options'
+          value (or the property default) instead.
         tests:
           - Apply_ContainerWithDirectionOverride_HonorsNestedDirection
           - Apply_ThreeLevelDirectionCascade_InheritsThroughUnsetMiddleLevel
           - Apply_ThreeLevelDirectionCascade_MidLevelOverrideTakesPrecedence
+
+      - id: Rendering-Layout-HierarchicalLayout-CascadesAllProperties
+        title: >-
+          HierarchicalLayoutAlgorithm shall generalize the per-scope cascade to every CoreOptions
+          property (Algorithm, Direction, EdgeRouting, HierarchyHandling, NodeSpacing, LayerSpacing), not
+          only Direction, reaching every leaf-algorithm call at every nesting level.
+        justification: |
+          Generalizing the cascade mechanism (via PropertyHolder.OverlayOnto) fixes the ancestor-override
+          resolution for all six properties at once rather than one at a time — previously the cascade
+          existed only for Algorithm, so a nested EdgeRouting (or other property) override was silently
+          dropped even though a nested Direction override already worked correctly.
+        tests:
           - Apply_ThreeLevelEdgeRoutingCascade_ReachesEveryLeafAlgorithmCall
 
       - id: Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting
@@ -128,29 +175,57 @@ sections:
           HierarchicalLayoutAlgorithm shall resolve a container's boundary (delegation) port — a port
           the container both exposes to an external approach edge and references from an edge inside
           its own child scope — to exactly one shared LayoutPort anchor on the container boundary
-          carrying both the external and internal labels, with every converging edge — every external
-          approach and every internal delegation edge — routed through the real orthogonal corridor
-          router onto that one anchor as an axis-aligned path with no direct diagonal, including under
-          external and internal fan-out, for two independent boundary ports on one container, and
-          through a multi-level delegation chain.
+          carrying both the external and internal labels.
         justification: |
           A boundary/delegation port is the bulkhead-connector pattern: one physical anchor names both
           the connection reaching it from outside the container and the delegation relaying it into the
-          container's own children. The container and its children are laid out in one combined
-          recursive layered pass — assembled into a merge region, run through the recursive pipeline,
-          and projected back by the merge-region decomposer — so every converging edge is routed by the
-          same orthogonal corridor router that routes ordinary edges, rather than having an endpoint
-          patched onto the anchor with a hand-built diagonal. Consolidating fan-out and both labels onto
-          a single anchor (rather than emitting a separate port per edge) keeps the rendered wiring
-          unambiguous, and routing every converging edge orthogonally through the real router is what
-          keeps the external fan-in and the multi-level delegation chain free of the diagonal shortcut a
-          post-hoc endpoint reconciliation produced.
+          container's own children. Consolidating both labels onto a single anchor (rather than emitting
+          a separate port per edge) keeps the rendered wiring unambiguous.
         tests:
           - Apply_BoundaryPortWithExternalAndInternalEdges_EmitsOneSharedAnchorCarryingBothLabels
+
+      - id: Rendering-Layout-HierarchicalLayout-BoundaryPortFanMerge
+        title: >-
+          HierarchicalLayoutAlgorithm shall consolidate every edge converging on a container's boundary
+          port — every external approach and every internal delegation edge, under external and internal
+          fan-out — onto the single shared anchor for that port rather than emitting a separate anchor
+          per edge.
+        justification: |
+          Emitting a separate port per converging edge would defeat the single-anchor bulkhead-connector
+          pattern under fan-out; consolidating fan-out onto one anchor keeps the rendered wiring
+          unambiguous regardless of how many edges converge on the boundary port.
+        tests:
           - Apply_BoundaryPortFanOut_ResolvesToOneSharedAnchor
+
+      - id: Rendering-Layout-HierarchicalLayout-IndependentBoundaryPorts
+        title: >-
+          HierarchicalLayoutAlgorithm shall resolve two independent boundary ports on one container to
+          two distinct LayoutPort anchors, preserving each anchor's own connector provenance even when
+          the two ports share a null or identical external label.
+        justification: |
+          Two independent boundary ports on the same container name two physically distinct connection
+          points; consolidating them onto a single anchor (as fan-out consolidation does for edges of the
+          same port) would incorrectly merge unrelated connections, including when their external labels
+          happen to be null or identical text.
+        tests:
           - Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors
           - Apply_TwoIndependentBoundaryPortsWithSharedNullExternalLabel_PreservesConnectorProvenance
           - Apply_TwoIndependentBoundaryPortsWithIdenticalExternalLabel_PreservesConnectorProvenance
+
+      - id: Rendering-Layout-HierarchicalLayout-BoundaryPortOrthogonal
+        title: >-
+          Every edge converging on a boundary (delegation) port anchor shall be routed through the real
+          orthogonal corridor router onto that anchor as an axis-aligned path with no direct diagonal,
+          including under external fan-in and through a multi-level delegation chain.
+        justification: |
+          The container and its children are laid out in one combined recursive layered pass — assembled
+          into a merge region, run through the recursive pipeline, and projected back by the
+          merge-region decomposer — so every converging edge is routed by the same orthogonal corridor
+          router that routes ordinary edges, rather than having an endpoint patched onto the anchor with
+          a hand-built diagonal. Routing every converging edge orthogonally through the real router is
+          what keeps the external fan-in and the multi-level delegation chain free of the diagonal
+          shortcut a post-hoc endpoint reconciliation produced.
+        tests:
           - MergeRegionDecomposer_FanIn_EveryConvergingEdge_IsStrictlyOrthogonalWithNoDirectDiagonal
           - MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal
           - HierarchicalLayoutAlgorithm_ThreeLevelDelegationChain_EndToEnd_ProducesConnectedOrthogonalPath

@@ -88,6 +88,26 @@ overrides win over the supplied options, exactly like every nested scope), and c
    and the composed boxes followed by the leaf-routed lines, any leaf-emitted port anchors, and the
    cross-container lines.
 
+**No-boundary-port sibling-container gap widening.** On the no-boundary-port path (step 7 above),
+before routing the cross-container edges, `LayoutScope` runs a post-placement widening pass
+(`WidenSiblingContainerGaps`) over the composed boxes. It counts the cross-container edges between each
+unordered pair of direct-member containers (resolving each endpoint to the direct member that owns it,
+exactly as the router does) and, for a pair placed genuinely side by side — vertically overlapping,
+with no third box in the channel between them — widens the horizontal gap between the two to the
+connector-corridor width for that edge count. The width comes from the shared `EdgeCountGapWidener`
+helper, the same formula the containment packer and the layered pipeline's `BrandesKopfPlacer` use, so
+a fan of parallel cross-container connectors gets distinct routing lanes — spacing the per-scope leaf
+algorithm alone cannot reserve, because those edges never appear in the sized view it lays out. The
+pass applies each widening as a rigid half-plane shift (every box, line, and port at or right of the
+cut moves right by the summed extra), returning the inputs unchanged when no pair qualifies, so a pair
+joined by zero or one cross-container edge stays byte-identical. The widening is horizontal-only and is
+confined to this no-boundary-port path; extending it to the boundary-port combined pass below is
+explicitly deferred (see ROADMAP.md) because that path composes geometry through the recursive
+merge-region pipeline rather than the `ComposeBoxes` path this post-placement pass operates on. The
+`hierarchical-parallel-edges-side-by-side` gallery diagram (two peer containers, each with a
+compartment-bearing child, joined by eight cross-container edges) is the reproduction scenario that
+exercises and visually demonstrates this widening.
+
 **Boundary (delegation) port combined pass.** After the leaf pass places a scope, `LayoutScope`
 collects that scope's boundary ports with `HierarchyMergeRegionBuilder` (part of the layered-pipeline
 unit, in `Engine/Layered`): a container's port is a boundary port when an edge inside that container's
@@ -173,7 +193,9 @@ would be in a flat graph.
   scope's cascaded effective options snapshot.
 - **Layout units** — `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm` as bundled leaf
   algorithms registered in the default registry, `ConnectorRouter` for LCA cross-container edge
-  routing, and `HierarchyMergeRegionBuilder`, `MergeRegionGraphAssembler`, the recursive
+  routing, `EdgeCountGapWidener` (internal engine helper) for the shared connector-corridor width the
+  no-boundary-port sibling-gap widening pass reserves, and `HierarchyMergeRegionBuilder`,
+  `MergeRegionGraphAssembler`, the recursive
   `LayeredLayoutPipeline`, `MergeRegionDecomposer`, and `BoundaryPortResolver.FaceForDirection`
   (layered-pipeline unit, `Engine/Layered`) for boundary-port detection, the combined recursive pass,
   and its projection back to per-scope geometry. See *ConnectorRouter Unit Design*
@@ -214,9 +236,16 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-HierarchyHandling | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-CrossContainerEdge | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening | Widening pass described above |
+| Rendering-Layout-HierarchicalLayout-SiblingContainerGapWideningSingleEdgeUnaffected | Widening pass described above |
+| Rendering-Layout-HierarchicalLayout-SiblingGapWideningPortPathUnaffected | Widening pass described above |
 | Rendering-Layout-HierarchicalLayout-BoundaryPortDelegation | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-BoundaryPortFanMerge | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-IndependentBoundaryPorts | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-BoundaryPortOrthogonal | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-CascadesOptions | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-CascadesAllProperties | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-ValidatesGraph | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-ValidatesOptions | HierarchicalLayoutAlgorithm behavior described above |

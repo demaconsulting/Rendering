@@ -90,3 +90,44 @@ sections:
           LayeredLayoutAlgorithm's graph-then-options-then-default resolution of CoreOptions.Direction.
         tests:
           - Apply_EdgeRoutingOverrideOnGraphScope_IsHonored
+
+      - id: Rendering-Layout-ContainmentAlgorithm-EdgeCountGapWidening
+        title: >-
+          ContainmentLayoutAlgorithm shall count the edges between each unordered pair of top-level nodes
+          and, for two such nodes packed side by side on the same row, widen the horizontal gap between
+          them to the connector-corridor width for that edge count, so a fan of parallel connectors gets
+          distinct routing lanes.
+        justification: |
+          Two peer boxes joined by several parallel edges otherwise pack against a fixed node spacing that
+          crushes the connectors into one channel. Reusing the shared corridor-width formula
+          (EdgeCountGapWidener) — the same reservation the layered pipeline already makes between its
+          columns — sizes the gap to the edge count.
+        tests:
+          - Apply_SameRowPeersWithParallelEdges_WidensGapPastNodeSpacing
+
+      - id: Rendering-Layout-ContainmentAlgorithm-VerticalStackUnaffected
+        title: >-
+          The edge-count gap widening shall apply to the horizontal (same-row) gap only and shall leave
+          a vertical stack's box positions byte-identical.
+        justification: |
+          The widening is deliberately horizontal-only so a Source-over-Target vertical stack keeps its
+          exact prior geometry; a parallel-edge fan between vertically stacked peers must not perturb
+          their positions the way a same-row fan perturbs the horizontal gap.
+        tests:
+          - Apply_VerticalStackWithParallelEdges_LeavesBoxPositionsUnchanged
+
+      - id: Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula
+        title: >-
+          The shared EdgeCountGapWidener helper shall widen a base gap to a clearance on each side of the
+          fan plus one inter-connector spacing per gap between adjacent connectors, never narrowing below
+          the supplied base gap and never widening for an edge count of zero or one.
+        justification: |
+          Extracting the corridor-width formula into one helper keeps the containment packer and the
+          hierarchical sibling pass byte-identical to each other and to the layered pipeline's own
+          corridor sizing, preventing copy-paste drift between the three call sites.
+        tests:
+          - Widen_ManyConnectors_ReturnsCorridorWidth
+          - Widen_TwoConnectors_ReturnsSingleSlotCorridor
+          - Widen_SingleConnector_ReturnsBaseGap
+          - Widen_ZeroConnectors_ReturnsBaseGap
+          - Widen_BaseGapExceedsCorridor_ReturnsBaseGap

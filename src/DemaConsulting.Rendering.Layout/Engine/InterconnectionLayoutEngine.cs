@@ -120,15 +120,19 @@ internal sealed record LayerResult(
 
 /// <summary>
 /// Thin façade over the reusable layered layout pipeline (see
-/// <see cref="DemaConsulting.Rendering.Layout.Engine.Layered.LayeredLayoutPipeline"/>).
-/// Assembles the default ELK-layered stage sequence and adapts its output to the
-/// <see cref="LayerResult"/> contract consumed by the interconnection view strategy.
+/// <see cref="DemaConsulting.Rendering.Layout.Engine.Layered.ComponentPacker"/>, which wraps the
+/// default ELK-layered stage sequence). Assembles the default stage sequence and adapts its output to
+/// the <see cref="LayerResult"/> contract consumed by the interconnection view strategy.
 /// </summary>
 /// <remarks>
 /// All placement and routing logic lives in the individual pipeline stages under
 /// <c>Layout/Engine/Layered/</c>. This type exists only to preserve the original public entry
-/// point and result shape; it is behavior-preserving with respect to the previous monolithic
-/// implementation (verified byte for byte by the pipeline-equivalence tests).
+/// point and result shape; for a single connected graph, it is behavior-preserving with respect to the
+/// previous monolithic implementation (verified byte for byte by the pipeline-equivalence tests). Since
+/// <see cref="Place"/> routes through <see cref="DemaConsulting.Rendering.Layout.Engine.Layered.ComponentPacker"/>
+/// (see its class doc), a graph with 2+ disconnected components is now split, laid out per component,
+/// and shelf-packed rather than stacked into a single column — this is a deliberate behavior change
+/// from the historical single-column-for-everything output, not a regression.
 /// </remarks>
 internal static class InterconnectionLayoutEngine
 {
@@ -172,17 +176,49 @@ internal static class InterconnectionLayoutEngine
         }
 
         var graph = new LayeredGraph(nodes, edges, direction) { NodeSpacing = nodeSpacing, MergeParallelEdges = mergeParallelEdges };
-        var pipeline = LayeredLayoutPipeline.Builder()
-            .Direction(direction)
-            .Hierarchy(Layered.HierarchyHandling.Flat)
-            .AddDefaultStages()
-            .Build();
-        pipeline.Run(graph);
+        ComponentPacker.WithDefaultStages(nodeSpacing).Apply(graph);
 
         var augX = graph.AugX;
         var augY = graph.AugY;
         var columnX = graph.ColumnX;
         var maxColWidth = graph.MaxColWidth;
+        var waypoints = graph.Waypoints;
+
+        // ComponentPacker's single-component fast path runs the stages directly on this graph, which
+        // (like the original pipeline) bake in the canvas Padding as their own coordinate origin, so
+        // AugX/AugY/Waypoints already start at (Padding, Padding). Its multi-component path instead
+        // normalizes each packed component's content bounding box to touch the shelf origin (0, 0) —
+        // by design, since ComponentPacker is a reusable stage that should not assume any particular
+        // caller adds outer padding — so this façade must add that same (Padding, Padding) origin
+        // itself whenever the packed path ran (indicated by ColumnX being left empty; see its remarks).
+        if (columnX.Length == 0)
+        {
+            var shiftedX = new double[n];
+            var shiftedY = new double[n];
+            for (var i = 0; i < n; i++)
+            {
+                shiftedX[i] = augX[i] + Padding;
+                shiftedY[i] = augY[i] + Padding;
+            }
+
+            augX = shiftedX;
+            augY = shiftedY;
+
+            var shiftedWaypoints = new IReadOnlyList<Point2D>[waypoints.Count];
+            for (var k = 0; k < waypoints.Count; k++)
+            {
+                var original = waypoints[k];
+                var translated = new Point2D[original.Count];
+                for (var p = 0; p < original.Count; p++)
+                {
+                    translated[p] = new Point2D(original[p].X + Padding, original[p].Y + Padding);
+                }
+
+                shiftedWaypoints[k] = translated;
+            }
+
+            waypoints = shiftedWaypoints;
+        }
 
         // Assemble result. After the pipeline's AxisTransform stage the augmented coordinates are in
         // screen space, so each box is placed at its screen top-left with its intrinsic (un-swapped)
@@ -198,9 +234,31 @@ internal static class InterconnectionLayoutEngine
         // RIGHT/LEFT flow maps the along-axis to screen X and the cross-axis to screen Y; a DOWN/UP flow
         // transposes them. Computing both extents once and assigning them by direction keeps the
         // RIGHT path byte-identical while giving DOWN/UP correct screen dimensions.
-        var lastLayer = columnX.Length - 1;
-        var alongTotal = columnX[lastLayer] + maxColWidth[lastLayer] + Padding;
+        //
+        // ColumnX/MaxColWidth are only populated when ComponentPacker's single-component fast path ran
+        // the stages directly on this graph (the byte-identical case the equivalence tests cover); for a
+        // multi-component (packed) graph, ComponentPacker deliberately leaves them empty, since the
+        // shelf-packed components no longer share one aligned layer/column structure. In that case the
+        // along-extent is instead computed the same bounding-box way the cross-extent already is below.
         var transposed = direction is LayoutDirection.Down or LayoutDirection.Up;
+        double alongTotal;
+        if (columnX.Length > 0)
+        {
+            var lastLayer = columnX.Length - 1;
+            alongTotal = columnX[lastLayer] + maxColWidth[lastLayer] + Padding;
+        }
+        else
+        {
+            alongTotal = Padding;
+            for (var i = 0; i < n; i++)
+            {
+                var alongFar = transposed
+                    ? augY[i] + nodes[i].Height
+                    : augX[i] + nodes[i].Width;
+                alongTotal = Math.Max(alongTotal, alongFar + Padding);
+            }
+        }
+
         var crossTotal = Padding;
         for (var i = 0; i < n; i++)
         {
@@ -213,7 +271,7 @@ internal static class InterconnectionLayoutEngine
         var totalWidth = transposed ? crossTotal : alongTotal;
         var totalHeight = transposed ? alongTotal : crossTotal;
 
-        return new LayerResult(rects, totalWidth, totalHeight, graph.NodeLayers, graph.Waypoints)
+        return new LayerResult(rects, totalWidth, totalHeight, graph.NodeLayers, waypoints)
         {
             AcyclicEdges = graph.Acyclic,
             AcyclicOriginalIndex = graph.AcyclicOriginalIndex,

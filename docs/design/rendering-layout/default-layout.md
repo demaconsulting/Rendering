@@ -6,7 +6,7 @@ Part of the Rendering Layout system.
 
 `LayoutAlgorithms` and `LayoutEngine` form the batteries-included happy path: the smallest possible way
 to lay out a graph with the algorithm it declares. `LayoutAlgorithms` is a factory for a
-`LayoutAlgorithmRegistry` pre-populated with the three bundled algorithms; `LayoutEngine` is a thin
+`LayoutAlgorithmRegistry` pre-populated with the four bundled algorithms; `LayoutEngine` is a thin
 facade that resolves the declared algorithm and applies it. Together they turn "lay out my graph with
 whatever algorithm it declares" into one call that correctly handles both flat and nested graphs, with
 no registry assembly or engine choice required of the caller. Both units are additive: they compose the
@@ -16,8 +16,9 @@ existing algorithms and change no existing behavior.
 
 Both units are static and hold no per-call state. `LayoutAlgorithms.CreateDefaultRegistry()` builds a
 fresh `LayoutAlgorithmRegistry` and registers `LayeredLayoutAlgorithm` (`"layered"`),
-`ContainmentLayoutAlgorithm` (`"containment"`), and `HierarchicalLayoutAlgorithm` (`"hierarchical"`),
-returning a new, independently mutable instance on each call. `LayoutEngine` exposes the
+`ContainmentLayoutAlgorithm` (`"containment"`), `HierarchicalLayoutAlgorithm` (`"hierarchical"`), and
+`AutoLayoutAlgorithm` (`"auto"`), returning a new, independently mutable instance on each call.
+`LayoutEngine` exposes the
 `DefaultAlgorithmId` constant (`"hierarchical"`) and holds one private static `LayoutAlgorithmRegistry`
 built once from `CreateDefaultRegistry()`; because the bundled algorithms are stateless, that shared
 registry is safe to read (resolve) concurrently.
@@ -73,8 +74,8 @@ declared algorithm identifier absent from the resolving registry surfaces the re
   `LayoutTree` types on the public `Layout` signature, plus `CoreOptions.Algorithm` used for
   algorithm-identifier resolution.
 - **Layout units** (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`,
-  `HierarchicalLayoutAlgorithm`) — the three bundled algorithms registered by the default registry.
-  See the respective Unit Design documents.
+  `HierarchicalLayoutAlgorithm`, `AutoLayoutAlgorithm`) — the four bundled algorithms registered by the
+  default registry. See the respective Unit Design documents.
 
 No OTS runtime component or shared package is consumed.
 
@@ -96,7 +97,7 @@ application → `LayoutEngine` → bundled algorithms.
 
 ### DefaultLayout Interactions
 
-`LayoutAlgorithms` depends on `LayoutAlgorithmRegistry` and the three bundled algorithm units.
+`LayoutAlgorithms` depends on `LayoutAlgorithmRegistry` and the four bundled algorithm units.
 `LayoutEngine` depends on `LayoutAlgorithms`, `LayoutAlgorithmRegistry`, `LayoutGraph`, `LayoutOptions`,
 `LayoutTree`, and `CoreOptions`. Callers typically pair `LayoutEngine.Layout(...)` with an `IRenderer`
 (for example `SvgRenderer`) to go from graph to rendered output in two calls.

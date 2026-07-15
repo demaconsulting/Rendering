@@ -130,6 +130,21 @@ internal sealed class LayeredGraph
     public LayoutDirection Direction { get; }
 
     /// <summary>
+    /// Gets or sets whether <see cref="AxisTransform.NormalizeInputAxes"/> has already swapped this
+    /// graph's node axes.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="AxisTransform.NormalizeInputAxes"/> is called at every composable entry point
+    /// (<see cref="LayeredLayoutPipeline.Run"/>, <see cref="LayeredLayoutPipeline.RunRecursive"/>, and
+    /// <see cref="ComponentPacker.Apply"/>) so each is self-contained regardless of call site. When
+    /// <see cref="ComponentPacker"/> is composed as an inner stage of a <see cref="LayeredLayoutPipeline"/>
+    /// that already normalized the same graph, a second unguarded swap would undo the first and hand the
+    /// downstream stages the wrong along/cross extents. This flag makes the normalization idempotent so
+    /// composing normalizing stages is always safe.
+    /// </remarks>
+    public bool InputAxesNormalized { get; set; }
+
+    /// <summary>
     /// Gets or sets the minimum straight entry approach reserved for a reversed (back) edge's final
     /// sub-edge — the wrap-around corridor that ends at the true target where the consumer draws the
     /// end marker.

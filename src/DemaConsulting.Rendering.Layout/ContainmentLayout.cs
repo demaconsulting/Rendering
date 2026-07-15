@@ -26,6 +26,17 @@ namespace DemaConsulting.Rendering.Layout;
 /// Uniform padding, in logical pixels, added around the entire packed region on every side. Defaults to
 /// <c>12.0</c>. Corresponds to ELK's <c>padding</c> inset between a container's border and its contents.
 /// </param>
+/// <param name="EdgeCounts">
+/// Optional per-pair edge counts used to widen the horizontal gap between two adjacent same-row children
+/// so a fan of that many parallel connectors routed between them has room to spread into distinct lanes.
+/// Keyed by the unordered index pair <c>(First, Second)</c> with <c>First &lt; Second</c> referencing
+/// positions in the <c>children</c> list passed to <see cref="ContainmentLayout.Pack"/>; only the gap
+/// between children that end up in the same row is ever widened, and the widening only ever increases a
+/// gap. Defaults to <see langword="null"/>, which is fully backward compatible: with no lookup the packed
+/// geometry is byte-identical to the historical output, and the row-wrap decision always uses the
+/// un-widened <see cref="HorizontalGap"/> regardless. Widening is deliberately confined to the horizontal
+/// (same-row) axis; the vertical gap between rows is never widened.
+/// </param>
 /// <remarks>
 /// The gap and padding defaults are deliberately modest, sensible values that read well for typical box
 /// sizes; supply explicit values to reproduce a specific container spacing (for example a downstream
@@ -35,7 +46,8 @@ public sealed record ContainmentOptions(
     double MaxContentWidth,
     double HorizontalGap = 8.0,
     double VerticalGap = 8.0,
-    double Padding = 12.0);
+    double Padding = 12.0,
+    IReadOnlyDictionary<(int First, int Second), int>? EdgeCounts = null);
 
 /// <summary>
 /// The result of a containment-packing operation: the packed region size together with the input boxes
@@ -142,7 +154,8 @@ public static class ContainmentLayout
             options.MaxContentWidth,
             options.HorizontalGap,
             options.VerticalGap,
-            options.Padding);
+            options.Padding,
+            options.EdgeCounts);
 
         // Reposition each child to its packed rectangle, preserving every non-position field.
         var placed = new LayoutBox[children.Count];

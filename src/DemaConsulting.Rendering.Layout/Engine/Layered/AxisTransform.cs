@@ -37,15 +37,27 @@ internal sealed class AxisTransform : ILayoutStage
     /// height are swapped so the along-axis (layer spacing) is driven by the node height. For
     /// <see cref="LayoutDirection.Right"/>/<see cref="LayoutDirection.Left"/> this is a no-op, which
     /// keeps those pipelines byte-identical.
+    /// <para>
+    /// Idempotent: guarded by <see cref="LayeredGraph.InputAxesNormalized"/> so a second call on the
+    /// same graph (for example when <see cref="ComponentPacker"/> is composed as an inner stage of a
+    /// <see cref="LayeredLayoutPipeline"/> that already normalized it) does not swap the axes back.
+    /// </para>
     /// </remarks>
     public static void NormalizeInputAxes(LayeredGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
+        if (graph.InputAxesNormalized)
+        {
+            return;
+        }
+
         if (graph.Direction is LayoutDirection.Down or LayoutDirection.Up)
         {
             graph.SwapNodeAxes();
         }
+
+        graph.InputAxesNormalized = true;
     }
 
     /// <inheritdoc/>

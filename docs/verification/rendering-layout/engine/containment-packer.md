@@ -47,6 +47,9 @@ wrong single-item origin constitutes a failure.
 - **Single item** (`Rendering-Layout-ContainmentPacker-SingleItem`):
   `Pack_SingleItem_PositionsAtPaddingOrigin` confirms a lone item lands at the padding origin with
   the region sized to wrap it.
+- **Null items** (`Rendering-Layout-ContainmentPacker-NullItems`):
+  `Pack_NullItems_ThrowsArgumentNullException` confirms a null `items` argument throws
+  `ArgumentNullException` rather than failing partway through the algorithm.
 
 #### Requirements Coverage
 
@@ -64,3 +67,5 @@ wrong single-item origin constitutes a failure.
   Pack_EmptyList_ReturnsPaddingOnlyRegion
 - **`Rendering-Layout-ContainmentPacker-SingleItem`**:
   Pack_SingleItem_PositionsAtPaddingOrigin
+- **`Rendering-Layout-ContainmentPacker-NullItems`**:
+  Pack_NullItems_ThrowsArgumentNullException

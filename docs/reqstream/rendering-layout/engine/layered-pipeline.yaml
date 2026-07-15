@@ -334,6 +334,38 @@ sections:
         tests:
           - ComponentPacker_Apply_MultiComponent_PropagatesBackEdgeEntryApproach
 
+      - id: Rendering-Layout-LayeredPipeline-ComponentPackingWiredIntoPlace
+        title: >-
+          InterconnectionLayoutEngine.Place (and therefore the public layered algorithm) shall
+          automatically route every input through the component-packing stage, so a disconnected
+          graph is split into its connected components, each laid out independently, and packed
+          without overlap, with no caller action required to opt in.
+        justification: |
+          The component-packing stage previously existed only as an optional composite stage a caller
+          had to add explicitly; leaving it unused for the public entry point meant every disconnected
+          graph laid out through the layered algorithm was still stacked into a single column instead
+          of packed compactly. Wiring it into Place makes disconnected-graph packing the default,
+          observable behavior of the layered algorithm itself, not an opt-in feature only reachable by
+          calling the pipeline stage directly.
+        tests:
+          - Place_DisconnectedComponents_PacksEachComponentSeparately
+
+      - id: Rendering-Layout-LayeredPipeline-ComponentPackerIdempotentNormalization
+        title: >-
+          AxisTransform.NormalizeInputAxes shall be idempotent so composing the component-packing stage
+          as an inner stage of a LayeredLayoutPipeline that already normalized the same graph does not
+          double-swap (and thereby undo) the Down/Up input node axis normalization.
+        justification: |
+          The component-packing stage calls AxisTransform.NormalizeInputAxes itself so it remains
+          self-contained regardless of call site, but LayeredLayoutPipeline.Run already normalizes axes
+          before its own stage sequence. If the component-packing stage were ever composed as an inner
+          stage of a pipeline (its ILayoutStage contract and documentation suggest this is supported),
+          an unguarded second swap would revert a Down/Up graph's node axes to their un-normalized
+          state, corrupting the packed layout. A per-graph idempotency guard makes both call paths safe
+          to compose together.
+        tests:
+          - ComponentPacker_Apply_ComposedInDownPipeline_DoesNotDoubleSwapAxes
+
       - id: Rendering-Layout-LayeredPipeline-SharedState
         title: >-
           The layered graph shall carry the mutable shared state threaded through every stage and

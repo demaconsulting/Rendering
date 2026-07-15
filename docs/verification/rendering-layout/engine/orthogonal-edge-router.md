@@ -60,6 +60,28 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
   alternate lane instead of riding a soft obstacle that occupies the natural corridor for an extended
   span; `RouteWithStatus_ShortSoftObstacleOverlap_KeepsStraightRoute` confirms a short, incidental
   overlap still stays cheaper than the detour and is tolerated as before.
+  `RouteWithStatus_SaturatedNarrowGapSoftObstacles_StaysWithinEnvelope` pins the envelope-departure
+  safeguard directly: with several soft obstacles pre-seeded at ever-increasing offsets simulating the
+  "stair-stepping" candidate lane a stack of already-routed parallel connectors produced before the fix,
+  the route stays within the source/target envelope instead of landing a lane behind the source box's
+  own footprint.
+- **No connector-to-connector crossing** (`Rendering-Layout-OrthogonalEdgeRouter-AvoidsConnectorCrossing`):
+  `RouteWithStatus_VerticalOrientedSoftObstacleAcrossOneLRoute_PrefersNonCrossingAlternative` pins the
+  orientation-aware crossing cost directly: a single vertical-oriented soft obstacle is seeded so that
+  it crosses one of two otherwise equally-cheap single-turn "L" routes between source and target,
+  leaving the other entirely clear, and the router is asserted to take the non-crossing alternative.
+  `Route_NineParallelEdgesIntoCompartmentBox_DoNotLoopBehindEitherBox` (in
+  `ConnectorRouterTests.cs`) additionally asserts, via a new pairwise
+  `AssertNoTransversalCrossingAcrossLines` check across every routed connector's interior
+  segments, that a full batch of parallel connectors sharing a narrow inter-box gap does not cross one
+  another. In this saturated 9-edge scenario a residual crossing between one connector's own
+  endpoint-adjacent approach segment (excluded from the soft-obstacle set, matching
+  `ConnectorRouter.AddLineObstacles`' own endpoint-adjacent exclusion) and a later connector's interior
+  trunk can still occur — a routing-order limitation the interior-segment-only assertion does not
+  cover, and one no per-move cost constant can resolve, since the earlier connector's own soft
+  obstacles never include connectors routed after it. See
+  `docs/gallery/parallel-edges-and-ports/README.md`'s side-by-side gallery entry for the documented
+  visual disclosure of this residual case.
 
 #### Requirements Coverage
 
@@ -79,4 +101,8 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
 - **`Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit`**:
   RouteWithStatus_SoftObstacleDetour_DoesNotRevisitWaypoint
 - **`Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap`**:
-  RouteWithStatus_LongSoftObstacleOverlap_PrefersAlternateLane, RouteWithStatus_ShortSoftObstacleOverlap_KeepsStraightRoute
+  RouteWithStatus_LongSoftObstacleOverlap_PrefersAlternateLane, RouteWithStatus_ShortSoftObstacleOverlap_KeepsStraightRoute,
+  RouteWithStatus_SaturatedNarrowGapSoftObstacles_StaysWithinEnvelope
+- **`Rendering-Layout-OrthogonalEdgeRouter-AvoidsConnectorCrossing`**:
+  RouteWithStatus_VerticalOrientedSoftObstacleAcrossOneLRoute_PrefersNonCrossingAlternative,
+  Route_NineParallelEdgesIntoCompartmentBox_DoNotLoopBehindEitherBox

@@ -41,7 +41,11 @@ internal sealed record PackResult(double Width, double Height, IReadOnlyList<Pac
 /// The algorithm is deterministic and preserves input order. It guarantees that no two packed
 /// rectangles overlap and that every rectangle lies within the returned region bounds. An item
 /// wider than the available content width is placed alone on its own row at the content width's
-/// left edge (it may extend the region width).
+/// left edge (it may extend the region width). When an optional per-pair edge-count lookup is
+/// supplied, the horizontal gap between two adjacent same-row items carrying a fan of parallel
+/// connectors is widened (never narrowed) to give those connectors room; the row-wrap decision
+/// itself always uses the un-widened gap, so supplying no lookup reproduces the legacy geometry
+/// exactly.
 /// </remarks>
 internal static class ContainmentPacker
 {
@@ -56,13 +60,23 @@ internal static class ContainmentPacker
     /// <param name="horizontalGap">Gap between adjacent items in the same row.</param>
     /// <param name="verticalGap">Gap between adjacent rows.</param>
     /// <param name="padding">Uniform padding added around the entire packed region.</param>
+    /// <param name="edgeCounts">
+    /// Optional per-pair edge counts used to widen the horizontal gap between two adjacent same-row
+    /// items so a fan of that many parallel connectors has room to spread into distinct lanes. Keyed by
+    /// the unordered index pair <c>(First, Second)</c> with <c>First &lt; Second</c>; a lookup for the
+    /// pair (<c>i</c>, <c>i + 1</c>) is consulted only when item <c>i + 1</c> lands in the same row as
+    /// item <c>i</c> (no wrap occurred). Defaults to <see langword="null"/>, in which case no gap is
+    /// widened and the output is byte-identical to a caller that supplied no counts — the wrap decision
+    /// itself always uses the un-widened <paramref name="horizontalGap"/> so wrap points never move.
+    /// </param>
     /// <returns>A <see cref="PackResult"/> describing item positions and the region size.</returns>
     public static PackResult Pack(
         IReadOnlyList<PackItem> items,
         double maxContentWidth,
         double horizontalGap,
         double verticalGap,
-        double padding)
+        double padding,
+        IReadOnlyDictionary<(int First, int Second), int>? edgeCounts = null)
     {
         ArgumentNullException.ThrowIfNull(items);
 
@@ -85,7 +99,9 @@ internal static class ContainmentPacker
             var item = items[i];
 
             // Determine whether this item starts a new row: it does not fit in the current row
-            // and the current row already has at least one item.
+            // and the current row already has at least one item. This test deliberately uses the
+            // un-widened cursor (cursorX carries only the base horizontalGap), so widening a gap never
+            // moves a wrap point relative to a caller that supplied no edge counts.
             var prospectiveRight = cursorX + item.Width;
             var contentRightLimit = padding + maxContentWidth;
             if (!isFirstInRow && prospectiveRight > contentRightLimit)
@@ -96,6 +112,17 @@ internal static class ContainmentPacker
                 rowTopY += rowHeight + verticalGap;
                 cursorX = padding;
                 rowHeight = 0.0;
+                isFirstInRow = true;
+            }
+
+            // When this item stays in the current row (no wrap), its same-row predecessor is the item at
+            // index i - 1. If that pair carries a fan of parallel connectors, widen only this one
+            // horizontal gap so the connectors get distinct lanes. cursorX already carries the base
+            // horizontalGap past the predecessor, so add just the extra beyond that base.
+            if (!isFirstInRow && edgeCounts is not null &&
+                edgeCounts.TryGetValue((i - 1, i), out var count) && count > 1)
+            {
+                cursorX += EdgeCountGapWidener.Widen(horizontalGap, count) - horizontalGap;
             }
 
             rects[i] = new PackedRect(cursorX, rowTopY, item.Width, item.Height);

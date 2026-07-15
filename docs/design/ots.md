@@ -9,7 +9,7 @@ package.
 
 ## OTS Items
 
-The repository integrates twelve OTS items:
+The repository integrates eleven OTS items:
 
 ```text
 OTS Software Items
@@ -20,7 +20,6 @@ OTS Software Items
 ├── ReviewMark   — file-review plan, report, and enforcement
 ├── SarifMark    — CodeQL SARIF-to-Markdown conversion
 ├── SkiaSharp          — raster graphics library (bitmap drawing and PNG/JPEG/WEBP encoding)
-├── SonarScanner for .NET — SonarCloud static-analysis scanner wrapper
 ├── SonarMark          — SonarCloud quality-report generation
 ├── VersionMark  — tool-version capture and publishing
 ├── WeasyPrint   — HTML-to-PDF (PDF/A) conversion

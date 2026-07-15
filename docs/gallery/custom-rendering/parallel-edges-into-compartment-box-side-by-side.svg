@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="308.00" height="242.00" viewBox="0 0 308.00 242.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+      <line x1="7" y1="0" x2="7" y2="7" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#1E1E2E"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="12.00" y="12.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="77.00" y="25.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Source</text>
+  <rect x="166.00" y="12.00" width="130.00" height="218.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="231.00" y="25.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Target</text>
+  <line x1="166.00" y1="38.00" x2="296.00" y2="38.00" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="172.00" y="50.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="italic" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">rows</text>
+  <text x="172.00" y="74.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row1</text>
+  <text x="172.00" y="92.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row2</text>
+  <text x="172.00" y="110.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row3</text>
+  <text x="172.00" y="128.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row4</text>
+  <text x="172.00" y="146.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row5</text>
+  <text x="172.00" y="164.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row6</text>
+  <text x="172.00" y="182.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row7</text>
+  <text x="172.00" y="200.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row8</text>
+  <text x="172.00" y="218.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row9</text>
+  <path d="M 142.00 24.00 L 166.00 24.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 142.00 27.25 L 150.00 27.25 A 4.00 4.00 0 0 1 154.00 31.25 L 154.00 48.25 L 166.00 48.25" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 142.00 30.50 L 150.00 30.50 A 4.00 4.00 0 0 1 154.00 34.50 L 154.00 72.50 L 166.00 72.50" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 142.00 33.75 L 150.00 33.75 A 4.00 4.00 0 0 1 154.00 37.75 L 154.00 96.75 L 166.00 96.75" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 142.00 37.00 L 150.00 37.00 A 4.00 4.00 0 0 1 154.00 41.00 L 154.00 121.00 L 166.00 121.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 142.00 40.25 L 150.00 40.25 A 4.00 4.00 0 0 1 154.00 44.25 L 154.00 70.00 A 4.00 4.00 0 0 1 150.00 74.00 L 145.00 74.00 A 4.00 4.00 0 0 0 141.00 78.00 L 141.00 141.25 A 4.00 4.00 0 0 0 145.00 145.25 L 166.00 145.25" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 142.00 43.50 L 150.00 43.50 A 4.00 4.00 0 0 1 154.00 47.50 L 154.00 169.50 L 166.00 169.50" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 142.00 46.75 L 150.00 46.75 A 4.00 4.00 0 0 1 154.00 50.75 L 154.00 70.00 A 4.00 4.00 0 0 1 150.00 74.00 L 133.00 74.00 A 4.00 4.00 0 0 0 129.00 78.00 L 129.00 189.75 A 4.00 4.00 0 0 0 133.00 193.75 L 166.00 193.75" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 142.00 50.00 L 150.00 50.00 A 4.00 4.00 0 0 1 154.00 54.00 L 154.00 70.00 A 4.00 4.00 0 0 1 150.00 74.00 L 146.00 74.00 A 4.00 4.00 0 0 0 142.00 78.00 L 142.00 214.00 A 4.00 4.00 0 0 0 146.00 218.00 L 166.00 218.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+</svg>

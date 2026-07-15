@@ -268,6 +268,115 @@ public sealed class ContainmentLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that many small wide boxes (a shape whose area-based content width would otherwise
+    ///     under-estimate the right packing budget) wrap into more than one row, instead of a single
+    ///     narrow column, thanks to the column-count-based width candidate.
+    /// </summary>
+    [Fact]
+    public void Apply_ManySmallWideBoxes_PacksIntoMultipleColumns()
+    {
+        // Arrange: twelve small, wide boxes (160x40) — area alone would suggest a narrow content width,
+        // but a column-count-based candidate should widen the budget enough for multiple columns.
+        var graph = new LayoutGraph();
+        for (var i = 0; i < 12; i++)
+        {
+            graph.AddNode($"n{i}", 160, 40).Label = $"N{i}";
+        }
+
+        // Act
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert: the boxes span more than one distinct row (Y position) — i.e., multi-column packing —
+        // rather than being forced into a single long column.
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        Assert.Equal(12, boxes.Count);
+        var distinctRows = boxes.Select(box => box.Y).Distinct().Count();
+        Assert.True(distinctRows > 1, $"Expected multiple rows, but all {boxes.Count} boxes landed on {distinctRows} row(s).");
+
+        var distinctColumns = boxes.Select(box => box.X).Distinct().Count();
+        Assert.True(distinctColumns > 1, $"Expected multiple columns, but all {boxes.Count} boxes landed on {distinctColumns} column(s).");
+    }
+
+    /// <summary>
+    ///     Proves the end-to-end containment path widens the horizontal gap between two same-row peer
+    ///     boxes joined by a fan of parallel edges: the gap grows past the default <c>NodeSpacing</c> to
+    ///     the connector-corridor width, giving each connector its own routing lane.
+    /// </summary>
+    [Fact]
+    public void Apply_SameRowPeersWithParallelEdges_WidensGapPastNodeSpacing()
+    {
+        // Arrange: two tall, narrow peer boxes sized so the packer places them side by side, joined by
+        // eight parallel edges. Tall/narrow keeps 2*width + NodeSpacing under the area-based content
+        // width so both land on one row.
+        var graph = new LayoutGraph();
+        var left = graph.AddNode("left", 100, 218);
+        var right = graph.AddNode("right", 100, 218);
+        left.Label = "Left";
+        right.Label = "Right";
+        for (var i = 0; i < 8; i++)
+        {
+            graph.AddEdge($"e{i}", left, right);
+        }
+
+        // Act
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert: the two boxes share a row and the gap between them equals the eight-connector corridor
+        // width (2*10 + 7*16 = 132), comfortably wider than the 24px NodeSpacing default.
+        var boxes = tree.Nodes.OfType<LayoutBox>().OrderBy(box => box.X).ToList();
+        Assert.Equal(2, boxes.Count);
+        Assert.Equal(boxes[0].Y, boxes[1].Y);
+        var gap = boxes[1].X - (boxes[0].X + boxes[0].Width);
+        Assert.Equal(132.0, gap);
+        Assert.True(gap > 24.0, "Expected the fan to widen the gap past the 24px NodeSpacing default.");
+    }
+
+    /// <summary>
+    ///     Proves the horizontal-only widening leaves a vertical stack byte-identical: a small Source box
+    ///     stacked above a tall Target box (joined by nine parallel edges) lands at exactly the same box
+    ///     positions as the same boxes with no edges at all, because the pair spans two rows and the
+    ///     widening never touches the vertical gap.
+    /// </summary>
+    [Fact]
+    public void Apply_VerticalStackWithParallelEdges_LeavesBoxPositionsUnchanged()
+    {
+        // Arrange: a small Source over a tall Target — sized so 2*width + NodeSpacing exceeds the
+        // area-based content width, forcing the Target to wrap below the Source (a vertical stack).
+        static LayoutGraph BuildGraph(int edgeCount)
+        {
+            var graph = new LayoutGraph();
+            var source = graph.AddNode("source", 130, 50);
+            var target = graph.AddNode("target", 130, 242);
+            source.Label = "Source";
+            target.Label = "Target";
+            for (var i = 0; i < edgeCount; i++)
+            {
+                graph.AddEdge($"e{i}", source, target);
+            }
+
+            return graph;
+        }
+
+        // Act: lay out the stack with nine parallel edges and, as the baseline, with no edges at all.
+        var withEdges = new ContainmentLayoutAlgorithm().ApplyCore(BuildGraph(9), new LayoutOptions());
+        var withoutEdges = new ContainmentLayoutAlgorithm().ApplyCore(BuildGraph(0), new LayoutOptions());
+
+        // Assert: the boxes stack (distinct rows) and every box position is byte-identical between the
+        // two runs — the horizontal widening left the vertical gap and the stack untouched.
+        var edgedBoxes = withEdges.Nodes.OfType<LayoutBox>().ToList();
+        var plainBoxes = withoutEdges.Nodes.OfType<LayoutBox>().ToList();
+        Assert.Equal(2, edgedBoxes.Count);
+        Assert.True(edgedBoxes[1].Y > edgedBoxes[0].Y, "Expected the Target to wrap below the Source.");
+        for (var i = 0; i < plainBoxes.Count; i++)
+        {
+            Assert.Equal(plainBoxes[i].X, edgedBoxes[i].X);
+            Assert.Equal(plainBoxes[i].Y, edgedBoxes[i].Y);
+            Assert.Equal(plainBoxes[i].Width, edgedBoxes[i].Width);
+            Assert.Equal(plainBoxes[i].Height, edgedBoxes[i].Height);
+        }
+    }
+
+    /// <summary>
     ///     Determines whether two boxes overlap with a positive-area intersection.
     /// </summary>
     private static bool Overlaps(LayoutBox a, LayoutBox b) =>

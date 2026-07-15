@@ -5,9 +5,10 @@
 # - Define requirements for the Rendering.Layout software system
 #   (package DemaConsulting.Rendering.Layout).
 # - The system provides the bundled layout algorithms - the ELK-style layered algorithm, the
-#   containment (shelf-packing) algorithm, and the recursive hierarchical engine that composes them -
-#   plus public connector routing, the EdgeRouting option realization, a default layout facade, and
-#   the reusable geometric engines the algorithms are built from.
+#   containment (shelf-packing) algorithm, the recursive hierarchical engine, and the auto-routing
+#   meta-algorithm that composes them per connected component - plus public connector routing, the
+#   EdgeRouting option realization, a default layout facade, and the reusable geometric engines the
+#   algorithms are built from.
 # - Requirements describe observable geometric behavior, not the algorithms used.
 #
 # STRUCTURE:
@@ -202,5 +203,32 @@ sections:
           - Rendering-Layout-LayoutEngine-CustomRegistry
           - Rendering-Layout-LayoutEngine-Validation
         tests:
-          - CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms
+          - CreateDefaultRegistry_RegistersOnlyTheFourBundledAlgorithms
           - Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly
+
+      - id: Rendering-Layout-AutoAlgorithm
+        title: >-
+          The rendering layout system shall provide a named auto-routing meta-algorithm that splits a
+          layout graph into its connected top-level components, routes each component to whichever
+          bundled leaf algorithm best suits its shape, lays each component out independently, and packs
+          the results into one combined placed layout tree.
+        justification: |
+          A caller with a graph of unknown or mixed shape — some connected clusters, some nested
+          containers, some unrelated singleton nodes — should not have to inspect the graph and choose
+          an algorithm by hand for each piece. Exposing a fourth bundled algorithm that routes each
+          connected component by shape and composes the independently-placed results lets a caller
+          select "auto" once and get a reasonable layout for any mixture, additively, without changing
+          any of the three existing bundled algorithms or their output.
+        children:
+          - Rendering-Layout-AutoAlgorithm-Identity
+          - Rendering-Layout-AutoAlgorithm-RoutesConnectedCluster
+          - Rendering-Layout-AutoAlgorithm-RoutesContainer
+          - Rendering-Layout-AutoAlgorithm-RoutesSingletonBucket
+          - Rendering-Layout-AutoAlgorithm-FastPathEquivalence
+          - Rendering-Layout-AutoAlgorithm-MultiGroupPacking
+          - Rendering-Layout-AutoAlgorithm-CascadesOptions
+          - Rendering-Layout-AutoAlgorithm-EmptyGraph
+          - Rendering-Layout-AutoAlgorithm-Validation
+        tests:
+          - Id_IsAuto
+          - Apply_ClusterPlusIsolatedSingletons_PacksBothGroupsWithoutOverlap

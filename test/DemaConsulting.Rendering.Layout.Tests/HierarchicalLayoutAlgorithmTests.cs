@@ -2,6 +2,8 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
+using System.Reflection;
+
 using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Abstractions;
 
@@ -977,6 +979,40 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a same-scope port edge (both endpoints literally direct members, so it never
+    ///     crosses a container boundary) is routed locally by the leaf algorithm even when one of its
+    ///     endpoint boxes is also touched by an unrelated, genuine box-only cross-container edge. The
+    ///     shared box would otherwise mark the port edge as "conflicted" and promote it into the
+    ///     box-only cross-container router's batch, which has no port concept — a regression this test
+    ///     guards against by asserting the layout succeeds instead of throwing
+    ///     <see cref="NotSupportedException"/>.
+    /// </summary>
+    [Fact]
+    public void Apply_SameScopePortEdgeSharesBoxWithUnrelatedCrossContainerEdge_DoesNotThrow()
+    {
+        // Arrange: two root-level plain nodes joined by a same-scope port edge (boxA's named port to
+        // boxB), plus a separate container with a nested child. An unrelated, box-only edge from boxA
+        // straight to the nested child is a genuine cross-container edge that marks boxA as
+        // "conflicted" with the port edge's box — but the port edge itself never crosses a boundary.
+        var graph = new LayoutGraph();
+        var boxA = graph.AddNode("boxA", 80, 40);
+        var port = boxA.Ports.AddPort("out1");
+        var boxB = graph.AddNode("boxB", 80, 40);
+
+        var container = graph.AddNode("container", 10, 10);
+        var nested = container.Children.AddNode("nested", 60, 40);
+
+        graph.AddEdge("same-scope-port", port, boxB);
+        graph.AddEdge("cross-container", boxA, nested);
+
+        // Act
+        var result = new HierarchicalLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert: both edges are routed, none dropped, and no exception is thrown.
+        Assert.Equal(2, result.Nodes.OfType<LayoutLine>().Count());
+    }
+
+    /// <summary>
     ///     Proves that a <see cref="LayoutPort"/> emitted by a nested scope's own leaf pass is
     ///     correctly translated into the ancestor container's absolute coordinates when composed,
     ///     rather than left at its local (pre-translation) position. Closes a latent gap in the
@@ -1377,6 +1413,195 @@ public sealed class HierarchicalLayoutAlgorithmTests
 
         // Sanity: the oversized inner content actually forced the whole chain to be large.
         Assert.True(l1.Width >= leafWidth, "Outermost container did not grow to accommodate the deep oversized leaf.");
+    }
+
+    /// <summary>
+    ///     Proves the no-boundary-port sibling-gap widening: two peer containers placed side by side by
+    ///     the leaf pass and joined by a fan of eight parallel cross-container edges have the gap between
+    ///     them widened to the connector-corridor width so those connectors get distinct routing lanes.
+    /// </summary>
+    [Fact]
+    public void Apply_SiblingContainersWithEightCrossEdges_WidensGapToCorridorWidth()
+    {
+        // Arrange: two containers, each holding one tall, narrow child, joined by eight parallel
+        // cross-container edges. Tall/narrow children make the disconnected-component packer place the
+        // two containers side by side (this graph carries no boundary ports).
+        var graph = BuildSiblingContainerGraph(crossEdgeCount: 8);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the two top-level containers share a vertical band (side by side) and the gap between
+        // them equals the eight-connector corridor width (2*10 + 7*16 = 132).
+        var containers = tree.Nodes.OfType<LayoutBox>().OrderBy(box => box.X).ToList();
+        Assert.Equal(2, containers.Count);
+        Assert.True(
+            containers[0].Y < containers[1].Y + containers[1].Height &&
+            containers[1].Y < containers[0].Y + containers[0].Height,
+            "Expected the two containers to be placed side by side (overlapping vertical bands).");
+        var gap = containers[1].X - (containers[0].X + containers[0].Width);
+        Assert.Equal(132.0, gap);
+    }
+
+    /// <summary>
+    ///     Proves a single cross-container edge never widens the sibling gap: the same two side-by-side
+    ///     containers joined by just one cross-container edge keep the un-widened baseline gap, so every
+    ///     existing single-edge scope stays byte-identical (a fan of one needs no extra lane).
+    /// </summary>
+    [Fact]
+    public void Apply_SiblingContainersWithSingleCrossEdge_LeavesGapUnwidened()
+    {
+        // Arrange: the identical container arrangement, but with only one cross-container edge.
+        var widenedGraph = BuildSiblingContainerGraph(crossEdgeCount: 8);
+        var singleEdgeGraph = BuildSiblingContainerGraph(crossEdgeCount: 1);
+
+        // Act
+        var widened = new HierarchicalLayoutAlgorithm().ApplyCore(widenedGraph, LayoutOptions.ForAlgorithm("layered"));
+        var single = new HierarchicalLayoutAlgorithm().ApplyCore(singleEdgeGraph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: the single-edge gap is the un-widened baseline and is strictly narrower than the
+        // eight-edge gap, proving the widening is driven by (and only by) the connector count.
+        var singleContainers = single.Nodes.OfType<LayoutBox>().OrderBy(box => box.X).ToList();
+        var widenedContainers = widened.Nodes.OfType<LayoutBox>().OrderBy(box => box.X).ToList();
+        var singleGap = singleContainers[1].X - (singleContainers[0].X + singleContainers[0].Width);
+        var widenedGap = widenedContainers[1].X - (widenedContainers[0].X + widenedContainers[0].Width);
+        Assert.True(singleGap < widenedGap, "A single cross-container edge must not widen the gap.");
+        Assert.True(singleGap < 132.0, "The single-edge gap must stay at the un-widened baseline.");
+    }
+
+    /// <summary>
+    ///     Proves the sibling-gap widening shifts an unrelated line's waypoints independently, not as one
+    ///     rigid unit: a line whose waypoints straddle the inserted cut (a common outcome for
+    ///     Sugiyama-style routing threading an unrelated edge through the free channel between two
+    ///     side-by-side boxes) must have only the waypoints at or past the cut shifted, keeping the
+    ///     waypoints before the cut exactly where the leaf pass placed them.
+    /// </summary>
+    [Fact]
+    public void WidenSiblingContainerGaps_LineStraddlingCut_ShiftsOnlyWaypointsPastCut()
+    {
+        // Arrange: two side-by-side containers with a gap of 20 joined by eight parallel cross-container
+        // edges (qualifies for widening to the 132-wide corridor, per the eight-edge formula already
+        // proven above), plus one unrelated placed line whose two waypoints sit either side of the cut
+        // (at the right box's original left edge, x=120): one waypoint left of it, one to its right.
+        var graph = new LayoutGraph();
+        var left = graph.AddNode("Left", 100, 200);
+        var right = graph.AddNode("Right", 100, 200);
+        var indexOf = new Dictionary<LayoutGraphNode, int> { [left] = 0, [right] = 1 };
+        var descendantToDirect = new Dictionary<LayoutGraphNode, LayoutGraphNode> { [left] = left, [right] = right };
+
+        var routedEdges = new List<LayoutGraphEdge>();
+        for (var i = 0; i < 8; i++)
+        {
+            routedEdges.Add(graph.AddEdge($"e{i}", left, right));
+        }
+
+        var composed = new[]
+        {
+            new LayoutBox(0, 0, 100, 200, "Left", 0, BoxShape.Rectangle, [], []),
+            new LayoutBox(120, 0, 100, 200, "Right", 0, BoxShape.Rectangle, [], []),
+        };
+
+        var straddlingLine = new LayoutLine(
+            [new Point2D(50, 300), new Point2D(300, 300)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.None,
+            LineStyle.Solid,
+            null);
+        var placedLines = new List<LayoutLine> { straddlingLine };
+        var placedPorts = new List<LayoutPort>();
+
+        // Act: invoke the private widening method directly so this test exercises the exact geometry
+        // that exposed the bug, independent of whatever the leaf/component-packer would place in
+        // practice.
+        var method = typeof(HierarchicalLayoutAlgorithm).GetMethod(
+            "WidenSiblingContainerGaps",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        var result = method.Invoke(
+            null,
+            [composed, indexOf, routedEdges, descendantToDirect, placedLines, placedPorts, 250.0]);
+        var (widenedBoxes, widenedLines, _, _) = ((LayoutBox[], List<LayoutLine>, List<LayoutPort>, double))result!;
+
+        // Assert: the gap was actually widened (sanity check the fixture qualifies for widening), and
+        // the straddling line's waypoint before the cut stayed put while the waypoint past the cut moved
+        // by the same extra width the right box moved by.
+        var extra = widenedBoxes[1].X - 120.0;
+        Assert.True(extra > 0.0, "Fixture must actually qualify for widening for this test to be meaningful.");
+
+        var resultLine = Assert.Single(widenedLines);
+        Assert.Equal(50.0, resultLine.Waypoints[0].X, precision: 3);
+        Assert.Equal(300.0, resultLine.Waypoints[0].Y, precision: 3);
+        Assert.Equal(300.0 + extra, resultLine.Waypoints[1].X, precision: 3);
+        Assert.Equal(300.0, resultLine.Waypoints[1].Y, precision: 3);
+    }
+
+    /// <summary>
+    ///     Proves the boundary-port path is unaffected by the sibling-gap widening: the widening pass
+    ///     runs only in the no-boundary-port branch, so a scope that owns a boundary port fed by a fan of
+    ///     parallel external approaches still resolves to a single shared anchor through the combined
+    ///     pass, exactly as it did before the widening was added.
+    /// </summary>
+    [Fact]
+    public void Apply_BoundaryPortWithParallelApproaches_ResolvesToOneSharedAnchorUnaffectedByWidening()
+    {
+        // Arrange: a single boundary port on container B, approached by three parallel external edges
+        // from one sibling and delegating to one child. The presence of boundary ports forces the whole
+        // scope onto the combined pass, which the widening pass never touches.
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("A", 80, 40);
+        var b = graph.AddNode("B", 10, 10);
+        b.Label = "B";
+        var port = b.Ports.AddPort("p1");
+        port.ExternalLabel = "PWR_OUT";
+        port.InternalLabel = "PWR_IN";
+        var c = b.Children.AddNode("C", 80, 40);
+
+        graph.AddEdge("a-b-0", a, port);
+        graph.AddEdge("a-b-1", a, port);
+        graph.AddEdge("a-b-2", a, port);
+        b.Children.AddEdge("b-c", port, c);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: exactly one shared anchor carrying both labels, sitting on container B's boundary —
+        // the combined-pass behaviour, unperturbed by the no-boundary-port widening pass.
+        var emitted = Assert.Single(tree.Nodes.OfType<LayoutPort>());
+        Assert.Equal("PWR_OUT", emitted.ExternalLabel);
+        Assert.Equal("PWR_IN", emitted.InternalLabel);
+        var containerBox = tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "B");
+        Assert.True(
+            OnBoxBoundary(emitted.CentreX, emitted.CentreY, containerBox),
+            "The shared anchor does not lie on container B's boundary.");
+    }
+
+    /// <summary>
+    ///     Builds two peer containers, each holding one tall, narrow compartment-free child, joined by
+    ///     <paramref name="crossEdgeCount"/> parallel cross-container edges running child-to-child and
+    ///     containing <em>no</em> boundary ports. The tall/narrow children make the disconnected-component
+    ///     packer place the two containers side by side, exercising the no-boundary-port widening pass.
+    /// </summary>
+    /// <param name="crossEdgeCount">The number of parallel child-to-child cross-container edges.</param>
+    /// <returns>The assembled two-container graph.</returns>
+    private static LayoutGraph BuildSiblingContainerGraph(int crossEdgeCount)
+    {
+        var graph = new LayoutGraph();
+
+        var left = graph.AddNode("Left", 10, 10);
+        left.Label = "Left";
+        var leftChild = left.Children.AddNode("LeftChild", 90, 240);
+        leftChild.Label = "LeftChild";
+
+        var right = graph.AddNode("Right", 10, 10);
+        right.Label = "Right";
+        var rightChild = right.Children.AddNode("RightChild", 90, 240);
+        rightChild.Label = "RightChild";
+
+        for (var i = 0; i < crossEdgeCount; i++)
+        {
+            graph.AddEdge($"leftChild-rightChild-{i}", leftChild, rightChild);
+        }
+
+        return graph;
     }
 
     /// <summary>Deterministically builds a flat (non-nested) layout graph for the given seed, with random
