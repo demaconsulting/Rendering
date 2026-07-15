@@ -54,8 +54,8 @@ Installing a renderer or the layout package transitively brings in the model and
   element, or a free-standing options object.
 - **`ILayoutAlgorithm`** — consumes a `LayoutGraph` plus `LayoutOptions` and produces a placed
   `LayoutTree`. Bundled implementations are `LayeredLayoutAlgorithm` (id `"layered"`),
-  `ContainmentLayoutAlgorithm` (id `"containment"`), and the recursive `HierarchicalLayoutAlgorithm`
-  (id `"hierarchical"`).
+  `ContainmentLayoutAlgorithm` (id `"containment"`), the recursive `HierarchicalLayoutAlgorithm`
+  (id `"hierarchical"`), and the auto-routing `AutoLayoutAlgorithm` (id `"auto"`).
 - **`LayoutEngine`** — the batteries-included facade (in `DemaConsulting.Rendering.Layout`). One call,
   `LayoutEngine.Layout(graph)`, lays out a graph with the algorithm it declares, resolved from
   the bundled algorithms. It handles both flat and nested graphs (see *Quickstart* below).
@@ -493,16 +493,145 @@ using var output = File.Create("nested.svg");
 renderer.Render(tree, new RenderOptions(Themes.Light), output);
 ```
 
+## Laying out a graph of unknown shape with the auto meta-algorithm
+
+When a diagram's shape is not known in advance — a mixture of connected clusters, nested containers,
+and unrelated singleton nodes, or a graph assembled programmatically from independent pieces — select
+the bundled `AutoLayoutAlgorithm` (id `"auto"`) instead of choosing a leaf algorithm by hand. It splits
+the graph into its connected top-level components, routes each component to whichever bundled leaf
+algorithm best suits its shape (`hierarchical` for any component with a container node, `layered` for
+a connected cluster, `containment` for the shared bucket of childless, edgeless singletons), lays each
+piece out independently, and packs the results into one combined canvas:
+
+```csharp
+// A connected cluster plus two unrelated singleton boxes.
+var graph = new LayoutGraph();
+var a = graph.AddNode("a", width: 80, height: 40);
+var b = graph.AddNode("b", width: 80, height: 40);
+graph.AddEdge("a-b", a, b);
+graph.AddNode("solo1", width: 80, height: 40);
+graph.AddNode("solo2", width: 80, height: 40);
+
+// The cluster routes to "layered"; the two singletons pack together via "containment".
+graph.Set(CoreOptions.Algorithm, "auto");
+var tree = LayoutEngine.Layout(graph);
+
+// Render the composed tree with any renderer.
+var renderer = new SvgRenderer();
+using var output = File.Create("auto.svg");
+renderer.Render(tree, new RenderOptions(Themes.Light), output);
+```
+
+For a graph that is already a single, fully (or mostly) connected component (the common case), `"auto"`
+delegates directly to the equivalent leaf algorithm with no splitting or copying cost, so it is a safe
+default even when you are not sure a graph is disconnected.
+
+### Algorithm capabilities at a glance
+
+The four bundled algorithms differ in which layout concerns they handle. The two matrices below record,
+for each concern, whether an algorithm supports it (`Yes`), does not (`No`), supports it only in
+specific conditions (`Partial`), or deliberately leaves it to a different layer of the pipeline
+(`N/A by design`). The one-line reason in each cell names the mechanism; the notes after the tables
+expand the cells that carry a condition. The matrix is split across two tables — the leaf algorithms
+first, then `hierarchical` and `auto` — purely so each row stays readable. Every cell was verified
+against the current source.
+
+`auto` implements none of these concerns itself: it splits the graph into connected components, routes
+each to a bundled leaf algorithm (`hierarchical` for a component containing a container node, `layered`
+for a connected cluster, `containment` for the shared bucket of edgeless singletons), and packs the
+results. Each `auto` cell therefore reads `Yes, via delegation` — it exposes exactly the capability
+(or the absence of one) of whichever leaf `AutoLayoutAlgorithm`'s routing rule assigns to a component,
+never a capability of its own.
+
+| Concern | `layered` | `containment` |
+| --- | --- | --- |
+| Horizontal gap widening (edge count) | Yes — BK inter-layer corridor | Yes — Task 1 same-row pairs |
+| Vertical gap widening (edge count) | Partial — only TB/BT flow | No — out of scope by design |
+| Container auto-expansion | N/A by design — flat leaf | N/A by design — flat leaf |
+| Port/label space reservation | Yes — PortDistributor reserve | No — leaf boxes only |
+| Direction/orientation support | Yes — `CoreOptions.Direction` | No — reading order only |
+| Connectivity/component awareness | Yes — Sugiyama layering | No — reading order only |
+| Aspect-ratio/canvas-shape targeting | Partial — multi-component only | Yes — 4:3 heuristic |
+| Nested/recursive containment | No — children opaque | No — children opaque |
+
+| Concern | `hierarchical` | `auto` |
+| --- | --- | --- |
+| Horizontal gap widening (edge count) | Yes — Task 2 sibling gap | Yes, via delegation |
+| Vertical gap widening (edge count) | No — deferred, out of scope | Yes, via delegation |
+| Container auto-expansion | Yes — cascading sizing | Yes, via delegation |
+| Port/label space reservation | Yes — via `layered` leaf | Yes, via delegation |
+| Direction/orientation support | Yes — per-scope cascade | Yes, via delegation |
+| Connectivity/component awareness | Yes — leaf plus routing | Yes, via delegation |
+| Aspect-ratio/canvas-shape targeting | Partial — via leaf/packer | Yes, via delegation |
+| Nested/recursive containment | Yes — defining feature | Yes, via delegation |
+
+Notes on the conditional cells:
+
+- **`layered`, vertical gap widening — Partial.** `BrandesKopfPlacer` widens the corridor *between
+  adjacent layers* to `2·ConnectorClearance + (n − 1)·EdgeSpacing` for a fan of `n` edges, exactly the
+  formula the containment and hierarchical passes now reuse. That corridor is horizontal under the
+  default left-to-right flow and only becomes a vertical gap under a top-to-bottom or bottom-to-top
+  `Direction`; the perpendicular within-layer spacing is always a fixed node spacing, never widened by
+  edge count.
+- **`layered`, aspect-ratio targeting — Partial.** A single connected graph has no aspect target — its
+  dimensions follow from its layers. Only when `layered` packs *several disconnected components* does
+  its `ComponentPacker` bias the arrangement toward a target aspect (≈ 1.25).
+- **`hierarchical`, aspect-ratio targeting — Partial.** `hierarchical` has no aspect target of its own;
+  each scope inherits whatever its leaf algorithm targets (`containment`'s 4:3, or `layered`'s
+  multi-component bias), and a container grows to fit its children rather than to a shape goal.
+- **`hierarchical`, port/label and connectivity — Yes via the leaf.** Each scope is laid out by a leaf
+  algorithm (`layered` by default), so it inherits that leaf's port reservation and connectivity
+  awareness; selecting `containment` as the per-scope leaf would inherit that algorithm's `No` instead.
+
+**Caveat on the `auto` row.** Because `auto` delegates every concern, its correctness on any row is
+contingent on the leaf algorithm it routes a component to: an `auto` cell reads `Yes, via delegation`
+to mean "faithfully inherits the delegated leaf's behaviour", not "implemented by `auto`". Where the
+delegated leaves do not provide a capability — as in the vertical-gap-widening row, which no leaf
+widens on that axis today — `auto` does not provide it either, and the guarantee is only as strong as
+the leaf's. The `containment` column's two `N/A by design` rows (container auto-expansion) are never
+reached through `auto`: `AutoLayoutAlgorithm` routes any component that owns a container to
+`hierarchical`, so `containment` only ever sees the flat singleton bucket, making those rows
+structurally unreachable via `auto`'s dispatch rather than a capability `auto` would ever need from
+that leaf. Finally, the two edge-count gap-widening rows (horizontal and vertical) became a *real,
+verified* delegated guarantee only after this project extended `containment` (Task 1) and
+`hierarchical` (Task 2) with the shared corridor-width formula; before that work, an `auto` graph
+routed to those leaves fanned parallel connectors through an un-widened channel, so the "Yes, via
+delegation" in the horizontal row now rests on a guarantee that the leaves actually keep.
+
+### When to deviate from auto and select an algorithm directly
+
+`auto` is the right default whenever a diagram's shape is not known in advance, but a caller who knows
+the shape can select a leaf algorithm directly to get a specific result `auto`'s dispatch would not
+choose:
+
+- **Select `layered` directly** for a graph whose top-level nodes share a rank yet are *not* connected
+  into one component — for example several independent flows you want laid out on shared layers in one
+  coordinated pass. `auto` would split those disconnected components apart and pack them as separate
+  blocks; calling `layered` yourself keeps them on common layers and lets you force a specific
+  `Direction`.
+- **Select `containment` directly** for a known-flat set of peer boxes when you want the packed grid to
+  target an aspect-ratio/canvas shape (its 4:3 heuristic) rather than a connectivity-driven arrangement
+  — placement then follows reading order and box area, not edges.
+- **Select `hierarchical` directly** for a graph with nested containers when you need explicit control
+  over container sizing and recursion — for example to cascade a non-default per-scope leaf algorithm,
+  which `auto` never does because it always applies `hierarchical`'s own default leaf resolution.
+
+For the exact per-component routing rule `auto` applies — which component goes to which leaf — see the
+auto-routing meta-algorithm's design documentation. `auto` remains the recommended default, but it is
+not a substitute for understanding the output shape you want: when you already know a graph is a shared-
+rank disconnected set, a flat peer grid, or an explicitly sized nested hierarchy, selecting the leaf
+algorithm directly gives a result `auto`'s shape-agnostic dispatch is not designed to produce.
+
 ## Selecting algorithms and renderers by registry
 
 For applications that choose an algorithm or output format at run time, register the
 implementations once and resolve them by id, media type, or output file extension. The bundled
 algorithms already have a factory — `LayoutAlgorithms.CreateDefaultRegistry()` returns a registry with
-`layered`, `containment`, and `hierarchical` pre-registered — so you only assemble a registry by hand
-when you want to add custom algorithms:
+`layered`, `containment`, `hierarchical`, and `auto` pre-registered — so you only assemble a registry
+by hand when you want to add custom algorithms:
 
 ```csharp
-// Shortcut: a registry with the three bundled algorithms already registered.
+// Shortcut: a registry with the four bundled algorithms already registered.
 var algorithms = LayoutAlgorithms.CreateDefaultRegistry();
 algorithms.Register(new MyTreeLayoutAlgorithm()); // extend it with your own
 
@@ -530,8 +659,9 @@ one-call convenience while resolving against your own set of algorithms.
 
 A browsable gallery (the `README.md` document under `docs/gallery/`) showcases what the library can
 produce: a layered diagram, a containment-packed diagram, a hierarchical nested diagram with a
-cross-container edge, orthogonal edge routing around an obstacle, the three built-in themes on one
-diagram, and both the SVG and PNG output paths. Every image is generated by the
+cross-container edge, auto-routed diagrams mixing clusters/containers/singletons, orthogonal edge
+routing around an obstacle, the three built-in themes on one diagram, and both the SVG and PNG output
+paths. Every image is generated by the
 `DemaConsulting.Rendering.Gallery` test project directly from the public API, so the gallery doubles
 as an end-to-end rendering smoke test that runs on every build.
 

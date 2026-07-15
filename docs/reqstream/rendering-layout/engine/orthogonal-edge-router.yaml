@@ -89,7 +89,8 @@ sections:
       - id: Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap
         title: >-
           When an alternate lane is reachable at bounded extra cost, OrthogonalEdgeRouter shall not
-          route a segment along an extended overlap with an existing soft obstacle.
+          route a segment along an extended overlap with an existing soft obstacle, and shall not need
+          to leave the source/target envelope to find that alternate lane.
         justification: |
           Several parallel connectors that each collapse their long corridor onto the same grid line
           visually merge into one thick trunk for the length of the overlap, which reads as a single
@@ -97,7 +98,46 @@ sections:
           tolerated (steering every trivial touch away would force pointless detours and would
           conflict with the legitimate shared endpoint-adjacent approach corridor), but an overlap
           that extends for a substantial span must be priced high enough that a bounded-cost lane
-          change is preferred instead.
+          change is preferred instead. When many parallel connectors share a narrow inter-box gap,
+          each successive connector's own soft-obstacle avoidance must not offset its candidate lane
+          further and further outward with no ceiling: left unbounded, that stair-stepping eventually
+          lands a lane behind a box already left, producing a route that leaves toward the gap,
+          reverses back underneath that box, then recovers — a visibly tangled, self-crossing path.
+          Soft-obstacle-derived candidate lines are therefore clamped to the source/target envelope on
+          any axis with a meaningful span, and any residual A* move that still lands outside that
+          envelope is charged a proportional cost (never a hard block), so sharing a saturated
+          narrow-gap lane is preferred over an unrelated "free" detour once every in-gap lane is
+          exhausted.
         tests:
           - RouteWithStatus_LongSoftObstacleOverlap_PrefersAlternateLane
           - RouteWithStatus_ShortSoftObstacleOverlap_KeepsStraightRoute
+          - RouteWithStatus_SaturatedNarrowGapSoftObstacles_StaysWithinEnvelope
+
+      - id: Rendering-Layout-OrthogonalEdgeRouter-AvoidsConnectorCrossing
+        title: >-
+          When a bounded-cost, non-crossing alternative exists, OrthogonalEdgeRouter shall not route a
+          segment transversally across an already-routed connector's soft-obstacle trunk.
+        justification: |
+          A soft obstacle's own aspect ratio (a fixed ~2px thin dimension on the perpendicular axis,
+          the segment's length on its long axis — see ConnectorRouter.AddLineObstacles) reliably
+          classifies its orientation. Before this fix, a candidate move that ran perpendicular to a
+          soft obstacle (visibly cutting across another connector's trunk at a right angle, an "X"
+          crossing) was priced by the same overlap formula used for a parallel shared-lane overlap;
+          that formula's overlap span is bounded by the obstacle's own thin dimension regardless of how
+          long or visually significant the crossing move itself is, so a genuine connector-to-connector
+          crossing was underpriced at roughly a trivial few-pixel overlap — cheaper than a single turn
+          and far cheaper than most alternate-lane detours, so the router had no incentive to avoid it.
+          The router now detects this perpendicular relationship separately (requiring the candidate
+          move to fully traverse both edges of the obstacle's thin band, not merely graze one edge of
+          it, so a legitimate short lane-change move is never mistaken for a crossing) and prices it
+          with a dedicated flat cost, so a route with a genuinely bounded-cost non-crossing alternative
+          takes it. This is a cost, not a hard block: in a sufficiently saturated narrow-gap scenario
+          where no non-crossing alternative is reachable at all (for example when a connector's own
+          soft obstacles are only known for already-routed connectors earlier in the same routing
+          batch, not later ones), a crossing may still be the only path found — this fix corrects the
+          pricing gap for cases where an alternative genuinely exists, and does not change the
+          batch-level routing order that determines which connectors are visible to each other as
+          obstacles.
+        tests:
+          - RouteWithStatus_VerticalOrientedSoftObstacleAcrossOneLRoute_PrefersNonCrossingAlternative
+          - Route_NineParallelEdgesIntoCompartmentBox_DoNotLoopBehindEitherBox

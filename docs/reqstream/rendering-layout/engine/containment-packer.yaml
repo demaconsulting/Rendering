@@ -77,3 +77,13 @@ sections:
           exactly plus the requested padding on each side.
         tests:
           - Pack_SingleItem_PositionsAtPaddingOrigin
+
+      - id: Rendering-Layout-ContainmentPacker-NullItems
+        title: >-
+          ContainmentPacker shall throw ArgumentNullException when the items argument is null.
+        justification: |
+          A null items list has no items to pack and no way to compute a meaningful region. The
+          packer must fail loudly with a standard argument-validation exception rather than throwing
+          a less specific NullReferenceException partway through the algorithm.
+        tests:
+          - Pack_NullItems_ThrowsArgumentNullException

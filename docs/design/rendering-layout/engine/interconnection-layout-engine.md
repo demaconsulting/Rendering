@@ -23,9 +23,12 @@ with `ConnectorWaypoints`.
 
 #### InterconnectionLayoutEngine Methods
 
-`Place(nodes, edges, direction, nodeSpacing)` builds a `LayeredGraph` from the inputs, assembles a
-`LayeredLayoutPipeline` with the default stages for the requested `direction` (defaulting to Right),
-and runs it. The optional `nodeSpacing` argument (defaulting to the engine's original fixed constant)
+`Place(nodes, edges, direction, nodeSpacing)` builds a `LayeredGraph` from the inputs, wraps the
+default stage sequence with `Engine.Layered.ComponentPacker.WithDefaultStages(nodeSpacing)` for the
+requested `direction` (defaulting to Right), and runs it — so a disconnected input is automatically
+split into its connected components, each laid out independently, and packed without overlap, with no
+special action required by the caller (see the Layered Pipeline Unit Design document's `ComponentPacker`
+section). The optional `nodeSpacing` argument (defaulting to the engine's original fixed constant)
 is stored on the `LayeredGraph` and consumed by the Brandes-Köpf placement stage as the minimum gap
 between same-layer nodes; omitting it reproduces the engine's original geometry exactly. It then reads
 the placed coordinates, column extents, layer assignments, and waypoints from the graph state and

@@ -33,7 +33,7 @@ software items:
   notation-geometry helpers.
 - **Rendering.Layout (System)** — the pluggable layout algorithms and the reusable geometric
   engines they are built from: the ELK-style layered pipeline plus the bundled `layered`,
-  `containment`, and `hierarchical` algorithms, orthogonal connector routing, and the default
+  `containment`, `hierarchical`, and `auto` algorithms, orthogonal connector routing, and the default
   layout facade.
 - **Rendering.Svg (System)** — the SVG renderer.
 - **Rendering.Skia (System)** — the SkiaSharp raster renderers (PNG, JPEG, and WEBP).
@@ -86,8 +86,8 @@ understand, so unknown or not-yet-honored properties default harmlessly. New dia
 and output formats are introduced additively by implementing `ILayoutAlgorithm` or `IRenderer`
 and registering them — no existing contract changes.
 
-The delivered subset implements the `layered`, `containment`, and `hierarchical` algorithms and the
-SVG and SkiaSharp (PNG, JPEG, WEBP) renderers.
+The delivered subset implements the `layered`, `containment`, `hierarchical`, and `auto` algorithms and
+the SVG and SkiaSharp (PNG, JPEG, WEBP) renderers.
 
 ## Software Structure
 
@@ -114,10 +114,13 @@ Rendering.Layout (System)
 │   ├── OrthogonalEdgeRouter (Unit)       — orthogonal (channel) edge router
 │   ├── ContainmentPacker (Unit)          — shelf packer for grouped/containment layout
 │   ├── InterconnectionLayoutEngine (Unit)— cross-edge routing among placed boxes
-│   └── LayeredPipeline (Unit)            — the ELK-style layered Sugiyama stage pipeline
+│   ├── LayeredPipeline (Unit)            — the ELK-style layered Sugiyama stage pipeline
+│   ├── LayoutTreePacker (Unit)           — shelf packer merging multiple placed LayoutTrees
+│   └── EdgeCountGapWidener (Unit)        — shared edge-count-to-gap corridor-width formula
 ├── LayeredLayoutAlgorithm (Unit)        — the public layered ILayoutAlgorithm
 ├── ContainmentLayoutAlgorithm (Unit)    — the public containment ILayoutAlgorithm
 ├── HierarchicalLayoutAlgorithm (Unit)   — the recursive hierarchical engine
+├── AutoLayoutAlgorithm (Unit)           — the auto-routing meta-algorithm
 ├── ContainmentLayout (Unit)             — public containment packing entry point
 ├── ConnectorRouter (Unit)              — public edge-routing orchestration
 ├── EdgeRoutingOption (Unit)            — the EdgeRouting option realization

@@ -381,6 +381,36 @@ reviews:
       - "docs/reqstream/rendering-layout/engine/engine.yaml"
       - "docs/design/rendering-layout/connector-router.md"
 
+  - id: Rendering-Layout-Engine-LayoutTreePacker
+    title: Review that Rendering Layout Engine LayoutTreePacker Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/engine/layout-tree-packer.yaml"
+      - "docs/design/rendering-layout/engine/layout-tree-packer.md"
+      - "docs/verification/rendering-layout/engine/layout-tree-packer.md"
+      - "src/DemaConsulting.Rendering.Layout/Engine/LayoutTreePacker.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/Engine/LayoutTreePackerTests.cs"
+    context:
+      - "docs/design/rendering-layout.md"
+      - "docs/design/rendering-layout/engine/engine.md"
+      - "docs/reqstream/rendering-layout.yaml"
+      - "docs/reqstream/rendering-layout/engine/engine.yaml"
+
+  - id: Rendering-Layout-Engine-EdgeCountGapWidener
+    title: Review that Rendering Layout Engine EdgeCountGapWidener Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/engine/edge-count-gap-widener.yaml"
+      - "docs/design/rendering-layout/engine/edge-count-gap-widener.md"
+      - "docs/verification/rendering-layout/engine/edge-count-gap-widener.md"
+      - "src/DemaConsulting.Rendering.Layout/Engine/EdgeCountGapWidener.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/Engine/EdgeCountGapWidenerTests.cs"
+    context:
+      - "docs/design/rendering-layout.md"
+      - "docs/design/rendering-layout/engine/engine.md"
+      - "docs/design/rendering-layout/engine/containment-packer.md"
+      - "docs/design/rendering-layout/hierarchical-layout-algorithm.md"
+      - "docs/reqstream/rendering-layout.yaml"
+      - "docs/reqstream/rendering-layout/engine/engine.yaml"
+
   # Rendering.Layout system-level units
   - id: Rendering-Layout-LayeredLayoutAlgorithm
     title: Review that Rendering Layout LayeredLayoutAlgorithm Implementation is Correct
@@ -468,6 +498,19 @@ reviews:
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
+
+  - id: Rendering-Layout-AutoLayoutAlgorithm
+    title: Review that Rendering Layout AutoLayoutAlgorithm Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/auto-layout-algorithm.yaml"
+      - "docs/design/rendering-layout/auto-layout-algorithm.md"
+      - "docs/verification/rendering-layout/auto-layout-algorithm.md"
+      - "src/DemaConsulting.Rendering.Layout/AutoLayoutAlgorithm.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/AutoLayoutAlgorithmTests.cs"
+    context:
+      - "docs/design/rendering-layout.md"
+      - "docs/reqstream/rendering-layout.yaml"
+      - "docs/design/rendering-layout/engine/layout-tree-packer.md"
 
   # =====================================================================
   # Rendering.Svg system
@@ -682,6 +725,13 @@ reviews:
       - "docs/reqstream/ots/sonarmark.yaml"
       - "docs/design/ots/sonarmark.md"
       - "docs/verification/ots/sonarmark.md"
+
+  - id: OTS-SonarScanner
+    title: Review that SonarScanner for .NET Provides Required Functionality
+    paths:
+      - "docs/reqstream/ots/sonarscanner.yaml"
+      - "docs/design/ots/sonarscanner.md"
+      - "docs/verification/ots/sonarscanner.md"
 
   - id: OTS-VersionMark
     title: Review that VersionMark Provides Required Functionality

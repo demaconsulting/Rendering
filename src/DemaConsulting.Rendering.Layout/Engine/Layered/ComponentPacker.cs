@@ -29,6 +29,30 @@ namespace DemaConsulting.Rendering.Layout.Engine.Layered;
 /// and nodes within a component by ascending original index — so renders are reproducible.
 /// The stage is stateless and may be shared across pipelines.
 /// </para>
+/// <para>
+/// <see cref="Apply"/> begins by calling <see cref="AxisTransform.NormalizeInputAxes"/> on the supplied
+/// graph, exactly as <see cref="LayeredLayoutPipeline.Run"/> does before its own stage sequence. This
+/// makes <see cref="ComponentPacker"/> a fully self-contained stage regardless of call site: any caller
+/// (direct or through a wrapping pipeline) gets correct Down/Up axis handling without also having to
+/// remember to normalize first. <see cref="AxisTransform.NormalizeInputAxes"/> is idempotent
+/// (<see cref="LayeredGraph.InputAxesNormalized"/> guards the swap), so composing
+/// <see cref="ComponentPacker"/> as an inner stage of a <see cref="LayeredLayoutPipeline"/> that already
+/// normalized the same graph is safe and does not double-swap the Down/Up axes.
+/// </para>
+/// <para>
+/// <strong>Not wired into hierarchical's recursive (per-level) stage sequence.</strong>
+/// <see cref="LayeredLayoutPipeline.RunRecursive"/> (used by the <c>hierarchical</c> algorithm's
+/// per-container flat runs) intentionally does not route through <see cref="ComponentPacker"/>. Each
+/// level graph built by <c>MergeRegionGraphAssembler</c> already carries hierarchy-crossing dummies with
+/// cross-level pinning constraints (<c>PinIncomingCrossings</c>) that this type's independent
+/// per-component sub-graph layout does not know how to preserve — splitting a level graph into
+/// components would also require splitting and re-merging that crossing-pinning bookkeeping, which is a
+/// materially larger, riskier change than this type's scope. A level graph is also typically already a
+/// single connected component by construction in the common case, since a container's children are
+/// grouped content. This is a deliberate, discoverable gap rather than a silent omission: a future
+/// enhancement could teach <see cref="ComponentPacker"/> (or a hierarchy-aware sibling) to split
+/// individual recursive levels, but doing so is out of scope today.
+/// </para>
 /// </remarks>
 internal sealed class ComponentPacker : ILayoutStage
 {
@@ -84,6 +108,11 @@ internal sealed class ComponentPacker : ILayoutStage
     public void Apply(LayeredGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
+
+        // Normalize the input node axes for the requested direction before any stage runs, exactly as
+        // LayeredLayoutPipeline.Run does before its own stage sequence, so this stage is self-contained
+        // regardless of call site (a no-op for RIGHT/LEFT).
+        AxisTransform.NormalizeInputAxes(graph);
 
         // An empty graph has nothing to detect, lay out, or pack; the downstream stages would also
         // fail on an empty augmented graph, so short-circuit here.
@@ -249,10 +278,12 @@ internal sealed class ComponentPacker : ILayoutStage
         // de-duplicates identical directed pairs, and reverses back edges), so the merged graph exposes
         // the acyclic edge set with its aligned waypoints — the same contract the single-component fast
         // path produces via RunInner — rather than one entry per input edge. Consumers key a
-        // (source, target) lookup on Acyclic to recover each input edge's route.
+        // (source, target) lookup on Acyclic to recover each input edge's route, or use the parallel
+        // AcyclicOriginalIndex to recover the 0-based index into the parent graph's own Edges list.
         var mergedAcyclic = new List<LayerEdge>();
         var mergedReversed = new List<bool>();
         var mergedWaypoints = new List<IReadOnlyList<Point2D>>();
+        var mergedOriginalIndex = new List<int>();
 
         foreach (var layout in layouts)
         {
@@ -280,6 +311,7 @@ internal sealed class ComponentPacker : ILayoutStage
                 mergedAcyclic.Add(layout.AcyclicEdges[k]);
                 mergedReversed.Add(layout.AcyclicReversed[k]);
                 mergedWaypoints.Add(translated);
+                mergedOriginalIndex.Add(layout.AcyclicOriginalIndex[k]);
             }
         }
 
@@ -289,6 +321,7 @@ internal sealed class ComponentPacker : ILayoutStage
         graph.Acyclic = mergedAcyclic;
         graph.AcyclicReversed = [.. mergedReversed];
         graph.Waypoints = mergedWaypoints;
+        graph.AcyclicOriginalIndex = mergedOriginalIndex;
     }
 
     /// <summary>
@@ -315,8 +348,11 @@ internal sealed class ComponentPacker : ILayoutStage
         }
 
         // Collect this component's edges (in original edge order for determinism), remapping endpoints
-        // to local indices.
+        // to local indices. localToParentEdge[i] records the parent graph's Edges index that
+        // localEdges[i] originated from, so the child's own AcyclicOriginalIndex (which indexes into
+        // localEdges) can be remapped back to the parent's Edges index once the child has run.
         var localEdges = new List<LayerEdge>();
+        var localToParentEdge = new List<int>();
         for (var e = 0; e < graph.Edges.Count; e++)
         {
             var edge = graph.Edges[e];
@@ -324,6 +360,7 @@ internal sealed class ComponentPacker : ILayoutStage
                 origToLocal.TryGetValue(edge.Target, out var localTarget))
             {
                 localEdges.Add(new LayerEdge(localSource, localTarget));
+                localToParentEdge.Add(e);
             }
         }
 
@@ -338,12 +375,18 @@ internal sealed class ComponentPacker : ILayoutStage
 
         // Map the child's acyclic edges (local indices) back to original node indices so the merged
         // parent graph exposes one (source, target) polyline per acyclic edge, aligned with
-        // child.Waypoints and child.AcyclicReversed.
+        // child.Waypoints and child.AcyclicReversed. Also remap the child's own AcyclicOriginalIndex
+        // (which indexes into localEdges) through localToParentEdge, so the merged parent graph's
+        // AcyclicOriginalIndex indexes into the parent's own Edges list, exactly like the
+        // single-component fast path (RunInner) already produces via CycleBreaker running directly on
+        // the parent graph.
         var acyclicEdges = new LayerEdge[child.Acyclic.Count];
+        var acyclicOriginalIndex = new int[child.Acyclic.Count];
         for (var k = 0; k < child.Acyclic.Count; k++)
         {
             var edge = child.Acyclic[k];
             acyclicEdges[k] = new LayerEdge(members[edge.Source], members[edge.Target]);
+            acyclicOriginalIndex[k] = localToParentEdge[child.AcyclicOriginalIndex[k]];
         }
 
         // Compute the content bounding box over the real nodes only (dummies are excluded).
@@ -380,6 +423,7 @@ internal sealed class ComponentPacker : ILayoutStage
             AcyclicEdges = acyclicEdges,
             AcyclicReversed = child.AcyclicReversed,
             EdgeWaypoints = child.Waypoints,
+            AcyclicOriginalIndex = acyclicOriginalIndex,
         };
     }
 
@@ -460,6 +504,12 @@ internal sealed class ComponentPacker : ILayoutStage
 
         /// <summary>Routed waypoints for each acyclic edge, in <see cref="AcyclicEdges"/> order.</summary>
         public required IReadOnlyList<IReadOnlyList<Point2D>> EdgeWaypoints { get; init; }
+
+        /// <summary>
+        /// The parent graph's own <c>Edges</c> index that each entry in <see cref="AcyclicEdges"/>
+        /// originated from, remapped from the child sub-graph's local edge indices.
+        /// </summary>
+        public required IReadOnlyList<int> AcyclicOriginalIndex { get; init; }
 
         /// <summary>Packed shelf X offset assigned to this component.</summary>
         public double OffsetX { get; set; }

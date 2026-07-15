@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480.00" height="346.00" viewBox="0 0 480.00 346.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+      <line x1="7" y1="0" x2="7" y2="7" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#1E1E2E"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="20.00" y="20.00" width="154.00" height="306.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="97.00" y="33.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Left</text>
+  <rect x="52.00" y="76.00" width="90.00" height="218.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="97.00" y="89.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">LeftInner</text>
+  <line x1="52.00" y1="102.00" x2="142.00" y2="102.00" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="58.00" y="114.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="italic" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">rows</text>
+  <text x="58.00" y="138.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row1</text>
+  <text x="58.00" y="156.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row2</text>
+  <text x="58.00" y="174.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row3</text>
+  <text x="58.00" y="192.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row4</text>
+  <text x="58.00" y="210.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row5</text>
+  <text x="58.00" y="228.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row6</text>
+  <text x="58.00" y="246.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row7</text>
+  <text x="58.00" y="264.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row8</text>
+  <text x="58.00" y="282.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row9</text>
+  <rect x="306.00" y="20.00" width="154.00" height="306.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="383.00" y="33.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Right</text>
+  <rect x="338.00" y="76.00" width="90.00" height="218.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="383.00" y="89.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle" textLength="78.00" lengthAdjust="spacingAndGlyphs">RightInner</text>
+  <line x1="338.00" y1="102.00" x2="428.00" y2="102.00" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="344.00" y="114.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="italic" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">rows</text>
+  <text x="344.00" y="138.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row1</text>
+  <text x="344.00" y="156.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row2</text>
+  <text x="344.00" y="174.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row3</text>
+  <text x="344.00" y="192.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row4</text>
+  <text x="344.00" y="210.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row5</text>
+  <text x="344.00" y="228.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row6</text>
+  <text x="344.00" y="246.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row7</text>
+  <text x="344.00" y="264.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row8</text>
+  <text x="344.00" y="282.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">row9</text>
+  <path d="M 174.00 32.00 L 306.00 32.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 174.00 72.29 L 306.00 72.29" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 174.00 112.57 L 306.00 112.57" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 174.00 152.86 L 306.00 152.86" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 174.00 193.14 L 306.00 193.14" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 174.00 233.43 L 306.00 233.43" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 174.00 273.71 L 306.00 273.71" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 174.00 314.00 L 306.00 314.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+</svg>

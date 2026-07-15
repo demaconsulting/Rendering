@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering.Abstractions;
+using DemaConsulting.Rendering.Layout;
 
 namespace DemaConsulting.Rendering.Gallery;
 
@@ -174,6 +175,59 @@ internal static class GalleryDiagrams
         }
 
         return graph;
+    }
+
+    /// <summary>
+    ///     Permanent visual regression coverage for the connector-router "coiled/looping" robustness
+    ///     fix (<c>OrthogonalEdgeRouter</c>'s soft-obstacle envelope clamp and envelope-departure cost),
+    ///     built with explicit, hardcoded box positions rather than any layout algorithm. This deliberately
+    ///     forces the exact geometry that exposed the bug — a small <c>Source</c> box beside a much
+    ///     taller, nine-row-compartment <c>Target</c> box, separated by a narrow gap, joined by nine
+    ///     distinct unmerged edges — regardless of which layout algorithm (or future heuristic change)
+    ///     happens to produce a side-by-side arrangement for a similar graph. The companion
+    ///     <see cref="ParallelEdgesIntoCompartmentBox"/> diagram exercises the same defect's vertical-stack
+    ///     arrangement through the containment algorithm; this one exists so the narrow-gap, side-by-side
+    ///     arrangement itself remains covered even if no algorithm currently produces it. Because it
+    ///     bypasses <see cref="LayoutEngine.Layout(LayoutGraph)"/> entirely, it belongs only to the
+    ///     <c>custom-rendering</c> gallery group, never to a group showcasing algorithm output.
+    /// </summary>
+    /// <param name="theme">The theme the diagram will be rendered with, used to size the target box's compartment.</param>
+    /// <returns>
+    ///     A hand-built <see cref="LayoutTree"/> with the two boxes placed explicitly and the nine
+    ///     connectors already routed via <see cref="ConnectorRouter.Route(IReadOnlyList{LayoutBox},IReadOnlyList{Connection},ConnectorRouteOptions)"/>.
+    /// </returns>
+    public static LayoutTree ParallelEdgesIntoCompartmentBoxSideBySide(Theme theme)
+    {
+        var rowsCompartment = new LayoutCompartment(
+            "rows",
+            ["row1", "row2", "row3", "row4", "row5", "row6", "row7", "row8", "row9"]);
+        var titledHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: false);
+
+        var source = new LayoutBox(12, 12, 130, 50, "Source", 0, BoxShape.Rectangle, [], []);
+        var target = new LayoutBox(
+            166,
+            12,
+            130,
+            titledHeight + TitledCompartmentHeight(theme, rowsCompartment),
+            "Target",
+            0,
+            BoxShape.Rectangle,
+            [rowsCompartment],
+            []);
+        var boxes = new[] { source, target };
+
+        var connections = Enumerable.Range(0, 9)
+            .Select(_ => new Connection(source, target, EndMarkerStyle.FilledDiamond))
+            .ToArray();
+        var lines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+
+        var nodes = new List<LayoutNode>();
+        nodes.AddRange(boxes);
+        nodes.AddRange(lines);
+
+        var width = target.X + target.Width + 12;
+        var height = Math.Max(source.Y + source.Height, target.Y + target.Height) + 12;
+        return new LayoutTree(width, height, nodes);
     }
 
     /// <summary>
@@ -844,6 +898,236 @@ internal static class GalleryDiagrams
         // The second delegation edge lives inside Subsystem's own child scope, relaying the inner
         // boundary port inward to the innermost leaf child (crossing point two).
         Connect(subsystem.Children, "relay-core", relay, core, null);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     A small, fully-connected directed pipeline laid out via the layered algorithm, kept as a
+    ///     visual baseline for comparison against the disconnected-graph diagrams in the same section:
+    ///     this graph has a single connected component, so it never engages the layered pipeline's
+    ///     internal component-packing path.
+    /// </summary>
+    /// <returns>A flat, fully-connected graph of four labelled boxes.</returns>
+    public static LayoutGraph LayeredRegressionBaseline()
+    {
+        var graph = new LayoutGraph();
+        var start = AddLabelled(graph, "start", "Start");
+        var middle = AddLabelled(graph, "middle", "Middle");
+        var branch = AddLabelled(graph, "branch", "Branch");
+        var end = AddLabelled(graph, "end", "End");
+
+        Connect(graph, "start-middle", start, middle);
+        Connect(graph, "middle-branch", middle, branch);
+        Connect(graph, "middle-end", middle, end);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     One small connected cluster plus several unrelated singleton nodes, suited to the
+    ///     <c>"auto"</c> meta-algorithm: the cluster routes through the layered algorithm while the
+    ///     singletons are gathered into one shared bucket routed through the containment algorithm, then
+    ///     both pieces are packed into a single combined canvas.
+    /// </summary>
+    /// <returns>A graph mixing one two-node cluster with three isolated singleton nodes.</returns>
+    public static LayoutGraph AutoClusterPlusIsolated()
+    {
+        var graph = new LayoutGraph();
+        var a = AddLabelled(graph, "a", "A");
+        var b = AddLabelled(graph, "b", "B");
+        Connect(graph, "a-b", a, b);
+
+        AddLabelled(graph, "solo1", "Solo1");
+        AddLabelled(graph, "solo2", "Solo2");
+        AddLabelled(graph, "solo3", "Solo3");
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Three independent two-node clusters with no edges between them, used both as the
+    ///     <c>"auto"</c> multi-component showcase (each cluster routed and packed independently) and,
+    ///     directly, as the <c>"layered"</c> sibling showing the same disconnected graph handled by the
+    ///     layered algorithm's own internal component packing.
+    /// </summary>
+    /// <returns>A graph of three disconnected two-node clusters.</returns>
+    public static LayoutGraph MultipleDisconnectedClusters()
+    {
+        var graph = new LayoutGraph();
+        var a1 = AddLabelled(graph, "a1", "A1");
+        var a2 = AddLabelled(graph, "a2", "A2");
+        Connect(graph, "a1-a2", a1, a2);
+
+        var b1 = AddLabelled(graph, "b1", "B1");
+        var b2 = AddLabelled(graph, "b2", "B2");
+        Connect(graph, "b1-b2", b1, b2);
+
+        var c1 = AddLabelled(graph, "c1", "C1");
+        var c2 = AddLabelled(graph, "c2", "C2");
+        Connect(graph, "c1-c2", c1, c2);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     A graph of entirely isolated nodes (no edges, no children), suited to the <c>"auto"</c>
+    ///     meta-algorithm's all-singleton fast path: every node is gathered into the shared bucket and
+    ///     routed through the containment algorithm, unchanged, with no splitting or packing needed.
+    /// </summary>
+    /// <returns>A flat graph of five isolated labelled boxes.</returns>
+    public static LayoutGraph AutoAllIsolated()
+    {
+        var graph = new LayoutGraph();
+        AddLabelled(graph, "n1", "N1");
+        AddLabelled(graph, "n2", "N2");
+        AddLabelled(graph, "n3", "N3");
+        AddLabelled(graph, "n4", "N4");
+        AddLabelled(graph, "n5", "N5");
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     A nested container plus an unrelated isolated singleton, suited to the <c>"auto"</c>
+    ///     meta-algorithm's routing rule that any component containing a container node is routed
+    ///     through the hierarchical algorithm regardless of its size, while the unrelated singleton is
+    ///     packed alongside it through the shared containment bucket.
+    /// </summary>
+    /// <returns>A graph mixing one two-level compound container with one isolated leaf node.</returns>
+    public static LayoutGraph AutoNestedRoutesHierarchical()
+    {
+        var graph = new LayoutGraph();
+
+        var group = graph.AddNode("group", 10, 10);
+        group.Label = "Group";
+        var inner1 = AddLabelled(group.Children, "inner1", "Inner1");
+        var inner2 = AddLabelled(group.Children, "inner2", "Inner2");
+        Connect(group.Children, "inner1-inner2", inner1, inner2);
+
+        AddLabelled(graph, "solo", "Solo");
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Twelve small, wide sibling boxes with no edges, suited to the containment algorithm's
+    ///     column-count-based content-width candidate: without it, the area-based width estimate alone
+    ///     would under-size the packing budget for this shape and pack the boxes into a single narrow
+    ///     column instead of a balanced multi-column block.
+    /// </summary>
+    /// <returns>A flat graph of twelve labelled boxes, each 160 by 40 logical pixels.</returns>
+    public static LayoutGraph ContainmentManySmallWideBoxes()
+    {
+        var graph = new LayoutGraph();
+        for (var i = 0; i < 12; i++)
+        {
+            var node = graph.AddNode($"box{i}", 160, 40);
+            node.Label = $"Box{i}";
+        }
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Coverage (and visual evidence) for the containment algorithm's edge-count-aware horizontal
+    ///     gap widening: two equally-sized peer boxes, each carrying a nine-row compartment, joined by
+    ///     eight distinct unmerged edges and packed <em>side by side</em> by the containment algorithm.
+    ///     The boxes are deliberately tall and moderately wide so the algorithm's content-width budget
+    ///     places them on the same row (rather than wrapping them into a vertical stack as the shorter
+    ///     <see cref="ParallelEdgesIntoCompartmentBox"/> source/target pair does); the eight parallel
+    ///     connectors must therefore fan through the single horizontal gap between them, which the packer
+    ///     now widens in proportion to the edge count so the connectors get distinct routing lanes.
+    /// </summary>
+    /// <remarks>
+    ///     Unlike <see cref="ParallelEdgesIntoCompartmentBoxSideBySide"/> — a hand-built
+    ///     <see cref="LayoutTree"/> with explicitly-placed boxes that never invokes any layout algorithm
+    ///     — this diagram is a pure <see cref="LayoutGraph"/> laid out by the real containment algorithm,
+    ///     so it exercises the packer's same-row gap-widening path end to end. The box sizes were
+    ///     empirically confirmed to pack side by side: two 100-wide boxes this tall satisfy the packer's
+    ///     <c>2 * width + gap &lt;= contentWidth</c> same-row budget.
+    /// </remarks>
+    /// <returns>
+    ///     A flat graph suited to the containment algorithm: two tall, compartment-bearing peer boxes
+    ///     joined by eight distinct parallel edges, sized to pack side by side.
+    /// </returns>
+    public static LayoutGraph ContainmentParallelEdgesSideBySide()
+    {
+        var theme = Themes.Dark;
+        var titledHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: false);
+
+        string[] rows = ["row1", "row2", "row3", "row4", "row5", "row6", "row7", "row8", "row9"];
+        var boxHeight = titledHeight + TitledCompartmentHeight(theme, new LayoutCompartment("rows", rows));
+
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, false);
+
+        var left = graph.AddNode("left", 100, boxHeight);
+        left.Label = "Left";
+        left.Compartments = [new LayoutCompartment("rows", rows)];
+
+        var right = graph.AddNode("right", 100, boxHeight);
+        right.Label = "Right";
+        right.Compartments = [new LayoutCompartment("rows", rows)];
+
+        for (var i = 0; i < 8; i++)
+        {
+            var edge = graph.AddEdge($"left-right-{i}", left, right);
+            edge.TargetEnd = EndMarkerStyle.FilledDiamond;
+        }
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Coverage (and visual evidence) for the hierarchical algorithm's edge-count-aware
+    ///     cross-container gap widening: two peer container boxes, each holding one compartment-bearing
+    ///     child, placed side by side by the default leaf algorithm and joined by eight distinct
+    ///     unmerged cross-container edges running child-to-child. The eight connectors must fan through
+    ///     the single gap between the two containers; the hierarchical engine now widens that gap in
+    ///     proportion to the cross-container edge count (a spacing the leaf algorithm alone cannot
+    ///     reserve, because those edges never appear in the per-scope sized view it lays out) so the
+    ///     connectors get distinct routing lanes.
+    /// </summary>
+    /// <remarks>
+    ///     The children are tall and narrow so the leaf algorithm's disconnected-component packing
+    ///     places the two containers on the same row (side by side) rather than stacking them; the box
+    ///     sizes were empirically confirmed to produce a side-by-side arrangement whose gap widens from
+    ///     the un-widened baseline once the edge count exceeds one. This graph uses no boundary ports, so
+    ///     it exercises the no-boundary-port placement path the widening pass operates on.
+    /// </remarks>
+    /// <returns>
+    ///     A two-level compound graph: two peer containers, each with one compartment-bearing child,
+    ///     joined by eight parallel cross-container edges, sized to lay out side by side.
+    /// </returns>
+    public static LayoutGraph HierarchicalParallelEdgesSideBySide()
+    {
+        var theme = Themes.Dark;
+        var titledHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: false);
+
+        string[] rows = ["row1", "row2", "row3", "row4", "row5", "row6", "row7", "row8", "row9"];
+        var childHeight = titledHeight + TitledCompartmentHeight(theme, new LayoutCompartment("rows", rows));
+
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, false);
+
+        var left = graph.AddNode("left", 10, 10);
+        left.Label = "Left";
+        var leftInner = left.Children.AddNode("leftInner", 90, childHeight);
+        leftInner.Label = "LeftInner";
+        leftInner.Compartments = [new LayoutCompartment("rows", rows)];
+
+        var right = graph.AddNode("right", 10, 10);
+        right.Label = "Right";
+        var rightInner = right.Children.AddNode("rightInner", 90, childHeight);
+        rightInner.Label = "RightInner";
+        rightInner.Compartments = [new LayoutCompartment("rows", rows)];
+
+        for (var i = 0; i < 8; i++)
+        {
+            var edge = graph.AddEdge($"leftInner-rightInner-{i}", leftInner, rightInner);
+            edge.TargetEnd = EndMarkerStyle.FilledDiamond;
+        }
 
         return graph;
     }

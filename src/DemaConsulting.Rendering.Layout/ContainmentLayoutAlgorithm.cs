@@ -89,6 +89,26 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
     /// </summary>
     private const double NodeSpacing = 24.0;
 
+    /// <summary>
+    /// Minimum number of boxes before the column-count-based width candidate (see
+    /// <see cref="ComputeContentWidth"/>) is considered at all. A handful of boxes with very different
+    /// sizes (for example two boxes, one much taller than the other) legitimately want to stack in a
+    /// single column rather than be forced side by side just because <c>ceil(sqrt(n))</c> is greater
+    /// than one; the column estimate only pays for itself once there are enough boxes for multi-column
+    /// packing to plausibly make sense.
+    /// </summary>
+    private const int MinBoxesForColumnEstimate = 6;
+
+    /// <summary>
+    /// Maximum allowed ratio between the largest and smallest box width (and separately height) for the
+    /// column-count-based width candidate to apply. The motivating scenario for that candidate is many
+    /// boxes that are each individually wide-but-short and roughly uniform in size (for example a row of
+    /// small labelled tiles); when box sizes vary widely — as with a couple of very differently sized
+    /// boxes — the average width used by the estimate is not representative of any single box, so the
+    /// candidate is skipped rather than risk widening the budget for a shape it was not designed for.
+    /// </summary>
+    private const double MaxColumnEstimateSizeRatio = 2.0;
+
     /// <inheritdoc/>
     public override string Id => AlgorithmId;
 
@@ -126,12 +146,33 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
                 CenterTitle: node.Compartments.Count == 0);
         }
 
+        // Build the per-pair edge-count lookup the packer uses to widen the horizontal gap between two
+        // same-row boxes carrying a fan of parallel connectors. Reuse the same indexOf map built for the
+        // boxes: for every edge whose source and target are both top-level nodes, increment the count for
+        // the unordered index pair (min, max). Edges referencing out-of-graph endpoints are ignored, the
+        // same endpoints the connection-building loop below skips.
+        var edgeCounts = new Dictionary<(int First, int Second), int>();
+        foreach (var edge in graph.Edges)
+        {
+            if (edge.Source is LayoutGraphNode sourceNode && indexOf.TryGetValue(sourceNode, out var s) &&
+                edge.Target is LayoutGraphNode targetNode && indexOf.TryGetValue(targetNode, out var t) &&
+                s != t)
+            {
+                var key = s < t ? (s, t) : (t, s);
+                edgeCounts.TryGetValue(key, out var existing);
+                edgeCounts[key] = existing + 1;
+            }
+        }
+
         // Pack the leaf boxes into rows within a width budget derived from a roughly 4:3 canvas, keeping
-        // a connector-aware gap between boxes so edges can route around intervening ones.
+        // a connector-aware gap between boxes so edges can route around intervening ones. The edge-count
+        // lookup additionally widens the horizontal gap between two same-row boxes joined by a fan of
+        // parallel connectors so those connectors get distinct routing lanes.
         var containmentOptions = new ContainmentOptions(
             ComputeContentWidth(boxes),
             HorizontalGap: NodeSpacing,
-            VerticalGap: NodeSpacing);
+            VerticalGap: NodeSpacing,
+            EdgeCounts: edgeCounts);
         var result = ContainmentLayout.Pack(boxes, containmentOptions);
         var packedBoxes = result.Children;
 
@@ -188,20 +229,65 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
 
     /// <summary>
     /// Derives the packer's content-width budget from the boxes: the square root of their total area
-    /// biased toward a landscape canvas, widened to at least the widest box, and floored to a positive
-    /// value so the packer always receives a usable width.
+    /// biased toward a landscape canvas, widened to at least the widest box and to a column-count-based
+    /// estimate for many small boxes, and floored to a positive value so the packer always receives a
+    /// usable width.
     /// </summary>
+    /// <remarks>
+    ///     The area-based <c>target</c> width alone under-estimates the right budget for a set of many
+    ///     small, wide boxes: <c>sqrt(totalArea * aspect)</c> grows with the square root of the box
+    ///     count, while a set of <em>n</em> equally-sized boxes actually wants roughly
+    ///     <c>sqrt(n)</c> columns side by side — the same growth rate, but scaled by each box's own
+    ///     width rather than by the square root of its area, which for a wide, short box (for example
+    ///     160 by 40) is a materially larger number. Without this second candidate, many small wide
+    ///     boxes could be packed into an unrealistically narrow single- or two-column budget instead of
+    ///     the balanced, roughly-square block of columns the 4:3 landscape bias intends. This candidate
+    ///     is strictly additive — combined via <c>Math.Max</c>, so it only ever widens, never narrows,
+    ///     the chosen budget. It is only considered when there are at least
+    ///     <see cref="MinBoxesForColumnEstimate"/> boxes that are reasonably uniform in width and height
+    ///     (see <see cref="MaxColumnEstimateSizeRatio"/>): a handful of very differently sized boxes —
+    ///     for example two boxes where one is much taller than the other — legitimately wants to stack
+    ///     in a single column, and neither the box count nor the averaged width used by the estimate is
+    ///     representative of that shape, so the candidate is skipped and the area-based <c>target</c>
+    ///     (widened only to the widest box) governs instead.
+    /// </remarks>
     private static double ComputeContentWidth(IReadOnlyList<LayoutBox> boxes)
     {
         var totalArea = 0.0;
+        var totalWidth = 0.0;
         var widest = 0.0;
+        var minWidth = double.PositiveInfinity;
+        var minHeight = double.PositiveInfinity;
+        var maxHeight = 0.0;
         foreach (var box in boxes)
         {
             totalArea += box.Width * box.Height;
+            totalWidth += box.Width;
             widest = Math.Max(widest, box.Width);
+            minWidth = Math.Min(minWidth, box.Width);
+            minHeight = Math.Min(minHeight, box.Height);
+            maxHeight = Math.Max(maxHeight, box.Height);
         }
 
         var target = Math.Sqrt(totalArea * CanvasAspectRatio);
-        return Math.Max(Math.Max(widest, target), MinContentWidth);
+
+        // A column-count estimate (columns = ceil(sqrt(n))) sized from each box's own average width,
+        // rather than the total area, so a set of many small but wide boxes still wraps into a
+        // balanced grid of columns instead of one narrow column. Only considered when there are enough
+        // boxes for multi-column packing to plausibly make sense, and when the boxes are reasonably
+        // uniform in size — otherwise the average width is not representative of any single box, and a
+        // small handful of very differently sized boxes (for example one much taller than the other)
+        // should be free to stack in a single column instead.
+        var columnBasedWidth = 0.0;
+        if (boxes.Count >= MinBoxesForColumnEstimate &&
+            widest / minWidth <= MaxColumnEstimateSizeRatio &&
+            maxHeight / minHeight <= MaxColumnEstimateSizeRatio)
+        {
+            var columns = (int)Math.Ceiling(Math.Sqrt(boxes.Count));
+            var averageWidth = totalWidth / boxes.Count;
+            columnBasedWidth = (columns * averageWidth) + ((columns - 1) * NodeSpacing);
+        }
+
+        return Math.Max(Math.Max(Math.Max(widest, target), columnBasedWidth), MinContentWidth);
     }
 }

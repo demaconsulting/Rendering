@@ -756,6 +756,74 @@ public sealed class ConnectorRouterTests
     }
 
     /// <summary>
+    ///     Regression test for the "coiled/looping" connector-router robustness bug: nine parallel,
+    ///     unmerged edges from a small source box into a much taller multi-row-compartment target box,
+    ///     separated by a narrow gap, must all route as clean fans that never stray outside the two
+    ///     boxes' own bounding envelope. Before the fix, <c>OrthogonalEdgeRouter</c>'s soft-obstacle
+    ///     lane candidates marched outward without bound as each successive connector became a soft
+    ///     obstacle for the next (see <c>OrthogonalEdgeRouter.AddSoftCandidate</c>), eventually landing
+    ///     a lane behind the source box's own footprint — producing a path that leaves toward the gap,
+    ///     reverses back underneath the source box, then recovers. The existing
+    ///     <see cref="Route_NineParallelEdgesIntoCompartmentBox_DoNotCrossTargetInterior"/> test uses the
+    ///     same geometry but only asserts no segment cuts through either box's interior, which this
+    ///     defect does not trigger (the loop-back travels behind, not through, the source box), so it
+    ///     does not catch this bug. This test's bounding-envelope assertion does.
+    /// </summary>
+    [Fact]
+    public void Route_NineParallelEdgesIntoCompartmentBox_DoNotLoopBehindEitherBox()
+    {
+        // Arrange: same geometry as Route_NineParallelEdgesIntoCompartmentBox_DoNotCrossTargetInterior
+        // — a small port box beside a much taller multi-row-compartment box, joined by nine distinct
+        // unmerged edges.
+        var eePort = Box(12, 12, 130, 50, "EEPort");
+        var lbo = Box(166, 12, 130, 242, "LBO");
+        var boxes = new[] { eePort, lbo };
+
+        var connections = Enumerable.Range(0, 9)
+            .Select(_ => new Connection(eePort, lbo, EndMarkerStyle.FilledDiamond))
+            .ToArray();
+
+        // Act
+        var lines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+
+        // Assert: no waypoint of any routed connector strays outside the bounding envelope of the two
+        // connected boxes (expanded by a generous allowance for the approach stub) — this is what
+        // "looping back behind a box already left" violates, and what a clean fan-out never needs.
+        AssertWaypointsWithinBoxPairEnvelope(lines, eePort, lbo);
+        Assert.All(lines, line => AssertAllSegmentsOrthogonal(line.Waypoints));
+        AssertNoTransversalCrossingAcrossLines(lines);
+    }
+
+    /// <summary>
+    ///     Asserts that every waypoint of every routed line lies within the bounding envelope of the two
+    ///     connected boxes, expanded by a generous fixed allowance for the router's own perpendicular
+    ///     approach stub (see <c>OrthogonalEdgeRouter.StepOff</c>). A route that needs to travel further
+    ///     than this outside the pair's own footprint has looped back behind a box it already left,
+    ///     rather than forming a clean fan between the two boxes.
+    /// </summary>
+    private static void AssertWaypointsWithinBoxPairEnvelope(
+        IReadOnlyList<LayoutLine> lines,
+        LayoutBox a,
+        LayoutBox b)
+    {
+        const double allowance = 20.0;
+        var envelope = new Rect(
+            Math.Min(a.X, b.X) - allowance,
+            Math.Min(a.Y, b.Y) - allowance,
+            Math.Max(a.X + a.Width, b.X + b.Width) - Math.Min(a.X, b.X) + (2 * allowance),
+            Math.Max(a.Y + a.Height, b.Y + b.Height) - Math.Min(a.Y, b.Y) + (2 * allowance));
+
+        Assert.All(lines, line => Assert.All(line.Waypoints, p => AssertPointInsideRect(envelope, p)));
+    }
+
+    /// <summary>Asserts that a point lies within (or on the boundary of) the given rectangle.</summary>
+    private static void AssertPointInsideRect(Rect r, Point2D p) =>
+        Assert.True(
+            p.X >= r.X && p.X <= r.X + r.Width && p.Y >= r.Y && p.Y <= r.Y + r.Height,
+            $"Point ({p.X},{p.Y}) lies outside the expected bounding envelope " +
+            $"({r.X},{r.Y})-({r.X + r.Width},{r.Y + r.Height}).");
+
+    /// <summary>
     ///     Asserts that no two of the given lines' <em>interior</em> segments — those excluding each
     ///     line's first and last segment, which are the endpoint-adjacent approach legs the router's own
     ///     <c>AddLineObstacles</c> design intentionally lets several connectors share (see its remarks in
@@ -829,6 +897,93 @@ public sealed class ConnectorRouterTests
         }
 
         return 0.0;
+    }
+
+    /// <summary>
+    ///     Asserts that no two of the given lines' <em>interior</em> segments (same endpoint-adjacent
+    ///     exclusion as <see cref="AssertNoCollinearOverlapAcrossLines"/>) transversally cross one
+    ///     another — i.e. one is horizontal, the other vertical, and they intersect strictly inside both
+    ///     segments' interiors, not merely at a shared endpoint. This is the direct "no two distinct
+    ///     connectors' paths cross" check: unlike <see cref="AssertNoCollinearOverlapAcrossLines"/>
+    ///     (which only flags two <em>parallel</em> segments riding the same lane for an extended span),
+    ///     a transversal crossing is a genuine perpendicular "X" intersection between two different
+    ///     connectors, which is visually a crossing regardless of how short the shared point is.
+    /// </summary>
+    private static void AssertNoTransversalCrossingAcrossLines(IReadOnlyList<LayoutLine> lines)
+    {
+        // Collect each line's interior segments (excluding the first and last, matching
+        // AddLineObstacles' own endpoint-adjacent exclusion and AssertNoCollinearOverlapAcrossLines'
+        // convention above).
+        var interiorSegments = new List<(int LineIndex, Point2D A, Point2D B)>();
+        for (var lineIndex = 0; lineIndex < lines.Count; lineIndex++)
+        {
+            var waypoints = lines[lineIndex].Waypoints;
+            for (var i = 1; i < waypoints.Count - 2; i++)
+            {
+                interiorSegments.Add((lineIndex, waypoints[i], waypoints[i + 1]));
+            }
+        }
+
+        for (var x = 0; x < interiorSegments.Count; x++)
+        {
+            for (var y = x + 1; y < interiorSegments.Count; y++)
+            {
+                var (lineX, ax, bx) = interiorSegments[x];
+                var (lineY, ay, by) = interiorSegments[y];
+                if (lineX == lineY)
+                {
+                    // Only cross-connector crossings are of interest here.
+                    continue;
+                }
+
+                Assert.False(
+                    SegmentsCrossTransversally(ax, bx, ay, by),
+                    $"Interior segments of connectors {lineX} and {lineY} cross transversally " +
+                    $"(({ax.X},{ax.Y})-({bx.X},{bx.Y}) vs ({ay.X},{ay.Y})-({by.X},{by.Y})).");
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Returns <see langword="true"/> when one of the two axis-aligned segments is horizontal, the
+    ///     other vertical, and they intersect strictly inside both segments' interiors (not merely at a
+    ///     shared endpoint or a collinear touch). Uses the same tight tolerance convention as
+    ///     <see cref="CollinearOverlapLength"/>/<see cref="SegmentCrossesRect"/> elsewhere in this file.
+    /// </summary>
+    private static bool SegmentsCrossTransversally(Point2D a1, Point2D b1, Point2D a2, Point2D b2)
+    {
+        const double tolerance = 1e-6;
+
+        var horizontal1 = Math.Abs(a1.Y - b1.Y) < tolerance;
+        var vertical1 = Math.Abs(a1.X - b1.X) < tolerance;
+        var horizontal2 = Math.Abs(a2.Y - b2.Y) < tolerance;
+        var vertical2 = Math.Abs(a2.X - b2.X) < tolerance;
+
+        // Only interested in one horizontal + one vertical segment; two parallel segments (both
+        // horizontal or both vertical) can never cross transversally.
+        Point2D hA, hB, vA, vB;
+        if (horizontal1 && vertical2)
+        {
+            (hA, hB, vA, vB) = (a1, b1, a2, b2);
+        }
+        else if (vertical1 && horizontal2)
+        {
+            (hA, hB, vA, vB) = (a2, b2, a1, b1);
+        }
+        else
+        {
+            return false;
+        }
+
+        var y = hA.Y;
+        var xLo = Math.Min(hA.X, hB.X);
+        var xHi = Math.Max(hA.X, hB.X);
+        var x = vA.X;
+        var yLo = Math.Min(vA.Y, vB.Y);
+        var yHi = Math.Max(vA.Y, vB.Y);
+
+        return x > xLo + tolerance && x < xHi - tolerance &&
+               y > yLo + tolerance && y < yHi - tolerance;
     }
 
     /// <summary>

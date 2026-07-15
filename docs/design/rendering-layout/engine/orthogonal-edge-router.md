@@ -83,10 +83,10 @@ No OTS runtime component or shared package is consumed.
 orthogonally through an obstacle field:
 
 - **ConnectorRouter** — dispatches to `RouteWithStatus` for every connection routed under the
-  `EdgeRouting.Orthogonal` style. See _ConnectorRouter Unit Design_.
+  `EdgeRouting.Orthogonal` style. See *ConnectorRouter Unit Design*.
 - **LayeredPipeline** (`OrthogonalRouter` stage) — routes individual layered-pipeline edges through
-  the same engine so pipeline routes and free-form routes share one implementation. See _Layered
-  Pipeline Unit Design_.
+  the same engine so pipeline routes and free-form routes share one implementation. See *Layered
+  Pipeline Unit Design*.
 
 The `Crossed` flag returned by `RouteWithStatus` feeds each caller's layout-warning handling.
 
@@ -108,3 +108,4 @@ route individual connectors; the `Crossed` flag feeds their layout-warning handl
 | Rendering-Layout-OrthogonalEdgeRouter-CostBands | OrthogonalEdgeRouter behavior described above |
 | Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit | OrthogonalEdgeRouter behavior described above |
 | Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap | OrthogonalEdgeRouter behavior described above |
+| Rendering-Layout-OrthogonalEdgeRouter-AvoidsConnectorCrossing | OrthogonalEdgeRouter behavior described above |

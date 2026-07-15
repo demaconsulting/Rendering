@@ -12,12 +12,16 @@ namespace DemaConsulting.Rendering.Layout;
 /// carried onto the resulting <see cref="LayoutLine"/>.
 /// </summary>
 /// <param name="From">
-/// The source box. Its instance identity is used to exclude it from the obstacle set while routing,
-/// so pass the exact <see cref="LayoutBox"/> reference that appears in the box list.
+/// The source box, used to resolve the connector's departure anchor and face; pass the exact
+/// <see cref="LayoutBox"/> reference that appears in the box list. It still counts as a hard obstacle
+/// for the rest of the route — the router steps the anchor off this box's face before obstacle
+/// avoidance begins, so the connector can still leave cleanly.
 /// </param>
 /// <param name="To">
-/// The target box. Its instance identity is used to exclude it from the obstacle set while routing;
-/// the connector's target end marker is drawn where the route meets this box.
+/// The target box, used to resolve the connector's arrival anchor and face; the connector's target end
+/// marker is drawn where the route meets this box. It still counts as a hard obstacle for the rest of
+/// the route — the router steps the anchor off this box's face before obstacle avoidance begins, so the
+/// connector can still arrive cleanly.
 /// </param>
 /// <param name="TargetEnd">End-marker style drawn at the target (arrival) end of the connector.</param>
 /// <param name="LineStyle">Stroke style (solid, dashed, dotted) applied to the routed connector.</param>

@@ -1,0 +1,98 @@
+---
+# DemaConsulting.Rendering.Layout - LayoutTreePacker Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the layout-tree-packer unit.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: LayoutTreePacker Requirements
+    requirements:
+      - id: Rendering-Layout-LayoutTreePacker-PacksMultipleTrees
+        title: >-
+          LayoutTreePacker shall pack 2+ independently-placed layout trees into one combined tree with
+          no two trees' bounding boxes overlapping.
+        justification: |
+          AutoLayoutAlgorithm routes different components of the same graph through different leaf
+          algorithms and needs a single combined tree to hand to a renderer; the packer must guarantee
+          the merged pieces never overlap regardless of how many trees or how they wrap onto new shelves.
+        tests:
+          - Pack_TwoTrees_PlacesSecondBesideFirstWithoutOverlap
+          - Pack_ManyTrees_WrapsOntoNewShelfWithoutOverlap
+
+      - id: Rendering-Layout-LayoutTreePacker-TranslatesCoordinates
+        title: >-
+          LayoutTreePacker shall shift every placed box's coordinates in a packed sub-tree by that
+          sub-tree's assigned shelf offset.
+        justification: |
+          A sub-tree is laid out independently starting at its own local origin; without translating
+          every box's absolute coordinate by the assigned shelf offset, packed pieces would collapse
+          onto the same coordinates instead of forming one coherent combined canvas.
+        tests:
+          - Pack_TwoTrees_PlacesSecondBesideFirstWithoutOverlap
+
+      - id: Rendering-Layout-LayoutTreePacker-TranslatesNestedChildren
+        title: >-
+          LayoutTreePacker shall recursively translate a placed box's nested children by the same
+          shelf offset as their parent.
+        justification: |
+          LayoutTree coordinates are absolute, not parent-relative, so a container box produced by the
+          hierarchical algorithm has its own children already placed in absolute coordinates; packing
+          the container without recursing into its children would leave the nested content at the
+          wrong (pre-pack) position.
+        tests:
+          - Pack_BoxWithNestedChildren_TranslatesChildrenRecursively
+
+      - id: Rendering-Layout-LayoutTreePacker-TranslatesWaypoints
+        title: >-
+          LayoutTreePacker shall translate every waypoint of a packed sub-tree's connector lines, and
+          the centre coordinate of every packed sub-tree's port, by that sub-tree's shelf offset.
+        justification: |
+          A connector line or port anchor left untranslated would visually detach from the boxes it
+          connects to once those boxes are shifted to their packed position.
+        tests:
+          - Pack_TreeWithLine_TranslatesEveryWaypoint
+          - Pack_TreeWithPort_TranslatesCentre
+
+      - id: Rendering-Layout-LayoutTreePacker-DegenerateCases
+        title: >-
+          LayoutTreePacker shall return a zero-size, empty tree for an empty list of sub-trees, and
+          shall return a single-tree list unchanged without any translation.
+        justification: |
+          An empty or single-tree input needs no packing at all; returning them unchanged avoids
+          needless translation work and guarantees a lone tree's coordinates are never perturbed.
+        tests:
+          - Pack_EmptyList_ReturnsEmptyTree
+          - Pack_SingleTree_ReturnsItUnchanged
+
+      - id: Rendering-Layout-LayoutTreePacker-UnsupportedNodeType
+        title: >-
+          LayoutTreePacker shall throw NotSupportedException when a sub-tree contains a LayoutNode
+          subtype outside the closed set (LayoutBox, LayoutLine, LayoutPort) the bundled leaf
+          algorithms are confirmed to emit, rather than silently skipping the unrecognized node.
+        justification: |
+          Silently leaving an unrecognized node's coordinates untranslated would place it at the wrong
+          (pre-pack) position with no visible sign of the error; failing loudly instead names the
+          offending type immediately, a deliberate divergence from the renderer's "skip unknown types"
+          convention since a packer (unlike a renderer) cannot partially succeed without corrupting
+          coordinates.
+        tests:
+          - Pack_UnrecognizedNodeType_ThrowsNotSupportedException
+
+      - id: Rendering-Layout-LayoutTreePacker-PreservesWarnings
+        title: >-
+          LayoutTreePacker shall preserve every packed sub-tree's Warnings in the combined tree.
+        justification: |
+          A leaf algorithm may report diagnostic warnings on its placed tree; discarding them during
+          packing would silently drop information a caller relies on for diagnosing layout issues.
+        tests:
+          - Pack_TreesWithWarnings_PreservesAllWarnings
+
+      - id: Rendering-Layout-LayoutTreePacker-Validation
+        title: >-
+          LayoutTreePacker shall reject a null trees argument with an argument-null error.
+        justification: |
+          Failing fast on a null argument prevents undefined behavior and surfaces caller errors at the
+          engine boundary.
+        tests:
+          - Pack_NullTrees_ThrowsArgumentNullException

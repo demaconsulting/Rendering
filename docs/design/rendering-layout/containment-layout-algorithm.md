@@ -36,8 +36,8 @@ followed by `LayoutLine` per routed edge).
    of their total area scaled by `CanvasAspectRatio`, widened to at least the widest box, and floored
    to a small positive value so the packer always receives a usable width — even for an empty graph.
 3. **Packing.** Calls `ContainmentLayout.Pack` with the leaf boxes and a `ContainmentOptions` using the
-   derived width and the connector-aware `NodeSpacing` on both axes, obtaining the packed boxes and the
-   enclosing region size.
+   derived width, the connector-aware `NodeSpacing` on both axes, and an `EdgeCounts` map (see below),
+   obtaining the packed boxes and the enclosing region size.
 4. **Connection building.** Builds one `Connection` per edge whose source and target are both top-level
    nodes — carrying the edge's `TargetEnd`, `LineStyle`, and `Label` — using the packed box that
    represents each endpoint. Edges referencing a node outside the graph's top-level nodes are skipped,
@@ -54,6 +54,22 @@ followed by `LayoutLine` per routed edge).
 
 An empty graph yields an empty `LayoutTree` with a positive-size canvas, because the packer returns a
 padding-only region for no children and no connections are routed.
+
+**Edge-count-aware horizontal gap widening.** Before packing, the algorithm builds the `EdgeCounts`
+map by reusing the same positional-index map recorded during leaf-box conversion: for every edge whose
+source and target are both top-level nodes (the same endpoints the connection-building step keeps), it
+increments the count for the unordered index pair `(min, max)`. Passing that map to the packer widens
+the horizontal gap between two peer boxes packed side by side on the same row to the connector-corridor
+width for their edge count — via the shared `EdgeCountGapWidener` helper, whose formula
+(`max(baseGap, 2·ConnectorClearance + (n − 1)·EdgeSpacing)`) mirrors the layered pipeline's
+`BrandesKopfPlacer` corridor sizing — so a fan of parallel connectors gets distinct lanes instead of
+crowding one channel. The widening is horizontal-only by deliberate design decision: the vertical gap
+between rows is left untouched so a `Source`-over-`Target` vertical stack (the arrangement of the
+existing `parallel-edges-into-compartment-box` gallery diagram) keeps byte-identical box positions,
+and the row-wrap decision itself uses the un-widened gap so no wrap point moves. The
+`containment-parallel-edges-side-by-side` gallery diagram (two tall, narrow peer boxes joined by eight
+parallel edges, sized so the packer places them on one row) is the reproduction scenario that exercises
+and visually demonstrates this widening.
 
 ### ContainmentLayoutAlgorithm Error Handling
 
@@ -72,6 +88,11 @@ skipped rather than treated as errors. All other behavior is inherited from the 
 - `ContainmentLayout` (same system) — packs the top-level boxes into rows within the derived width
   budget.
 - `ConnectorRouter` (same system) — routes the top-level connections around the packed boxes.
+- `EdgeCountGapWidener` (same system, internal engine helper) — supplies the shared connector-corridor
+  width formula the algorithm uses (through `ContainmentLayout`'s `EdgeCounts` map) to widen the
+  horizontal gap between same-row peer boxes; the same helper is reused by
+  `HierarchicalLayoutAlgorithm`'s sibling-container widening pass, keeping the three call sites'
+  spacing byte-identical.
 
 ### ContainmentLayoutAlgorithm Callers
 
@@ -96,3 +117,6 @@ routing, adapting their combined output to the public `ILayoutAlgorithm` contrac
 | Rendering-Layout-ContainmentAlgorithm-SkipsOutOfGraphEdges | ContainmentLayoutAlgorithm behavior described above |
 | Rendering-Layout-ContainmentAlgorithm-Validation | ContainmentLayoutAlgorithm behavior described above |
 | Rendering-Layout-ContainmentAlgorithm-HonorsScopeEdgeRouting | ContainmentLayoutAlgorithm behavior described above |
+| Rendering-Layout-ContainmentAlgorithm-EdgeCountGapWidening | ContainmentLayoutAlgorithm behavior described above |
+| Rendering-Layout-ContainmentAlgorithm-VerticalStackUnaffected | ContainmentLayoutAlgorithm behavior described above |
+| Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula | EdgeCountGapWidener helper described above |

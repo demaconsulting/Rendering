@@ -15,7 +15,9 @@ avoidance), and validation are all observed on production code paths.
 
 - **Framework**: xUnit v3 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
-- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs`.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs`, with the
+  shared corridor-width helper covered by
+  `test/DemaConsulting.Rendering.Layout.Tests/Engine/EdgeCountGapWidenerTests.cs`.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and `LayoutOptions` instances.
 - **Isolation**: each test builds its own inputs; the algorithm is stateless between calls.
@@ -55,6 +57,19 @@ behavior constitutes a failure.
   override carried on the graph itself is honored (routing still succeeds) even when the supplied
   options declares no routing style, mirroring `LayeredLayoutAlgorithm`'s graph-then-options resolution
   of `CoreOptions.Direction`.
+- **Edge-count gap widening** (`Rendering-Layout-ContainmentAlgorithm-EdgeCountGapWidening`):
+  `Apply_SameRowPeersWithParallelEdges_WidensGapPastNodeSpacing` confirms two peer boxes packed on the
+  same row and joined by many parallel edges are spread apart by more than the default node spacing.
+- **Vertical stack unaffected by gap widening**
+  (`Rendering-Layout-ContainmentAlgorithm-VerticalStackUnaffected`):
+  `Apply_VerticalStackWithParallelEdges_LeavesBoxPositionsUnchanged` confirms a vertically stacked
+  source-over-target pair keeps byte-identical box positions whether it carries nine edges or none,
+  proving the widening is horizontal-only.
+- **Corridor width formula** (`Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula`): the
+  `EdgeCountGapWidener` tests (`Widen_ManyConnectors_ReturnsCorridorWidth`, `Widen_TwoConnectors`,
+  `Widen_SingleConnector`, `Widen_ZeroConnectors`, `Widen_BaseGapExceedsCorridor`) confirm the shared
+  formula the algorithm feeds the packer returns the connector-corridor width and never shrinks the
+  supplied base gap.
 
 ### Requirements Coverage
 
@@ -74,3 +89,10 @@ behavior constitutes a failure.
   Apply_NullGraph_Throws, Apply_NullOptions_Throws
 - **`Rendering-Layout-ContainmentAlgorithm-HonorsScopeEdgeRouting`**:
   Apply_EdgeRoutingOverrideOnGraphScope_IsHonored
+- **`Rendering-Layout-ContainmentAlgorithm-EdgeCountGapWidening`**:
+  Apply_SameRowPeersWithParallelEdges_WidensGapPastNodeSpacing
+- **`Rendering-Layout-ContainmentAlgorithm-VerticalStackUnaffected`**:
+  Apply_VerticalStackWithParallelEdges_LeavesBoxPositionsUnchanged
+- **`Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula`**:
+  Widen_ManyConnectors_ReturnsCorridorWidth, Widen_TwoConnectors, Widen_SingleConnector,
+  Widen_ZeroConnectors, Widen_BaseGapExceedsCorridor

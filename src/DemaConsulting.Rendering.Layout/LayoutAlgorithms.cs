@@ -21,11 +21,12 @@ namespace DemaConsulting.Rendering.Layout;
 ///     the dependency direction intact (model &lt;- Abstractions &lt;- Layout).
 ///     </para>
 ///     <para>
-///     The returned registry contains the three bundled algorithms:
+///     The returned registry contains the four bundled algorithms:
 ///     <see cref="LayeredLayoutAlgorithm"/> (<c>layered</c>), <see cref="ContainmentLayoutAlgorithm"/>
-///     (<c>containment</c>), and <see cref="HierarchicalLayoutAlgorithm"/> (<c>hierarchical</c>). Each
-///     call returns a fresh, independently mutable registry, so a caller may register additional
-///     algorithms or replace a bundled one without affecting any other caller.
+///     (<c>containment</c>), <see cref="HierarchicalLayoutAlgorithm"/> (<c>hierarchical</c>), and
+///     <see cref="AutoLayoutAlgorithm"/> (<c>auto</c>). Each call returns a fresh, independently
+///     mutable registry, so a caller may register additional algorithms or replace a bundled one
+///     without affecting any other caller.
 ///     </para>
 /// </remarks>
 /// <example>
@@ -42,10 +43,11 @@ namespace DemaConsulting.Rendering.Layout;
 public static class LayoutAlgorithms
 {
     /// <summary>
-    /// Creates a <see cref="LayoutAlgorithmRegistry"/> populated with the three bundled layout
+    /// Creates a <see cref="LayoutAlgorithmRegistry"/> populated with the four bundled layout
     /// algorithms — <see cref="LayeredLayoutAlgorithm"/> (<c>layered</c>),
-    /// <see cref="ContainmentLayoutAlgorithm"/> (<c>containment</c>), and
-    /// <see cref="HierarchicalLayoutAlgorithm"/> (<c>hierarchical</c>).
+    /// <see cref="ContainmentLayoutAlgorithm"/> (<c>containment</c>),
+    /// <see cref="HierarchicalLayoutAlgorithm"/> (<c>hierarchical</c>), and
+    /// <see cref="AutoLayoutAlgorithm"/> (<c>auto</c>).
     /// </summary>
     /// <returns>
     /// A new registry from which each bundled algorithm resolves by its <see cref="LayoutAlgorithmBase.Id"/>.
@@ -55,5 +57,6 @@ public static class LayoutAlgorithms
         new LayoutAlgorithmRegistry()
             .Register(new LayeredLayoutAlgorithm())
             .Register(new ContainmentLayoutAlgorithm())
-            .Register(new HierarchicalLayoutAlgorithm());
+            .Register(new HierarchicalLayoutAlgorithm())
+            .Register(new AutoLayoutAlgorithm());
 }

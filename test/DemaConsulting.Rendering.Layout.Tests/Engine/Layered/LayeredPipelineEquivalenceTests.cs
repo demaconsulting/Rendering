@@ -14,8 +14,9 @@ namespace DemaConsulting.Rendering.Layout.Tests.Engine.Layered;
 ///     and the refactored <see cref="InterconnectionLayoutEngine"/> façade and asserts that every
 ///     field of the resulting <c>LayerResult</c> is bit-for-bit identical: rectangles, total
 ///     dimensions, node layers, and every connector waypoint. No numeric tolerance is allowed,
-///     except for the one documented, intentional divergence identified by
-///     <see cref="HasIsolatedNode"/> (the isolated-node layer-gap fix).
+///     except for the two documented, intentional divergences identified by
+///     <see cref="HasIsolatedNode"/> (the isolated-node layer-gap fix) and
+///     <see cref="HasMultipleComponents"/> (component-packing for disconnected graphs).
 /// </summary>
 public sealed class LayeredPipelineEquivalenceTests
 {
@@ -23,7 +24,8 @@ public sealed class LayeredPipelineEquivalenceTests
     ///     The pipeline reproduces the legacy engine exactly across two thousand pseudo-randomly
     ///     generated graphs spanning empty, disconnected, cyclic, parallel-edge, self-loop, and
     ///     long-edge topologies with varied node sizes, excluding the graphs the isolated-node
-    ///     layer-gap fix intentionally changes (see <see cref="HasIsolatedNode"/>).
+    ///     layer-gap fix (see <see cref="HasIsolatedNode"/>) and component packing (see
+    ///     <see cref="HasMultipleComponents"/>) intentionally change.
     /// </summary>
     [Fact]
     public void Pipeline_MatchesLegacyOracle_OnRandomGraphs()
@@ -32,7 +34,7 @@ public sealed class LayeredPipelineEquivalenceTests
         {
             var (nodes, edges) = BuildRandomGraph(seed);
 
-            // A genuinely isolated node (zero incident edges) is the one documented, intentional
+            // A genuinely isolated node (zero incident edges) is one documented, intentional
             // behavior divergence between the frozen legacy oracle and the refactored pipeline: the
             // legacy oracle still reproduces the isolated-node layer-gap bug (CrossingMinimizer's
             // barycenter sort falling back to the node's arbitrary index, and BrandesKopfPlacer's
@@ -43,6 +45,19 @@ public sealed class LayeredPipelineEquivalenceTests
             // See docs/reqstream/rendering-layout/engine/layered-pipeline.yaml for the requirement this
             // corresponds to.
             if (HasIsolatedNode(nodes, edges))
+            {
+                continue;
+            }
+
+            // A graph with two or more genuinely disconnected connected components is the second
+            // documented, intentional divergence: the refactored pipeline now routes every graph
+            // through ComponentPacker (see InterconnectionLayoutEngine.Place), which splits, lays out,
+            // and shelf-packs each component separately instead of stacking every component into one
+            // shared-layer column the way the frozen legacy oracle still does. See
+            // Place_DisconnectedComponents_PacksEachComponentSeparately for a direct test of the new
+            // behavior, and docs/reqstream/rendering-layout/engine/layered-pipeline.yaml for the
+            // requirement this corresponds to.
+            if (HasMultipleComponents(nodes, edges))
             {
                 continue;
             }
@@ -126,7 +141,10 @@ public sealed class LayeredPipelineEquivalenceTests
 
     /// <summary>
     ///     Canonical named topologies (chain, diamond, long edge, self loop, parallel edges,
-    ///     disconnected components, and a tight cycle) each produce identical results.
+    ///     and a tight cycle) each produce identical results. The "disconnected" topology is
+    ///     intentionally excluded here — see
+    ///     <see cref="Place_DisconnectedComponents_PacksEachComponentSeparately"/>, which asserts
+    ///     the new (intentionally divergent) component-packing behavior directly.
     /// </summary>
     /// <param name="name">A human-readable name for the topology, used in failure messages.</param>
     [Theory]
@@ -135,7 +153,6 @@ public sealed class LayeredPipelineEquivalenceTests
     [InlineData("longedge")]
     [InlineData("selfloop")]
     [InlineData("parallel")]
-    [InlineData("disconnected")]
     [InlineData("cycle")]
     public void Pipeline_MatchesLegacyOracle_OnNamedTopologies(string name)
     {
@@ -146,13 +163,72 @@ public sealed class LayeredPipelineEquivalenceTests
             "longedge" => (Sizes(4), Edges((0, 1), (1, 2), (2, 3), (0, 3))),
             "selfloop" => (Sizes(3), Edges((0, 0), (0, 1), (1, 2))),
             "parallel" => (Sizes(2), Edges((0, 1), (0, 1), (0, 1))),
-            "disconnected" => (Sizes(6), Edges((0, 1), (2, 3), (4, 5))),
             "cycle" => (Sizes(3), Edges((0, 1), (1, 2), (2, 0))),
             _ => (Sizes(0), Edges()),
         };
 
         AssertEquivalent(name, nodes, edges);
     }
+
+    /// <summary>
+    ///     A graph made of three disconnected 2-node pairs (the former "disconnected" named
+    ///     topology) now routes through <see cref="InterconnectionLayoutEngine.Place"/>'s
+    ///     component-packing behavior (see <see cref="ComponentPacker"/>): each pair is laid out as
+    ///     its own component and the three components are shelf-packed into non-overlapping
+    ///     bounding boxes, rather than being stacked into one shared-layer column the way the legacy
+    ///     oracle still does. This directly asserts the new, intentionally divergent behavior in
+    ///     place of the removed bit-for-bit comparison against the legacy oracle.
+    /// </summary>
+    [Fact]
+    public void Place_DisconnectedComponents_PacksEachComponentSeparately()
+    {
+        // Arrange: three independent 2-node pairs, no cross-pair edges.
+        var nodes = Sizes(6);
+        var edges = Edges((0, 1), (2, 3), (4, 5));
+
+        // Act.
+        var result = InterconnectionLayoutEngine.Place(nodes, edges);
+
+        // Assert: every pair's two boxes are placed (any incident edge was routed), and no two of the
+        // three pair bounding boxes overlap.
+        Assert.Equal(6, result.Rects.Count);
+
+        var pairs = new (int A, int B)[] { (0, 1), (2, 3), (4, 5) };
+        var boxes = pairs
+            .Select(pair => BoundingBoxOf(result.Rects[pair.A], result.Rects[pair.B]))
+            .ToList();
+
+        for (var a = 0; a < boxes.Count; a++)
+        {
+            for (var b = a + 1; b < boxes.Count; b++)
+            {
+                Assert.False(
+                    BoxesOverlap(boxes[a], boxes[b]),
+                    $"component bounding boxes {a} and {b} should not overlap");
+            }
+        }
+    }
+
+    /// <summary>Computes the bounding box that encloses two rectangles.</summary>
+    /// <param name="first">First rectangle.</param>
+    /// <param name="second">Second rectangle.</param>
+    /// <returns>The smallest rectangle containing both inputs.</returns>
+    private static Rect BoundingBoxOf(Rect first, Rect second)
+    {
+        var minX = Math.Min(first.X, second.X);
+        var minY = Math.Min(first.Y, second.Y);
+        var maxX = Math.Max(first.X + first.Width, second.X + second.Width);
+        var maxY = Math.Max(first.Y + first.Height, second.Y + second.Height);
+        return new Rect(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    /// <summary>Determines whether two rectangles overlap.</summary>
+    /// <param name="first">First rectangle.</param>
+    /// <param name="second">Second rectangle.</param>
+    /// <returns><see langword="true"/> if the two rectangles intersect.</returns>
+    private static bool BoxesOverlap(Rect first, Rect second) =>
+        first.X < second.X + second.Width && second.X < first.X + first.Width &&
+        first.Y < second.Y + second.Height && second.Y < first.Y + first.Height;
 
     /// <summary>Builds a list of uniformly sized nodes.</summary>
     private static List<LayerNode> Sizes(int count)
@@ -250,6 +326,63 @@ public sealed class LayeredPipelineEquivalenceTests
         }
 
         return false;
+    }
+
+    /// <summary>
+    ///     Returns whether the graph contains two or more genuinely disconnected connected
+    ///     components — computed independently via a small local union-find over the raw
+    ///     <paramref name="edges"/> list (self-loops are ignored, mirroring
+    ///     <see cref="ComponentPacker"/>'s own component-detection rule). A single node with no
+    ///     edges at all also counts as exactly one component (itself), so it is not, by itself,
+    ///     "multiple components" — only 2+ distinct components trigger the divergence. This is the
+    ///     second documented, intentional behavior divergence between the frozen legacy oracle and
+    ///     the refactored pipeline (component packing — see the remarks on
+    ///     <see cref="Pipeline_MatchesLegacyOracle_OnRandomGraphs"/>).
+    /// </summary>
+    /// <param name="nodes">The graph's nodes.</param>
+    /// <param name="edges">The graph's edges.</param>
+    /// <returns><see langword="true"/> if the graph has 2 or more connected components.</returns>
+    private static bool HasMultipleComponents(List<LayerNode> nodes, List<LayerEdge> edges)
+    {
+        var n = nodes.Count;
+        if (n <= 1)
+        {
+            return false;
+        }
+
+        var parent = new int[n];
+        for (var i = 0; i < n; i++)
+        {
+            parent[i] = i;
+        }
+
+        int Find(int node)
+        {
+            while (parent[node] != node)
+            {
+                node = parent[node];
+            }
+
+            return node;
+        }
+
+        foreach (var edge in edges.Where(edge => edge.Source != edge.Target))
+        {
+            var ra = Find(edge.Source);
+            var rb = Find(edge.Target);
+            if (ra != rb)
+            {
+                parent[ra] = rb;
+            }
+        }
+
+        var roots = new HashSet<int>();
+        for (var i = 0; i < n; i++)
+        {
+            roots.Add(Find(i));
+        }
+
+        return roots.Count > 1;
     }
 
     /// <summary>

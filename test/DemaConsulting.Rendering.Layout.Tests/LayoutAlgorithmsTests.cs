@@ -63,10 +63,26 @@ public sealed class LayoutAlgorithmsTests
     }
 
     /// <summary>
-    ///     Proves the default registry contains exactly the three bundled algorithm identifiers.
+    ///     Proves the default registry resolves the bundled auto meta-algorithm by its identifier.
     /// </summary>
     [Fact]
-    public void CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms()
+    public void CreateDefaultRegistry_ResolvesAutoAlgorithm()
+    {
+        // Arrange
+        var registry = LayoutAlgorithms.CreateDefaultRegistry();
+
+        // Act
+        var algorithm = registry.Resolve("auto");
+
+        // Assert
+        Assert.IsType<AutoLayoutAlgorithm>(algorithm);
+    }
+
+    /// <summary>
+    ///     Proves the default registry contains exactly the four bundled algorithm identifiers.
+    /// </summary>
+    [Fact]
+    public void CreateDefaultRegistry_RegistersOnlyTheFourBundledAlgorithms()
     {
         // Arrange
         var registry = LayoutAlgorithms.CreateDefaultRegistry();
@@ -75,7 +91,7 @@ public sealed class LayoutAlgorithmsTests
         var ids = registry.Ids.OrderBy(id => id, StringComparer.Ordinal).ToArray();
 
         // Assert
-        Assert.Equal(["containment", "hierarchical", "layered"], ids);
+        Assert.Equal(["auto", "containment", "hierarchical", "layered"], ids);
     }
 
     /// <summary>

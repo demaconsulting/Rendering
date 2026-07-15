@@ -89,6 +89,42 @@ sections:
         tests:
           - ContainmentOptions_Defaults_AreSensibleGapsAndPadding
 
+      - id: Rendering-Layout-ContainmentLayout-EdgeCountGapWidening
+        title: >-
+          ContainmentLayout shall widen the horizontal gap between two adjacent same-row child boxes to
+          the connector-corridor width for the edge count supplied for that pair through the optional
+          EdgeCounts lookup.
+        justification: |
+          A fan of parallel connectors routed through a fixed-width inter-box gap is crushed into one
+          narrow channel. Widening only the horizontal gap of the same-row pair the connectors fan
+          through — sizing it from the edge count with the same corridor formula the layered pipeline
+          uses between its columns — gives each connector a distinct lane.
+        tests:
+          - Pack_EdgeCounts_WidensIndicatedRowGap
+          - Pack_SameRowEdgeCount_WidensHorizontalGap
+
+      - id: Rendering-Layout-ContainmentLayout-EdgeCountGapWideningOptedOut
+        title: >-
+          ContainmentLayout shall leave placement byte-identical to the prior behaviour when no
+          EdgeCounts lookup is supplied (or a null lookup is supplied).
+        justification: |
+          The EdgeCounts lookup is an optional, additive parameter; existing callers that predate it, or
+          callers that explicitly pass a null lookup, must see unchanged geometry.
+        tests:
+          - Pack_WithoutEdgeCounts_UsesDefaultGap
+          - Pack_NullEdgeCounts_ByteIdenticalToNoCounts
+
+      - id: Rendering-Layout-ContainmentLayout-EdgeCountGapWideningRowScoped
+        title: >-
+          ContainmentLayout shall never widen a gap for a node pair the wrap decision splits across two
+          rows, regardless of the edge count supplied for that pair.
+        justification: |
+          The corridor-widening reservation only makes sense for a horizontal (same-row) gap; a pair
+          wrapped onto different rows has no shared horizontal gap to widen, and the wrap decision itself
+          must keep using the un-widened gap so existing wrap points stay unchanged.
+        tests:
+          - Pack_DifferentRowPair_Unaffected
+
       - id: Rendering-Layout-ContainmentLayout-Validation
         title: >-
           ContainmentLayout shall reject a null children list, a null options argument, or a null child

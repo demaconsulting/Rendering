@@ -16,9 +16,9 @@ extensible property system, and new algorithms, renderers, and options are added
 
 ## Features
 
-- **Pluggable layout algorithms** — layered (Sugiyama-style), containment packing, and a recursive
-  hierarchical engine for compound (nested-container) graphs, each selected through the open property
-  system.
+- **Pluggable layout algorithms** — layered (Sugiyama-style), containment packing, a recursive
+  hierarchical engine for compound (nested-container) graphs, and an auto-routing meta-algorithm that
+  picks the best fit per connected component, each selected through the open property system.
 - **Orthogonal edge routing** — axis-aligned connectors in all four flow directions, with obstacle
   avoidance around intervening containers.
 - **Named ports** — first-class, labelled attachment points on a node's boundary, including parallel
@@ -28,6 +28,28 @@ extensible property system, and new algorithms, renderers, and options are added
   nested children, with external and internal fan-out consolidated onto that single anchor.
 - **Multiple output formats** — SVG (zero external dependencies) plus PNG, JPEG, and WEBP via
   SkiaSharp, with light, dark, and print themes.
+
+## Algorithm capabilities
+
+The four bundled layout algorithms cover different concerns; pick `auto` when a diagram's shape is
+not known in advance, or select a leaf algorithm directly when it is. `auto` delegates every concern
+to whichever leaf algorithm it routes a component to, so its result is only as good as that leaf's own
+support for the row.
+
+| Concern | `layered` | `containment` | `hierarchical` | `auto` |
+| --- | --- | --- | --- | --- |
+| Horizontal gap widening by edge count | Yes | Yes | Yes | Delegates |
+| Vertical gap widening by edge count | Partial | No | No | Delegates |
+| Container auto-expansion | N/A | N/A | Yes | Delegates |
+| Port/label space reservation | Yes | No | Yes | Delegates |
+| Direction/orientation support | Yes | No | Yes | Delegates |
+| Connectivity/component awareness | Yes | No | Yes | Delegates |
+| Aspect-ratio/canvas-shape targeting | Partial | Yes | Partial | Delegates |
+| Nested/recursive containment handling | No | No | Yes | Delegates |
+
+See the [user guide][link-user-guide] for the full capability matrix with one-line reasons per cell,
+the `auto` delegation caveats, and guidance on when to call a specific algorithm directly instead of
+`auto`.
 
 ## Packages
 

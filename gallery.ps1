@@ -8,8 +8,10 @@
 #   On a normal build (build.ps1 / CI) those facts write to a throwaway directory
 #   and simply assert. This script points the RENDERING_GALLERY_DIR environment
 #   variable at the committed docs/gallery/ folder and runs ONLY the gallery
-#   project, so the same facts (re)write the committed SVG/PNG images and the
-#   browsable docs/gallery/README.md index.
+#   project, so the same facts (re)write the committed SVG/PNG images into their
+#   per-topology group subfolders (for example docs/gallery/flow-pipeline/) and
+#   regenerate the browsable docs/gallery/README.md top-level index plus each
+#   group's own docs/gallery/<group>/README.md page.
 #
 # USAGE:
 #   pwsh ./gallery.ps1

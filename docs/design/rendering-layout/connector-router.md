@@ -104,6 +104,16 @@ this is unreachable today because `Orthogonal` is the only enum value, but guard
 - **Engine subsystem** (`OrthogonalEdgeRouter` unit) — the internal orthogonal path-finding engine
   invoked by `RouteWithStatus` for the `EdgeRouting.Orthogonal` style. See _OrthogonalEdgeRouter Unit
   Design_.
+- **`NotationMetrics`** — the note-fold and folder-tab sizing constants (`NoteFoldFraction`,
+  `NoteFoldMaxSize`, `FolderTabMaxWidthFraction`, `FolderTabMinWidth`, `FolderLabelCharWidthFactor`)
+  consumed by `NoteGeometry` and `FolderGeometry` to compute each shape's connectable-extent cutouts
+  (the note's diagonal fold corner and the folder's top-edge tab).
+- **`Themes`** — `Themes.Light`'s `FontSizeBody` and `LabelPadding` feed `FolderGeometry`'s fallback
+  folder-tab width formula when a box does not supply its own `FolderTabWidth` hint, approximating the
+  tab width a themed folder label would need.
+- **`BoxMetrics`** — `BoxMetrics.FolderTabHeight(Themes.Light)` is `FolderGeometry`'s fallback folder-tab
+  height when a box does not supply its own `FolderTabHeight` hint, keeping the routing cutout consistent
+  with the renderer's own default folder-tab geometry.
 
 No OTS runtime component or shared package is consumed.
 

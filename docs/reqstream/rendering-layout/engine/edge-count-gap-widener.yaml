@@ -1,0 +1,46 @@
+---
+# DemaConsulting.Rendering.Layout - EdgeCountGapWidener Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the edge-count-gap-widener unit.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: EdgeCountGapWidener Requirements
+    requirements:
+      - id: Rendering-Layout-EdgeCountGapWidener-CorridorFormula
+        title: >-
+          EdgeCountGapWidener shall widen a base gap to at least a clearance on each side plus one
+          inter-connector spacing per gap between adjacent connectors, for a fan of two or more
+          parallel connectors.
+        justification: |
+          Both the containment packer and the hierarchical algorithm's sibling-widening pass need the
+          exact same corridor-width math the layered pipeline's BrandesKopfPlacer already uses between
+          adjacent columns, so a fan of parallel connectors routed through a shared gap always gets
+          distinct orthogonal lanes regardless of which call site widened the gap.
+        tests:
+          - Widen_ManyConnectors_ReturnsCorridorWidth
+          - Widen_TwoConnectors_ReturnsSingleSlotCorridor
+
+      - id: Rendering-Layout-EdgeCountGapWidener-DegenerateCases
+        title: >-
+          EdgeCountGapWidener shall return the base gap unchanged for an edge count of zero or one,
+          never narrowing it below the supplied value.
+        justification: |
+          A single connector (or none) needs no extra lane; narrowing the gap below the caller's
+          supplied base value would shrink spacing a caller already relies on, so every low-count
+          caller must keep its pre-existing spacing exactly.
+        tests:
+          - Widen_SingleConnector_ReturnsBaseGap
+          - Widen_ZeroConnectors_ReturnsBaseGap
+
+      - id: Rendering-Layout-EdgeCountGapWidener-NeverNarrows
+        title: >-
+          EdgeCountGapWidener shall never return a value smaller than the supplied base gap, even
+          when the computed corridor width is less than the base gap.
+        justification: |
+          The widener only ever adds room for a fan of connectors; a base gap already wide enough for
+          the corridor must be preserved so the helper cannot silently shrink spacing a caller has
+          already established for an unrelated reason.
+        tests:
+          - Widen_BaseGapExceedsCorridor_ReturnsBaseGap

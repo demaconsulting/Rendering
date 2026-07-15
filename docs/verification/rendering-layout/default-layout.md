@@ -37,10 +37,11 @@ null validation behavior constitutes a failure.
 
 - **Bundled algorithms** (`Rendering-Layout-DefaultRegistry-BundledAlgorithms`):
   `CreateDefaultRegistry_ResolvesLayeredAlgorithm`, `CreateDefaultRegistry_ResolvesContainmentAlgorithm`,
-  and `CreateDefaultRegistry_ResolvesHierarchicalAlgorithm` confirm each bundled algorithm resolves by
-  its identifier; `CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms` confirms exactly those
-  three identifiers are present; `CreateDefaultRegistry_ReturnsIndependentInstances` confirms registering
-  into one returned registry does not affect a registry from a separate call.
+  `CreateDefaultRegistry_ResolvesHierarchicalAlgorithm`, and `CreateDefaultRegistry_ResolvesAutoAlgorithm`
+  confirm each bundled algorithm resolves by its identifier;
+  `CreateDefaultRegistry_RegistersOnlyTheFourBundledAlgorithms` confirms exactly those four identifiers
+  are present; `CreateDefaultRegistry_ReturnsIndependentInstances` confirms registering into one
+  returned registry does not affect a registry from a separate call.
 - **Default algorithm** (`Rendering-Layout-LayoutEngine-DefaultAlgorithm`): `DefaultAlgorithmId_IsHierarchical`
   confirms the facade's declared default is `"hierarchical"`;
   `Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly` confirms an undeclared flat graph is
@@ -67,7 +68,8 @@ null validation behavior constitutes a failure.
 
 - **`Rendering-Layout-DefaultRegistry-BundledAlgorithms`**:
   CreateDefaultRegistry_ResolvesLayeredAlgorithm, CreateDefaultRegistry_ResolvesContainmentAlgorithm,
-  CreateDefaultRegistry_ResolvesHierarchicalAlgorithm, CreateDefaultRegistry_RegistersOnlyTheThreeBundledAlgorithms,
+  CreateDefaultRegistry_ResolvesHierarchicalAlgorithm, CreateDefaultRegistry_ResolvesAutoAlgorithm,
+  CreateDefaultRegistry_RegistersOnlyTheFourBundledAlgorithms,
   CreateDefaultRegistry_ReturnsIndependentInstances
 - **`Rendering-Layout-LayoutEngine-DefaultAlgorithm`**:
   DefaultAlgorithmId_IsHierarchical, Layout_FlatGraphNoAlgorithmDeclared_MatchesLayeredLeafExactly

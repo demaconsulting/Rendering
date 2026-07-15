@@ -527,7 +527,8 @@ same-face crowding (no port-spacing-by-width work):
   outward and inward faces of the same boundary point, respectively.
 
 - The gallery entry must be wired into `GalleryCatalog`/`GalleryIndex` like existing examples, so
-  it renders via `gallery.ps1` and appears in `docs/gallery/README.md`.
+  it renders via `gallery.ps1` and appears in the appropriate group's `docs/gallery/<group>/README.md`
+  page (or the top-level `docs/gallery/README.md` index if a new group is warranted).
 
 ## Unify all text rendering onto a single `LayoutLabel`/`LayoutText` primitive
 

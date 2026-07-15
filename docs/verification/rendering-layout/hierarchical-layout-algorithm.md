@@ -79,6 +79,8 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   third-level leaf chain. `Apply_ThreeLevelDirectionCascade_MidLevelOverrideTakesPrecedence` confirms a
   deeper, explicit override wins over an inherited ancestor value rather than the ancestor's value
   winning because it was set first or higher in the tree.
+- **Cascades to every CoreOptions property**
+  (`Rendering-Layout-HierarchicalLayout-CascadesAllProperties`):
   `Apply_ThreeLevelEdgeRoutingCascade_ReachesEveryLeafAlgorithmCall` uses a recording leaf-algorithm
   test double to confirm the cascaded effective options snapshot — including `CoreOptions.EdgeRouting`
   and an arbitrary custom marker property proving generality — actually reaches every leaf-algorithm
@@ -102,8 +104,10 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   container's boundary port resolves to exactly one `LayoutPort` anchor carrying both the external and
   internal labels on the container boundary, with both the external approach edge and the internal
   delegation connector reaching that one anchor.
+- **Boundary port fan consolidation** (`Rendering-Layout-HierarchicalLayout-BoundaryPortFanMerge`):
   `Apply_BoundaryPortFanOut_ResolvesToOneSharedAnchor` confirms external and internal fan-out (two
-  approach edges and two delegation edges) still consolidate onto one shared anchor, and
+  approach edges and two delegation edges) still consolidate onto one shared anchor.
+- **Independent boundary ports** (`Rendering-Layout-HierarchicalLayout-IndependentBoundaryPorts`):
   `Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors` confirms two independent boundary
   ports on one container each resolve to their own shared anchor.
   `Apply_TwoIndependentBoundaryPortsWithSharedNullExternalLabel_PreservesConnectorProvenance` and
@@ -112,6 +116,7 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   traced back to its own true external sibling and its internal connector to its own true child, with no
   cross-wiring, in the case (a shared or both-null `ExternalLabel`) that previously caused label-string
   matching to silently mis-associate the two ports' anchors.
+- **Boundary port orthogonal routing** (`Rendering-Layout-HierarchicalLayout-BoundaryPortOrthogonal`):
   Full-waypoint-shape regression is asserted by
   `MergeRegionDecomposer_FanIn_EveryConvergingEdge_IsStrictlyOrthogonalWithNoDirectDiagonal` and
   `MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal`, which
@@ -121,6 +126,22 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   extends this to a three-level delegation chain, confirming the whole chain reads as one connected,
   strictly orthogonal path from the outermost sibling down to the innermost leaf across both boundary
   crossings.
+- **Sibling-container gap widening** (`Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening`):
+  `Apply_SiblingContainersWithEightCrossEdges_WidensGapToCorridorWidth` confirms two side-by-side peer
+  containers joined by eight cross-container edges are spread apart to the shared connector-corridor
+  width (so the parallel fan gets distinct routing lanes).
+- **Sibling-container gap widening leaves single-edge pairs unaffected**
+  (`Rendering-Layout-HierarchicalLayout-SiblingContainerGapWideningSingleEdgeUnaffected`):
+  `Apply_SiblingContainersWithSingleCrossEdge_LeavesGapUnwidened` confirms a pair joined by a single
+  cross-container edge keeps the unwidened baseline gap.
+- **Sibling-container gap widening leaves the boundary-port path unaffected**
+  (`Rendering-Layout-HierarchicalLayout-SiblingGapWideningPortPathUnaffected`):
+  `HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange`
+  (the existing golden regression, exercising the no-boundary-port path with one cross-container edge)
+  continues to pass byte-identical, proving the pass is inert when no pair qualifies, and
+  `Apply_BoundaryPortWithParallelApproaches_ResolvesToOneSharedAnchorUnaffectedByWidening` confirms the
+  boundary-port path (where the widening is deliberately deferred) resolves its parallel approaches to
+  one shared anchor unaffected by the new pass.
 - **Boundary port edge throws** (`Rendering-Layout-HierarchicalLayout-BoundaryPortEdgeThrows`):
   `Apply_PortOnNonContainerCrossingIntoDifferentContainer_Throws` confirms a port owned by a plain
   (non-container) node with an edge straight into a different container's nested child — a
@@ -149,10 +170,18 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange
 - **`Rendering-Layout-HierarchicalLayout-CrossContainerEdge`**:
   Apply_CrossContainerEdge_RoutesAroundInterveningContainer
+- **`Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening`**:
+  Apply_SiblingContainersWithEightCrossEdges_WidensGapToCorridorWidth
+- **`Rendering-Layout-HierarchicalLayout-SiblingContainerGapWideningSingleEdgeUnaffected`**:
+  Apply_SiblingContainersWithSingleCrossEdge_LeavesGapUnwidened
+- **`Rendering-Layout-HierarchicalLayout-SiblingGapWideningPortPathUnaffected`**:
+  Apply_BoundaryPortWithParallelApproaches_ResolvesToOneSharedAnchorUnaffectedByWidening,
+  HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange
 - **`Rendering-Layout-HierarchicalLayout-CascadesOptions`**:
   Apply_ContainerWithDirectionOverride_HonorsNestedDirection,
   Apply_ThreeLevelDirectionCascade_InheritsThroughUnsetMiddleLevel,
-  Apply_ThreeLevelDirectionCascade_MidLevelOverrideTakesPrecedence,
+  Apply_ThreeLevelDirectionCascade_MidLevelOverrideTakesPrecedence
+- **`Rendering-Layout-HierarchicalLayout-CascadesAllProperties`**:
   Apply_ThreeLevelEdgeRoutingCascade_ReachesEveryLeafAlgorithmCall
 - **`Rendering-Layout-HierarchicalLayout-HonorsScopeEdgeRouting`**:
   Apply_CrossContainerEdge_HonorsScopeEdgeRoutingOverride
@@ -160,11 +189,14 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   Apply_SameScopePortEdge_WithUnrelatedContainerElsewhere_RoutesLikePortEdge,
   Apply_NestedContainerPortEdge_TranslatesPortIntoAncestorCoordinates
 - **`Rendering-Layout-HierarchicalLayout-BoundaryPortDelegation`**:
-  Apply_BoundaryPortWithExternalAndInternalEdges_EmitsOneSharedAnchorCarryingBothLabels,
-  Apply_BoundaryPortFanOut_ResolvesToOneSharedAnchor,
+  Apply_BoundaryPortWithExternalAndInternalEdges_EmitsOneSharedAnchorCarryingBothLabels
+- **`Rendering-Layout-HierarchicalLayout-BoundaryPortFanMerge`**:
+  Apply_BoundaryPortFanOut_ResolvesToOneSharedAnchor
+- **`Rendering-Layout-HierarchicalLayout-IndependentBoundaryPorts`**:
   Apply_TwoIndependentBoundaryPortsOnOneContainer_EmitsTwoAnchors,
   Apply_TwoIndependentBoundaryPortsWithSharedNullExternalLabel_PreservesConnectorProvenance,
-  Apply_TwoIndependentBoundaryPortsWithIdenticalExternalLabel_PreservesConnectorProvenance,
+  Apply_TwoIndependentBoundaryPortsWithIdenticalExternalLabel_PreservesConnectorProvenance
+- **`Rendering-Layout-HierarchicalLayout-BoundaryPortOrthogonal`**:
   MergeRegionDecomposer_FanIn_EveryConvergingEdge_IsStrictlyOrthogonalWithNoDirectDiagonal,
   MergeRegionDecomposer_FanOut_EveryDelegatedEdge_IsStrictlyOrthogonalWithNoDirectDiagonal,
   HierarchicalLayoutAlgorithm_ThreeLevelDelegationChain_EndToEnd_ProducesConnectedOrthogonalPath

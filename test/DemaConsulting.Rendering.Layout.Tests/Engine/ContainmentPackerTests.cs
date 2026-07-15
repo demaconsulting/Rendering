@@ -47,6 +47,18 @@ public sealed class ContainmentPackerTests
     }
 
     /// <summary>
+    ///     A null items argument throws ArgumentNullException rather than failing partway through the
+    ///     packing algorithm with a less specific exception.
+    /// </summary>
+    [Fact]
+    public void Pack_NullItems_ThrowsArgumentNullException()
+    {
+        // Act / Assert
+        Assert.Throws<ArgumentNullException>(
+            () => ContainmentPacker.Pack(null!, maxContentWidth: 200, horizontalGap: 5, verticalGap: 5, padding: 10));
+    }
+
+    /// <summary>
     ///     Items that fit within the max content width are placed on a single row sharing a Y.
     /// </summary>
     [Fact]
@@ -157,6 +169,85 @@ public sealed class ContainmentPackerTests
         // Assert: the oversized item wrapped to its own row and the region widened to contain it
         Assert.True(result.Rects[1].Y > result.Rects[0].Y);
         Assert.True(result.Width >= 320.0);
+    }
+
+    /// <summary>
+    ///     A per-pair edge count widens only the one horizontal gap between the two adjacent same-row
+    ///     items it names, spreading them apart by the connector-corridor width for that fan.
+    /// </summary>
+    [Fact]
+    public void Pack_SameRowEdgeCount_WidensHorizontalGap()
+    {
+        // Arrange: two 40-wide items that share a row, with eight connectors between them
+        var items = new[] { new PackItem(40, 20), new PackItem(40, 20) };
+        var edgeCounts = new Dictionary<(int First, int Second), int> { [(0, 1)] = 8 };
+
+        // Act: pack with and without the edge-count lookup
+        var widened = ContainmentPacker.Pack(
+            items, maxContentWidth: 400, horizontalGap: 5, verticalGap: 5, padding: 10, edgeCounts);
+        var plain = ContainmentPacker.Pack(
+            items, maxContentWidth: 400, horizontalGap: 5, verticalGap: 5, padding: 10);
+
+        // Assert: the second item is pushed right by the corridor width (2*10 + 7*16 = 132) beyond the
+        // base gap, so its X sits at padding + width + 132 rather than padding + width + baseGap.
+        Assert.Equal(10.0, widened.Rects[0].X);
+        Assert.Equal(10.0 + 40.0 + 132.0, widened.Rects[1].X);
+
+        // And the widened placement is strictly further right than the un-widened one.
+        Assert.True(widened.Rects[1].X > plain.Rects[1].X);
+    }
+
+    /// <summary>
+    ///     Supplying a <see langword="null"/> edge-count lookup produces byte-identical placement to a
+    ///     caller that supplied no lookup at all, guarding the backward-compatible default path.
+    /// </summary>
+    [Fact]
+    public void Pack_NullEdgeCounts_ByteIdenticalToNoCounts()
+    {
+        // Arrange: a mix that forces two rows so both axes are exercised
+        var items = new[]
+        {
+            new PackItem(60, 30), new PackItem(120, 20), new PackItem(40, 50), new PackItem(90, 25),
+        };
+
+        // Act: one call passes null explicitly, the other omits the argument
+        var withNull = ContainmentPacker.Pack(
+            items, maxContentWidth: 200, horizontalGap: 8, verticalGap: 8, padding: 12, edgeCounts: null);
+        var withoutArg = ContainmentPacker.Pack(
+            items, maxContentWidth: 200, horizontalGap: 8, verticalGap: 8, padding: 12);
+
+        // Assert: identical region and identical per-rectangle placement
+        Assert.Equal(withoutArg.Width, withNull.Width);
+        Assert.Equal(withoutArg.Height, withNull.Height);
+        for (var i = 0; i < withoutArg.Rects.Count; i++)
+        {
+            Assert.Equal(withoutArg.Rects[i].X, withNull.Rects[i].X);
+            Assert.Equal(withoutArg.Rects[i].Y, withNull.Rects[i].Y);
+        }
+    }
+
+    /// <summary>
+    ///     An edge count for a pair that the un-widened wrap decision splits across two rows never
+    ///     widens anything: the pair is no longer same-row, so placement matches the no-counts output.
+    /// </summary>
+    [Fact]
+    public void Pack_DifferentRowPair_Unaffected()
+    {
+        // Arrange: two 80-wide items with only 100 content width, so the second wraps to a new row
+        var items = new[] { new PackItem(80, 20), new PackItem(80, 20) };
+        var edgeCounts = new Dictionary<(int First, int Second), int> { [(0, 1)] = 8 };
+
+        // Act: the (0, 1) pair spans two rows, so its count must not apply
+        var widened = ContainmentPacker.Pack(
+            items, maxContentWidth: 100, horizontalGap: 5, verticalGap: 5, padding: 10, edgeCounts);
+        var plain = ContainmentPacker.Pack(
+            items, maxContentWidth: 100, horizontalGap: 5, verticalGap: 5, padding: 10);
+
+        // Assert: the wrapped item starts at the left origin in both cases, unmoved by the edge count
+        Assert.True(widened.Rects[1].Y > widened.Rects[0].Y);
+        Assert.Equal(plain.Rects[1].X, widened.Rects[1].X);
+        Assert.Equal(plain.Rects[1].Y, widened.Rects[1].Y);
+        Assert.Equal(plain.Width, widened.Width);
     }
 
     /// <summary>
