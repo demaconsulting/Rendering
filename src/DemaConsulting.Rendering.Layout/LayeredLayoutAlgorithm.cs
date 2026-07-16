@@ -130,17 +130,21 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         var nodeSpacing = ResolveNodeSpacing(graph, options);
         var mergeParallelEdges = ResolveMergeParallelEdges(graph, options);
 
-        // Count how many raw input edges share each (source, target) pair, so the final connector
-        // emission loop can tell whether an emitted line is a genuine single edge or the survivor of
-        // 2+ collapsed parallel edges. Only needed when MergeParallelEdges is true (when it is false,
-        // every edge is emitted independently and always keeps its own label). Independent of node
-        // sizes, so it is computed once and unaffected by the Fix 5 auto-grow re-pass below.
-        var pairCounts = new Dictionary<(int Source, int Target), int>();
+        // Count how many raw input edges share each node pair, so the final connector emission loop
+        // can tell whether an emitted line is a genuine single edge or the survivor of 2+ collapsed
+        // parallel edges. Keyed by the *undirected* pair (not the raw declared direction) because
+        // CycleBreaker's own merge/de-duplication normalizes direction (reversing cycle-causing back edges)
+        // before deciding which edges collapse together, so two edges declared as A->B and B->A can
+        // still collapse into a single survivor; grouping here must match that or this count silently
+        // misses direction-mixed parallel groups. Only needed when MergeParallelEdges is true (when it
+        // is false, every edge is emitted independently and always keeps its own label). Independent
+        // of node sizes, so it is computed once and unaffected by the Fix 5 auto-grow re-pass below.
+        var pairCounts = new Dictionary<(int Low, int High), int>();
         if (mergeParallelEdges)
         {
             foreach (var edge in engineEdges)
             {
-                var key = (edge.Source, edge.Target);
+                var key = (Math.Min(edge.Source, edge.Target), Math.Max(edge.Source, edge.Target));
                 pairCounts[key] = pairCounts.TryGetValue(key, out var existing) ? existing + 1 : 1;
             }
         }
@@ -168,9 +172,12 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
 
             // Build an engine-edge-index -> (waypoints, reversed) lookup from the acyclic edge set the
             // engine routed. When MergeParallelEdges is true, CycleBreaker has already collapsed
-            // parallel edges into a single acyclic edge per node pair, so only the surviving engine
-            // edge resolves here; the emission loop below independently skips the non-surviving
-            // duplicates using the same first-occurrence rule, so the two decisions always agree.
+            // parallel edges (including ones declared in opposite directions between the same node
+            // pair, which it normalizes via its own back-edge reversal before comparing) into a single
+            // acyclic edge per node pair, so only the surviving engine edge resolves here. The
+            // emission loop below treats "no entry in this dictionary" as the ground truth for "this
+            // edge was collapsed away", rather than re-deriving its own (necessarily direction-blind)
+            // duplicate rule, so the two stages can never disagree about which edges survived.
             var routes = new Dictionary<int, (IReadOnlyList<Point2D> Waypoints, bool Reversed)>();
             for (var k = 0; k < passResult.AcyclicEdges.Count; k++)
             {
@@ -183,7 +190,6 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             // Decide which edges are emitted (honoring MergeParallelEdges) and resolve each emitted
             // edge's normalized (source -> target) waypoints, so port sides/labels can be aggregated
             // per node before the boxes (which need the resulting content insets) are built.
-            var emittedPairsLocal = new HashSet<(int Source, int Target)>();
             var emissionsLocal = new List<(
                 LayoutGraphEdge Edge,
                 int Source,
@@ -197,7 +203,13 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 var s = engineEdges[i].Source;
                 var t = engineEdges[i].Target;
 
-                if (mergeParallelEdges && !emittedPairsLocal.Add((s, t)))
+                // A self-loop (s == t) is always dropped by CycleBreaker regardless of
+                // MergeParallelEdges, yet must still be emitted (via ResolveRoute's centre-to-centre
+                // fallback below) so the connector remains visible. A non-self-loop edge with no
+                // surviving route was genuinely collapsed into another parallel edge — possibly one
+                // declared in the opposite direction — by CycleBreaker's merge/de-duplication, so it is skipped
+                // here rather than falling back to a spurious straight line through both node centres.
+                if (mergeParallelEdges && s != t && !routes.ContainsKey(i))
                 {
                     continue;
                 }
@@ -542,7 +554,9 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         foreach (var emission in emissions)
         {
             var collapsed = mergeParallelEdges &&
-                pairCounts.TryGetValue((emission.Source, emission.Target), out var pairCount) &&
+                pairCounts.TryGetValue(
+                    (Math.Min(emission.Source, emission.Target), Math.Max(emission.Source, emission.Target)),
+                    out var pairCount) &&
                 pairCount > 1;
 
             nodes.Add(new LayoutLine(

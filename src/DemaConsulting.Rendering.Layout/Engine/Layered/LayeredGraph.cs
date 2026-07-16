@@ -184,6 +184,44 @@ internal sealed class LayeredGraph
     /// </remarks>
     public bool MergeParallelEdges { get; set; } = true;
 
+    /// <summary>
+    /// Creates a fresh child <see cref="LayeredGraph"/> for one connected component of
+    /// <paramref name="parent"/> (used by <see cref="ComponentPacker"/>), copying every caller-configured
+    /// input option — <see cref="BackEdgeEntryApproach"/>, <see cref="NodeSpacing"/>, and
+    /// <see cref="MergeParallelEdges"/> — from <paramref name="parent"/>, so a component sub-graph is
+    /// laid out under exactly the same caller-requested settings as the whole graph.
+    /// </summary>
+    /// <remarks>
+    /// This is the single place a component's child graph is assembled, specifically so a future caller
+    /// option never again has to be remembered at each construction call site: add the new property
+    /// next to the three above, add its copy line here, and
+    /// <c>LayeredGraphCreateChildTests.CreateChild_CopiesEveryKnownInputOption</c> (a reflection-driven
+    /// completeness test enumerating every public settable property on this class against a hardcoded
+    /// computed-output allowlist) will fail the build if the new property is left out of both this
+    /// method and that allowlist — it cannot be silently forgotten. This directly fixes a real bug where
+    /// <see cref="ComponentPacker"/> previously built each component's child graph inline and copied only
+    /// <see cref="BackEdgeEntryApproach"/>, silently losing a caller's <see cref="MergeParallelEdges"/> =
+    /// <see langword="false"/> (and <see cref="NodeSpacing"/>) override for any graph with 2+ connected
+    /// components.
+    /// </remarks>
+    /// <param name="nodes">The component's real nodes, remapped to dense local indices.</param>
+    /// <param name="edges">The component's edges, remapped to the same local indices.</param>
+    /// <param name="parent">The whole graph this component was split from.</param>
+    /// <returns>A fresh child graph carrying every one of <paramref name="parent"/>'s input options.</returns>
+    public static LayeredGraph CreateChild(
+        IReadOnlyList<LayerNode> nodes,
+        IReadOnlyList<LayerEdge> edges,
+        LayeredGraph parent)
+    {
+        ArgumentNullException.ThrowIfNull(parent);
+        return new LayeredGraph(nodes, edges, parent.Direction)
+        {
+            BackEdgeEntryApproach = parent.BackEdgeEntryApproach,
+            NodeSpacing = parent.NodeSpacing,
+            MergeParallelEdges = parent.MergeParallelEdges,
+        };
+    }
+
     /// <summary>Gets or sets the acyclic edge set after cycle breaking.</summary>
     public List<LayerEdge> Acyclic { get; set; } = [];
 
