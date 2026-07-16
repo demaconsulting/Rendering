@@ -61,6 +61,49 @@ public sealed class AutoLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that an empty graph that explicitly declares <see cref="CoreOptions.Algorithm"/> as
+    ///     <c>"auto"</c> (this engine's own <see cref="AutoLayoutAlgorithm.AlgorithmId"/>) resolves
+    ///     without recursing: previously, delegating straight to the internal
+    ///     <see cref="HierarchicalLayoutAlgorithm"/> instance for an empty graph would have that engine's
+    ///     own registry resolve <c>"auto"</c> back to this very <see cref="AutoLayoutAlgorithm"/>
+    ///     instance, which would see the same empty graph and recurse forever - a stack overflow that
+    ///     cannot be caught, confirmed by reproduction (process exit code <c>0xC00000FD</c>,
+    ///     <c>STATUS_STACK_OVERFLOW</c>) before this test's corresponding fix.
+    /// </summary>
+    [Fact]
+    public void Apply_EmptyGraph_ExplicitAutoAlgorithm_ReturnsEmptyTree()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "auto");
+
+        // Act
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+
+        // Assert
+        Assert.Empty(tree.Nodes.OfType<LayoutBox>());
+    }
+
+    /// <summary>
+    ///     Proves that an empty graph that explicitly declares <see cref="CoreOptions.Algorithm"/> as
+    ///     <c>"hierarchical"</c> (<see cref="HierarchicalLayoutAlgorithm.AlgorithmId"/>) also resolves
+    ///     without recursing, for the same self-referential reason as the <c>"auto"</c> case above.
+    /// </summary>
+    [Fact]
+    public void Apply_EmptyGraph_ExplicitHierarchicalAlgorithm_ReturnsEmptyTree()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "hierarchical");
+
+        // Act
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+
+        // Assert
+        Assert.Empty(tree.Nodes.OfType<LayoutBox>());
+    }
+
+    /// <summary>
     ///     Proves that a single fully-connected component routes entirely through the layered algorithm,
     ///     taking the zero-copy fast path (byte-identical to invoking <see cref="LayeredLayoutAlgorithm"/>
     ///     directly on the same graph).
