@@ -166,9 +166,30 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
         var count = nodes.Count;
         if (count == 0)
         {
-            // No top-level nodes: nothing to route or split. Hierarchical is a pure pass-through to its
-            // default leaf (layered) when no container is present, so this is equivalent to routing an
-            // empty graph through any bundled algorithm.
+            // No top-level nodes: nothing to route or split. Resolve the cascaded effective algorithm
+            // id ourselves before delegating anywhere: this engine's own registry resolves both "auto"
+            // (this engine's own AlgorithmId) and "hierarchical" (HierarchicalLayoutAlgorithm.AlgorithmId)
+            // back to this very instance (see the constructor remarks - needed so a nested container
+            // scope re-evaluates "auto" correctly), and an empty graph can never contain a container, so
+            // HierarchicalLayoutAlgorithm.LayoutScope would always take its flat fast path and call
+            // straight back into this same method with the same empty graph whenever the effective id is
+            // one of those two - an infinite mutual recursion that overflows the stack (a fault that
+            // cannot be caught, confirmed by reproduction). Rewriting the id in the options snapshot
+            // passed down cannot
+            // mask this: a graph's own explicit Algorithm override always wins over whatever is passed
+            // in as options (see PropertyHolder.OverlayOnto), so the trap would still fire on the very
+            // next call if the graph itself carries the override directly. Guard by short-circuiting
+            // straight to the default leaf (layered) here, before _hierarchical is ever consulted,
+            // whenever the effective id is self-referential; every other id - including a genuinely
+            // unknown one - still routes through _hierarchical.ApplyCore exactly as before, preserving
+            // its existing resolution behavior (and resolution-error behavior) unchanged.
+            var effectiveEmpty = graph.OverlayOnto(options);
+            var algorithmId = effectiveEmpty.Get(CoreOptions.Algorithm);
+            if (algorithmId is AlgorithmId or HierarchicalLayoutAlgorithm.AlgorithmId)
+            {
+                return _layered.ApplyCore(graph, effectiveEmpty);
+            }
+
             return _hierarchical.ApplyCore(graph, options);
         }
 
