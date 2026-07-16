@@ -669,6 +669,100 @@ public class LayeredLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Regression test for a bug where two edges declared in opposite directions between the same
+    ///     node pair (e.g. A-&gt;B and B-&gt;A), with the default <see cref="CoreOptions.MergeParallelEdges"/>
+    ///     (<see langword="true"/>), collapsed inconsistently: the engine's cycle-breaking stage
+    ///     normalizes direction (reversing cycle-causing back edges) before deciding which edges
+    ///     collapse together, so it correctly recognized the two edges as parallel and dropped one —
+    ///     but the emission loop's own duplicate rule compared the raw, un-normalized declared
+    ///     direction, so it did not recognize them as a collapsed pair and still tried to emit the
+    ///     dropped edge. That edge had no route computed for it, so it fell back to a raw straight
+    ///     line between the two node centres — cutting through both boxes instead of a proper
+    ///     orthogonal connector. Proves exactly one properly-anchored line survives instead.
+    /// </summary>
+    [Fact]
+    public void Apply_OppositeDirectionParallelEdges_MergeParallelEdgesDefaultTrue_CollapsesToOneProperlyRoutedLine()
+    {
+        // Arrange: two nodes joined by edges declared in opposite directions.
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 80, 40);
+        a.Label = "a";
+        var b = graph.AddNode("b", 80, 40);
+        b.Label = "b";
+        graph.AddEdge("e1", a, b);
+        graph.AddEdge("e2", b, a);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert: only one connector survives, and it is a genuinely-anchored route (not the
+        // centre-to-centre fallback used for an unresolved/dropped edge).
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        var boxA = boxes.Single(box => box.Label == "a");
+        var boxB = boxes.Single(box => box.Label == "b");
+        var centreA = new Point2D(boxA.X + (boxA.Width / 2.0), boxA.Y + (boxA.Height / 2.0));
+        var centreB = new Point2D(boxB.X + (boxB.Width / 2.0), boxB.Y + (boxB.Height / 2.0));
+        Assert.NotEqual(centreA, line.Waypoints[0]);
+        Assert.NotEqual(centreB, line.Waypoints[^1]);
+    }
+
+    /// <summary>
+    ///     Regression test for a bug where <see cref="CoreOptions.MergeParallelEdges"/> set to
+    ///     <see langword="false"/> was silently ignored for any node pair that ended up inside a
+    ///     connected component alongside 2+ total components: the internal engine's per-component
+    ///     packing stage built each component's child graph without propagating the caller's
+    ///     <c>MergeParallelEdges</c> override, so it silently reverted to the engine's own default
+    ///     (<see langword="true"/>) and collapsed the parallel edges anyway — leaving one of them with
+    ///     no computed route, which fell back to a crude straight line between the two node centres.
+    ///     Proves both parallel edges now survive as their own properly-routed, independently-labeled
+    ///     connectors even when an unrelated, entirely disconnected second component is also present.
+    /// </summary>
+    [Fact]
+    public void Apply_MergeParallelEdgesFalse_MultiComponentGraph_RetainsEveryParallelEdge()
+    {
+        // Arrange: two nodes {a,b} joined by two parallel edges (mirroring a "connect" +
+        // "dependency" pair between the same two boxes), plus an entirely unrelated, disconnected
+        // pair {c,d} forming a second connected component so the multi-component packing path runs.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, false);
+
+        var a = graph.AddNode("a", 80, 40);
+        a.Label = "a";
+        var b = graph.AddNode("b", 80, 40);
+        b.Label = "b";
+        graph.AddEdge("connect", a, b).Label = "connect";
+        graph.AddEdge("dependency", a, b).Label = "dependency";
+
+        var c = graph.AddNode("c", 80, 40);
+        var d = graph.AddNode("d", 80, 40);
+        graph.AddEdge("cd", c, d);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert: both parallel edges between a and b survive, each keeping its own label, and
+        // neither degenerates to the centre-to-centre fallback used for an unresolved/dropped edge.
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        var boxA = boxes.Single(box => box.Label == "a");
+        var boxB = boxes.Single(box => box.Label == "b");
+        var centreA = new Point2D(boxA.X + (boxA.Width / 2.0), boxA.Y + (boxA.Height / 2.0));
+        var centreB = new Point2D(boxB.X + (boxB.Width / 2.0), boxB.Y + (boxB.Height / 2.0));
+
+        var abLines = tree.Nodes.OfType<LayoutLine>()
+            .Where(l => l.MidpointLabel is "connect" or "dependency")
+            .ToList();
+        Assert.Equal(2, abLines.Count);
+        Assert.Equal(["connect", "dependency"], abLines.Select(l => l.MidpointLabel).OrderBy(l => l).ToList());
+
+        foreach (var line in abLines)
+        {
+            Assert.NotEqual(centreA, line.Waypoints[0]);
+            Assert.NotEqual(centreB, line.Waypoints[^1]);
+        }
+    }
+
+    /// <summary>
     ///     Proves that a per-graph <see cref="CoreOptions.MergeParallelEdges"/> override wins over an
     ///     options-scope value, consistent with every other resolved option in this algorithm.
     /// </summary>

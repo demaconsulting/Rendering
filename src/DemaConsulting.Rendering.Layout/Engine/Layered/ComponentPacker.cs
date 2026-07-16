@@ -364,13 +364,11 @@ internal sealed class ComponentPacker : ILayoutStage
             }
         }
 
-        // Lay out the component sub-graph with the wrapped inner stages. Propagate the parent's
-        // BackEdgeEntryApproach so a caller-customized reversed-edge clearance is honored for packed
-        // disconnected components instead of silently reverting to the LayeredGraph default.
-        var child = new LayeredGraph(localNodes, localEdges, graph.Direction)
-        {
-            BackEdgeEntryApproach = graph.BackEdgeEntryApproach,
-        };
+        // Lay out the component sub-graph with the wrapped inner stages. LayeredGraph.CreateChild
+        // copies every one of the parent's caller-configured input options (BackEdgeEntryApproach,
+        // NodeSpacing, MergeParallelEdges) in one place, so a component sub-graph is never laid out
+        // under silently-reverted-to-default settings.
+        var child = LayeredGraph.CreateChild(localNodes, localEdges, graph);
         RunInner(child);
 
         // Map the child's acyclic edges (local indices) back to original node indices so the merged

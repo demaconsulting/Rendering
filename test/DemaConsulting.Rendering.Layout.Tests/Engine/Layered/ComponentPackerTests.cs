@@ -112,6 +112,47 @@ public sealed class ComponentPackerTests
         }
     }
 
+    /// <summary>
+    ///     Regression test for a bug where a component's per-connected-component child graph (built by
+    ///     <see cref="ComponentPacker"/> when the input graph splits into 2+ connected components) was
+    ///     constructed inline and silently forgot to copy the parent's <see cref="LayeredGraph.MergeParallelEdges"/>
+    ///     (and <see cref="LayeredGraph.NodeSpacing"/>) override, so each component's child graph
+    ///     silently reverted to the <see cref="LayeredGraph"/> defaults regardless of what the caller
+    ///     requested on the parent. With <c>MergeParallelEdges = false</c> requested on the parent, two
+    ///     parallel edges within one component used to collapse down to one acyclic edge inside that
+    ///     component's child graph (as if merging had been requested), silently dropping the second
+    ///     edge's route entirely and leaving it to a crude fallback line at the outer
+    ///     <c>LayeredLayoutAlgorithm</c> layer. Proves both parallel edges now survive as their own
+    ///     acyclic entries even when a second, entirely disconnected component forces the multi-component
+    ///     packing path.
+    /// </summary>
+    [Fact]
+    public void ComponentPacker_Apply_MergeParallelEdgesFalse_MultiComponentGraph_RetainsEveryParallelEdge()
+    {
+        // Arrange: two nodes {0,1} joined by two parallel edges, plus an entirely disconnected pair
+        // {2,3} forming a second connected component, so the multi-component packing path runs.
+        var nodes = new List<LayerNode>
+        {
+            new(NodeWidth, NodeHeight),
+            new(NodeWidth, NodeHeight),
+            new(NodeWidth, NodeHeight),
+            new(NodeWidth, NodeHeight),
+        };
+        var edges = new List<LayerEdge> { new(0, 1), new(0, 1), new(2, 3) };
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right) { MergeParallelEdges = false };
+
+        // Act.
+        ComponentPacker.WithDefaultStages().Apply(graph);
+
+        // Assert: both parallel edges between nodes 0 and 1 survived as their own acyclic entries
+        // (original edge indices 0 and 1), each with a route computed — not collapsed to one.
+        var parallelEdgeOriginalIndices = graph.AcyclicOriginalIndex
+            .Where(idx => idx is 0 or 1)
+            .OrderBy(idx => idx)
+            .ToList();
+        Assert.Equal([0, 1], parallelEdgeOriginalIndices);
+    }
+
     /// <summary>An empty graph is laid out as a no-op without throwing.</summary>
     [Fact]
     public void ComponentPacker_Apply_EmptyGraph_IsNoOp()
