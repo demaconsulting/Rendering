@@ -377,6 +377,141 @@ public sealed class ContainmentLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves <see cref="ContainmentLayoutAlgorithm.ComputeColumnEstimateWeight"/> returns full
+    ///     weight (<c>1.0</c>) at and below the full-weight ratio, including the boundary value itself.
+    /// </summary>
+    [Theory]
+    [InlineData(1.0)]
+    [InlineData(1.5)]
+    [InlineData(2.0)]
+    public void ComputeColumnEstimateWeight_AtOrBelowFullWeightRatio_ReturnsOne(double sizeRatio)
+    {
+        // Act / Assert
+        Assert.Equal(1.0, ContainmentLayoutAlgorithm.ComputeColumnEstimateWeight(sizeRatio));
+    }
+
+    /// <summary>
+    ///     Proves <see cref="ContainmentLayoutAlgorithm.ComputeColumnEstimateWeight"/> returns zero
+    ///     weight at and above the zero-weight ratio, including the boundary value itself.
+    /// </summary>
+    [Theory]
+    [InlineData(6.0)]
+    [InlineData(10.0)]
+    [InlineData(100.0)]
+    public void ComputeColumnEstimateWeight_AtOrAboveZeroWeightRatio_ReturnsZero(double sizeRatio)
+    {
+        // Act / Assert
+        Assert.Equal(0.0, ContainmentLayoutAlgorithm.ComputeColumnEstimateWeight(sizeRatio));
+    }
+
+    /// <summary>
+    ///     Proves <see cref="ContainmentLayoutAlgorithm.ComputeColumnEstimateWeight"/> interpolates
+    ///     linearly between the full-weight and zero-weight ratios, rather than snapping abruptly from
+    ///     one to the other.
+    /// </summary>
+    [Theory]
+    [InlineData(3.0, 0.75)]
+    [InlineData(4.0, 0.5)]
+    [InlineData(5.0, 0.25)]
+    public void ComputeColumnEstimateWeight_BetweenBounds_InterpolatesLinearly(double sizeRatio, double expectedWeight)
+    {
+        // Act / Assert
+        Assert.Equal(expectedWeight, ContainmentLayoutAlgorithm.ComputeColumnEstimateWeight(sizeRatio), precision: 9);
+    }
+
+    /// <summary>
+    ///     Regression guard for the reported bug: a ratio just above the old hard cutoff of 2.0 (for
+    ///     example 2.08, matching a real 9-box set with widths 168–351px) previously disabled the
+    ///     column-count-based estimate entirely, collapsing a balanced multi-column grid into a single
+    ///     degenerate column. With the graduated falloff, a ratio this close to the old cutoff still
+    ///     carries substantial weight rather than dropping to zero.
+    /// </summary>
+    [Fact]
+    public void ComputeColumnEstimateWeight_JustAboveOldCutoff_StillContributesSubstantialWeight()
+    {
+        // Act
+        var weight = ContainmentLayoutAlgorithm.ComputeColumnEstimateWeight(2.08);
+
+        // Assert: under the old all-or-nothing cutoff this would have been exactly 0.0.
+        Assert.True(weight > 0.9, $"Expected substantial weight just above the old cutoff, got {weight}.");
+    }
+
+    /// <summary>
+    ///     Proves <see cref="ContainmentLayoutAlgorithm.ComputeContentWidth"/> widens the content budget
+    ///     past the plain area-based/widest-box floor when box sizes are reasonably uniform (full
+    ///     weight), and that the widened result strictly decreases as size variance grows through the
+    ///     graduated falloff range, converging on the un-widened floor once variance reaches the
+    ///     zero-weight ratio — proving the estimate's contribution actually scales with uniformity
+    ///     rather than jumping between two fixed states.
+    /// </summary>
+    [Fact]
+    public void ComputeContentWidth_IncreasingSizeVariance_MonotonicallyReducesColumnEstimateContribution()
+    {
+        // Arrange: nine boxes - eight fixed "wide" boxes (300px) that set the widest-box floor, plus one
+        // "narrow" box whose width is dialed down to move the width ratio (widest/narrowest) through the
+        // full-weight (2.0), partial-weight (4.0), and zero-weight (6.0) boundaries while the widest box
+        // (and hence the area-based/widest-box floor) stays essentially constant.
+        static IReadOnlyList<LayoutBox> BuildBoxes(double narrowWidth)
+        {
+            var boxes = new List<LayoutBox>();
+            for (var i = 0; i < 8; i++)
+            {
+                boxes.Add(new LayoutBox(0, 0, 300, 40, $"n{i}", 0, BoxShape.Rectangle, [], []));
+            }
+
+            boxes.Add(new LayoutBox(0, 0, narrowWidth, 40, "narrow", 0, BoxShape.Rectangle, [], []));
+            return boxes;
+        }
+
+        // Act: compute content width at full weight (ratio 2.0), partial weight (ratio 4.0), and the
+        // zero-weight boundary (ratio 6.0).
+        var fullWeightWidth = ContainmentLayoutAlgorithm.ComputeContentWidth(BuildBoxes(150));
+        var partialWeightWidth = ContainmentLayoutAlgorithm.ComputeContentWidth(BuildBoxes(75));
+        var zeroWeightBoxes = BuildBoxes(50);
+        var zeroWeightWidth = ContainmentLayoutAlgorithm.ComputeContentWidth(zeroWeightBoxes);
+
+        // Assert: strictly decreasing contribution as variance grows.
+        Assert.True(fullWeightWidth > partialWeightWidth, "Expected full weight to widen more than partial weight.");
+        Assert.True(partialWeightWidth > zeroWeightWidth, "Expected partial weight to widen more than zero weight.");
+
+        // At the zero-weight boundary the column estimate contributes nothing, so the result must equal
+        // the plain widest-box/area-based floor with no column-estimate term at all.
+        var widest = zeroWeightBoxes.Max(box => box.Width);
+        var totalArea = zeroWeightBoxes.Sum(box => box.Width * box.Height);
+        var floor = Math.Max(widest, Math.Sqrt(totalArea * (4.0 / 3.0)));
+        Assert.Equal(floor, zeroWeightWidth, precision: 6);
+    }
+
+    /// <summary>
+    ///     End-to-end regression test for the reported bug: nine boxes shaped after a real repro (widths
+    ///     spanning 168–351px, a ratio of ~2.08 — barely over the old hard 2.0 cutoff) must still wrap
+    ///     into a balanced multi-column grid rather than collapse into one long column.
+    /// </summary>
+    [Fact]
+    public void Apply_NineBoxesJustAboveOldCutoffRatio_PacksIntoMultipleColumns()
+    {
+        // Arrange: nine boxes with widths spanning 168-351px (ratio 351/168 ≈ 2.09), uniform height.
+        var widths = new[] { 168, 351, 210, 240, 190, 300, 220, 260, 200 };
+        var graph = new LayoutGraph();
+        for (var i = 0; i < widths.Length; i++)
+        {
+            graph.AddNode($"n{i}", widths[i], 40).Label = $"N{i}";
+        }
+
+        // Act
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert: the boxes span more than one row and more than one column, instead of one long column.
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        Assert.Equal(widths.Length, boxes.Count);
+        var distinctRows = boxes.Select(box => box.Y).Distinct().Count();
+        Assert.True(distinctRows > 1, $"Expected multiple rows, but all {boxes.Count} boxes landed on {distinctRows} row(s).");
+
+        var distinctColumns = boxes.Select(box => box.X).Distinct().Count();
+        Assert.True(distinctColumns > 1, $"Expected multiple columns, but all {boxes.Count} boxes landed on {distinctColumns} column(s).");
+    }
+
+    /// <summary>
     ///     Determines whether two boxes overlap with a positive-area intersection.
     /// </summary>
     private static bool Overlaps(LayoutBox a, LayoutBox b) =>

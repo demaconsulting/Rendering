@@ -100,14 +100,32 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
     private const int MinBoxesForColumnEstimate = 6;
 
     /// <summary>
-    /// Maximum allowed ratio between the largest and smallest box width (and separately height) for the
-    /// column-count-based width candidate to apply. The motivating scenario for that candidate is many
-    /// boxes that are each individually wide-but-short and roughly uniform in size (for example a row of
-    /// small labelled tiles); when box sizes vary widely — as with a couple of very differently sized
-    /// boxes — the average width used by the estimate is not representative of any single box, so the
-    /// candidate is skipped rather than risk widening the budget for a shape it was not designed for.
+    /// Largest-to-smallest box-size ratio (width, and separately height) at or below which the
+    /// column-count-based width candidate (see <see cref="ComputeContentWidth"/>) applies at full
+    /// weight. The motivating scenario for that candidate is many boxes that are each individually
+    /// wide-but-short and roughly uniform in size (for example a row of small labelled tiles); at or
+    /// below this ratio, box sizes are considered uniform enough that the averaged width used by the
+    /// estimate is representative of every box, so the candidate contributes its full computed width.
+    /// Above this ratio the candidate's weight falls off smoothly toward zero, rather than being cut
+    /// off abruptly, up to <see cref="ColumnEstimateZeroWeightSizeRatio"/> (see
+    /// <see cref="ComputeColumnEstimateWeight"/>).
     /// </summary>
-    private const double MaxColumnEstimateSizeRatio = 2.0;
+    private const double ColumnEstimateFullWeightSizeRatio = 2.0;
+
+    /// <summary>
+    /// Largest-to-smallest box-size ratio (width, and separately height) at or above which the
+    /// column-count-based width candidate (see <see cref="ComputeContentWidth"/>) contributes nothing.
+    /// The motivating scenario for suppressing the candidate entirely is a genuinely pathological mix —
+    /// a couple of very differently sized boxes (for example one much taller than the other) among many
+    /// small ones — where the averaged width is not representative of any single box and legitimately
+    /// wants to stack in a single column instead of being forced into a wider grid. Ratios between
+    /// <see cref="ColumnEstimateFullWeightSizeRatio"/> and this value scale the candidate's weight down
+    /// linearly rather than snapping straight from full weight to none, since ordinary box sets — for
+    /// example differently-named peer boxes whose label lengths alone routinely push the ratio just over
+    /// 2 — should still benefit from most of the candidate's widening rather than losing all of it at an
+    /// arbitrary cliff.
+    /// </summary>
+    private const double ColumnEstimateZeroWeightSizeRatio = 6.0;
 
     /// <inheritdoc/>
     public override string Id => AlgorithmId;
@@ -244,14 +262,18 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
     ///     the balanced, roughly-square block of columns the 4:3 landscape bias intends. This candidate
     ///     is strictly additive — combined via <c>Math.Max</c>, so it only ever widens, never narrows,
     ///     the chosen budget. It is only considered when there are at least
-    ///     <see cref="MinBoxesForColumnEstimate"/> boxes that are reasonably uniform in width and height
-    ///     (see <see cref="MaxColumnEstimateSizeRatio"/>): a handful of very differently sized boxes —
-    ///     for example two boxes where one is much taller than the other — legitimately wants to stack
-    ///     in a single column, and neither the box count nor the averaged width used by the estimate is
-    ///     representative of that shape, so the candidate is skipped and the area-based <c>target</c>
-    ///     (widened only to the widest box) governs instead.
+    ///     <see cref="MinBoxesForColumnEstimate"/> boxes, and its contribution is scaled by
+    ///     <see cref="ComputeColumnEstimateWeight"/> — full weight when box widths and heights are
+    ///     reasonably uniform, falling off smoothly (rather than an abrupt cliff) as they diverge, and
+    ///     zero once they diverge enough that the averaged width is no longer representative of any
+    ///     single box (a few large outlier boxes mixed with many small ones, where the candidate's
+    ///     underlying premise breaks down). Because the risk is asymmetric — applying the estimate too
+    ///     liberally costs at most some extra whitespace, since <c>Math.Max</c> can only widen the
+    ///     result, while suppressing it entirely for an ordinary, moderately-varied box set collapses a
+    ///     balanced grid into a single degenerate column — the falloff favors keeping most of the
+    ///     estimate's contribution well past the point a hard cutoff would have discarded it outright.
     /// </remarks>
-    private static double ComputeContentWidth(IReadOnlyList<LayoutBox> boxes)
+    internal static double ComputeContentWidth(IReadOnlyList<LayoutBox> boxes)
     {
         var totalArea = 0.0;
         var totalWidth = 0.0;
@@ -274,20 +296,81 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
         // A column-count estimate (columns = ceil(sqrt(n))) sized from each box's own average width,
         // rather than the total area, so a set of many small but wide boxes still wraps into a
         // balanced grid of columns instead of one narrow column. Only considered when there are enough
-        // boxes for multi-column packing to plausibly make sense, and when the boxes are reasonably
-        // uniform in size — otherwise the average width is not representative of any single box, and a
-        // small handful of very differently sized boxes (for example one much taller than the other)
-        // should be free to stack in a single column instead.
+        // boxes for multi-column packing to plausibly make sense; its contribution is then scaled by
+        // ComputeColumnEstimateWeight rather than gated all-or-nothing, so ordinary size variance (for
+        // example label-length-driven width differences) does not throw away the whole estimate.
         var columnBasedWidth = 0.0;
-        if (boxes.Count >= MinBoxesForColumnEstimate &&
-            widest / minWidth <= MaxColumnEstimateSizeRatio &&
-            maxHeight / minHeight <= MaxColumnEstimateSizeRatio)
+        if (boxes.Count >= MinBoxesForColumnEstimate)
         {
-            var columns = (int)Math.Ceiling(Math.Sqrt(boxes.Count));
-            var averageWidth = totalWidth / boxes.Count;
-            columnBasedWidth = (columns * averageWidth) + ((columns - 1) * NodeSpacing);
+            var widthRatio = ComputeSizeRatio(widest, minWidth);
+            var heightRatio = ComputeSizeRatio(maxHeight, minHeight);
+            var weight = ComputeColumnEstimateWeight(Math.Max(widthRatio, heightRatio));
+            if (weight > 0.0)
+            {
+                var columns = (int)Math.Ceiling(Math.Sqrt(boxes.Count));
+                var averageWidth = totalWidth / boxes.Count;
+                var rawColumnBasedWidth = (columns * averageWidth) + ((columns - 1) * NodeSpacing);
+                columnBasedWidth = weight * rawColumnBasedWidth;
+            }
         }
 
         return Math.Max(Math.Max(Math.Max(widest, target), columnBasedWidth), MinContentWidth);
+    }
+
+    /// <summary>
+    /// Computes the largest-to-smallest ratio of a box dimension (width, or separately height), treating
+    /// a zero-or-negative smallest value as a special case rather than dividing by it: a
+    /// <paramref name="smallest"/> of zero alongside a positive <paramref name="largest"/> is maximally
+    /// non-uniform (returns <see cref="double.PositiveInfinity"/>, so <see cref="ComputeColumnEstimateWeight"/>
+    /// yields zero weight), while both being zero is treated as perfectly uniform (returns
+    /// <c>1.0</c>) rather than the indeterminate <c>0/0</c>.
+    /// </summary>
+    /// <param name="largest">The largest observed value for the dimension.</param>
+    /// <param name="smallest">The smallest observed value for the dimension.</param>
+    /// <returns>The largest-to-smallest ratio, or a substitute value for the degenerate zero cases.</returns>
+    private static double ComputeSizeRatio(double largest, double smallest)
+    {
+        if (smallest <= 0.0)
+        {
+            return largest <= 0.0 ? 1.0 : double.PositiveInfinity;
+        }
+
+        return largest / smallest;
+    }
+
+    /// <summary>
+    /// Scales the column-count-based width candidate's contribution by how uniform the packed boxes are
+    /// in size, replacing a hard on/off cutoff with a graduated falloff. Returns <c>1.0</c> (full weight)
+    /// at or below <see cref="ColumnEstimateFullWeightSizeRatio"/>, <c>0.0</c> (no contribution) at or
+    /// above <see cref="ColumnEstimateZeroWeightSizeRatio"/>, and linearly interpolates between those two
+    /// bounds for a ratio in between. A single hard cutoff at <see cref="ColumnEstimateFullWeightSizeRatio"/>
+    /// (the candidate's original behavior) disabled the estimate entirely for box sets only marginally
+    /// over the threshold — for example ordinary, differently-labelled peer boxes whose width variance
+    /// alone often exceeds a 2x ratio — collapsing what should be a balanced multi-column grid into a
+    /// single degenerate column. Because the candidate can only ever widen the final budget (it is
+    /// combined via <c>Math.Max</c> in <see cref="ComputeContentWidth"/>), over-applying it costs at most
+    /// some extra whitespace, while under-applying it has no bound on how degenerate the resulting
+    /// layout gets — so the falloff is deliberately generous, keeping substantial weight well past the
+    /// old cutoff.
+    /// </summary>
+    /// <param name="sizeRatio">
+    /// The largest-to-smallest size ratio to weight, typically the greater of the width ratio and the
+    /// height ratio so either axis being non-uniform reduces the candidate's contribution.
+    /// </param>
+    /// <returns>A weight in the closed range <c>[0.0, 1.0]</c> to scale the column-count-based candidate by.</returns>
+    internal static double ComputeColumnEstimateWeight(double sizeRatio)
+    {
+        if (sizeRatio <= ColumnEstimateFullWeightSizeRatio)
+        {
+            return 1.0;
+        }
+
+        if (sizeRatio >= ColumnEstimateZeroWeightSizeRatio)
+        {
+            return 0.0;
+        }
+
+        return (ColumnEstimateZeroWeightSizeRatio - sizeRatio) /
+            (ColumnEstimateZeroWeightSizeRatio - ColumnEstimateFullWeightSizeRatio);
     }
 }
