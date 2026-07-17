@@ -271,6 +271,22 @@ internal static class InterconnectionLayoutEngine
         var totalWidth = transposed ? crossTotal : alongTotal;
         var totalHeight = transposed ? alongTotal : crossTotal;
 
+        // The node-rect-only extents above assume every layer's routing corridor fits within the gap
+        // the placement stages budgeted for it. That assumption does not always hold — for example a
+        // reversed (back) edge's wrap-around approach (LayeredCorridorRouter.BackEdgeEntryApproach) can
+        // route a bend point beyond the last node's far edge. Rather than trying to enumerate every
+        // stage that can push a waypoint outside the node-derived bounds, widen the canvas directly from
+        // the actual routed geometry: Math.Max only ever grows the extents, so a topology whose routing
+        // stays within the node bounds (the common case) sees byte-identical totals to before.
+        foreach (var wp in waypoints)
+        {
+            foreach (var p in wp)
+            {
+                totalWidth = Math.Max(totalWidth, p.X + Padding);
+                totalHeight = Math.Max(totalHeight, p.Y + Padding);
+            }
+        }
+
         return new LayerResult(rects, totalWidth, totalHeight, graph.NodeLayers, waypoints)
         {
             AcyclicEdges = graph.Acyclic,

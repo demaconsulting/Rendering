@@ -352,6 +352,49 @@ public sealed class InterconnectionLayoutEngineTests
         }
     }
 
+    /// <summary>
+    ///     A 5-node cycle with one node much taller than its neighbors forces a back edge to be
+    ///     reversed and routed via <c>LayeredCorridorRouter</c>'s wrap-around approach. The node-rect-only
+    ///     canvas extents used to under-count this routing's actual bend-point geometry, clipping the
+    ///     connector; every waypoint must now lie within the reported canvas bounds.
+    /// </summary>
+    [Fact]
+    public void Place_CyclicGraphWithTallNode_AllWaypointsWithinCanvasBounds()
+    {
+        // Arrange: a 5-cycle (0→1→2→3→4→0) plus an extra long edge (0→3) forces one edge to reverse
+        // during cycle-breaking; node 2's much larger height stresses the cross-axis extent.
+        var nodes = new List<LayerNode>
+        {
+            new(80, 40),
+            new(80, 40),
+            new(80, 120),
+            new(80, 40),
+            new(80, 40),
+        };
+        var edges = new List<LayerEdge>
+        {
+            new(0, 1),
+            new(1, 2),
+            new(2, 3),
+            new(3, 4),
+            new(4, 0),
+            new(0, 3),
+        };
+
+        // Act
+        var result = InterconnectionLayoutEngine.Place(nodes, edges);
+
+        // Assert: every routed bend point must lie within the reported canvas dimensions.
+        foreach (var wp in result.ConnectorWaypoints)
+        {
+            foreach (var p in wp)
+            {
+                Assert.InRange(p.X, 0.0, result.TotalWidth);
+                Assert.InRange(p.Y, 0.0, result.TotalHeight);
+            }
+        }
+    }
+
     private static bool Overlaps(Rect a, Rect b) =>
         a.X < b.X + b.Width &&
         b.X < a.X + a.Width &&
