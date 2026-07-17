@@ -17,12 +17,15 @@ changes no existing output and leaves the layered algorithm untouched.
 
 The class is stateless and sealed. It exposes the `AlgorithmId` constant (`"containment"`) and returns
 it from the `Id` property, the stable identifier under which the algorithm is selected and registered.
-Two private constants govern the arrangement: `CanvasAspectRatio` (`4/3`) biases the derived content
-width toward a landscape block, and `NodeSpacing` (`24.0` logical pixels) is the inter-box gap, sized
-wider than the router's approach stub so a connector can pass cleanly between two packed boxes. Its
-single behavior is `Apply(LayoutGraph graph, LayoutOptions options)`, which returns a `LayoutTree`
-carrying the packed region size and a flat list of `LayoutNode` items (`LayoutBox` per top-level node
-followed by `LayoutLine` per routed edge).
+Private constants govern the arrangement: `CanvasAspectRatio` (`4/3`) biases the derived content width
+toward a landscape block; `NodeSpacing` (`24.0` logical pixels) is the inter-box gap, sized wider than
+the router's approach stub so a connector can pass cleanly between two packed boxes; `MinBoxesForColumnEstimate`
+(`6`) gates the column-count-based content-width candidate to sets large enough for multi-column packing
+to plausibly make sense; and `ColumnEstimateFullWeightSizeRatio` (`2.0`) / `ColumnEstimateZeroWeightSizeRatio`
+(`6.0`) bound the graduated falloff that scales that candidate's contribution by how uniform the boxes
+are in size (see Methods, below). Its single behavior is `Apply(LayoutGraph graph, LayoutOptions options)`,
+which returns a `LayoutTree` carrying the packed region size and a flat list of `LayoutNode` items
+(`LayoutBox` per top-level node followed by `LayoutLine` per routed edge).
 
 ### ContainmentLayoutAlgorithm Methods
 
@@ -32,9 +35,23 @@ followed by `LayoutLine` per routed edge).
    origin (carrying the node's width, height, and label), recording each node's positional index. A
    node's nested `Children` are treated as opaque and are not laid out at this level (that is the
    recursive hierarchical engine's responsibility, not this flat algorithm's).
-2. **Content-width heuristic.** Derives the packer's `MaxContentWidth` from the boxes: the square root
-   of their total area scaled by `CanvasAspectRatio`, widened to at least the widest box, and floored
-   to a small positive value so the packer always receives a usable width — even for an empty graph.
+2. **Content-width heuristic.** Derives the packer's `MaxContentWidth` from the boxes via
+   `ComputeContentWidth`: the square root of their total area scaled by `CanvasAspectRatio`, widened to
+   at least the widest box, widened further to a column-count-based estimate (`columns = ceil(sqrt(n))`
+   sized from each box's own average width) once there are at least `MinBoxesForColumnEstimate` boxes,
+   and floored to a small positive value so the packer always receives a usable width — even for an
+   empty graph. The column-count-based candidate's contribution is scaled by
+   `ComputeColumnEstimateWeight`, a graduated falloff on the largest-to-smallest box-size ratio (the
+   greater of the width ratio and the height ratio): full weight at or below
+   `ColumnEstimateFullWeightSizeRatio` (`2.0`), zero weight at or above
+   `ColumnEstimateZeroWeightSizeRatio` (`6.0`), and a linear interpolation between those bounds for a
+   ratio in between — rather than the hard on/off cutoff the candidate originally used. Because the
+   candidate is combined via `Math.Max` with the other candidates, it can only ever widen the final
+   budget, never narrow it; the graduated falloff exists because that asymmetry means over-applying the
+   estimate costs at most some extra whitespace, while under-applying it (the original hard cutoff's
+   failure mode) has no bound on how degenerate the resulting single-column layout gets — an ordinary
+   box set whose width variance only marginally exceeds the old cutoff (for example differently-labelled
+   peer boxes) still receives most of the estimate's benefit instead of losing it outright.
 3. **Packing.** Calls `ContainmentLayout.Pack` with the leaf boxes and a `ContainmentOptions` using the
    derived width, the connector-aware `NodeSpacing` on both axes, and an `EdgeCounts` map (see below),
    obtaining the packed boxes and the enclosing region size.
