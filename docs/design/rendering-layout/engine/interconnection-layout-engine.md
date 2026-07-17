@@ -43,7 +43,20 @@ the layout relative to the left-to-right (Right) and right-to-left (Left) flows.
 the along-axis extent from the column geometry and the cross-axis extent from the placed screen
 coordinates, then assigns them to `TotalWidth`/`TotalHeight` per direction: for Right/Left the
 along-axis is the width and for Down/Up it is the height. The Right path is unchanged and remains
-byte-identical.
+byte-identical for the common case where every routed waypoint stays within the placed node rects.
+
+The node-rect-derived totals above assume every corridor's routing fits within the gap the placement
+stages budgeted for it. That assumption does not always hold: a reversed (back) edge's wrap-around
+approach (see the Layered Pipeline Unit Design document's `LayeredCorridorRouter` section) can route a
+bend point beyond the far edge of the last node it passes. Rather than enumerate every stage that can
+push a waypoint outside the node-derived bounds, `Place` widens the canvas directly from the actual
+routed geometry as a final step: every connector waypoint's coordinates (plus the same `Padding` used
+elsewhere) are folded into `TotalWidth`/`TotalHeight` via `Math.Max`, so the canvas can only ever grow
+to cover what is actually drawn, never shrink below the node-derived floor. Topologies whose routing
+already stays within the node bounds (the common case, including the default Right direction against
+the legacy oracle) see byte-identical totals; only graphs whose back-edge routing would otherwise clip
+diverge, which is why the equivalence test suite excludes them as a third documented, intentional
+behavior difference from the frozen legacy oracle.
 
 #### InterconnectionLayoutEngine Error Handling
 
