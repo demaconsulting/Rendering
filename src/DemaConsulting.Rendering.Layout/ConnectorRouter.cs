@@ -553,7 +553,7 @@ public static class ConnectorRouter
             ReferenceEquals(x.Box, y.Box) && x.Side == y.Side;
 
         public int GetHashCode((LayoutBox Box, PortSide Side) obj) =>
-            HashCode.Combine(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Box), obj.Side);
+            (System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Box) * 397) ^ (int)obj.Side;
     }
 
     /// <summary>

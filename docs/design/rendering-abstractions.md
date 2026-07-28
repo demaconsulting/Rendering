@@ -87,7 +87,9 @@ decorations. This system defines the contracts and shared geometry; it moves no 
 
 ## Design Constraints
 
-- **Target frameworks**: `net8.0`, `net9.0`, and `net10.0`.
+- **Target frameworks**: `netstandard2.0`, `net8.0`, `net9.0`, and `net10.0`. The `netstandard2.0`
+  target exists so the contracts can be referenced from a Roslyn analyzer or source generator, which
+  the compiler loads into a `netstandard2.0` context.
 - **Additive extensibility**: new algorithms and renderers are added by implementing a contract and
   registering it; existing contracts do not change, so consumers remain source-compatible.
 - **Single-source geometry**: notation, box, connector-label, and port-label-width geometry are

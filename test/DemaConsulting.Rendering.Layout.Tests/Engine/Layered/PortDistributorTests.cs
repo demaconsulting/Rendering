@@ -46,8 +46,8 @@ public sealed class PortDistributorTests
         // Assert: one source and one target port per sub-edge.
         Assert.Equal(graph.AugEdges.Count, graph.AugPortYSrc.Length);
         Assert.Equal(graph.AugEdges.Count, graph.AugPortYTgt.Length);
-        Assert.All(graph.AugPortYSrc, y => Assert.True(double.IsFinite(y)));
-        Assert.All(graph.AugPortYTgt, y => Assert.True(double.IsFinite(y)));
+        Assert.All(graph.AugPortYSrc, y => Assert.True((!double.IsNaN(y) && !double.IsInfinity(y))));
+        Assert.All(graph.AugPortYTgt, y => Assert.True((!double.IsNaN(y) && !double.IsInfinity(y))));
     }
 
     /// <summary>
@@ -65,8 +65,8 @@ public sealed class PortDistributorTests
 
         // Assert: every recorded port is finite and sits within its owning node's face.
         Assert.Equal(graph.AugEdges.Count, graph.AugPortYSrc.Length);
-        Assert.All(graph.AugPortYSrc, y => Assert.True(double.IsFinite(y)));
-        Assert.All(graph.AugPortYTgt, y => Assert.True(double.IsFinite(y)));
+        Assert.All(graph.AugPortYSrc, y => Assert.True((!double.IsNaN(y) && !double.IsInfinity(y))));
+        Assert.All(graph.AugPortYTgt, y => Assert.True((!double.IsNaN(y) && !double.IsInfinity(y))));
         for (var ei = 0; ei < graph.AugEdges.Count; ei++)
         {
             var src = graph.AugEdges[ei].Source;

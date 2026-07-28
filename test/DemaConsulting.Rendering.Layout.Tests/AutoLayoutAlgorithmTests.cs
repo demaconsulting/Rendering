@@ -498,7 +498,7 @@ public sealed class AutoLayoutAlgorithmTests
     private static string DumpTree(LayoutTree tree)
     {
         var builder = new System.Text.StringBuilder();
-        builder.Append(System.Globalization.CultureInfo.InvariantCulture, $"W={tree.Width:R} H={tree.Height:R}\n");
+        builder.AppendFormat(System.Globalization.CultureInfo.InvariantCulture, "W={0:R} H={1:R}\n", tree.Width, tree.Height);
         foreach (var node in tree.Nodes)
         {
             DumpNode(builder, node, 0);
@@ -515,7 +515,7 @@ public sealed class AutoLayoutAlgorithmTests
         switch (node)
         {
             case LayoutBox box:
-                builder.Append(culture, $"{indent}BOX {box.Label} X={box.X:R} Y={box.Y:R} W={box.Width:R} H={box.Height:R}\n");
+                builder.AppendFormat(culture, "{0}BOX {1} X={2:R} Y={3:R} W={4:R} H={5:R}\n", indent, box.Label, box.X, box.Y, box.Width, box.Height);
                 foreach (var child in box.Children)
                 {
                     DumpNode(builder, child, depth + 1);
@@ -524,21 +524,21 @@ public sealed class AutoLayoutAlgorithmTests
                 break;
 
             case LayoutLine line:
-                builder.Append(culture, $"{indent}LINE");
+                builder.Append(indent).Append("LINE");
                 foreach (var wp in line.Waypoints)
                 {
-                    builder.Append(culture, $" ({wp.X:R},{wp.Y:R})");
+                    builder.AppendFormat(culture, " ({0:R},{1:R})", wp.X, wp.Y);
                 }
 
                 builder.Append('\n');
                 break;
 
             case LayoutPort port:
-                builder.Append(culture, $"{indent}PORT {port.ExternalLabel}/{port.InternalLabel} X={port.CentreX:R} Y={port.CentreY:R}\n");
+                builder.AppendFormat(culture, "{0}PORT {1}/{2} X={3:R} Y={4:R}\n", indent, port.ExternalLabel, port.InternalLabel, port.CentreX, port.CentreY);
                 break;
 
             default:
-                builder.Append(culture, $"{indent}{node.GetType().Name}\n");
+                builder.Append(indent).Append(node.GetType().Name).Append('\n');
                 break;
         }
     }

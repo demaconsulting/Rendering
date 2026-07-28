@@ -37,11 +37,11 @@ internal sealed class LongEdgeJoiner : ILayoutStage
             subEdgesByOrig[augEdges[ei].OrigEdgeIndex].Add(ei);
         }
 
-        // Sub-edges must be in source-to-target layer order for concatenation.
+        // Sub-edges must be in source-to-target layer order for concatenation. Stable ordering keeps
+        // the result independent of how the host runtime resolves ties in an unstable sort.
         for (var ei = 0; ei < numOrigEdges; ei++)
         {
-            subEdgesByOrig[ei].Sort((a, b) =>
-                augNodes[augEdges[a].Source].Layer.CompareTo(augNodes[augEdges[b].Source].Layer));
+            subEdgesByOrig[ei] = [.. subEdgesByOrig[ei].OrderBy(a => augNodes[augEdges[a].Source].Layer)];
         }
 
         var result = new IReadOnlyList<Point2D>[numOrigEdges];

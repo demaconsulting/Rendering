@@ -666,8 +666,10 @@ public sealed class SvgRendererPortedTests
     private static (List<double> Xs, List<double> Ys) ExtractAllTextPositions(string svg)
     {
         var matches = System.Text.RegularExpressions.Regex.Matches(svg, """<text x="([\-0-9.]+)" y="([\-0-9.]+)""");
-        var xs = matches.Select(m => double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
-        var ys = matches.Select(m => double.Parse(m.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        var xs = matches.Cast<System.Text.RegularExpressions.Match>()
+            .Select(m => double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        var ys = matches.Cast<System.Text.RegularExpressions.Match>()
+            .Select(m => double.Parse(m.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
         return (xs, ys);
     }
 

@@ -230,7 +230,9 @@ internal sealed class CrossingMinimizer : ILayoutStage
             }
 
             // Sort the crossing nodes by desired rank and write them back into the same slot positions.
-            seededNodes.Sort((a, b) => desiredRank[a].CompareTo(desiredRank[b]));
+            // Stable ordering keeps equal-rank nodes in layer order on every target framework,
+            // because an unstable sort resolves ties differently on .NET Framework and .NET Core.
+            seededNodes = [.. seededNodes.OrderBy(n => desiredRank[n])];
             for (var i = 0; i < slots.Count; i++)
             {
                 layer[slots[i]] = seededNodes[i];
@@ -310,7 +312,11 @@ internal sealed class CrossingMinimizer : ILayoutStage
     private static bool[] BuildIsolatedFlags(int numAug, List<AugEdge> augEdges)
     {
         var isolated = new bool[numAug];
-        Array.Fill(isolated, true);
+        for (var i = 0; i < isolated.Length; i++)
+        {
+            isolated[i] = true;
+        }
+
         foreach (var ae in augEdges)
         {
             isolated[ae.Source] = false;

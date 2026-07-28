@@ -32,6 +32,9 @@ documents. This system document records only the acceptance criteria and system-
 - **Location**: `test/DemaConsulting.Rendering.Layout.Tests/`.
 - **Dependencies**: no external services, files, or network access; tests use in-memory graphs.
 - **Isolation**: each test builds its own inputs; engines and algorithms are stateless between calls.
+- **netstandard2.0 assets**: on the `net481` matrix cell the suite binds to the `netstandard2.0`
+  build of the layout engine, which is what a Roslyn analyzer hosted by Visual Studio or MSBuild.exe
+  loads. That cell is Windows-only and provides the evidence for `Rendering-Platform-NetStandard20`.
 
 ## Acceptance Criteria
 

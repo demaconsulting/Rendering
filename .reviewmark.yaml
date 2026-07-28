@@ -331,6 +331,7 @@ reviews:
       - "docs/design/rendering-layout/engine/orthogonal-edge-router.md"
       - "docs/verification/rendering-layout/engine/orthogonal-edge-router.md"
       - "src/DemaConsulting.Rendering.Layout/Engine/OrthogonalEdgeRouter.cs"
+      - "src/DemaConsulting.Rendering.Layout/Engine/MinHeap.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/Engine/OrthogonalEdgeRouterTests.cs"
     context:
       - "docs/design/rendering-layout.md"

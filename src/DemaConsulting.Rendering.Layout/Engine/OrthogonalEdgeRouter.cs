@@ -330,7 +330,7 @@ internal static class OrthogonalEdgeRouter
         // Visited cost keyed by (i, j, direction) so straight-through and turning arrivals differ.
         var best = new Dictionary<(int, int, Dir), double>();
         var cameFrom = new Dictionary<(int, int, Dir), (int, int, Dir)>();
-        var open = new PriorityQueue<(int I, int J, Dir D), double>();
+        var open = new MinHeap<(int I, int J, Dir D), double>();
 
         var startState = (startI, startJ, Dir.None);
         best[startState] = 0.0;

@@ -101,7 +101,7 @@ public sealed class SvgRenderer : IRenderer
         }
 
         // Write SVG root element with explicit namespace and viewBox
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""<svg xmlns="http://www.w3.org/2000/svg" width="{F(width)}" height="{F(height)}" viewBox="0 0 {F(width)} {F(height)}">""");
         sb.AppendLine();
 
@@ -164,77 +164,77 @@ public sealed class SvgRenderer : IRenderer
 
         // Open-chevron marker — OPEN two-stroke chevron (polyline with no closing base edge), drawn
         // from the same triangle vertices as the hollow triangle but left open along the line.
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""    <marker id="line-end-open-chevron" markerWidth="{M(NotationMetrics.EndMarkerLength)}" markerHeight="{M(NotationMetrics.EndMarkerWidth)}" refX="{M(NotationMetrics.EndMarkerRefX)}" refY="{M(NotationMetrics.EndMarkerHalfWidth)}" orient="auto">""");
         sb.AppendLine();
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""      <polyline points="{trianglePoints}" fill="none" stroke="{stroke}" stroke-width="{sw}"/>""");
         sb.AppendLine();
         sb.AppendLine(MarkerClose);
 
         // Hollow-triangle marker — closed hollow triangle pointing along the line direction; filled
         // with the background color so the connector line does not show through the unfilled interior.
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""    <marker id="line-end-hollow-triangle" markerWidth="{M(NotationMetrics.EndMarkerLength)}" markerHeight="{M(NotationMetrics.EndMarkerWidth)}" refX="{M(NotationMetrics.EndMarkerRefX)}" refY="{M(NotationMetrics.EndMarkerHalfWidth)}" orient="auto">""");
         sb.AppendLine();
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""      <polygon points="{trianglePoints}" fill="{bg}" stroke="{stroke}" stroke-width="{sw}"/>""");
         sb.AppendLine();
         sb.AppendLine(MarkerClose);
 
         // Filled-arrow marker — solid triangle pointing along the line direction
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""    <marker id="line-end-filled-arrow" markerWidth="{M(NotationMetrics.EndMarkerLength)}" markerHeight="{M(NotationMetrics.EndMarkerWidth)}" refX="{M(NotationMetrics.EndMarkerRefX)}" refY="{M(NotationMetrics.EndMarkerHalfWidth)}" orient="auto">""");
         sb.AppendLine();
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""      <polygon points="{trianglePoints}" fill="{stroke}" stroke="{stroke}" stroke-width="{sw}"/>""");
         sb.AppendLine();
         sb.AppendLine(MarkerClose);
 
         // Hollow-triangle-with-crossbar marker — hollow triangle + perpendicular crossbar on the shaft.
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""    <marker id="line-end-hollow-triangle-crossbar" markerWidth="{M(NotationMetrics.EndMarkerLength)}" markerHeight="{M(NotationMetrics.EndMarkerWidth)}" refX="{M(NotationMetrics.EndMarkerRefX)}" refY="{M(NotationMetrics.EndMarkerHalfWidth)}" orient="auto">""");
         sb.AppendLine();
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""      <polygon points="{trianglePoints}" fill="{bg}" stroke="{stroke}" stroke-width="{sw}"/>""");
         sb.AppendLine();
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""      <line x1="{M(NotationMetrics.CrossbarX)}" y1="0" x2="{M(NotationMetrics.CrossbarX)}" y2="{M(NotationMetrics.EndMarkerWidth)}" stroke="{stroke}" stroke-width="{sw}"/>""");
         sb.AppendLine();
         sb.AppendLine(MarkerClose);
 
         // Hollow-diamond marker — open four-point diamond straddling the line end
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""    <marker id="line-end-hollow-diamond" markerWidth="{M(NotationMetrics.DiamondLength)}" markerHeight="{M(NotationMetrics.DiamondWidth)}" refX="{M(NotationMetrics.DiamondRefX)}" refY="{M(NotationMetrics.DiamondHalfWidth)}" orient="auto">""");
         sb.AppendLine();
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""      <polygon points="{diamondPoints}" fill="{bg}" stroke="{stroke}" stroke-width="{sw}"/>""");
         sb.AppendLine();
         sb.AppendLine(MarkerClose);
 
         // Filled-diamond marker — solid four-point diamond straddling the line end
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""    <marker id="line-end-filled-diamond" markerWidth="{M(NotationMetrics.DiamondLength)}" markerHeight="{M(NotationMetrics.DiamondWidth)}" refX="{M(NotationMetrics.DiamondRefX)}" refY="{M(NotationMetrics.DiamondHalfWidth)}" orient="auto">""");
         sb.AppendLine();
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""      <polygon points="{diamondPoints}" fill="{stroke}" stroke="{stroke}" stroke-width="{sw}"/>""");
         sb.AppendLine();
         sb.AppendLine(MarkerClose);
 
         // Circle marker — open circle whose near edge sits at the line endpoint
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""    <marker id="line-end-circle" markerWidth="{M(NotationMetrics.CircleMarkerBox)}" markerHeight="{M(NotationMetrics.CircleMarkerBox)}" refX="{M(NotationMetrics.CircleRefX)}" refY="{M(NotationMetrics.CircleCenter)}" orient="auto">""");
         sb.AppendLine();
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""      <circle cx="{M(NotationMetrics.CircleCenter)}" cy="{M(NotationMetrics.CircleCenter)}" r="{M(NotationMetrics.CircleRadius)}" fill="{bg}" stroke="{stroke}" stroke-width="{sw}"/>""");
         sb.AppendLine();
         sb.AppendLine(MarkerClose);
 
         // Bar marker — perpendicular line centered on the line endpoint
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""    <marker id="line-end-bar" markerWidth="{M(NotationMetrics.BarAlong)}" markerHeight="{M(NotationMetrics.BarAcross)}" refX="{M(NotationMetrics.BarHalfAlong)}" refY="{M(NotationMetrics.BarHalf)}" orient="auto">""");
         sb.AppendLine();
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""      <line x1="{M(NotationMetrics.BarHalfAlong)}" y1="0" x2="{M(NotationMetrics.BarHalfAlong)}" y2="{M(NotationMetrics.BarAcross)}" stroke="{stroke}" stroke-width="{sw}"/>""");
         sb.AppendLine();
         sb.AppendLine(MarkerClose);
@@ -242,10 +242,10 @@ public sealed class SvgRenderer : IRenderer
         // Auto-sizing background for text drawn over lines (e.g. message and guard labels), painted in
         // the theme background so it occludes the connector line consistently under any theme.
         // The filter region defaults to the text bounding box; the small negative inset adds padding.
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""    <filter id="label-bg" x="{M(-NotationMetrics.LabelBgInset)}" y="{M(-NotationMetrics.LabelBgInset)}" width="{M(NotationMetrics.LabelBgExtent)}" height="{M(NotationMetrics.LabelBgExtent)}">""");
         sb.AppendLine();
-        sb.AppendLine(CultureInfo.InvariantCulture, $"""      <feFlood flood-color="{bg}"/>""");
+        sb.AppendLine($"""      <feFlood flood-color="{bg}"/>""");
         sb.AppendLine("""      <feComposite in="SourceGraphic" operator="over"/>""");
         sb.AppendLine("    </filter>");
 
@@ -270,7 +270,7 @@ public sealed class SvgRenderer : IRenderer
                 sb.Append(", ");
             }
 
-            sb.Append(CultureInfo.InvariantCulture,
+            sb.Append(
                 $"{M(refAlong - vertices[i].Along)} {M(refAcross + vertices[i].Across)}");
         }
 
@@ -408,13 +408,13 @@ public sealed class SvgRenderer : IRenderer
                 var cornerStr = cornerRadius > 0
                     ? $" rx=\"{F(cornerRadius * scale)}\" ry=\"{F(cornerRadius * scale)}\""
                     : string.Empty;
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <rect x="{F(x)}" y="{F(y)}" width="{F(w)}" height="{F(h)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{cornerStr}/>""");
                 sb.AppendLine();
                 break;
 
             default:
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <rect x="{F(x)}" y="{F(y)}" width="{F(w)}" height="{F(h)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
                 sb.AppendLine();
                 break;
@@ -437,7 +437,7 @@ public sealed class SvgRenderer : IRenderer
         var xRight = (box.X + box.Width) * scale;
         var yBottom = (box.Y + box.Height) * scale;
 
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <path d="M {F(x)} {F(yBody)} L {F(x)} {F(yTab)} L {F(xTabRight)} {F(yTab)} L {F(xTabRight)} {F(yBody)} L {F(xRight)} {F(yBody)} L {F(xRight)} {F(yBottom)} L {F(x)} {F(yBottom)} Z" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
         sb.AppendLine();
     }
@@ -503,12 +503,12 @@ public sealed class SvgRenderer : IRenderer
         var yBottom = (box.Y + box.Height) * scale;
 
         // Main body with the top-right corner cut
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <path d="M {F(x)} {F(y)} L {F(xFold)} {F(y)} L {F(xRight)} {F(yFold)} L {F(xRight)} {F(yBottom)} L {F(x)} {F(yBottom)} Z" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
         sb.AppendLine();
 
         // The folded corner triangle
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <path d="M {F(xFold)} {F(y)} L {F(xFold)} {F(yFold)} L {F(xRight)} {F(yFold)}" fill="none" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
         sb.AppendLine();
     }
@@ -529,7 +529,7 @@ public sealed class SvgRenderer : IRenderer
         if (box.Keyword != null)
         {
             var kwY = (cursorY + theme.FontSizeBody / 2.0) * scale;
-            sb.Append(CultureInfo.InvariantCulture,
+            sb.Append(
                 $"""  <text x="{F(centerX)}" y="{F(kwY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" font-style="italic" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle">{EscapeXml("\u00AB" + box.Keyword + "\u00BB")}</text>""");
             sb.AppendLine();
             cursorY += theme.FontSizeBody + theme.LabelPadding;
@@ -542,7 +542,7 @@ public sealed class SvgRenderer : IRenderer
             var textY = (cursorY + theme.FontSizeTitle / 2.0) * scale;
             var availableWidth = box.Width - (2 * theme.LabelPadding);
             var fit = FitTextLength(box.Label, theme.FontSizeTitle, availableWidth, scale);
-            sb.Append(CultureInfo.InvariantCulture,
+            sb.Append(
                 $"""  <text x="{F(centerX)}" y="{F(textY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeTitle * scale)}" font-weight="bold" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle"{fit}>{EscapeXml(box.Label)}</text>""");
             sb.AppendLine();
         }
@@ -628,7 +628,7 @@ public sealed class SvgRenderer : IRenderer
                     : compartmentY;
 
                 // Full-width horizontal divider at the top of this compartment
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <line x1="{F(box.X * scale)}" y1="{F(dividerY * scale)}" x2="{F((box.X + box.Width) * scale)}" y2="{F(dividerY * scale)}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
                 sb.AppendLine();
             }
@@ -640,7 +640,7 @@ public sealed class SvgRenderer : IRenderer
             {
                 var titleX = (box.X + theme.LabelPadding + box.ContentInsetLeft) * scale;
                 var titleY = (compartmentY + theme.LabelPadding + theme.FontSizeBody / 2.0) * scale;
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <text x="{F(titleX)}" y="{F(titleY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" font-weight="bold" font-style="italic" fill="{theme.StrokeColor}" text-anchor="start" dominant-baseline="middle">{EscapeXml(compartment.Title)}</text>""");
                 sb.AppendLine();
                 compartmentY += theme.LabelPadding + theme.FontSizeBody + theme.LabelPadding;
@@ -651,7 +651,7 @@ public sealed class SvgRenderer : IRenderer
             {
                 var rowX = (box.X + theme.LabelPadding + box.ContentInsetLeft) * scale;
                 var rowY = (compartmentY + theme.LabelPadding + theme.FontSizeBody / 2.0) * scale;
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <text x="{F(rowX)}" y="{F(rowY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="start" dominant-baseline="middle">{EscapeXml(row)}</text>""");
                 sb.AppendLine();
                 compartmentY += theme.LabelPadding + theme.FontSizeBody;
@@ -726,7 +726,7 @@ public sealed class SvgRenderer : IRenderer
             _ => string.Empty
         };
 
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <path d="{pathData}" fill="none" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{markerStart}{markerEnd}{dashArray}/>""");
         sb.AppendLine();
 
@@ -752,7 +752,7 @@ public sealed class SvgRenderer : IRenderer
             return;
         }
 
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <text x="{F(midX * scale)}" y="{F(midY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">{EscapeXml(line.MidpointLabel)}</text>""");
         sb.AppendLine();
     }
@@ -820,7 +820,7 @@ public sealed class SvgRenderer : IRenderer
     {
         var sb = new StringBuilder();
         var first = waypoints[0];
-        sb.Append(CultureInfo.InvariantCulture, $"M {F(first.X * scale)} {F(first.Y * scale)}");
+        sb.Append($"M {F(first.X * scale)} {F(first.Y * scale)}");
 
         if (cornerRadius <= 0)
         {
@@ -828,7 +828,7 @@ public sealed class SvgRenderer : IRenderer
             for (var i = 1; i < waypoints.Count; i++)
             {
                 var wp = waypoints[i];
-                sb.Append(CultureInfo.InvariantCulture, $" L {F(wp.X * scale)} {F(wp.Y * scale)}");
+                sb.Append($" L {F(wp.X * scale)} {F(wp.Y * scale)}");
             }
 
             return sb.ToString();
@@ -848,7 +848,7 @@ public sealed class SvgRenderer : IRenderer
             if (!isInterior)
             {
                 // Last waypoint: plain line to the endpoint
-                sb.Append(CultureInfo.InvariantCulture, $" L {F(cur.X * scale)} {F(cur.Y * scale)}");
+                sb.Append($" L {F(cur.X * scale)} {F(cur.Y * scale)}");
                 continue;
             }
 
@@ -879,7 +879,7 @@ public sealed class SvgRenderer : IRenderer
                 if (Math.Abs(crossNorm) <= DirectionTolerance && dotNorm > 0)
                 {
                     // Collinear waypoint: no corner to round, continue straight through it
-                    sb.Append(CultureInfo.InvariantCulture, $" L {F(cur.X * scale)} {F(cur.Y * scale)}");
+                    sb.Append($" L {F(cur.X * scale)} {F(cur.Y * scale)}");
                     continue;
                 }
             }
@@ -887,7 +887,7 @@ public sealed class SvgRenderer : IRenderer
             if (inLen < DirectionTolerance || outLen < DirectionTolerance)
             {
                 // Degenerate segment: fall back to a plain line command
-                sb.Append(CultureInfo.InvariantCulture, $" L {F(cur.X * scale)} {F(cur.Y * scale)}");
+                sb.Append($" L {F(cur.X * scale)} {F(cur.Y * scale)}");
                 continue;
             }
 
@@ -918,7 +918,7 @@ public sealed class SvgRenderer : IRenderer
             if (r <= 0.0)
             {
                 // The decoration consumes the whole approach: fall back to a plain line (no arc).
-                sb.Append(CultureInfo.InvariantCulture, $" L {F(cur.X * scale)} {F(cur.Y * scale)}");
+                sb.Append($" L {F(cur.X * scale)} {F(cur.Y * scale)}");
                 continue;
             }
 
@@ -933,11 +933,11 @@ public sealed class SvgRenderer : IRenderer
             // Cross product z-component determines clockwise vs counter-clockwise arc in SVG
             // (positive cross = clockwise screen turn = sweep-flag 1)
             var cross = inNx * outNy - inNy * outNx;
-            var sweep = cross > 0 ? 1 : 0;
+            var sweep = cross > 0 ? "1" : "0";
 
-            sb.Append(CultureInfo.InvariantCulture,
+            sb.Append(
                 $" L {F(shortEndX * scale)} {F(shortEndY * scale)}");
-            sb.Append(CultureInfo.InvariantCulture,
+            sb.Append(
                 $" A {F(r * scale)} {F(r * scale)} 0 0 {sweep} {F(shortStartX * scale)} {F(shortStartY * scale)}");
         }
 
@@ -968,7 +968,7 @@ public sealed class SvgRenderer : IRenderer
         // Only constrain width when the text would overflow MaxWidth (no stretching of short text).
         var textLengthAttr = FitTextLength(label.Text, label.FontSize, label.MaxWidth, scale);
 
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <text x="{F(x)}" y="{F(y)}" font-family="Noto Sans, sans-serif" font-size="{F(label.FontSize * scale)}" font-weight="{fontWeight}" font-style="{fontStyle}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle"{textLengthAttr}>{EscapeXml(label.Text)}</text>""");
         sb.AppendLine();
     }
@@ -989,7 +989,7 @@ public sealed class SvgRenderer : IRenderer
         var ry = (port.CentreY - NotationMetrics.PortHalfSize) * scale;
         var rs = NotationMetrics.PortSize * scale;
 
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <rect x="{F(rx)}" y="{F(ry)}" width="{F(rs)}" height="{F(rs)}" fill="{theme.StrokeColor}" stroke="{theme.BackgroundColor}" stroke-width="{F(PortGlyphStrokeWidth * scale)}"/>""");
         sb.AppendLine();
 
@@ -1046,7 +1046,7 @@ public sealed class SvgRenderer : IRenderer
             _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, "end")
         };
 
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <text x="{F(labelX * scale)}" y="{F(labelY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle"{FitTextLength(text, theme.FontSizeBody, port.MaxLabelWidth, scale, useAccurateEstimator: true)}>{EscapeXml(text)}</text>""");
         sb.AppendLine();
     }
@@ -1070,35 +1070,35 @@ public sealed class SvgRenderer : IRenderer
         switch (badge.Shape)
         {
             case BadgeShape.FilledCircle:
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <circle cx="{F(cx)}" cy="{F(cy)}" r="{F(r)}" fill="{theme.StrokeColor}"/>""");
                 sb.AppendLine();
                 break;
 
             case BadgeShape.Bullseye:
                 // Outer filled circle + white inner circle for the ring effect
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <circle cx="{F(cx)}" cy="{F(cy)}" r="{F(r)}" fill="{theme.StrokeColor}"/>""");
                 sb.AppendLine();
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <circle cx="{F(cx)}" cy="{F(cy)}" r="{F(r * NotationMetrics.BadgeBullseyeInnerFraction)}" fill="white" stroke="{theme.StrokeColor}" stroke-width="{sw}"/>""");
                 sb.AppendLine();
                 break;
 
             case BadgeShape.Diamond:
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <polygon points="{F(cx)},{F(cy - r)} {F(cx + r)},{F(cy)} {F(cx)},{F(cy + r)} {F(cx - r)},{F(cy)}" fill="none" stroke="{theme.StrokeColor}" stroke-width="{sw}"/>""");
                 sb.AppendLine();
                 break;
 
             case BadgeShape.HorizontalBar:
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <line x1="{F(cx - r * NotationMetrics.BadgeBarLengthFraction)}" y1="{F(cy)}" x2="{F(cx + r * NotationMetrics.BadgeBarLengthFraction)}" y2="{F(cy)}" stroke="{theme.StrokeColor}" stroke-width="{sw}"/>""");
                 sb.AppendLine();
                 break;
 
             case BadgeShape.VerticalBar:
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <line x1="{F(cx)}" y1="{F(cy - r * NotationMetrics.BadgeBarLengthFraction)}" x2="{F(cx)}" y2="{F(cy + r * NotationMetrics.BadgeBarLengthFraction)}" stroke="{theme.StrokeColor}" stroke-width="{sw}"/>""");
                 sb.AppendLine();
                 break;
@@ -1113,7 +1113,7 @@ public sealed class SvgRenderer : IRenderer
         {
             var labelX = (badge.CentreX + badge.Size / 2.0 + theme.LabelPadding) * scale;
             var labelY = (badge.CentreY + theme.FontSizeBody / 2.0) * scale;
-            sb.Append(CultureInfo.InvariantCulture,
+            sb.Append(
                 $"""  <text x="{F(labelX)}" y="{F(labelY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="start" dominant-baseline="middle">{EscapeXml(badge.Label)}</text>""");
             sb.AppendLine();
         }
@@ -1136,7 +1136,7 @@ public sealed class SvgRenderer : IRenderer
         var h = band.Height * scale;
         var fillColor = theme.DepthFillColors[0];
 
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <rect x="{F(x)}" y="{F(y)}" width="{F(w)}" height="{F(h)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
         sb.AppendLine();
 
@@ -1148,7 +1148,7 @@ public sealed class SvgRenderer : IRenderer
                 // Label center on the left edge strip, rotated 90° CCW
                 var labelCx = (band.X + theme.LabelPadding + theme.FontSizeBody / 2.0) * scale;
                 var labelCy = (band.Y + band.Height / 2.0) * scale;
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <text x="0" y="0" transform="translate({F(labelCx)},{F(labelCy)}) rotate(-90)" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle">{EscapeXml(band.Label)}</text>""");
                 sb.AppendLine();
             }
@@ -1157,7 +1157,7 @@ public sealed class SvgRenderer : IRenderer
                 // Horizontal label at the top of the band
                 var textX = (band.X + band.Width / 2.0) * scale;
                 var textY = (band.Y + theme.LabelPadding + theme.FontSizeBody / 2.0) * scale;
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <text x="{F(textX)}" y="{F(textY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle">{EscapeXml(band.Label)}</text>""");
                 sb.AppendLine();
             }
@@ -1189,14 +1189,14 @@ public sealed class SvgRenderer : IRenderer
         var hh = lifeline.HeaderHeight * scale;
         var fillColor = theme.DepthFillColors[0];
 
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <rect x="{F(hx)}" y="{F(hy)}" width="{F(hw)}" height="{F(hh)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
         sb.AppendLine();
 
         // Centered label within the header box
         var textX = lifeline.CentreX * scale;
         var textY = (lifeline.TopY + lifeline.HeaderHeight / 2.0) * scale;
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <text x="{F(textX)}" y="{F(textY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" font-weight="bold" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle">{EscapeXml(lifeline.Label)}</text>""");
         sb.AppendLine();
 
@@ -1204,7 +1204,7 @@ public sealed class SvgRenderer : IRenderer
         var stemX = lifeline.CentreX * scale;
         var stemTopY = (lifeline.TopY + lifeline.HeaderHeight) * scale;
         var stemBottomY = lifeline.BottomY * scale;
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <line x1="{F(stemX)}" y1="{F(stemTopY)}" x2="{F(stemX)}" y2="{F(stemBottomY)}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}" stroke-dasharray="6 3"/>""");
         sb.AppendLine();
     }
@@ -1231,7 +1231,7 @@ public sealed class SvgRenderer : IRenderer
         var aw = halfWidth * 2.0 * scale;
         var ah = (activation.BottomY - activation.TopY) * scale;
 
-        sb.Append(CultureInfo.InvariantCulture,
+        sb.Append(
             $"""  <rect x="{F(ax)}" y="{F(ay)}" width="{F(aw)}" height="{F(ah)}" fill="white" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
         sb.AppendLine();
     }
@@ -1272,7 +1272,7 @@ public sealed class SvgRenderer : IRenderer
                 var ch = rowHeight * scale;
 
                 // Cell background and border
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <rect x="{F(cx)}" y="{F(cy)}" width="{F(cw)}" height="{F(ch)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
                 sb.AppendLine();
 
@@ -1280,7 +1280,7 @@ public sealed class SvgRenderer : IRenderer
                 var (anchor, textX, fontWeightAttr) = GetCellTextProperties(cell, currentX, theme, row.IsHeader);
                 var textY = currentY + rowHeight / 2.0;
 
-                sb.Append(CultureInfo.InvariantCulture,
+                sb.Append(
                     $"""  <text x="{F(textX * scale)}" y="{F(textY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}"{fontWeightAttr} fill="{theme.StrokeColor}" text-anchor="{anchor}" dominant-baseline="middle">{EscapeXml(cell.Text)}</text>""");
                 sb.AppendLine();
 
@@ -1341,7 +1341,7 @@ public sealed class SvgRenderer : IRenderer
     /// <returns>XML-safe text with <c>&lt;</c>, <c>&gt;</c>, and <c>&amp;</c> replaced by
     /// their entity equivalents.</returns>
     private static string EscapeXml(string text) =>
-        text.Replace("&", "&amp;", StringComparison.Ordinal)
-            .Replace("<", "&lt;", StringComparison.Ordinal)
-            .Replace(">", "&gt;", StringComparison.Ordinal);
+        text.Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;");
 }
