@@ -100,7 +100,9 @@ consume only that placed tree and never call the geometric engines directly.
 
 ## Design Constraints
 
-- **Target frameworks**: `net8.0`, `net9.0`, and `net10.0`.
+- **Target frameworks**: `netstandard2.0`, `net8.0`, `net9.0`, and `net10.0`. The `netstandard2.0`
+  target exists so layout can run inside a Roslyn analyzer or source generator, which the compiler
+  loads into a `netstandard2.0` context.
 - **Determinism**: algorithms and engines are stateless between calls and produce reproducible
   geometry for the same input, which the byte-identity and legacy-oracle tests pin.
 - **Orthogonal routing**: connectors are routed orthogonally through channels so downstream renderers

@@ -30,8 +30,8 @@ public sealed class BrandesKopfPlacerTests
         Assert.Equal(graph.AugNodes.Count, graph.AugY.Length);
         Assert.Equal(graph.Groups.Count, graph.ColumnX.Length);
         Assert.Equal(graph.Groups.Count, graph.MaxColWidth.Length);
-        Assert.All(graph.AugX, x => Assert.True(double.IsFinite(x)));
-        Assert.All(graph.AugY, y => Assert.True(double.IsFinite(y)));
+        Assert.All(graph.AugX, x => Assert.True((!double.IsNaN(x) && !double.IsInfinity(x))));
+        Assert.All(graph.AugY, y => Assert.True((!double.IsNaN(y) && !double.IsInfinity(y))));
     }
 
     /// <summary>

@@ -86,7 +86,9 @@ bytes to the caller-owned stream.
 
 ## Design Constraints
 
-- **Target frameworks**: `net8.0`, `net9.0`, and `net10.0`.
+- **Target frameworks**: `net8.0`, `net9.0`, and `net10.0`. Unlike the other systems this one does
+  not offer a `netstandard2.0` target: raster output depends on SkiaSharp's platform-specific native
+  assets, which are not appropriate to load into a Roslyn analyzer or source generator.
 - **SkiaSharp runtime requirement**: raster output requires the SkiaSharp library and its
   platform-specific native assets, so this system cannot run in an environment where those native
   binaries are unavailable.

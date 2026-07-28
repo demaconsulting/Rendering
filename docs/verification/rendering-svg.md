@@ -22,6 +22,9 @@ use `Themes.Light`, write to `MemoryStream`, and inspect the resulting SVG text.
 - **Dependencies**: no external services, databases, files, or network access.
 - **Isolation**: each test constructs its own renderer, layout tree, render options, and stream.
 - **Test project**: `DemaConsulting.Rendering.Svg.Tests`.
+- **netstandard2.0 assets**: on the `net481` matrix cell the suite binds to the `netstandard2.0`
+  build of the renderer, which is what a Roslyn analyzer hosted by Visual Studio or MSBuild.exe
+  loads. That cell is Windows-only and provides the evidence for `Rendering-Platform-NetStandard20`.
 
 ## Acceptance Criteria
 

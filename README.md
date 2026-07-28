@@ -66,6 +66,14 @@ The library is split into focused packages so consumers take only what they need
 Package dependencies form an acyclic graph: `Abstractions` and `Layout` depend on the model;
 `Svg` and `Skia` depend on the model and `Abstractions`; the model depends on nothing.
 
+### Use from a Roslyn analyzer or source generator
+
+Every package targets `net8.0`, `net9.0`, and `net10.0`. The model, SPI, layout, and SVG packages
+additionally target `netstandard2.0` with no external dependencies on that target, so a Roslyn
+analyzer or source generator can reference them and lay out and emit SVG diagrams at compile time.
+The raster package is deliberately excluded, because it depends on SkiaSharp's platform-specific
+native assets.
+
 ## Installation
 
 ```bash

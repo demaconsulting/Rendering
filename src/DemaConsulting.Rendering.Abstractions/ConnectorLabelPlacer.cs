@@ -158,7 +158,9 @@ public static class ConnectorLabelPlacer
             segments.Add((length, (a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0, dirX, dirY));
         }
 
-        segments.Sort((p, q) => q.Length.CompareTo(p.Length));
+        // Stable ordering keeps ties in waypoint order on every target framework, because an
+        // unstable sort resolves ties differently on .NET Framework and .NET Core.
+        segments = [.. segments.OrderByDescending(seg => seg.Length)];
 
         // First pass: take the first segment midpoint that does not collide.
         var firstClear = segments

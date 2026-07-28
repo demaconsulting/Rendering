@@ -66,3 +66,22 @@ sections:
           - "net10.0@Get_AfterSet_ReturnsStoredValue"
           - "net10.0@Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges"
           - "net10.0@SvgRenderer_Render_SingleBox_ProducesSvgDocument"
+
+      - id: Rendering-Platform-NetStandard20
+        title: >-
+          The rendering model, contracts, layout engine, and SVG renderer shall support the
+          netstandard2.0 target so they can be hosted inside a Roslyn analyzer.
+        justification: |
+          Roslyn analyzers and source generators are loaded by the compiler into a netstandard2.0
+          context, so a consumer that wants to emit diagrams from an analyzer can only reference
+          packages that ship netstandard2.0 assets. The raster renderer is deliberately excluded
+          because it depends on SkiaSharp's platform-specific native assets.
+
+          The evidence comes from the net481 matrix cell. .NET Framework resolves a package reference
+          to its netstandard2.0 assets, so running the suite on net481 exercises exactly the assets a
+          Roslyn analyzer hosted by Visual Studio or MSBuild.exe would load, rather than merely
+          proving that the target compiles.
+        tests:
+          - "net481@Get_AfterSet_ReturnsStoredValue"
+          - "net481@Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges"
+          - "net481@SvgRenderer_Render_SingleBox_ProducesSvgDocument"

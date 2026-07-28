@@ -31,7 +31,11 @@ computes the route and reports whether it had to cross an obstacle. The algorith
    edges are also added so the search has candidate lanes on either side of an already-routed line.
 3. **Clearance-retry ladder.** An A\*-style search runs over the grid at successively smaller
    clearances — full, half, quarter, then zero. Segments passing within the current clearance of an
-   obstacle are rejected; the largest clearance yielding an obstacle-free path is used.
+   obstacle are rejected; the largest clearance yielding an obstacle-free path is used. The search
+   frontier is held in `MinHeap`, a four-ary minimum-priority queue owned by the engine rather than
+   `System.Collections.Generic.PriorityQueue`, which is unavailable on the `netstandard2.0` target.
+   Owning it keeps a single implementation on every target framework, so states that tie on priority
+   are expanded in the same order everywhere and a diagram routes identically wherever it runs.
 4. **Crossing fallback.** Only when no obstacle-free path exists at any clearance (for example an
    enclosed target) does the router fall back to a best-effort L-shape and set `Crossed = true`.
 5. **Finalize.** The original anchors are re-attached outside their stubs and the path is

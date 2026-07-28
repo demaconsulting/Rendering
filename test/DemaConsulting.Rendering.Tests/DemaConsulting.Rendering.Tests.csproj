@@ -2,7 +2,11 @@
 
   <PropertyGroup>
     <!-- Build Configuration -->
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <!-- net481 runs this suite against the netstandard2.0 assets of the code under test, which is how a
+         Roslyn analyzer hosted by Visual Studio or MSBuild.exe loads them. It is Windows-only because
+         the .NET Framework reference and runtime assemblies are not available on Linux or macOS. -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net481;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows'))">net8.0;net9.0;net10.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -23,6 +27,13 @@
   <ItemGroup>
     <Using Include="Polyfills" />
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- net481 Runtime Dependencies -->
+  <!-- System.Memory is required on net481 to resolve assembly binding conflicts introduced by
+       transitive dependencies (e.g. Polyfill) that reference System.Memory 4.0.x. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <PackageReference Include="System.Memory" Version="4.6.3" />
   </ItemGroup>
 
   <!-- Test Framework Dependencies -->

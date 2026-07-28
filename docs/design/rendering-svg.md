@@ -55,7 +55,9 @@ caller-owned stream. A typical pipeline runs layout first, then this renderer.
 
 ## Design Constraints
 
-- **Target frameworks**: `net8.0`, `net9.0`, and `net10.0`.
+- **Target frameworks**: `netstandard2.0`, `net8.0`, `net9.0`, and `net10.0`. The `netstandard2.0`
+  target exists so the renderer can be hosted inside a Roslyn analyzer or source generator, which
+  the compiler loads into a `netstandard2.0` context.
 - **Zero external dependencies**: the SVG renderer must remain dependency-free (base class library
   only) so it can be consumed in the most constrained environments.
 - **Self-contained output**: the emitted document is a self-contained SVG 1.1 file with no external

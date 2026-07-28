@@ -1329,7 +1329,10 @@ internal static class LegacyInterconnectionLayoutEngineOracle
     {
         var maxLayer = groups.Count - 1;
         var blockY = new double[augNodes.Count];
-        Array.Fill(blockY, double.NaN);
+        for (var i = 0; i < blockY.Length; i++)
+        {
+            blockY[i] = double.NaN;
+        }
 
         // Recursively place a block root, memoized by the NaN-unplaced sentinel.
         void PlaceBlock(int v)
