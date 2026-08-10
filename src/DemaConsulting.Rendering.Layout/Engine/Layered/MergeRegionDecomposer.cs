@@ -153,7 +153,12 @@ internal static class MergeRegionDecomposer
                     break;
 
                 case LevelEdgeKind.InternalDelegation
+                    // S8969: false positive on this pattern-match `when` clause — the compiler's own
+                    // nullable flow analysis does not narrow role.Edge/role.Boundary here (both are
+                    // still flagged CS8602/CS8604 without the null-forgiving operators).
+#pragma warning disable S8969
                     when OtherEndpoint(role.Edge!, role.Boundary!.Port) is LayoutGraphPort nested:
+#pragma warning restore S8969
                     // A chain link: the parent port's delegation polyline lands on the nested container's
                     // face, so its endpoint is that nested port's single shared anchor.
                     anchors[nested] = polyline[^1];
@@ -311,7 +316,13 @@ internal static class MergeRegionDecomposer
                     lines.Add(StyledLine(full, role.Edge!));
                     break;
 
-                case LevelEdgeKind.InternalDelegation when anchors.TryGetValue(role.Boundary!.Port, out var anchor):
+                case LevelEdgeKind.InternalDelegation
+                    // S8969: false positive — the compiler's own nullable flow analysis does not
+                    // narrow role.Boundary within this pattern-match `when` clause (CS8602 without
+                    // the null-forgiving operator).
+#pragma warning disable S8969
+                    when anchors.TryGetValue(role.Boundary!.Port, out var anchor):
+#pragma warning restore S8969
                     lines.Add(StyledLine(PrependAnchor(anchor, polyline, boundaryFace), role.Edge!));
                     break;
 
