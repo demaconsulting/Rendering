@@ -41,7 +41,7 @@ namespace DemaConsulting.Rendering.Skia;
 ///
 /// Fill colors are derived from <see cref="Theme.DepthFillColors"/> using modulo wrapping on
 /// <see cref="LayoutBox.Depth"/>. Hex color strings (e.g., <c>#RRGGBB</c>) are parsed with
-/// <see cref="SKColor.Parse"/>.
+/// <see cref="SKColor.Parse(string)"/>.
 ///
 /// A minimum bitmap size of 1×1 pixels is enforced to prevent SkiaSharp allocation errors
 /// when the layout tree is empty.

@@ -1519,7 +1519,11 @@ public sealed class HierarchicalLayoutAlgorithmTests
         var result = method.Invoke(
             null,
             [composed, indexOf, routedEdges, descendantToDirect, placedLines, placedPorts, 250.0]);
+        // S8969: false positive — MethodInfo.Invoke returns object?, and the compiler's own nullable
+        // flow analysis still requires the null-forgiving operator here (CS8605 without it).
+#pragma warning disable S8969
         var (widenedBoxes, widenedLines, _, _) = ((LayoutBox[], List<LayoutLine>, List<LayoutPort>, double))result!;
+#pragma warning restore S8969
 
         // Assert: the gap was actually widened (sanity check the fixture qualifies for widening), and
         // the straddling line's waypoint before the cut stayed put while the waypoint past the cut moved

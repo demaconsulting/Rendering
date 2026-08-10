@@ -53,7 +53,7 @@ public sealed class MergeRegionGraphAssemblerTests
 
         // Assert: the delegation edge is captured as the child level's incoming boundary crossing.
         Assert.NotNull(child.Child.IncomingBoundary);
-        Assert.Same(p, child.Child.IncomingBoundary!.Port);
+        Assert.Same(p, child.Child.IncomingBoundary.Port);
         Assert.Contains(delegation, child.Child.IncomingBoundary.InternalEdges);
     }
 
