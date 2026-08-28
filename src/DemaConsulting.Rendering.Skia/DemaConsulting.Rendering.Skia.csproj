@@ -57,10 +57,13 @@ SkiaSharp is used for PNG rendering (MIT license, copyright Microsoft Corporatio
     <PackageReference Include="Polyfill" Version="11.0.2" PrivateAssets="All" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" />
     <PackageReference Include="DemaConsulting.ApiMark.MSBuild" Version="0.4.10" PrivateAssets="All" />
+    <!-- Managed SkiaSharp core only: native asset "flavor" selection (standard vs. NoDependencies,
+         per-OS) is an application/publish-time decision that belongs to the consuming executable,
+         not to this shared library. Baking OS-conditioned native asset PackageReferences here is
+         also unsafe for a packed library: the Condition is evaluated once on whichever machine
+         packs the release, so only that machine's OS branch survives into the published nuspec
+         for every consumer, regardless of the consumer's own target platform. -->
     <PackageReference Include="SkiaSharp" Version="4.151.1" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="4.151.1" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.151.1" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
-    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="4.151.1" Condition="$([MSBuild]::IsOSPlatform('macOS'))" />
   </ItemGroup>
 
   <!-- Project References -->

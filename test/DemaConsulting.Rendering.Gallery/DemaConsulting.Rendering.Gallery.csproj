@@ -68,4 +68,15 @@
     <ProjectReference Include="..\..\src\DemaConsulting.Rendering.Skia\DemaConsulting.Rendering.Skia.csproj" />
   </ItemGroup>
 
+  <!-- Native SkiaSharp asset for the gallery executable itself: DemaConsulting.Rendering.Skia
+       depends only on the managed SkiaSharp core, so this project (an application/publish
+       boundary, not a shared library) supplies the native asset directly, OS-conditioned since
+       this project is built and run on a single host per CI job, never packed for cross-platform
+       distribution. -->
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="4.151.1" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.151.1" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="4.151.1" Condition="$([MSBuild]::IsOSPlatform('macOS'))" />
+  </ItemGroup>
+
 </Project>
