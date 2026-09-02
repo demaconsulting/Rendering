@@ -8,7 +8,7 @@
 sections:
   - title: Quality Requirements
     requirements:
-      - id: Quality-TestInfrastructure
+      - id: Rendering-Quality-TestInfrastructure
         title: The repository shall rely on xUnit to execute and report automated test results.
         tags: [quality]
         justification: |
@@ -20,7 +20,7 @@ sections:
           - Rendering-OTS-xUnit-Execute
           - Rendering-OTS-xUnit-Report
 
-      - id: Quality-BuildIntegrity
+      - id: Rendering-Quality-BuildIntegrity
         title: >-
           The repository's build pipeline shall rely on BuildMark and VersionMark
           to validate tool versions and enforce build integrity.
@@ -36,7 +36,7 @@ sections:
           - Rendering-OTS-VersionMark
           - Rendering-OTS-VersionMark-Lint
 
-      - id: Quality-StaticAnalysis
+      - id: Rendering-Quality-StaticAnalysis
         title: The repository shall rely on SarifMark and SonarMark to enforce static-analysis quality gates.
         tags: [quality]
         justification: |
@@ -50,7 +50,7 @@ sections:
           - Rendering-OTS-SarifMark-Enforcement
           - Rendering-OTS-SonarMark
 
-      - id: Quality-PeerReview
+      - id: Rendering-Quality-PeerReview
         title: The repository shall rely on ReviewMark to enforce peer-review tracking and reporting.
         tags: [quality]
         justification: |
@@ -67,7 +67,7 @@ sections:
           - Rendering-OTS-ReviewMark-Lint
           - Rendering-OTS-ReviewMark-DirectoryOverride
 
-      - id: Quality-DocumentationGeneration
+      - id: Rendering-Quality-DocumentationGeneration
         title: The repository shall rely on Pandoc and WeasyPrint to generate HTML and PDF documentation.
         tags: [quality]
         justification: |
@@ -80,7 +80,7 @@ sections:
           - Rendering-OTS-Pandoc
           - Rendering-OTS-WeasyPrint
 
-      - id: Quality-RequirementsTraceability
+      - id: Rendering-Quality-RequirementsTraceability
         title: >-
           The repository shall rely on ReqStream and FileAssert to validate
           requirements traceability and generated documentation.
@@ -96,7 +96,7 @@ sections:
           - Rendering-OTS-ReqStream-Lint
           - Rendering-OTS-FileAssert
 
-      - id: Quality-RasterRendering
+      - id: Rendering-Quality-RasterRendering
         title: >-
           The Rendering.Skia system shall rely on SkiaSharp to rasterize, render text,
           and encode PNG, JPEG, and WEBP output.
