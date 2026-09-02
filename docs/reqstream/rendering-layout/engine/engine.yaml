@@ -23,6 +23,9 @@ sections:
           - Rendering-Layout-OrthogonalEdgeRouter-PerpendicularEnds
           - Rendering-Layout-OrthogonalEdgeRouter-CrossingStatus
           - Rendering-Layout-OrthogonalEdgeRouter-CostBands
+          - Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit
+          - Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap
+          - Rendering-Layout-OrthogonalEdgeRouter-AvoidsConnectorCrossing
         tests:
           - Route_NoObstacles_ProducesOrthogonalPath
           - Route_ObstacleBetween_RoutesAround
@@ -42,6 +45,10 @@ sections:
           - Rendering-Layout-ContainmentPacker-OversizedItem
           - Rendering-Layout-ContainmentPacker-EmptyInput
           - Rendering-Layout-ContainmentPacker-SingleItem
+          - Rendering-Layout-ContainmentPacker-NullItems
+          - Rendering-Layout-EdgeCountGapWidener-CorridorFormula
+          - Rendering-Layout-EdgeCountGapWidener-DegenerateCases
+          - Rendering-Layout-EdgeCountGapWidener-NeverNarrows
         tests:
           - Pack_MixedSizes_ProducesNoOverlaps
           - Pack_ItemsFitInRow_ShareSameRow
@@ -64,6 +71,7 @@ sections:
           - Rendering-Layout-InterconnectionEngine-Direction-RequestedFlow
           - Rendering-Layout-InterconnectionEngine-Direction-TransposedTotals
           - Rendering-Layout-InterconnectionEngine-Direction-DefaultsToRight
+          - Rendering-Layout-InterconnectionEngine-NodeSpacing
           - Rendering-Layout-InterconnectionEngine-Deterministic
         tests:
           - Place_LinearChain_MonotonicLayerAssignment

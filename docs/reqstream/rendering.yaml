@@ -31,6 +31,7 @@ sections:
         title: >-
           The rendering model shall provide a placed layout-tree representation that carries every
           diagram element type with absolute coordinates ready for a renderer to draw.
+        tags: [system]
         justification: |
           Separating a placed, renderer-agnostic intermediate representation from the layout
           algorithms and the renderers lets a single layout be drawn to any output format (SVG,
@@ -40,7 +41,9 @@ sections:
           - Rendering-Model-LayoutTree-AbsoluteCoordinates
           - Rendering-Model-LayoutTree-Box
           - Rendering-Model-LayoutTree-DepthNotColor
+          - Rendering-Model-LayoutTree-ContentInset
           - Rendering-Model-LayoutTree-Port
+          - Rendering-Model-LayoutTree-PortMaxLabelWidth
           - Rendering-Model-LayoutTree-Line
           - Rendering-Model-LayoutTree-Label
           - Rendering-Model-LayoutTree-Badge
@@ -49,6 +52,7 @@ sections:
           - Rendering-Model-LayoutTree-Activation
           - Rendering-Model-LayoutTree-Grid
           - Rendering-Model-LayoutTree-Geometry
+          - Rendering-Model-LayoutTree-ShapeGeometryHints
         tests:
           - LayoutTree_Construction_StoresWidthHeightNodes
           - LayoutBox_Construction_StoresAllFields
@@ -57,6 +61,7 @@ sections:
         title: >-
           The rendering model shall provide an open, strongly-typed configuration system that
           carries options at graph, element, and standalone scope without changing any contract.
+        tags: [system]
         justification: |
           An ELK-inspired open property system lets configuration coverage grow purely additively:
           new options are introduced by declaring new keys, so the layout and rendering contracts
@@ -67,6 +72,8 @@ sections:
           - Rendering-Model-Options-Contains
           - Rendering-Model-Options-TryGet
           - Rendering-Model-Options-Cascade
+          - Rendering-Model-Options-MergeParallelEdges
+          - Rendering-Model-Options-AssumedFontSize
         tests:
           - Get_UnsetProperty_ReturnsDefault
           - Get_AfterSet_ReturnsStoredValue
@@ -75,6 +82,7 @@ sections:
         title: >-
           The rendering model shall provide an unplaced input-graph representation of sized nodes
           and directed edges that a layout algorithm consumes to produce a placed layout tree.
+        tags: [system]
         justification: |
           A distinct input model lets callers describe what is to be laid out (boxes and their
           connections) independently of how any algorithm places them, and lets configuration be
@@ -86,6 +94,11 @@ sections:
           - Rendering-Model-LayoutGraph-ContainerNodes
           - Rendering-Model-LayoutGraph-ScopedIdentifiers
           - Rendering-Model-LayoutGraph-CrossContainerEdge
+          - Rendering-Model-LayoutGraph-BoxAppearance
+          - Rendering-Model-LayoutGraph-ContainerTitleHeight
+          - Rendering-Model-LayoutGraph-Ports
+          - Rendering-Model-LayoutGraph-PortLabels
+          - Rendering-Model-LayoutGraph-ShapeGeometryHints
         tests:
           - AddNode_AppendsNodeAndReturnsIt
           - AddEdge_AppendsEdgeWithEndpoints
