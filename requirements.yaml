@@ -2,7 +2,15 @@
 # Root requirements file - includes all system, unit, platform, and OTS requirements.
 # One requirements file per software system; each file carries the system-level
 # requirements plus the unit-level requirements (as separate sections) that decompose them.
+#
+# root-tags identifies the tags that mark root requirements for orphan detection.
+# Any requirement not tracing (via parent/child links) to a requirement tagged with
+# one of these tags is reported as an orphan by:
+#   dotnet reqstream --requirements requirements.yaml --enforce
+root-tags: [system, quality]
 includes:
+  # Quality/process requirements grouping
+  - docs/reqstream/quality.yaml
   # In-house software systems
   - docs/reqstream/rendering.yaml
   - docs/reqstream/rendering/layout-tree.yaml

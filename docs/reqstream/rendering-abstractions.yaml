@@ -21,6 +21,7 @@ sections:
       - id: Rendering-Abstractions-Extensibility-Contracts
         title: >-
           The abstractions system shall define pluggable layout-algorithm and renderer contracts.
+        tags: [system]
         justification: |
           An ELK-inspired provider model lets additional layout families and output formats be
           introduced purely additively - a new implementation is written against the stable
@@ -38,6 +39,7 @@ sections:
         title: >-
           The abstractions system shall provide registries that select an implementation by
           identifier or media type.
+        tags: [system]
         justification: |
           Consumers resolve the implementation they need at run time, so the abstractions layer must
           provide lookup services that map algorithm ids and renderer metadata to registered
@@ -54,6 +56,7 @@ sections:
       - id: Rendering-Abstractions-Theming-Model
         title: >-
           The abstractions system shall define a visual theme model with built-in themes.
+        tags: [system]
         justification: |
           Centralizing colors, fonts, and line metrics in a theme lets a single layout be rendered
           in different visual styles while keeping the built-in themes consistent and reusable.
@@ -65,6 +68,7 @@ sections:
       - id: Rendering-Abstractions-Theming-ApproachGeometry
         title: >-
           The abstractions system shall derive connector approach geometry from theme values.
+        tags: [system]
         justification: |
           Deriving the connector approach zone from theme values keeps the space reserved by layout
           consistent with the space drawn by renderers.
@@ -77,6 +81,7 @@ sections:
         title: >-
           The abstractions system shall provide single-source notation geometry so every renderer
           draws identical connector decorations and badges.
+        tags: [system]
         justification: |
           When every renderer reads one source of notation geometry, marker and badge dimensions
           match exactly and notation literals never have to be duplicated across the rendering path.
@@ -102,6 +107,7 @@ sections:
         title: >-
           The abstractions system shall provide single-source box geometry so renderers reserve
           consistent title-area and folder-tab space.
+        tags: [system]
         justification: |
           Shared box geometry keeps title bars and folder tabs consistent across renderers and
           prevents duplicated box-sizing literals.
@@ -116,6 +122,7 @@ sections:
         title: >-
           The abstractions system shall provide single-source connector-label geometry so renderers
           place labels consistently on routed connectors.
+        tags: [system]
         justification: |
           Shared connector-label geometry keeps label placement consistent across renderers and
           prevents each renderer from re-implementing midpoint and overlap rules.
@@ -123,6 +130,9 @@ sections:
           - Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled
           - Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment
           - Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap
+          - Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent
+          - Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight
+          - Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelWidth
         tests:
           - Place_SingleLine_UsesLongestSegmentMidpoint
 
@@ -130,6 +140,7 @@ sections:
         title: >-
           The abstractions system shall provide single-source port-label natural-width estimation so
           the layout engine and every renderer agree on when a port label needs a squeeze constraint.
+        tags: [system]
         justification: |
           The layout engine sizes a port's MaxLabelWidth from an estimate of the label's natural
           width; if a renderer's own squeeze decision used a different estimate, the two could

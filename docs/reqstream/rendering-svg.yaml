@@ -14,6 +14,7 @@ sections:
         title: >-
           The SVG system shall render a placed layout tree to a valid SVG document that
           represents the diagram's elements.
+        tags: [system]
         justification: |
           Producing SVG output lets rendered diagrams be embedded in architecture
           documentation, viewed in any web browser, and version-controlled as text.
@@ -35,9 +36,18 @@ sections:
           - Rendering-Svg-SvgRenderer-RenderLineDashed
           - Rendering-Svg-SvgRenderer-RenderLineMidpointLabel
           - Rendering-Svg-SvgRenderer-RenderNodeKinds
+          - Rendering-Svg-SvgRenderer-PortGlyphOutline
           - Rendering-Svg-SvgRenderer-RenderPortLabel
+          - Rendering-Svg-SvgRenderer-PortLabelSqueeze
+          - Rendering-Svg-SvgRenderer-PortLabelAccurateFit
           - Rendering-Svg-SvgRenderer-ContentInset
+          - Rendering-Svg-SvgRenderer-TitleCentersOnBoxWidth
+          - Rendering-Svg-SvgRenderer-CanvasGrowsForLabels
           - Rendering-Svg-SvgRenderer-RenderBadge
+          - Rendering-Svg-SvgRenderer-BadgeBullseye
+          - Rendering-Svg-SvgRenderer-BadgeDiamond
+          - Rendering-Svg-SvgRenderer-BadgeHorizontalBar
+          - Rendering-Svg-SvgRenderer-BadgeVerticalBar
           - Rendering-Svg-SvgRenderer-RenderBand
           - Rendering-Svg-SvgRenderer-RenderLifeline
           - Rendering-Svg-SvgRenderer-RenderActivation
@@ -50,5 +60,9 @@ sections:
           - Rendering-Svg-SvgRenderer-DiamondEndMarkers
           - Rendering-Svg-SvgRenderer-DiamondEndMarkerReference
           - Rendering-Svg-SvgRenderer-CrossbarEndMarkers
+          - Rendering-Svg-SvgRenderer-EndMarkerFilledArrow
+          - Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond
+          - Rendering-Svg-SvgRenderer-EndMarkerCircle
+          - Rendering-Svg-SvgRenderer-EndMarkerBar
         tests:
           - SvgRenderer_Render_SingleBox_ProducesSvgDocument

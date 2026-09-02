@@ -20,6 +20,7 @@ sections:
         title: >-
           The Skia system shall render a placed layout tree to raster images in the PNG, JPEG,
           and WEBP formats using SkiaSharp.
+        tags: [system]
         justification: |
           Raster output lets rendered diagrams be embedded where vector formats are not accepted,
           shared as ordinary image files, and previewed by any image viewer. PNG, JPEG, and WEBP
@@ -30,6 +31,10 @@ sections:
           - Rendering-Skia-SkiaRasterRenderer-EndMarkers
           - Rendering-Skia-SkiaRasterRenderer-EmptyTree
           - Rendering-Skia-SkiaRasterRenderer-PortAndContentInset
+          - Rendering-Skia-SkiaRasterRenderer-PortLabelSqueeze
+          - Rendering-Skia-SkiaRasterRenderer-TitleCentersOnBoxWidth
+          - Rendering-Skia-SkiaRasterRenderer-PortGlyphOutline
+          - Rendering-Skia-SkiaRasterRenderer-CanvasGrowsForLabels
           - Rendering-Skia-SkiaRasterRenderer-SharedTypefaces
           - Rendering-Skia-PngRenderer-EmitsPng
           - Rendering-Skia-JpegRenderer-EmitsJpeg

@@ -1,0 +1,115 @@
+---
+# Quality/process requirements grouping Rendering's use of off-the-shelf (OTS) process
+# tooling and third-party rendering dependencies. These requirements exist so that
+# OTS-derived requirements (which describe capabilities the repository's build/quality
+# pipeline or renderer implementations rely on from third-party tools, not user-visible
+# rendering functionality) are not reported as orphans by
+# `dotnet reqstream --requirements requirements.yaml --enforce`.
+sections:
+  - title: Quality Requirements
+    requirements:
+      - id: Quality-TestInfrastructure
+        title: The repository shall rely on xUnit to execute and report automated test results.
+        tags: [quality]
+        justification: |
+          Automated testing depends on xUnit's test execution and reporting
+          capabilities. This grouping requirement links the xUnit OTS requirements
+          to the quality root so they participate in orphan detection without being
+          falsely reported as disconnected from rendering functionality.
+        children:
+          - Rendering-OTS-xUnit-Execute
+          - Rendering-OTS-xUnit-Report
+
+      - id: Quality-BuildIntegrity
+        title: >-
+          The repository's build pipeline shall rely on BuildMark and VersionMark
+          to validate tool versions and enforce build integrity.
+        tags: [quality]
+        justification: |
+          CI/CD reliability depends on BuildMark's build-integrity checks and
+          VersionMark's version-tracking capabilities. This grouping requirement
+          links those OTS requirements to the quality root so they participate in
+          orphan detection without being falsely reported as disconnected from
+          rendering functionality.
+        children:
+          - Rendering-OTS-BuildMark
+          - Rendering-OTS-VersionMark
+          - Rendering-OTS-VersionMark-Lint
+
+      - id: Quality-StaticAnalysis
+        title: The repository shall rely on SarifMark and SonarMark to enforce static-analysis quality gates.
+        tags: [quality]
+        justification: |
+          Code quality assurance depends on SarifMark's SARIF-based enforcement and
+          SonarMark's SonarCloud integration. This grouping requirement links those
+          OTS requirements to the quality root so they participate in orphan
+          detection without being falsely reported as disconnected from rendering
+          functionality.
+        children:
+          - Rendering-OTS-SarifMark
+          - Rendering-OTS-SarifMark-Enforcement
+          - Rendering-OTS-SonarMark
+
+      - id: Quality-PeerReview
+        title: The repository shall rely on ReviewMark to enforce peer-review tracking and reporting.
+        tags: [quality]
+        justification: |
+          Peer-review compliance depends on ReviewMark's indexing, enforcement,
+          elaboration, linting, and directory-override capabilities. This grouping
+          requirement links those OTS requirements to the quality root so they
+          participate in orphan detection without being falsely reported as
+          disconnected from rendering functionality.
+        children:
+          - Rendering-OTS-ReviewMark
+          - Rendering-OTS-ReviewMark-IndexScan
+          - Rendering-OTS-ReviewMark-Enforce
+          - Rendering-OTS-ReviewMark-Elaborate
+          - Rendering-OTS-ReviewMark-Lint
+          - Rendering-OTS-ReviewMark-DirectoryOverride
+
+      - id: Quality-DocumentationGeneration
+        title: The repository shall rely on Pandoc and WeasyPrint to generate HTML and PDF documentation.
+        tags: [quality]
+        justification: |
+          Documentation generation depends on Pandoc's format conversion and
+          WeasyPrint's PDF rendering. This grouping requirement links those OTS
+          requirements to the quality root so they participate in orphan detection
+          without being falsely reported as disconnected from rendering
+          functionality.
+        children:
+          - Rendering-OTS-Pandoc
+          - Rendering-OTS-WeasyPrint
+
+      - id: Quality-RequirementsTraceability
+        title: >-
+          The repository shall rely on ReqStream and FileAssert to validate
+          requirements traceability and generated documentation.
+        tags: [quality]
+        justification: |
+          Requirements traceability depends on ReqStream's linting and reporting
+          capabilities, and generated-document verification depends on FileAssert.
+          This grouping requirement links those OTS requirements to the quality
+          root so they participate in orphan detection without being falsely
+          reported as disconnected from rendering functionality.
+        children:
+          - Rendering-OTS-ReqStream
+          - Rendering-OTS-ReqStream-Lint
+          - Rendering-OTS-FileAssert
+
+      - id: Quality-RasterRendering
+        title: >-
+          The Rendering.Skia system shall rely on SkiaSharp to rasterize, render text,
+          and encode PNG, JPEG, and WEBP output.
+        tags: [quality]
+        justification: |
+          Raster output depends on SkiaSharp's rasterization, text-layout, and
+          format-encoding capabilities across all supported platforms. This grouping
+          requirement links those OTS requirements to the quality root so they
+          participate in orphan detection without being falsely reported as
+          disconnected from rendering functionality.
+        children:
+          - Rendering-OTS-SkiaSharp-Rasterize
+          - Rendering-OTS-SkiaSharp-Text
+          - Rendering-OTS-SkiaSharp-EncodePng
+          - Rendering-OTS-SkiaSharp-EncodeJpeg
+          - Rendering-OTS-SkiaSharp-EncodeWebp
