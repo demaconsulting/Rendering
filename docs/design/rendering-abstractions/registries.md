@@ -64,7 +64,7 @@ No OTS runtime component or Shared Package is consumed.
 - **Rendering.Layout `DefaultLayout` unit** — builds a `LayoutAlgorithmRegistry` populated with the
   layered, containment, and hierarchical algorithms and resolves the algorithm identified by
   `CoreOptions.Algorithm` before invoking `ILayoutAlgorithm.Apply`.
-- **Rendering.Svg and Rendering.Skia systems** — register their `IRenderer` implementations in a
+- **Rendering.Svg and Rendering.CanvasNet systems** — register their `IRenderer` implementations in a
   shared `RendererRegistry` so callers can resolve a renderer by media type (for example
   `image/svg+xml`, `image/png`) or by an output file extension (`.svg`, `.png`, `.jpg`, `.webp`).
 - **End-user applications** that host the rendering pipeline resolve algorithms and renderers by

@@ -16,7 +16,7 @@ A container node holding a nested child graph, with a cross-container edge.
 
 ## Raster output
 
-One of the layout-algorithm diagrams above is rendered again here through the SkiaSharp raster path to PNG with the same
+One of the layout-algorithm diagrams above is rendered again here through the CanvasNet raster path to PNG with the same
 dark theme, proving multi-format output.
 
 ![Hierarchical nested diagram as PNG](hierarchical-nested.png)

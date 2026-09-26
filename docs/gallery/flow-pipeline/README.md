@@ -44,7 +44,7 @@ A connector routed orthogonally around an intervening container box.
 
 ## Raster output
 
-One of the layout-algorithm diagrams above is rendered again here through the SkiaSharp raster path to PNG with the same
+One of the layout-algorithm diagrams above is rendered again here through the CanvasNet raster path to PNG with the same
 dark theme, proving multi-format output.
 
 ![Layered pipeline diagram as PNG](layered-pipeline.png)

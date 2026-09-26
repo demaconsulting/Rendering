@@ -98,18 +98,17 @@ sections:
 
       - id: Rendering-Quality-RasterRendering
         title: >-
-          The Rendering.Skia system shall rely on SkiaSharp to rasterize, render text,
-          and encode PNG, JPEG, and WEBP output.
+          The Rendering.CanvasNet system shall rely on CanvasNet to rasterize, render
+          text, and encode PNG and JPEG output.
         tags: [quality]
         justification: |
-          Raster output depends on SkiaSharp's rasterization, text-layout, and
+          Raster output depends on CanvasNet's managed rasterization, text-layout, and
           format-encoding capabilities across all supported platforms. This grouping
           requirement links those OTS requirements to the quality root so they
           participate in orphan detection without being falsely reported as
           disconnected from rendering functionality.
         children:
-          - Rendering-OTS-SkiaSharp-Rasterize
-          - Rendering-OTS-SkiaSharp-Text
-          - Rendering-OTS-SkiaSharp-EncodePng
-          - Rendering-OTS-SkiaSharp-EncodeJpeg
-          - Rendering-OTS-SkiaSharp-EncodeWebp
+          - Rendering-OTS-CanvasNet-Rasterize
+          - Rendering-OTS-CanvasNet-Text
+          - Rendering-OTS-CanvasNet-EncodePng
+          - Rendering-OTS-CanvasNet-EncodeJpeg

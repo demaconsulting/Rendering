@@ -50,7 +50,7 @@ construction. No logging is performed.
 - **BoxMetrics Unit** (same system) — `BoxMetrics.FolderTabHeight(Theme)` and
   `BoxMetrics.TitleAreaHeight(Theme, bool, bool)` read `FontSizeBody`, `FontSizeTitle`, and
   `LabelPadding`.
-- **Rendering.Svg and Rendering.Skia renderer systems** — read the theme's colors, stroke, font
+- **Rendering.Svg and Rendering.CanvasNet renderer systems** — read the theme's colors, stroke, font
   sizes, and padding directly, and call `ConnectorApproachZone` when reserving connector approach
   space.
 - **Rendering.Layout engines** — read `ConnectorStub`, `BendRadius`, and `CleanLegMargin` when

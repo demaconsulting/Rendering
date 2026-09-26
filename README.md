@@ -10,7 +10,7 @@
 [![NuGet][badge-nuget]][link-nuget]
 
 General-purpose diagram layout and rendering for .NET. Describe a diagram as a graph, lay it out
-with a pluggable algorithm, and render it to SVG, PNG, JPEG, or WEBP. The design is inspired by the
+with a pluggable algorithm, and render it to SVG, PNG, or JPEG. The design is inspired by the
 [Eclipse Layout Kernel (ELK)][link-elk]: layout and rendering are configured through an open,
 extensible property system, and new algorithms, renderers, and options are added additively.
 
@@ -26,8 +26,8 @@ extensible property system, and new algorithms, renderers, and options are added
 - **Boundary (delegation) ports** — a container port that carries both an outward external label and
   an inward internal label at one shared anchor, relaying an external connection into the container's
   nested children, with external and internal fan-out consolidated onto that single anchor.
-- **Multiple output formats** — SVG (zero external dependencies) plus PNG, JPEG, and WEBP via
-  SkiaSharp, with light, dark, and print themes.
+- **Multiple output formats** — SVG (zero external dependencies) plus PNG and JPEG via
+  CanvasNet, with light, dark, and print themes.
 
 ## Algorithm capabilities
 
@@ -61,18 +61,18 @@ The library is split into focused packages so consumers take only what they need
 | `DemaConsulting.Rendering.Abstractions` | SPI: `ILayoutAlgorithm`/`IRenderer`, registries, `Theme`, notation metrics |
 | `DemaConsulting.Rendering.Layout` | Layout algorithms: the layered pipeline and `LayeredLayoutAlgorithm` |
 | `DemaConsulting.Rendering.Svg` | SVG renderer with zero external dependencies |
-| `DemaConsulting.Rendering.Skia` | SkiaSharp raster renderers (PNG, JPEG, WEBP) with an embedded Noto Sans font |
+| `DemaConsulting.Rendering.CanvasNet` | CanvasNet raster renderers (PNG, JPEG) with an embedded Noto Sans font |
 
 Package dependencies form an acyclic graph: `Abstractions` and `Layout` depend on the model;
-`Svg` and `Skia` depend on the model and `Abstractions`; the model depends on nothing.
+`Svg` and `CanvasNet` depend on the model and `Abstractions`; the model depends on nothing.
 
 ### Use from a Roslyn analyzer or source generator
 
 Every package targets `net8.0`, `net9.0`, and `net10.0`. The model, SPI, layout, and SVG packages
 additionally target `netstandard2.0` with no external dependencies on that target, so a Roslyn
 analyzer or source generator can reference them and lay out and emit SVG diagrams at compile time.
-The raster package is deliberately excluded, because it depends on SkiaSharp's platform-specific
-native assets.
+The raster package is deliberately excluded, because the CanvasNet package does not support
+netstandard2.0.
 
 ## Installation
 

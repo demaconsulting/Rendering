@@ -1,0 +1,42 @@
+---
+# Rendering.CanvasNet System Requirements
+#
+# PURPOSE:
+# - Define the system-level requirement for the DemaConsulting.Rendering.CanvasNet system: the
+#   CanvasNet raster renderer package that renders placed layout trees to PNG and JPEG.
+# - The system requirement is generic: it describes WHAT the CanvasNet raster system delivers. It
+#   decomposes downward (children) into the unit requirements that provide the detailed behavior.
+#   Those unit requirements live in the per-unit sibling files:
+#     - canvasnet-raster-renderer.yaml  (the shared CanvasNet rasterizer)
+#     - png-renderer.yaml               (PNG encoding)
+#     - jpeg-renderer.yaml              (JPEG encoding)
+# - Each unit requirement is verified by CanvasNet renderer unit tests.
+
+sections:
+  - title: Rendering.CanvasNet Requirements
+    requirements:
+      - id: Rendering-CanvasNet-RenderRasterImage
+        title: >-
+          The CanvasNet system shall render a placed layout tree to raster images in the PNG and
+          JPEG formats using CanvasNet.
+        tags: [system]
+        justification: |
+          Raster output lets rendered diagrams be embedded where vector formats are not accepted,
+          shared as ordinary image files, and previewed by any image viewer. PNG and JPEG are the
+          formats exposed by the delivered CanvasNet renderer package.
+        children:
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColours
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkers
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-EmptyTree
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-PortAndContentInset
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelSqueeze
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-TitleCentersOnBoxWidth
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphOutline
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-CanvasGrowsForLabels
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-SharedTypefaces
+          - Rendering-CanvasNet-PngRenderer-EmitsPng
+          - Rendering-CanvasNet-JpegRenderer-EmitsJpeg
+        tests:
+          - Render_SingleBox_ProducesPngSignature
+          - JpegRenderer_Render_ProducesJpegSignature

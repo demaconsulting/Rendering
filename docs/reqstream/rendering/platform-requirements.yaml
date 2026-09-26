@@ -82,7 +82,7 @@ sections:
           Roslyn analyzers and source generators are loaded by the compiler into a netstandard2.0
           context, so a consumer that wants to emit diagrams from an analyzer can only reference
           packages that ship netstandard2.0 assets. The raster renderer is deliberately excluded
-          because it depends on SkiaSharp's platform-specific native assets.
+          because the CanvasNet package does not support netstandard2.0.
 
           The evidence comes from the net481 matrix cell. .NET Framework resolves a package reference
           to its netstandard2.0 assets, so running the suite on net481 exercises exactly the assets a

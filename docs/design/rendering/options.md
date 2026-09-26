@@ -88,7 +88,7 @@ units and depends on neither.
 Within the Rendering model, the Layout Graph unit's `LayoutGraph`, `LayoutGraphNode`, and
 `LayoutGraphEdge` all derive from `PropertyHolder`, so every graph element carries options through
 this unit. Outside the model, layout algorithms in `DemaConsulting.Rendering.Layout` and renderers in
-`DemaConsulting.Rendering.Svg` and `DemaConsulting.Rendering.Skia` read `LayoutOptions` and
+`DemaConsulting.Rendering.Svg` and `DemaConsulting.Rendering.CanvasNet` read `LayoutOptions` and
 `CoreOptions` keys to configure their behavior; the shared abstractions in
 `DemaConsulting.Rendering.Abstractions` also consume `LayoutOptions` as the configuration parameter of
 `ILayoutAlgorithm.Apply`. Application code builds a `LayoutOptions` (often via `ForAlgorithm`) and

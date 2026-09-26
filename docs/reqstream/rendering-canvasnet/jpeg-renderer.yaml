@@ -1,0 +1,21 @@
+---
+# DemaConsulting.Rendering.CanvasNet - JpegRenderer Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the JpegRenderer unit: the concrete CanvasNet renderer that encodes
+#   the shared rasterized surface as JPEG.
+# - These unit requirements decompose the Rendering-CanvasNet-RenderRasterImage system requirement
+#   declared in rendering-canvasnet.yaml.
+
+sections:
+  - title: JpegRenderer Requirements
+    requirements:
+      - id: Rendering-CanvasNet-JpegRenderer-EmitsJpeg
+        title: >-
+          JpegRenderer shall encode the rasterized diagram as a JPEG image, reporting the
+          "image/jpeg" media type and the ".jpg" and ".jpeg" file extensions.
+        justification: |
+          JPEG produces small, widely compatible images for diagrams where lossy compression is
+          acceptable; advertising both extensions lets callers resolve the renderer by either name.
+        tests:
+          - JpegRenderer_Render_ProducesJpegSignature

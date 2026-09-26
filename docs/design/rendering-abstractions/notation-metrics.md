@@ -57,7 +57,7 @@ throw for out-of-range enum values, treating them the same as `None`. The `Trian
 
 - **Rendering.Svg `SvgRenderer` unit** — reads the marker constants and calls the vertex helpers to
   emit the `<marker>` elements and box decorations.
-- **Rendering.Skia renderers** — read the same constants and helpers to draw identical decorations on
+- **Rendering.CanvasNet renderers** — read the same constants and helpers to draw identical decorations on
   the raster surface.
 - **Rendering.Layout edge routers (`OrthogonalEdgeRouter`, `InterconnectionLayoutEngine`)** — call
   `AlongLineLength(EndMarkerStyle)` to reserve clean approach length for the end marker before the

@@ -118,8 +118,8 @@ the shared notation vocabulary).
 
 The unit is written by layout algorithms in `DemaConsulting.Rendering.Layout` — the `layered`,
 `containment`, and `hierarchical` algorithms and the orthogonal edge router — and read by renderers
-in `DemaConsulting.Rendering.Svg` and `DemaConsulting.Rendering.Skia` (`SvgRenderer`, `PngRenderer`,
-`JpegRenderer`, `WebpRenderer`). The `ILayoutAlgorithm` and `IRenderer` contracts in
+in `DemaConsulting.Rendering.Svg` and `DemaConsulting.Rendering.CanvasNet` (`SvgRenderer`,
+`PngRenderer`, `JpegRenderer`). The `ILayoutAlgorithm` and `IRenderer` contracts in
 `DemaConsulting.Rendering.Abstractions` reference `LayoutTree` and its geometry types as their
 produced and consumed values. Application code typically does not construct a `LayoutTree` directly;
 it obtains one from a layout algorithm and passes it to a renderer.

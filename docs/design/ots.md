@@ -3,9 +3,9 @@
 This document describes the overall strategy for integrating the Off-The-Shelf (OTS) software items
 that the Rendering repository depends on. Most of these OTS items are compliance, build, and
 documentation tooling that are consumed while building, verifying, and documenting the Rendering
-libraries, and do not ship inside the `DemaConsulting.Rendering*` NuGet packages. SkiaSharp is the
-one exception: it is a runtime library linked into the delivered `DemaConsulting.Rendering.Skia`
-package.
+libraries, and do not ship inside the `DemaConsulting.Rendering*` NuGet packages. CanvasNet is the
+one exception: it is a pure managed runtime library linked into the delivered
+`DemaConsulting.Rendering.CanvasNet` package.
 
 ## OTS Items
 
@@ -19,7 +19,7 @@ OTS Software Items
 ├── ReqStream    — requirements traceability and enforcement
 ├── ReviewMark   — file-review plan, report, and enforcement
 ├── SarifMark    — CodeQL SARIF-to-Markdown conversion
-├── SkiaSharp          — raster graphics library (bitmap drawing and PNG/JPEG/WEBP encoding)
+├── CanvasNet          — pure managed raster graphics library (surface drawing and PNG/JPEG encoding)
 ├── SonarMark          — SonarCloud quality-report generation
 ├── VersionMark  — tool-version capture and publishing
 ├── WeasyPrint   — HTML-to-PDF (PDF/A) conversion
@@ -44,10 +44,10 @@ The OTS items fall into three consumption models:
 - **Test framework** — xUnit is referenced as a NuGet test-framework dependency by the test projects
   and is exercised by `dotnet test`; it discovers and runs the repository's own test methods and
   records TRX results.
-- **Runtime library** — SkiaSharp is referenced as a NuGet package dependency (plus
-  platform-specific native asset packages) by `DemaConsulting.Rendering.Skia.csproj` and is linked
-  into the delivered package; it provides the bitmap canvas, drawing primitives, and image encoders
-  that the Skia raster renderer tier uses at run time.
+- **Runtime library** — CanvasNet is referenced as a NuGet package dependency by
+  `DemaConsulting.Rendering.CanvasNet.csproj` and is linked into the delivered package; it provides
+  the managed raster surface, drawing primitives, and image encoders that the CanvasNet raster
+  renderer tier uses at run time, with no platform-specific native asset packages.
 
 Configuration is file-driven: the tools read repository configuration such as `requirements.yaml`,
 `.reviewmark.yaml`, `.versionmark.yaml`, and the per-collection Pandoc `definition.yaml` manifests, and
@@ -63,7 +63,7 @@ tools expose a `--validate` mode that runs a built-in self-validation suite and 
 (for example, `dotnet reqstream --validate --results artifacts/reqstream-self-validation.trx`); ReqStream
 then traces those TRX results against the OTS requirements in `requirements.yaml`. Tools without a
 self-validation suite in this pipeline (Pandoc, WeasyPrint) are verified indirectly: FileAssert asserts
-that their generated HTML and PDF outputs exist and contain expected content. xUnit and SkiaSharp are
+that their generated HTML and PDF outputs exist and contain expected content. xUnit and CanvasNet are
 verified by the repository's own passing tests — xUnit as the framework that discovers, executes, and
-records them, and SkiaSharp as the raster library those renderer tests exercise directly. The per-item
+records them, and CanvasNet as the raster library those renderer tests exercise directly. The per-item
 verification evidence is documented under `docs/verification/ots/{ots-name}.md`.

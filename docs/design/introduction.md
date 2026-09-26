@@ -36,7 +36,7 @@ software items:
   `containment`, `hierarchical`, and `auto` algorithms, orthogonal connector routing, and the default
   layout facade.
 - **Rendering.Svg (System)** — the SVG renderer.
-- **Rendering.Skia (System)** — the SkiaSharp raster renderers (PNG, JPEG, and WEBP).
+- **Rendering.CanvasNet (System)** — the CanvasNet raster renderers (PNG and JPEG).
 
 The integration design for the following OTS build, compliance, and documentation tools is also
 covered (their internal design is out of scope):
@@ -73,10 +73,10 @@ LayoutGraph + LayoutOptions   (Rendering: unplaced input + open property configu
     LayoutTree                         (Rendering: placed boxes and routed connectors)
         │
         ▼  IRenderer                   (Rendering.Abstractions: the render SPI)
- SvgRenderer / PngRenderer / JpegRenderer / WebpRenderer   (Rendering.Svg / Rendering.Skia)
+ SvgRenderer / PngRenderer / JpegRenderer   (Rendering.Svg / Rendering.CanvasNet)
         │
         ▼
-   SVG, PNG, JPEG, or WEBP output
+   SVG, PNG, or JPEG output
 ```
 
 Configuration is **open** and **property-based**: options are declared as typed
@@ -87,7 +87,7 @@ and output formats are introduced additively by implementing `ILayoutAlgorithm` 
 and registering them — no existing contract changes.
 
 The delivered subset implements the `layered`, `containment`, `hierarchical`, and `auto` algorithms and
-the SVG and SkiaSharp (PNG, JPEG, WEBP) renderers.
+the SVG and CanvasNet (PNG, JPEG) renderers.
 
 ## Software Structure
 
@@ -129,11 +129,10 @@ Rendering.Layout (System)
 Rendering.Svg (System)
 └── SvgRenderer (Unit)
 
-Rendering.Skia (System)
-├── SkiaRasterRenderer (Unit)   — abstract SkiaSharp rasterizer shared by all formats
-├── PngRenderer (Unit)          — lossless PNG output
-├── JpegRenderer (Unit)         — JPEG output
-├── WebpRenderer (Unit)          — WEBP output
+Rendering.CanvasNet (System)
+├── CanvasNetRasterRenderer (Unit)  — abstract CanvasNet rasterizer shared by all formats
+├── PngRenderer (Unit)              — lossless PNG output
+└── JpegRenderer (Unit)             — JPEG output
 
 OTS Software Items
 ├── BuildMark    — build-notes documentation from GitHub Actions metadata
@@ -142,7 +141,7 @@ OTS Software Items
 ├── ReqStream    — requirements traceability and enforcement
 ├── ReviewMark   — file-review plan, report, and enforcement
 ├── SarifMark    — CodeQL SARIF-to-Markdown conversion
-├── SkiaSharp    — raster graphics library (bitmap drawing and PNG/JPEG/WEBP encoding)
+├── CanvasNet    — pure managed raster graphics library (surface drawing and PNG/JPEG encoding)
 ├── SonarMark    — SonarCloud quality-report generation
 ├── VersionMark  — tool-version capture and publishing
 ├── WeasyPrint   — HTML-to-PDF (PDF/A) conversion
@@ -151,13 +150,14 @@ OTS Software Items
 
 Most OTS software items are compliance, build, and documentation tooling consumed while building,
 verifying, and documenting the Rendering libraries, and are not linked into the delivered packages.
-SkiaSharp is the one exception: it is a runtime library linked into the delivered
-`DemaConsulting.Rendering.Skia` package. Their integration design is described in the OTS
-Integration Design section and the per-item documents under `docs/design/ots/`.
+CanvasNet is the one exception: it is a pure managed runtime library linked into the delivered
+`DemaConsulting.Rendering.CanvasNet` package, with no P/Invoke layer or platform-specific native
+asset packages. Their integration design is described in the OTS Integration Design section and the
+per-item documents under `docs/design/ots/`.
 
 Package dependencies form an acyclic graph: `Abstractions` and `Layout` depend on the
-`Rendering` model; `Svg` and `Skia` depend on the model and `Abstractions`; the model depends
-on nothing.
+`Rendering` model; `Svg` and `CanvasNet` depend on the model and `Abstractions`; the model
+depends on nothing.
 
 ## Companion Artifact Structure
 
@@ -189,7 +189,7 @@ The five systems map to these kebab-case folders:
 | `DemaConsulting.Rendering.Abstractions` | `rendering-abstractions` |
 | `DemaConsulting.Rendering.Layout` | `rendering-layout` |
 | `DemaConsulting.Rendering.Svg` | `rendering-svg` |
-| `DemaConsulting.Rendering.Skia` | `rendering-skia` |
+| `DemaConsulting.Rendering.CanvasNet` | `rendering-canvasnet` |
 
 ## Folder Layout
 
@@ -203,7 +203,7 @@ src/
 ├── DemaConsulting.Rendering.Layout/     — layout algorithms
 │   └── Engine/Layered/                  — ELK-style layered pipeline stages
 ├── DemaConsulting.Rendering.Svg/        — SVG renderer
-└── DemaConsulting.Rendering.Skia/       — SkiaSharp raster renderers (PNG, JPEG, WEBP; Noto Sans)
+└── DemaConsulting.Rendering.CanvasNet/   — CanvasNet raster renderers (PNG, JPEG; Noto Sans)
 ```
 
 ## Document Conventions
