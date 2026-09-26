@@ -969,20 +969,23 @@ public class LayeredLayoutAlgorithmTests
     /// <remarks>
     ///     Derivation of the expected margin for this two-port scenario (Total = 2 ports on the Left
     ///     face, both labeled): the multi-anchor growth floor sets
-    ///     <c>band = Math.Max(labelBasedHeight, clearanceBasedHeight) + (assumedFontSize * Total)</c>,
-    ///     where <c>labelBasedHeight = EstimateLabelHeight(assumedFontSize) * Total</c> (≈19.6 per port
-    ///     at the default 12px font, via ConnectorLabelPlacer's fixed 1.3x-font-size-plus-2x2-gap
-    ///     formula) and <c>clearanceBasedHeight = 2 * ConnectorClearance * Total</c> (20 per port, since
-    ///     <c>LayeredLayoutMetrics.ConnectorClearance = 10</c>). Because 20 > 19.6 for every label text
-    ///     at this font size, <c>clearanceBasedHeight</c> always wins here, so
-    ///     <c>band = (2 * ConnectorClearance + assumedFontSize) * Total</c>. PortDistributor
-    ///     (<see cref="DemaConsulting.Rendering.Layout.Engine.Layered.PortDistributor"/>) then centers
-    ///     each of the <c>Total</c> ports within its own equal <c>band / Total</c>-tall slice of that
-    ///     band, so the bottom-most port's own margin to the box's bottom edge is exactly half of one
-    ///     slice: <c>(band / Total) / 2 = (2 * ConnectorClearance + assumedFontSize) / 2 =
-    ///     ConnectorClearance + (assumedFontSize / 2)</c> — independent of <c>Total</c> whenever
+    ///     <c>band = Math.Max(labelBasedHeight, clearanceBasedHeight) + (assumedFontSize * 2.0 *
+    ///     Total)</c>, where <c>labelBasedHeight = EstimateLabelHeight(assumedFontSize) * Total</c>
+    ///     (≈19.6 per port at the default 12px font, via ConnectorLabelPlacer's fixed
+    ///     1.3x-font-size-plus-2x2-gap formula) and <c>clearanceBasedHeight = 2 * ConnectorClearance *
+    ///     Total</c> (20 per port, since <c>LayeredLayoutMetrics.ConnectorClearance = 10</c>). Because
+    ///     20 > 19.6 for every label text at this font size, <c>clearanceBasedHeight</c> always wins
+    ///     here, so <c>band = (2 * ConnectorClearance + (2 * assumedFontSize)) * Total</c>. The
+    ///     compensation term is doubled (rather than a flat <c>assumedFontSize</c>) because
+    ///     PortDistributor (<see cref="DemaConsulting.Rendering.Layout.Engine.Layered.PortDistributor"/>)
+    ///     centers each of the <c>Total</c> ports within its own equal <c>band / Total</c>-tall slice of
+    ///     that band, so only HALF of any height added to the band ends up below a port's own centre —
+    ///     the other half grows the slice upward, where the label never reaches. The bottom-most port's
+    ///     own margin to the box's bottom edge is therefore half of one slice:
+    ///     <c>(band / Total) / 2 = (2 * ConnectorClearance + (2 * assumedFontSize)) / 2 =
+    ///     ConnectorClearance + assumedFontSize</c> — independent of <c>Total</c> whenever
     ///     <c>clearanceBasedHeight</c> dominates. At the default constants (ConnectorClearance = 10,
-    ///     assumedFontSize = 12) this is <c>10 + 6 = 16</c>, confirmed empirically against the actual
+    ///     assumedFontSize = 12) this is <c>10 + 12 = 22</c>, confirmed empirically against the actual
     ///     layout output for this exact scenario.
     /// </remarks>
     [Fact]
@@ -1015,11 +1018,11 @@ public class LayeredLayoutAlgorithmTests
         var boxBottom = hubBox.Y + hubBox.Height;
         var bottomPortMargin = boxBottom - ports[^1].CentreY;
 
-        // requiredMargin = ConnectorClearance + (assumedFontSize / 2) — see the <remarks> derivation
-        // above. This is strictly greater than the pre-fix requirement of a bare `assumedFontSize`
-        // (12), proving the new full-FontSizeBody downward-shift compensation (rather than the old
-        // half-FontSizeBody one) actually reaches the bottom-most port of a multi-port face.
-        var requiredMargin = LayeredLayoutMetrics.ConnectorClearance + (assumedFontSize / 2.0);
+        // requiredMargin = ConnectorClearance + assumedFontSize — see the <remarks> derivation
+        // above. This is strictly greater than the pre-fix requirement of
+        // ConnectorClearance + (assumedFontSize / 2), proving the doubled downward-shift
+        // compensation term actually reaches the bottom-most port of a multi-port face.
+        var requiredMargin = LayeredLayoutMetrics.ConnectorClearance + assumedFontSize;
         Assert.True(
             bottomPortMargin >= requiredMargin,
             $"Expected bottom-most left port's margin to box bottom ({bottomPortMargin}) to be at least "
