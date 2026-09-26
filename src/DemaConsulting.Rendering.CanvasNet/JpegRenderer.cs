@@ -15,7 +15,7 @@ namespace DemaConsulting.Rendering.CanvasNet;
 /// </summary>
 public sealed class JpegRenderer : IRenderer
 {
-    /// <summary>JPEG encoding quality used to match the Skia renderer's public behavior.</summary>
+    /// <summary>JPEG encoding quality, matching common raster-renderer conventions (a 90 default balances file size and visual fidelity).</summary>
     private const int EncodingQuality = 90;
 
     /// <summary>Shared JPEG encoder implementation holding the raster drawing logic.</summary>

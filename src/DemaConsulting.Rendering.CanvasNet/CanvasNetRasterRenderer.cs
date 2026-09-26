@@ -62,7 +62,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
 
     /// <summary>
     /// Opaque white fill used by shapes whose semantics are intentionally theme-independent in the
-    /// Skia renderer: activation bars and the inner bullseye circle.
+    /// CanvasNet renderer: activation bars and the inner bullseye circle.
     /// </summary>
     private static readonly Rgba32 White = new(255, 255, 255, 255);
 

@@ -132,13 +132,13 @@ step.
 
 | Requirement ID | Satisfied by |
 | --- | --- |
-| Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree | `RenderToSurface`, node drawing, background, markers, and labels |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree | `RenderToSurface` drawing, markers, labels |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColours | Box and grid fill selection from `Theme.DepthFillColors` |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkers | End-marker drawing helpers that use `NotationMetrics` |
-| Rendering-CanvasNet-CanvasNetRasterRenderer-EmptyTree | Minimum surface width and height enforcement in `RenderToSurface` |
-| Rendering-CanvasNet-CanvasNetRasterRenderer-PortAndContentInset | Port label placement and `ContentInsetLeft`-aware compartment/title starts |
-| Rendering-CanvasNet-CanvasNetRasterRenderer-CanvasGrowsForLabels | `RenderToSurface` grows the surface to fit every placed label |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-EmptyTree | Minimum surface size enforcement in `RenderToSurface` |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-PortAndContentInset | Port placement, `ContentInsetLeft`-aware starts |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-CanvasGrowsForLabels | `RenderToSurface` grows to fit every placed label |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-TitleCentersOnBoxWidth | `RenderBoxTitle` centers on full box width |
-| Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphOutline | `RenderPort` outlines the port glyph in `theme.BackgroundColor` |
-| Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelSqueeze | `DrawPortLabel` bounds label width to `port.MaxLabelWidth` |
-| Rendering-CanvasNet-CanvasNetRasterRenderer-SharedTypefaces | `CanvasNetTypefaces.Resolve` and its lazily loaded typeface fields |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphOutline | `RenderPort` outlines the glyph in background color |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelSqueeze | `DrawPortLabel` bounds width to `port.MaxLabelWidth` |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-SharedTypefaces | `CanvasNetTypefaces.Resolve` lazily loaded fields |

@@ -237,25 +237,25 @@ uncovered by this design discussion, not a detail of the port model itself.
 
 ### Text measurement: `PortLabelWidthEstimator` + `CoreOptions.AssumedFontSize` (superseded — see note)
 
-**Note (post-implementation):** the `ITextMeasurer` interface and Skia-backed measurer described
+**Note (post-implementation):** the `ITextMeasurer` interface and CanvasNet-backed measurer described
 below were removed after implementation — a materially improved dependency-free heuristic (a
 per-character Noto-Sans advance-width table) closed most of the accuracy gap without an
 abstraction, interface, or extension point. The narrative below is retained as historical design
 rationale for the font-family/measurement-timing reasoning, which still applies.
 
 A single `LayoutTree` is computed once and reused across renderers (`LayoutTree tree =
-LayoutEngine.Layout(graph);` then passed to both the SVG and Skia renderers), so any text-aware
+LayoutEngine.Layout(graph);` then passed to both the SVG and CanvasNet renderers), so any text-aware
 spacing decision has to be made once, at layout time, inside `Apply` — not per renderer. Two facts
 make this workable without breaking the Layout unit's current zero-rendering-dependency design:
 
 - **Font family is already global, not per-render.** `Theme`'s own doc comment states it directly:
   "Font choice is not part of the theme; each renderer hardcodes its own typeface internally" —
-  both `SvgRenderer` and `SkiaRasterRenderer` hardcode Noto Sans. There is exactly one font this
+  both `SvgRenderer` and `CanvasNetRasterRenderer` hardcode Noto Sans. There is exactly one font this
   library ever uses, so a measurement taken once at layout time cannot go stale from a renderer
   using a different font later.
-- **`DemaConsulting.Rendering.Skia` already embeds the real Noto Sans font files**
-  (`NotoSans-Regular/Bold/Italic/BoldItalic.ttf`) and already calls `SKFont.MeasureText` elsewhere
-  (title auto-fit, badge label sizing) — so a measurer backed by it is exact for Skia's own raster
+- **`DemaConsulting.Rendering.CanvasNet` already embeds the real Noto Sans font files**
+  (`NotoSans-Regular/Bold/Italic/BoldItalic.ttf`) and already calls `TextRenderer.MeasureText` elsewhere
+  (title auto-fit, badge label sizing) — so a measurer backed by it is exact for CanvasNet's own raster
   output and a good-faith estimate for SVG output (which targets the same nominal font family).
 
 Proposed shape (implemented; `ITextMeasurer` lives in `DemaConsulting.Rendering`, not
@@ -267,14 +267,14 @@ Proposed shape (implemented; `ITextMeasurer` lives in `DemaConsulting.Rendering`
   `Abstractions -> Rendering` (`Abstractions` references `Rendering`, not the reverse), so
   `CoreOptions` (declared in `Rendering`) cannot reference a type declared in `Abstractions`.
   `DemaConsulting.Rendering.Layout` already has a `ProjectReference` on `Rendering`, so placing the
-  interface there satisfies the same intent (a dependency-light, Skia-free interface `Layout` can
+  interface there satisfies the same intent (a dependency-light, CanvasNet-free interface `Layout` can
   reference) without inverting the reference graph.
-- `DemaConsulting.Rendering.Skia` ships a ready-made implementation backed by its already-embedded
-  Noto Sans typefaces and real `SKFont.MeasureText`.
+- `DemaConsulting.Rendering.CanvasNet` ships a ready-made implementation backed by its already-embedded
+  Noto Sans typefaces and real `TextRenderer.MeasureText`.
 - Add `CoreOptions.TextMeasurer` (optional; cascades like every other option) so a caller wires it
   in once. If unset, `LayeredLayoutAlgorithm` falls back to a small, dependency-free heuristic
   (an average-advance-width-per-character estimate) so every caller gets automatic behavior with
-  zero required setup, even one that never references Skia at all.
+  zero required setup, even one that never references CanvasNet at all.
 - Add `CoreOptions.AssumedFontSize` (default `12.0`, matching the bundled themes' `FontSizeBody`)
   because `Theme.FontSizeBody` is chosen per render call, not at layout time, and the measurer
   needs a font size up front. **Caveat, not a new risk:** if a later `Render` call uses a theme
@@ -327,7 +327,7 @@ correspondingly how much it pushes the box's own title/compartment content inwar
   but the box's own title/compartment content no longer collides with a port label on its own face,
   which is the actual goal of the reserved-margin mechanism.
 - This is genuinely new model surface: `LayoutBox` needs the four `ContentInset*` values (or
-  equivalent) so `SvgRenderer`/`SkiaRasterRenderer` know where title/compartment rendering may
+  equivalent) so `SvgRenderer`/`CanvasNetRasterRenderer` know where title/compartment rendering may
   start and must stop, auto-computed by `LayeredLayoutAlgorithm` rather than caller-supplied —
   directly answering "let the rendering library have the smarts, not the caller."
 - For a **boundary port** (a `LayoutGraphPort` with both an external and an internal edge — see
@@ -341,7 +341,7 @@ correspondingly how much it pushes the box's own title/compartment content inwar
 ### Long port names
 
 No renderer wraps or truncates text by adding line breaks or an ellipsis; `box`/keyword titles and
-port labels are instead **squeezed to fit** (SVG `textLength`/`lengthAdjust`, or the Skia
+port labels are instead **squeezed to fit** (SVG `textLength`/`lengthAdjust`, or the CanvasNet
 font-size-shrink equivalent) once they exceed their reserved width, rather than drawn at
 uncontrolled natural size. For port labels, each side's `LayoutPort.MaxLabelWidth` bounds the
 label to roughly half its owning box's inner width, so an excessively long port name can no longer
@@ -443,7 +443,7 @@ A port glyph (an 8x8 square, filled with `Theme.StrokeColor`) and a connector ar
 (also solid-filled, no border of its own) can land within a few pixels of each other at a box edge
 — for example a connector arriving directly at a named port — and, sharing the same fill color with
 no outline of their own, visually merge into a single indistinguishable shape. Both `SvgRenderer`
-and `SkiaRasterRenderer` now draw a thin (1.0 logical px, pre-scale) `Theme.BackgroundColor` outline
+and `CanvasNetRasterRenderer` now draw a thin (1.0 logical px, pre-scale) `Theme.BackgroundColor` outline
 around the port glyph, keeping it visually distinct from an adjacent arrowhead without touching the
 arrowhead's own rendering at all.
 
@@ -469,14 +469,14 @@ same-face crowding (no port-spacing-by-width work):
   ports + measured margins can ship independently and is useful on its own; boundary ports cannot
   ship until this lands.
 - **`ITextMeasurer` + `CoreOptions.TextMeasurer`/`AssumedFontSize`** (new interface in
-  `Abstractions`, Skia-backed implementation reusing its already-embedded Noto Sans typefaces and
-  `SKFont.MeasureText`, dependency-free heuristic fallback in `Layout`) — **small-to-medium**. No
-  new native dependency for `Layout` (interface-only), and the Skia side reuses font resources and
+  `Abstractions`, CanvasNet-backed implementation reusing its already-embedded Noto Sans typefaces and
+  `TextRenderer.MeasureText`, dependency-free heuristic fallback in `Layout`) — **small-to-medium**. No
+  new native dependency for `Layout` (interface-only), and the CanvasNet side reuses font resources and
   measurement calls that already exist for other purposes; the heuristic fallback is a small,
   self-contained function. **(Superseded — see note above.)**
 - **Reserved-margin computation** (`ContentInsetLeft/Right/Top/Bottom` on `LayoutBox`, auto-computed
   by `LayeredLayoutAlgorithm` from the measurer for left/right and a flat constant for top/bottom;
-  `SvgRenderer`/`SkiaRasterRenderer` reading these insets instead of the current fixed
+  `SvgRenderer`/`CanvasNetRasterRenderer` reading these insets instead of the current fixed
   `box.X + LabelPadding`/`ResolveTitleAreaTop` assumptions) — **medium**. Touches both renderers
   (title/compartment start position, and for a container, where its lowest child/compartment must
   stop), plus new `LayoutBox` model surface with its own reqstream/design-doc updates. Top/bottom
@@ -548,7 +548,7 @@ renderer to *derive* the text position itself:
 - `LayoutBand` — `Label` (renderer computes edge-header position).
 - `LayoutBadge` — `Label` (renderer computes beside-badge position).
 
-Because `SvgRenderer` and `SkiaRasterRenderer` each independently reimplement these formulas, they
+Because `SvgRenderer` and `CanvasNetRasterRenderer` each independently reimplement these formulas, they
 can silently drift (confirmed: both renderers duplicated `RenderBoxTitle`/`ResolveTitleAreaTop`
 verbatim, which is exactly the kind of duplication that let a box-title-centering gap go unnoticed
 in one renderer's math without the other necessarily agreeing).
@@ -559,7 +559,8 @@ i.e. `LayoutBox`/`LayoutPort`/`LayoutLine`/etc. stop carrying raw label strings 
 engine synthesizes child `LayoutLabel` nodes at already-resolved positions, alongside the
 geometry-only parent node. This is the same pattern `LayoutLabel` already proves works — it just
 isn't used everywhere yet. Renderers would then have zero discretion over text *positioning*
-anywhere in the tree, only over drawing mechanics (glyph shaping, `SKPaint` vs. SVG `<text>`
+anywhere in the tree, only over drawing mechanics (glyph shaping, CanvasNet `TextRenderer` vs. SVG
+`<text>`
 fitting, anti-aliasing) — which is where renderer-specific discretion actually belongs.
 
 This would also need `LayoutLabel` to gain an optional background-color field: today the
@@ -582,7 +583,7 @@ centering item below, which is exactly this kind of interim fix.
 ## Leaf-box title should be vertically centered — resolved
 
 **Resolved.** Added `BoxMetrics.TitleCursorTop(LayoutBox, Theme)`, a shared formula both
-`SvgRenderer.RenderBoxTitle` and `SkiaRasterRenderer.RenderBoxTitle` now call. Rather than
+`SvgRenderer.RenderBoxTitle` and `CanvasNetRasterRenderer.RenderBoxTitle` now call. Rather than
 inferring leaf status from `Children.Count == 0 && Compartments.Count == 0` at render time, the
 formula reads a stored `LayoutBox.CenterTitle` flag, set once by each algorithm at box-emission
 time: the flat engines (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`) set it from

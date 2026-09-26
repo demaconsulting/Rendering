@@ -47,8 +47,8 @@ namespace DemaConsulting.Rendering;
 ///   <item>
 ///     <description>
 ///     Render the <see cref="LayoutTree"/> with a renderer from <c>DemaConsulting.Rendering.Svg</c>
-///     (<c>SvgRenderer</c>, zero dependencies) or <c>DemaConsulting.Rendering.Skia</c> (raster
-///     PNG/JPEG/WEBP).
+///     (<c>SvgRenderer</c>, zero dependencies) or <c>DemaConsulting.Rendering.CanvasNet</c> (raster
+///     PNG/JPEG).
 ///     </description>
 ///   </item>
 /// </list>
@@ -56,7 +56,7 @@ namespace DemaConsulting.Rendering;
 /// The <c>DemaConsulting.Rendering.Abstractions</c> package defines the <c>LayoutAlgorithmBase</c> and
 /// <c>IRenderer</c> service-provider contracts, their registries, and the <c>Theme</c> that styles
 /// output. The dependency pipeline is <em>model &#8592; Abstractions &#8592; Layout &#8592;
-/// Svg/Skia</em>, so this model package depends on nothing and is the natural place to begin reading.
+/// Svg/CanvasNet</em>, so this model package depends on nothing and is the natural place to begin reading.
 /// </para>
 /// <para>
 /// Configuration is <strong>open</strong> and <strong>property-based</strong>: algorithms and

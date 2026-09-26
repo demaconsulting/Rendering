@@ -26,7 +26,7 @@ namespace DemaConsulting.Rendering.Layout;
 /// <see cref="LayoutAlgorithms"/> to build a registry of them. Supporting helpers include
 /// <see cref="ConnectorRouter"/> for orthogonal edge routing among placed boxes and
 /// <see cref="ContainmentLayout"/> for containment packing. Once you have a <c>LayoutTree</c>,
-/// render it with <c>DemaConsulting.Rendering.Svg</c> or <c>DemaConsulting.Rendering.Skia</c>.
+/// render it with <c>DemaConsulting.Rendering.Svg</c> or <c>DemaConsulting.Rendering.CanvasNet</c>.
 /// </para>
 /// </remarks>
 internal static class NamespaceDoc

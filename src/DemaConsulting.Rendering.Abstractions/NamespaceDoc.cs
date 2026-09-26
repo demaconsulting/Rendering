@@ -18,7 +18,7 @@ namespace DemaConsulting.Rendering.Abstractions;
 /// <see cref="Themes"/>) and render options that style output. Implement these contracts to add a
 /// new layout algorithm or renderer additively — the bundled ones live in
 /// <c>DemaConsulting.Rendering.Layout</c>, <c>DemaConsulting.Rendering.Svg</c>, and
-/// <c>DemaConsulting.Rendering.Skia</c>.
+/// <c>DemaConsulting.Rendering.CanvasNet</c>.
 /// </para>
 /// </remarks>
 internal static class NamespaceDoc

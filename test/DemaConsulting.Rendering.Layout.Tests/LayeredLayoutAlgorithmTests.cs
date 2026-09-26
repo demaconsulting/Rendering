@@ -955,7 +955,7 @@ public class LayeredLayoutAlgorithmTests
     /// <summary>
     ///     Proves that a titled node with two labeled ports stacked on its left (or right) face reserves
     ///     enough bottom clearance for the bottom-most port's downward-shifted label
-    ///     (<c>SvgRenderer.EmitPortLabel</c> and the Skia renderer's equivalent draw a Left/Right port's
+    ///     (<c>SvgRenderer.EmitPortLabel</c> and the CanvasNet renderer's equivalent draw a Left/Right port's
     ///     <see cref="LayoutGraphPort.ExternalLabel"/> at <c>CentreY + FontSizeBody / 2</c>, not centered
     ///     on the port row). Regression coverage for the gallery bug where "Hub"'s bottom-most labeled
     ///     port ("heartbeat"/"diag") rendered its label past the box's own bottom border: the growth
