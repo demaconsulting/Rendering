@@ -13,17 +13,19 @@ Read these standards first before applying this standard:
 
 # Package Reference
 
-Every xUnit v3 test project requires the following package references for
-`dotnet test` to discover and execute tests:
+Every xUnit v4 test project requires the following package references for
+`dotnet test` to discover and execute tests via Microsoft.Testing.Platform (MTP):
 
 | Package | Purpose |
 | ------- | ------- |
-| `xunit.v3` | xUnit v3 framework (monolithic - includes assertions and fixtures) |
-| `Microsoft.NET.Test.Sdk` | Required by the VSTest/`dotnet test` host for test discovery |
-| `xunit.runner.visualstudio` | VSTest adapter that bridges xUnit v3 to `dotnet test` |
+| `xunit.v3` | xUnit v4 framework (monolithic - includes assertions and fixtures; has built-in MTP support) |
+| `Microsoft.Testing.Extensions.CodeCoverage` | MTP-native code coverage collector |
+| `Microsoft.Testing.Extensions.TrxReport` | Adds the `--report-trx` option to produce TRX result files |
 
-Omitting `Microsoft.NET.Test.Sdk` or `xunit.runner.visualstudio` causes tests
-to be silently undiscoverable by `dotnet test`.
+Also set `<UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>`
+in the project so the compiled test assembly runs as a standalone MTP executable.
+`Microsoft.NET.Test.Sdk` and `xunit.runner.visualstudio` (the VSTest host/adapter)
+are no longer required and should not be referenced.
 
 If tests require mocking of dependencies, add `NSubstitute` as a package
 reference - it is recommended when mocking is needed but is not required for
@@ -53,9 +55,9 @@ public void UserValidator_ValidateEmail_InvalidFormat_ThrowsArgumentException()
 }
 ```
 
-# xUnit v3 Specifics
+# xUnit v4 Specifics
 
-These are non-obvious v3 behaviors that differ from v2 or common assumptions:
+These are non-obvious v3/v4 behaviors that differ from v2 or common assumptions:
 
 - **`IAsyncLifetime`**: Both `InitializeAsync` and `DisposeAsync` return `ValueTask`
   in v3, not `Task` - using `Task` compiles but does not satisfy the v3 interface
@@ -72,4 +74,4 @@ These are non-obvious v3 behaviors that differ from v2 or common assumptions:
 - [ ] Both success and failure scenarios covered including edge cases
 - [ ] External dependencies mocked with NSubstitute (when mocking is needed)
 - [ ] Tests linked to requirements with source filters where needed
-- [ ] Test results generated in TRX format for ReqStream compatibility (`dotnet test --logger trx`)
+- [ ] Test results generated in TRX format for ReqStream compatibility (`dotnet test --report-trx`)
