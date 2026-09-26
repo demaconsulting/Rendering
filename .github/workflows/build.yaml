@@ -188,6 +188,11 @@ jobs:
         # --coverage (via Microsoft.Testing.Extensions.CodeCoverage) and --report-trx (via
         # Microsoft.Testing.Extensions.TrxReport). Coverage is emitted as Cobertura XML because MTP's
         # coverage extension does not support the OpenCover format used previously.
+        # Unlike VSTest's TRX output, MTP names TRX/coverage files deterministically per
+        # project/TFM/architecture (no GUID or OS). Since the Build Documents job merges every
+        # matrix.os build's artifacts into one flat 'artifacts/' directory, results must be written
+        # to an OS-specific subfolder here to avoid same-named files from different OS runs
+        # overwriting/corrupting each other on merge.
         run: >
           dotnet test
           --no-build
@@ -196,7 +201,7 @@ jobs:
           --report-trx
           --coverage
           --coverage-output-format cobertura
-          --results-directory artifacts
+          --results-directory artifacts/${{ matrix.os }}
 
       - name: End Sonar Scanner
         env:
