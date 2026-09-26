@@ -11,6 +11,13 @@
 #     - png-renderer.yaml               (PNG encoding)
 #     - jpeg-renderer.yaml              (JPEG encoding)
 # - Each unit requirement is verified by CanvasNet renderer unit tests.
+#
+# OUT OF SCOPE:
+# - WEBP output is deliberately excluded. The Rendering.Skia system this replaces rendered PNG,
+#   JPEG, and WEBP, but CanvasNet has no WEBP codec, and the whole point of this migration was to
+#   eliminate the native SkiaSharp P/Invoke dependency - adding a WEBP encoder would reintroduce
+#   the same class of native, cross-platform dependency this system was built to remove. WEBP
+#   support is therefore not carried forward; this is an intentional scope decision, not a gap.
 
 sections:
   - title: Rendering.CanvasNet Requirements
@@ -23,13 +30,17 @@ sections:
         justification: |
           Raster output lets rendered diagrams be embedded where vector formats are not accepted,
           shared as ordinary image files, and previewed by any image viewer. PNG and JPEG are the
-          formats exposed by the delivered CanvasNet renderer package.
+          formats exposed by the delivered CanvasNet renderer package. WEBP is deliberately
+          excluded: CanvasNet has no WEBP codec, and adding one would reintroduce the native
+          P/Invoke dependency this CanvasNet-based system replaced SkiaSharp specifically to
+          eliminate.
         children:
           - Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree
           - Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColours
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkers
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EmptyTree
-          - Rendering-CanvasNet-CanvasNetRasterRenderer-PortAndContentInset
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelPlacement
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-ContentInsetLeft
           - Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelSqueeze
           - Rendering-CanvasNet-CanvasNetRasterRenderer-TitleCentersOnBoxWidth
           - Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphOutline

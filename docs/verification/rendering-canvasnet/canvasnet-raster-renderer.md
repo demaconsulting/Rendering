@@ -106,7 +106,8 @@ renders the same compartment-row scenario twice, once with a positive `ContentIn
 with zero, and asserts the inset case's row content is shifted right relative to the zero-inset
 case, confirming the raster renderer reads the reserved margin exactly as the SVG renderer does.
 
-**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-PortAndContentInset`.
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelPlacement`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-ContentInsetLeft`.
 
 #### Port label squeeze, title geometric centering, port outline, and label-aware surface growth
 
@@ -166,8 +167,9 @@ against the exact same lazily loaded typeface objects.
   PngRenderer_Render_DrawArrowhead_OpenWithCrossbar_ProducesNonEmptyOutput
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-EmptyTree`**:
   PngRenderer_Render_EmptyTree_WritesPngSignature
-- **`Rendering-CanvasNet-CanvasNetRasterRenderer-PortAndContentInset`**:
-  PngRenderer_RenderPort_AnySide_ProducesNonBackgroundPixels,
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelPlacement`**:
+  PngRenderer_RenderPort_AnySide_ProducesNonBackgroundPixels
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-ContentInsetLeft`**:
   PngRenderer_RenderBoxCompartments_ContentInsetLeft_ShiftsRowContentRight
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelSqueeze`**:
   PngRenderer_RenderPort_LongLabelWithMaxLabelWidth_SqueezesToFit

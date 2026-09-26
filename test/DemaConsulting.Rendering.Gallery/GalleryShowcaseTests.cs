@@ -249,6 +249,25 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
+    ///     Renders the layered pipeline diagram to JPEG, proving the CanvasNet raster path's
+    ///     <see cref="DemaConsulting.Rendering.CanvasNet.JpegRenderer"/> produces valid, non-empty
+    ///     JPEG output end-to-end alongside the existing PNG and SVG showcase coverage.
+    /// </summary>
+    [Fact]
+    public void Gallery_LayeredPipeline_RendersJpeg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.LayeredPipeline();
+        graph.Set(CoreOptions.Algorithm, "layered");
+
+        // Act / Assert
+        GalleryWriter.Jpeg(
+            GalleryCatalog.LayeredPipelineJpeg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
     ///     Renders the hierarchical nested diagram to PNG, proving the raster path handles composed
     ///     nested layouts.
     /// </summary>

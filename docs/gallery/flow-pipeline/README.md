@@ -44,9 +44,13 @@ A connector routed orthogonally around an intervening container box.
 
 ## Raster output
 
-One of the layout-algorithm diagrams above is rendered again here through the CanvasNet raster path to PNG with the same
-dark theme, proving multi-format output.
+One of the layout-algorithm diagrams above is rendered again here through the CanvasNet raster path to PNG and JPEG with
+the same dark theme, proving multi-format output.
 
 ![Layered pipeline diagram as PNG](layered-pipeline.png)
 
 The layered pipeline rendered to a raster PNG image.
+
+![Layered pipeline diagram as JPEG](layered-pipeline.jpeg)
+
+The same layered pipeline rendered to a raster JPEG image.

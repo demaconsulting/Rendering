@@ -13,6 +13,25 @@ CanvasNet is authored by DemaConsulting as a **pure native-managed .NET library 
 layer and no native binary dependency**. Its only package dependency is
 `System.Numerics.Tensors`, which it uses as a SIMD helper.
 
+**License**: MIT (`DemaConsulting.CanvasNet`, referenced as a NuGet package; see the `Dependencies`
+section of *Rendering.CanvasNet Design* for the same license statement at the system level).
+
+**Selection rationale**: CanvasNet was selected to replace the prior SkiaSharp-based raster backend
+specifically because it is a native-managed .NET library with no P/Invoke layer, whereas SkiaSharp
+requires a native binary per platform/architecture that was the source of cross-platform DLL
+compatibility problems this migration set out to resolve. CanvasNet is authored by this same
+organization (DemaConsulting), which allows the rendering libraries to depend on a raster backend
+whose roadmap and codec support can be directly influenced rather than depending on a third-party
+native binding. The trade-off accepted in choosing CanvasNet is a currently narrower codec surface
+(PNG and JPEG only - no WEBP encoder, unlike SkiaSharp) and a pre-1.0, beta-stage package with the
+corresponding API-stability caveats that implies; see *Rendering.CanvasNet Design* (Design
+Constraints) for how the WEBP-format gap is scoped as an intentional trade-off of this replacement
+rather than an oversight.
+
+**Maturity**: CanvasNet is currently pre-1.0 (a beta-series prerelease). Its public API surface may
+still change in a way that a stable 1.0+ release would not, so upgrades should be reviewed against
+CanvasNet's release notes rather than assumed to be purely additive.
+
 ### Features Used
 
 - **Managed raster surface** — `Surface` provides the in-memory raster pixel store that

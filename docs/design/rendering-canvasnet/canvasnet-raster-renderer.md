@@ -136,7 +136,8 @@ step.
 | Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColours | Box and grid fill selection from `Theme.DepthFillColors` |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkers | End-marker drawing helpers that use `NotationMetrics` |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-EmptyTree | Minimum surface size enforcement in `RenderToSurface` |
-| Rendering-CanvasNet-CanvasNetRasterRenderer-PortAndContentInset | Port placement, `ContentInsetLeft`-aware starts |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelPlacement | Port glyph/label placement on every side |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-ContentInsetLeft | `ContentInsetLeft`-aware compartment/title content starts |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-CanvasGrowsForLabels | `RenderToSurface` grows to fit every placed label |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-TitleCentersOnBoxWidth | `RenderBoxTitle` centers on full box width |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphOutline | `RenderPort` outlines the glyph in background color |

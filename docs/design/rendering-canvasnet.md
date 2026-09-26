@@ -92,6 +92,13 @@ writes the bytes to the caller-owned stream.
 - **Target frameworks**: `net8.0`, `net9.0`, and `net10.0`. Unlike the model, abstractions,
   layout, and SVG systems this one does not offer a `netstandard2.0` target: the CanvasNet package
   does not ship `netstandard2.0` assets.
+- **WEBP output is deliberately out of scope**: the prior SkiaSharp-based raster backend emitted
+  PNG, JPEG, and WEBP. CanvasNet provides only PNG and JPEG codecs and has no WEBP encoder, and
+  adding one is not a goal of this system - the whole point of replacing SkiaSharp was to eliminate
+  its native P/Invoke dependency (the source of the cross-platform DLL compatibility problems this
+  migration resolves), and a native WEBP codec would reintroduce exactly that kind of dependency.
+  WEBP output is therefore intentionally not supported by the CanvasNet-based raster tier, not an
+  oversight.
 - **Pure managed runtime**: raster output shall not require native asset packages, platform-specific
   loader hooks, or P/Invoke-based initialization.
 - **Byte-reproducible output**: an embedded Noto Sans font is used for all text so raster output is
