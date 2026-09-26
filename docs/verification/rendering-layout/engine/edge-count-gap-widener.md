@@ -14,7 +14,7 @@ same corridor-width arithmetic the containment packer and the hierarchical algor
 
 #### Test Environment
 
-- **Framework**: xUnit v3 running on the .NET SDK.
+- **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Project**: `test/DemaConsulting.Rendering.Layout.Tests/Engine/EdgeCountGapWidenerTests.cs`.
 - **Dependencies**: no external services, files, or network access; every test calls the static

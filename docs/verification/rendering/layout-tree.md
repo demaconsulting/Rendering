@@ -18,7 +18,7 @@ insertion order, and that the depth-not-color and absolute-coordinate invariants
 
 ### Layout Tree Unit Test Environment
 
-- **Framework**: xUnit v3, run through the standard `dotnet test` runner.
+- **Framework**: xUnit v4, run through the standard `dotnet test` runner.
 - **Test project**: `DemaConsulting.Rendering.Tests`, source file `LayoutTests.cs`.
 - **Runtime**: any target framework built by the solution (`net8.0`, `net9.0`, or `net10.0`).
 - **Dependencies**: none beyond the standard test runner; no external services, network, filesystem,

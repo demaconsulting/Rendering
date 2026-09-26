@@ -15,7 +15,7 @@ leaf algorithm applied directly to guarantee byte-identical behavior for existin
 
 ### Test Environment
 
-- **Framework**: xUnit v3 running on the .NET SDK.
+- **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Projects**: `test/DemaConsulting.Rendering.Layout.Tests/LayoutAlgorithmsTests.cs` and
   `test/DemaConsulting.Rendering.Layout.Tests/LayoutEngineTests.cs`.

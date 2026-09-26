@@ -23,7 +23,7 @@ rejected. No stage is mocked — real `LayeredGraph` instances flow through ever
 
 #### Test Environment
 
-- **Framework**: xUnit v3 running on the .NET SDK.
+- **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Projects**: `test/DemaConsulting.Rendering.Layout.Tests/Engine/Layered/` (per-stage tests) and
   the pipeline-level tests in the same test project.

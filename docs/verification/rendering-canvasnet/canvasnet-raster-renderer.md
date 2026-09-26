@@ -29,7 +29,7 @@ Coverage is organized around four concerns:
 
 ### CanvasNetRasterRenderer Test Environment
 
-- **Framework**: xUnit v3.
+- **Framework**: xUnit v4.
 - **Target frameworks**: `net8.0`, `net9.0`, `net10.0`.
 - **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline (see
   *Rendering.CanvasNet Verification* for the system-level environment).

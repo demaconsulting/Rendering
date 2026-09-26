@@ -8,7 +8,7 @@ least one named test scenario so a reviewer can confirm coverage without reading
 
 ### JpegRenderer Verification Approach
 
-The `JpegRenderer` unit is verified with xUnit v3 unit tests in
+The `JpegRenderer` unit is verified with xUnit v4 unit tests in
 `DemaConsulting.Rendering.CanvasNet.Tests` (`CanvasNetFormatRendererTests.cs`) that render a small
 placed `LayoutTree` into a `MemoryStream` and inspect the resulting bytes. The renderer is
 exercised as a real `IRenderer` — no dependencies are mocked or stubbed — because it is a pure,
@@ -19,7 +19,7 @@ advertises the expected media type and file extensions for registry resolution.
 
 ### JpegRenderer Test Environment
 
-- **Framework**: xUnit v3.
+- **Framework**: xUnit v4.
 - **Target frameworks**: `net8.0`, `net9.0`, `net10.0`.
 - **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline (see
   *Rendering.CanvasNet Verification* for the system-level environment).

@@ -11,7 +11,7 @@ system verification document; the test project is
 
 ### Verification Approach
 
-Unit verification uses xUnit v3 tests in `DemaConsulting.Rendering.Svg.Tests` that construct
+Unit verification uses xUnit v4 tests in `DemaConsulting.Rendering.Svg.Tests` that construct
 concrete `LayoutTree`, `RenderOptions`, and `MemoryStream` instances and invoke
 `SvgRenderer.Render` directly. Because `SvgRenderer` is pure and stateless, no mocking or
 stubbing is used: the real `Themes.Light` theme, the real `NotationMetrics` and
@@ -22,7 +22,7 @@ attribute values, well-formed XML, and geometric parity with `NotationMetrics`.
 
 ### Test Environment
 
-- **Framework**: xUnit v3 on the .NET SDK, run against the `net8.0`, `net9.0`, and `net10.0`
+- **Framework**: xUnit v4 on the .NET SDK, run against the `net8.0`, `net9.0`, and `net10.0`
   target frameworks.
 - **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Dependencies**: none — no external services, databases, files, or network access are used;

@@ -172,7 +172,7 @@ jobs:
           /o:"demaconsulting"
           /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
           /d:sonar.host.url="https://sonarcloud.io"
-          /d:sonar.cs.opencover.reportsPaths=**/*.opencover.xml
+          /d:sonar.cs.cobertura.reportsPaths=**/*.cobertura.xml
           /d:sonar.scanner.scanAll=false
 
       - name: Build
@@ -183,13 +183,19 @@ jobs:
           --property:Version=${{ inputs.version }}
 
       - name: Test
+        # xUnit v4 tests run natively on Microsoft.Testing.Platform (MTP; see global.json), so the
+        # VSTest-era --collect/--logger options are replaced by their MTP equivalents:
+        # --coverage (via Microsoft.Testing.Extensions.CodeCoverage) and --report-trx (via
+        # Microsoft.Testing.Extensions.TrxReport). Coverage is emitted as Cobertura XML because MTP's
+        # coverage extension does not support the OpenCover format used previously.
         run: >
           dotnet test
           --no-build
           --configuration Release
           --property:Version=${{ inputs.version }}
-          --collect "XPlat Code Coverage;Format=opencover"
-          --logger "trx;LogFilePrefix=${{ matrix.os }}"
+          --report-trx
+          --coverage
+          --coverage-output-format cobertura
           --results-directory artifacts
 
       - name: End Sonar Scanner

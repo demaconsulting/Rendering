@@ -22,7 +22,7 @@ renderer.
 
 ## Test Environment
 
-- **Framework**: xUnit v3 running under the .NET SDK (`net8.0`, `net9.0`, `net10.0`).
+- **Framework**: xUnit v4 running under the .NET SDK (`net8.0`, `net9.0`, `net10.0`).
 - **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Mocking**: none required; renderers are pure and deterministic.
 - **Isolation**: each test renders into its own `MemoryStream` or disposable in-memory `Surface`.

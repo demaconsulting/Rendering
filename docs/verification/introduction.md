@@ -52,7 +52,7 @@ documentation. The following topics are explicitly excluded:
 
 ## Verification Approach
 
-Each software item is verified by xUnit v3 tests executed by `dotnet test` (invoked by
+Each software item is verified by xUnit v4 tests executed by `dotnet test` (invoked by
 `build.ps1` and CI) across the supported target frameworks (.NET 8, 9, and 10). Because the
 libraries are pure and deterministic, no mocking is required: tests supply controlled inputs
 (graphs, layout trees, options) and assert on returned values, produced geometry, or rendered

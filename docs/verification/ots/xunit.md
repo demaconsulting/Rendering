@@ -5,10 +5,10 @@ for this OTS item are defined in the xUnit OTS Software Requirements document.
 
 ### Required Functionality
 
-xUnit v3 (xunit.v3 and xunit.runner.visualstudio) is the unit-testing framework used by the
-project. It discovers and runs all test methods and writes TRX result files that feed into coverage
-reporting and requirements traceability. Passing tests confirm the framework is functioning
-correctly.
+xUnit v4 (`xunit.v3`, version 4.x), running on Microsoft.Testing.Platform (MTP), is the unit-testing
+framework used by the project. It discovers and runs all test methods and writes TRX result files
+(via the `Microsoft.Testing.Extensions.TrxReport` MTP extension) that feed into coverage reporting
+and requirements traceability. Passing tests confirm the framework is functioning correctly.
 
 ### Verification Approach
 

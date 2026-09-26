@@ -24,7 +24,7 @@ members and needs no dedicated test scenarios beyond compilation.
 
 ### Test Environment
 
-- **Framework**: xUnit v3 running under the .NET SDK on `net8.0`, `net9.0`, and `net10.0`.
+- **Framework**: xUnit v4 running under the .NET SDK on `net8.0`, `net9.0`, and `net10.0`.
 - **Execution**: `dotnet test` invoked by `build.ps1` and by the CI pipeline.
 - **Test projects**: `DemaConsulting.Rendering.Abstractions.Tests` (`RegistryTests.cs`) and
   `DemaConsulting.Rendering.CanvasNet.Tests` (`CanvasNetFormatRendererTests.cs`) for

@@ -8,7 +8,7 @@ one named test scenario so a reviewer can confirm coverage without reading the t
 
 ### PngRenderer Verification Approach
 
-The `PngRenderer` unit is verified with xUnit v3 unit tests in
+The `PngRenderer` unit is verified with xUnit v4 unit tests in
 `DemaConsulting.Rendering.CanvasNet.Tests` (`PngRendererTests.cs`, `PngRendererPortedTests.cs`, and
 `CanvasNetFormatRendererTests.cs`) that render placed `LayoutTree` instances into `MemoryStream`s
 and inspect the resulting bytes or sample pixels from `RenderToSurface`. The renderer is used as a
@@ -21,7 +21,7 @@ cross-verify that the base rasterizer works correctly with the PNG encoder.
 
 ### PngRenderer Test Environment
 
-- **Framework**: xUnit v3.
+- **Framework**: xUnit v4.
 - **Target frameworks**: `net8.0`, `net9.0`, `net10.0`.
 - **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline (see
   *Rendering.CanvasNet Verification* for the system-level environment).
