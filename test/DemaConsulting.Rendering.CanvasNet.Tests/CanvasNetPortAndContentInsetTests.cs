@@ -61,6 +61,61 @@ public sealed class CanvasNetPortAndContentInsetTests
     }
 
     /// <summary>
+    ///     Proves that a Left/Right port label has real vertical clearance from its own port glyph
+    ///     (and therefore the connector line passing through the port center): the label's topmost
+    ///     foreground pixel must sit strictly below the bottom of the port glyph square
+    ///     (<c>CentreY + PortHalfSize</c>). Pins this invariant so a regression to the old,
+    ///     insufficient <c>CentreY + FontSizeBody / 2</c> offset — which let the label vertically
+    ///     overlap the port glyph and its connector line — would be caught, rather than merely
+    ///     checking the label is on the correct horizontal side.
+    /// </summary>
+    /// <param name="side">Port side to render.</param>
+    [Theory]
+    [InlineData(PortSide.Left)]
+    [InlineData(PortSide.Right)]
+    public void PngRenderer_RenderPort_LeftRightLabel_ClearsPortGlyphVertically(PortSide side)
+    {
+        // Arrange: a generously scaled render so the label's topmost pixel row is measured precisely.
+        const double portCentreY = 50;
+        var port = new LayoutPort(100, portCentreY, side, "label");
+        var layout = new LayoutTree(200, 100, [port]);
+        var options = new RenderOptions(Themes.Light) with { Scale = 4.0 };
+        var background = Rgba32.Parse(Themes.Light.BackgroundColor);
+
+        using var surface = RenderToSurface(layout, options);
+
+        // Act: scan only the label's column range (beyond the port glyph square) for the topmost
+        // foreground pixel row, so the port glyph itself is excluded from the measurement.
+        var scale = options.Scale;
+        var glyphMaxX = (int)((port.CentreX + NotationMetrics.PortHalfSize) * scale);
+        var glyphMinX = (int)((port.CentreX - NotationMetrics.PortHalfSize) * scale);
+        var (labelMinX, labelMaxX) = side == PortSide.Left
+            ? (glyphMaxX + 1, surface.Width - 1)
+            : (0, glyphMinX - 1);
+
+        var topmostLabelY = -1;
+        for (var y = 0; y < surface.Height && topmostLabelY < 0; y++)
+        {
+            for (var x = Math.Max(0, labelMinX); x <= Math.Min(surface.Width - 1, labelMaxX); x++)
+            {
+                if (surface[x, y] != background)
+                {
+                    topmostLabelY = y;
+                    break;
+                }
+            }
+        }
+
+        // Assert
+        Assert.True(topmostLabelY >= 0, "Expected to find foreground label pixels.");
+        var portGlyphBottomY = (int)((portCentreY + NotationMetrics.PortHalfSize) * scale);
+        Assert.True(
+            topmostLabelY > portGlyphBottomY,
+            $"Expected the label's topmost pixel row ({topmostLabelY}) to be below the port glyph's " +
+            $"bottom edge ({portGlyphBottomY}), confirming real vertical clearance from the connector line.");
+    }
+
+    /// <summary>
     ///     Proves the boundary-port dual-label rule in the raster renderer: a left-side port carrying
     ///     both an external and an internal label draws foreground pixels on both sides of the port
     ///     glyph, whereas an external-label-only port draws its single label inward only.
