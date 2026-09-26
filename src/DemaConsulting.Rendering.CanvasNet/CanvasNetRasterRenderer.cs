@@ -1237,8 +1237,8 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         {
             PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, CanvasTextAlign.Center),
             PortSide.Bottom => (port.CentreX, port.CentreY - offset, CanvasTextAlign.Center),
-            PortSide.Left => (port.CentreX + offset, port.CentreY + (theme.FontSizeBody / 2.0), CanvasTextAlign.Left),
-            _ => (port.CentreX - offset, port.CentreY + (theme.FontSizeBody / 2.0), CanvasTextAlign.Right),
+            PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody, CanvasTextAlign.Left),
+            _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody, CanvasTextAlign.Right),
         };
 
         var font = CreateFont(bold: false, italic: false);

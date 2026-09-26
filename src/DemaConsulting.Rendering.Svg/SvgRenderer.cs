@@ -1042,8 +1042,8 @@ public sealed class SvgRenderer : IRenderer
         {
             PortSide.Top => (port.CentreX, port.CentreY + offset + theme.FontSizeBody, TextAnchorMiddle),
             PortSide.Bottom => (port.CentreX, port.CentreY - offset, TextAnchorMiddle),
-            PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody / 2.0, "start"),
-            _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody / 2.0, "end")
+            PortSide.Left => (port.CentreX + offset, port.CentreY + theme.FontSizeBody, "start"),
+            _ => (port.CentreX - offset, port.CentreY + theme.FontSizeBody, "end")
         };
 
         sb.Append(

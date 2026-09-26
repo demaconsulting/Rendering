@@ -324,9 +324,10 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             var minHeight = assumedFontSize + (PortLabelClearance * 2) + effectiveTopReserve + insetBottom;
 
             // SvgRenderer.EmitPortLabel draws a Left/Right port's ExternalLabel at
-            // (port.CentreY + FontSizeBody / 2) — an asymmetric downward shift from the port glyph's
-            // own centre, not the symmetric top/bottom clearance the row floor above assumes. Without
-            // compensating for that shift, half of the clearance above sits unused above the port row
+            // (port.CentreY + FontSizeBody) — a full line's worth of clearance below the port glyph's
+            // own centre (matching the Top/Bottom convention's own CentreY + offset + FontSizeBody
+            // formula), not the symmetric top/bottom clearance the row floor above assumes. Without
+            // compensating for that downward shift, the clearance above sits unused above the port row
             // while the shifted-down label text (plus its own glyph descent) can run past the box's
             // bottom edge — exactly what a single labeled port on a titled box's face produces (the
             // title reserve leaves only one row for the port, so there is no slack elsewhere to absorb
@@ -341,7 +342,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                     || (bySide.TryGetValue(PortSide.Right, out var rightLabels) && rightLabels.Exists(l => !string.IsNullOrEmpty(l))));
             if (hasLabeledLeftOrRightAnchor)
             {
-                minHeight += assumedFontSize / 2.0;
+                minHeight += assumedFontSize;
             }
 
             // Port-label MaxLabelWidth floor (this fix): ResolveMaxLabelWidth halves the box's own placed
@@ -416,24 +417,24 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                         var minHeightCandidate = Math.Max(labelBasedHeight, clearanceBasedHeight)
                             + effectiveTopReserve + insetBottom;
 
-                        // Same asymmetric-downward-label-shift compensation as the single-port
-                        // minHeight floor above (SvgRenderer.EmitPortLabel draws a Left/Right port's
-                        // ExternalLabel at CentreY + FontSizeBody/2, not centered on the port row) —
-                        // without it, this multi-port candidate can win the Math.Max below yet still
-                        // leave no slack for the bottom-most labeled port's downward-shifted text,
-                        // which then runs past the box's bottom edge exactly as the single-port case
-                        // would without this term. PortDistributor.DistributePorts centers each of
-                        // faceInfo.Total ports within its own equal-height slice of the added band, so
-                        // a flat addition here is only fully absorbed by the bottom-most slice's own
-                        // height when there is exactly one slice (Total == 1); for Total >= 2 a flat
-                        // addend is instead divided across every slice's height (each slice gains only
-                        // addend / Total), silently eroding the intended margin as Total grows. Scale
-                        // by faceInfo.Total so every slice's height still gains the full
-                        // assumedFontSize / 2 the single-port case relies on, regardless of how many
-                        // ports share the face.
+                        // Same downward-label-shift compensation as the single-port minHeight floor
+                        // above (SvgRenderer.EmitPortLabel draws a Left/Right port's ExternalLabel at
+                        // CentreY + FontSizeBody, a full line's worth of clearance below the port row,
+                        // not centered on it) — without it, this multi-port candidate can win the
+                        // Math.Max below yet still leave no slack for the bottom-most labeled port's
+                        // downward-shifted text, which then runs past the box's bottom edge exactly as
+                        // the single-port case would without this term. PortDistributor.DistributePorts
+                        // centers each of faceInfo.Total ports within its own equal-height slice of the
+                        // added band, so a flat addition here is only fully absorbed by the bottom-most
+                        // slice's own height when there is exactly one slice (Total == 1); for Total >=
+                        // 2 a flat addend is instead divided across every slice's height (each slice
+                        // gains only addend / Total), silently eroding the intended margin as Total
+                        // grows. Scale by faceInfo.Total so every slice's height still gains the full
+                        // assumedFontSize the single-port case relies on, regardless of how many ports
+                        // share the face.
                         if (sidePortLabeled)
                         {
-                            minHeightCandidate += assumedFontSize / 2.0 * faceInfo.Total;
+                            minHeightCandidate += assumedFontSize * faceInfo.Total;
                         }
 
                         minHeight = Math.Max(minHeight, minHeightCandidate);
