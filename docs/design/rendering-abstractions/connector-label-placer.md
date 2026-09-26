@@ -79,8 +79,8 @@ and performs no logging.
 
 - **Rendering.Svg `SvgRenderer` unit** — calls `Place` once per render pass to compute the label
   positions for the connector labels it writes as `<text>` elements.
-- **Rendering.Skia raster renderers (`SkiaRasterRenderer`, `PngRenderer`, `JpegRenderer`,
-  `WebpRenderer`)** — call `Place` for the same purpose so that the SVG and raster outputs agree on
+- **Rendering.CanvasNet raster renderers (`CanvasNetRasterRenderer`, `PngRenderer`,
+  `JpegRenderer`)** — call `Place` for the same purpose so that the SVG and raster outputs agree on
   label positions.
 - **Rendering.Layout `LayeredLayoutAlgorithm` unit** — calls `EstimateLabelHeight` when computing its
   auto-grow minimum-size floor for a `Left`/`Right` face, and `EstimateLabelWidth` for a `Top`/`Bottom`

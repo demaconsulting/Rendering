@@ -16,6 +16,11 @@
     <IsTestProject>true</IsTestProject>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
+    <!-- xUnit v4 has built-in Microsoft.Testing.Platform (MTP) support. This property makes the
+         compiled test assembly a standalone MTP executable, which `dotnet test` (.NET 10 SDK)
+         invokes directly - without VSTest/vstest.console. -->
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+
     <!-- Code Quality Configuration -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
@@ -37,18 +42,16 @@
   </ItemGroup>
 
   <!-- Test Framework Dependencies -->
+  <!-- xunit.v3 4.x has built-in Microsoft.Testing.Platform (MTP) support, so xunit.runner.visualstudio
+       (the VSTest adapter) and Microsoft.NET.Test.Sdk (the VSTest host) are no longer required.
+       coverlet.collector - a VSTest data collector - is replaced by the MTP-native
+       Microsoft.Testing.Extensions.CodeCoverage extension (enabled via the dotnet test coverage option), and
+       Microsoft.Testing.Extensions.TrxReport adds the report-trx option so TRX result files
+       (consumed by ReqStream) continue to be produced. -->
   <ItemGroup>
-    <!-- coverlet.collector uses child-element form to configure both PrivateAssets and IncludeAssets:
-         - PrivateAssets="all" keeps this test-coverage tool out of any consuming project's dependencies.
-         - IncludeAssets lists all asset types (including 'build' and 'buildtransitive') to ensure the
-           data collector MSBuild targets are activated so coverage is collected during test runs. -->
-    <PackageReference Include="coverlet.collector" Version="10.0.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
-    <PackageReference Include="xunit.v3" Version="3.2.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.4.1" />
+    <PackageReference Include="xunit.v3" Version="4.0.1" />
   </ItemGroup>
 
   <!-- Code Analysis Dependencies -->
@@ -58,11 +61,11 @@
            in any project that references this test project.
          - IncludeAssets lists all asset types (including 'analyzers' and 'buildtransitive') to ensure
            Roslyn analyzers and MSBuild targets are fully activated during the build. -->
-    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.302">
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.401">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.32.0.713">
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.34.0.3385">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

@@ -9,8 +9,8 @@ namespace DemaConsulting.Rendering.Abstractions;
 /// <summary>
 /// A lookup of <see cref="IRenderer"/> implementations indexed by both <see cref="IRenderer.MediaType"/>
 /// and every <see cref="IRenderer.FileExtensions">file extension</see> a renderer produces. Consumers
-/// register the renderers they wish to make available (for example the bundled SVG, PNG, JPEG, and
-/// WEBP renderers) and resolve one by media type or by output filename extension at render time. It is
+/// register the renderers they wish to make available (for example the bundled SVG, PNG, and JPEG
+/// renderers) and resolve one by media type or by output filename extension at render time. It is
 /// not thread-safe for concurrent registration.
 /// </summary>
 public sealed class RendererRegistry

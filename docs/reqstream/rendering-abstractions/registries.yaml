@@ -35,7 +35,7 @@ sections:
           and resolve a renderer from an output file extension, ignoring case and an optional leading
           dot.
         justification: |
-          Selecting a renderer from an output filename (for example diagram.webp) is a common need
+          Selecting a renderer from an output filename (for example diagram.jpg) is a common need
           for command-line and file-driven callers; matching case-insensitively and with an optional
           leading dot makes the lookup forgiving of caller input.
         tests:

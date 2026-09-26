@@ -62,8 +62,8 @@ performed at the contract level; renderers surface non-fatal issues by populatin
 - **Rendering.Layout system** — every layout algorithm (`LayeredLayoutAlgorithm`,
   `ContainmentLayoutAlgorithm`, `HierarchicalLayoutAlgorithm`, and the `DefaultLayout` facade)
   implements `ILayoutAlgorithm`.
-- **Rendering.Svg and Rendering.Skia systems** — `SvgRenderer`, `PngRenderer`, `JpegRenderer`, and
-  `WebpRenderer` implement `IRenderer` and produce `RenderOutput` records.
+- **Rendering.Svg and Rendering.CanvasNet systems** — `SvgRenderer`, `PngRenderer`, and
+  `JpegRenderer` implement `IRenderer` and produce `RenderOutput` records.
 - **Host applications** — construct `RenderOptions`, pass a `Stream` to `IRenderer.Render`, and
   consume the produced `RenderOutput` metadata.
 

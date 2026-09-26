@@ -4,12 +4,12 @@
 
 using System.Text;
 
-using DemaConsulting.Rendering.Abstractions;
-using DemaConsulting.Rendering.Layout;
-using DemaConsulting.Rendering.Skia;
-using DemaConsulting.Rendering.Svg;
+using DemaConsulting.CanvasNet.Codecs;
 
-using SkiaSharp;
+using DemaConsulting.Rendering.Abstractions;
+using DemaConsulting.Rendering.CanvasNet;
+using DemaConsulting.Rendering.Layout;
+using DemaConsulting.Rendering.Svg;
 
 namespace DemaConsulting.Rendering.Gallery;
 
@@ -22,9 +22,13 @@ internal static class GalleryWriter
 {
     private static readonly SvgRenderer SvgRenderer = new();
     private static readonly PngRenderer PngRenderer = new();
+    private static readonly JpegRenderer JpegRenderer = new();
 
     /// <summary>PNG file signature (the eight leading bytes of every PNG stream).</summary>
     private static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+
+    /// <summary>JPEG file signature (the leading Start Of Image marker bytes of every JPEG stream).</summary>
+    private static readonly byte[] JpegSignature = [0xFF, 0xD8, 0xFF];
 
     /// <summary>
     ///     Lays out <paramref name="graph"/> with whatever algorithm and options it declares (see
@@ -100,7 +104,32 @@ internal static class GalleryWriter
         AssertValidPng(path);
     }
 
-    /// <summary>Asserts that the file exists and contains a well-formed, non-empty SVG document.</summary>
+    /// <summary>
+    ///     Lays out <paramref name="graph"/> with whatever algorithm and options it declares (see
+    ///     <see cref="LayoutEngine"/>), renders it to <paramref name="fileName"/> as JPEG, and asserts
+    ///     the result is a valid raster image.
+    /// </summary>
+    /// <param name="fileName">Stable output filename (for example <c>layered-pipeline.jpeg</c>).</param>
+    /// <param name="graph">
+    /// The graph to lay out. Configure it directly (for example
+    /// <c>graph.Set(CoreOptions.Algorithm, "layered")</c>) before calling this method.
+    /// </param>
+    /// <param name="theme">The theme to render with.</param>
+    public static void Jpeg(string fileName, LayoutGraph graph, Theme theme)
+    {
+        var tree = LayoutEngine.Layout(graph);
+        var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+        using (var stream = File.Create(path))
+        {
+            JpegRenderer.Render(tree, new RenderOptions(theme), stream);
+        }
+
+        AssertValidJpeg(path);
+    }
+
+    /// <summary>Asserts that the file exists, is non-empty, and contains a well-formed SVG document.</summary>
     /// <param name="path">Absolute path of the generated SVG file.</param>
     public static void AssertValidSvg(string path)
     {
@@ -122,8 +151,22 @@ internal static class GalleryWriter
             bytes.Take(PngSignature.Length).SequenceEqual(PngSignature),
             $"File does not start with the PNG signature: {path}");
 
-        using var bitmap = SKBitmap.Decode(path);
-        Assert.NotNull(bitmap);
-        Assert.True(bitmap.Width > 0 && bitmap.Height > 0, $"Decoded PNG has no pixels: {path}");
+        using var surface = PngCodec.Load(path);
+        Assert.True(surface.Width > 0 && surface.Height > 0, $"Decoded PNG has no pixels: {path}");
+    }
+
+    /// <summary>Asserts that the file exists, starts with the JPEG signature, and decodes to a bitmap.</summary>
+    /// <param name="path">Absolute path of the generated JPEG file.</param>
+    public static void AssertValidJpeg(string path)
+    {
+        Assert.True(File.Exists(path), $"Expected JPEG file to exist: {path}");
+        var bytes = File.ReadAllBytes(path);
+        Assert.True(bytes.Length > JpegSignature.Length, $"JPEG file is too small: {path}");
+        Assert.True(
+            bytes.Take(JpegSignature.Length).SequenceEqual(JpegSignature),
+            $"File does not start with the JPEG signature: {path}");
+
+        using var surface = JpegCodec.Load(path);
+        Assert.True(surface.Width > 0 && surface.Height > 0, $"Decoded JPEG has no pixels: {path}");
     }
 }

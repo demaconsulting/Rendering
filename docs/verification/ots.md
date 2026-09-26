@@ -19,9 +19,9 @@ than through bespoke test suites:
 - **Generated-output assertion** — tools without a self-validation suite in this pipeline (Pandoc,
   WeasyPrint) are verified indirectly: FileAssert asserts that their generated HTML and PDF outputs
   exist and contain expected content.
-- **Repository test evidence** — xUnit and SkiaSharp are verified by the repository's own passing
-  tests: xUnit as the framework that discovers, executes, and records them, and SkiaSharp as the
-  raster library those renderer tests exercise directly (bitmap drawing, text rendering, and image
+- **Repository test evidence** — xUnit and CanvasNet are verified by the repository's own passing
+  tests: xUnit as the framework that discovers, executes, and records them, and CanvasNet as the
+  raster library those renderer tests exercise directly (surface drawing, text rendering, and image
   encoding).
 - **Fixed-behavior assertion** — FileAssert itself is verified by tests that assert its own
   documented pass/fail behavior on known-good and known-bad inputs.

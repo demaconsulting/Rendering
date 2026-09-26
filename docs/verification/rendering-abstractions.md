@@ -26,7 +26,7 @@ test doubles are the in-test `FakeAlgorithm` and `FakeRenderer` used to exercise
 
 ## Test Environment
 
-- **Framework**: xUnit v3 running under the .NET SDK.
+- **Framework**: xUnit v4 running under the .NET SDK.
 - **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Dependencies**: none; no external services, network, or filesystem access.
 - **Isolation**: each test constructs its own registry, theme reference, or geometry inputs.

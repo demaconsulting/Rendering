@@ -69,7 +69,7 @@ LayoutGraph + LayoutOptions        (Rendering: unplaced input + open configurati
     LayoutTree                     (Rendering: placed boxes and routed connectors)
         │
         ▼  IRenderer               (Rendering.Abstractions: render SPI)
-    SVG / PNG / JPEG / WEBP output
+    SVG / PNG / JPEG output
 ```
 
 Input flows in as a `LayoutGraph` and a `LayoutOptions`; a layout algorithm reads the graph and its

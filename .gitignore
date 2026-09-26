@@ -98,6 +98,7 @@ TestResults/
 *.trx
 *.xml
 coverage.opencover.xml
+*.cobertura.xml
 
 # VersionMark captures (generated during CI/CD)
 versionmark-*.json

@@ -27,7 +27,7 @@ documents. This system document records only the acceptance criteria and system-
 
 ## Test Environment
 
-- **Framework**: xUnit v3 running under the .NET SDK.
+- **Framework**: xUnit v4 running under the .NET SDK.
 - **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Location**: `test/DemaConsulting.Rendering.Layout.Tests/`.
 - **Dependencies**: no external services, files, or network access; tests use in-memory graphs.

@@ -27,7 +27,7 @@ constituent software items:
 - **Rendering.Abstractions (System)** — SPI contracts, registries, theme, notation metrics
 - **Rendering.Layout (System)** — layered pipeline engines and `LayeredLayoutAlgorithm`
 - **Rendering.Svg (System)** — SVG renderer
-- **Rendering.Skia (System)** — SkiaSharp raster renderers (PNG, JPEG, WEBP)
+- **Rendering.CanvasNet (System)** — CanvasNet raster renderers (PNG, JPEG)
 
 The following OTS items are also covered:
 
@@ -37,7 +37,7 @@ The following OTS items are also covered:
 - **ReqStream** — requirements traceability tool
 - **ReviewMark** — file review enforcement tool
 - **SarifMark** — SARIF report conversion tool
-- **SkiaSharp** — raster graphics library (bitmap drawing and PNG/JPEG/WEBP encoding)
+- **CanvasNet** — pure managed raster graphics library (surface drawing and PNG/JPEG encoding)
 - **SonarMark** — SonarCloud quality report tool
 - **VersionMark** — tool-version documentation tool
 - **WeasyPrint** — HTML-to-PDF conversion tool
@@ -52,7 +52,7 @@ documentation. The following topics are explicitly excluded:
 
 ## Verification Approach
 
-Each software item is verified by xUnit v3 tests executed by `dotnet test` (invoked by
+Each software item is verified by xUnit v4 tests executed by `dotnet test` (invoked by
 `build.ps1` and CI) across the supported target frameworks (.NET 8, 9, and 10). Because the
 libraries are pure and deterministic, no mocking is required: tests supply controlled inputs
 (graphs, layout trees, options) and assert on returned values, produced geometry, or rendered

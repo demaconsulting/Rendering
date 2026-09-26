@@ -1,0 +1,100 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- NuGet Package Configuration -->
+    <PackageId>DemaConsulting.Rendering.CanvasNet</PackageId>
+    <Version>0.0.0</Version>
+    <Authors>DEMA Consulting</Authors>
+    <Company>DEMA Consulting</Company>
+    <Description>CanvasNet raster renderers (PNG and JPEG) for the DEMA Consulting rendering library, with an embedded Noto Sans font for pixel-identical output</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/demaconsulting/Rendering</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/demaconsulting/Rendering</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>Icon.png</PackageIcon>
+    <PackageTags>rendering;png;jpeg;canvasnet;dotnet-library</PackageTags>
+    <Copyright>Copyright DEMA Consulting</Copyright>
+    <Title>Rendering CanvasNet Renderers</Title>
+    <Product>Rendering</Product>
+    <PackageReleaseNotes>
+This package embeds the Noto Sans font (SIL Open Font License 1.1, copyright Google Inc.).
+CanvasNet is used for PNG and JPEG rendering (MIT license, copyright DEMA Consulting).
+    </PackageReleaseNotes>
+
+    <!-- Symbol Package Configuration -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Code Quality Configuration -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ApiMarkPackDocs>true</ApiMarkPackDocs>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+
+    <!-- Polyfill Configuration -->
+    <PolyArgumentExceptions>true</PolyArgumentExceptions>
+
+    <!-- SBOM Configuration -->
+    <GenerateSBOM>true</GenerateSBOM>
+    <SBOMPackageName>$(PackageId)</SBOMPackageName>
+    <SBOMPackageVersion>$(Version)</SBOMPackageVersion>
+    <SBOMPackageSupplier>Organization: $(Company)</SBOMPackageSupplier>
+  </PropertyGroup>
+
+  <!-- Build Tool Dependencies -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Sbom.Targets" Version="4.1.13" PrivateAssets="All" />
+    <PackageReference Include="Polyfill" Version="11.4.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.401" PrivateAssets="All" />
+    <PackageReference Include="DemaConsulting.ApiMark.MSBuild" Version="0.5.1" PrivateAssets="All" />
+    <PackageReference Include="DemaConsulting.CanvasNet" Version="0.1.0-beta.3" />
+  </ItemGroup>
+
+  <!-- Project References -->
+  <ItemGroup>
+    <ProjectReference Include="..\DemaConsulting.Rendering\DemaConsulting.Rendering.csproj" />
+    <ProjectReference Include="..\DemaConsulting.Rendering.Abstractions\DemaConsulting.Rendering.Abstractions.csproj" />
+  </ItemGroup>
+
+  <!-- Embedded Font Resources (Noto Sans, SIL OFL 1.1) -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fonts\NotoSans-Regular.ttf" />
+    <EmbeddedResource Include="Fonts\NotoSans-Bold.ttf" />
+    <EmbeddedResource Include="Fonts\NotoSans-Italic.ttf" />
+    <EmbeddedResource Include="Fonts\NotoSans-BoldItalic.ttf" />
+    <EmbeddedResource Include="Fonts\OFL.txt" />
+    <None Include="Fonts\OFL.txt" Pack="true" PackagePath="content\Fonts" />
+  </ItemGroup>
+
+  <!-- Code Analysis Dependencies -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.401">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.34.0.3385">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DemaConsulting.Rendering.CanvasNet.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\Icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

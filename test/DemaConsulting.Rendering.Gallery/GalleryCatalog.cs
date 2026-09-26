@@ -67,6 +67,7 @@ internal static class GalleryCatalog
     public const string MixedDirectionNestedSvg = "flow-pipeline/mixed-direction-nested.svg";
     public const string OrthogonalObstacleSvg = "flow-pipeline/orthogonal-obstacle.svg";
     public const string LayeredPipelinePng = "flow-pipeline/layered-pipeline.png";
+    public const string LayeredPipelineJpeg = "flow-pipeline/layered-pipeline.jpeg";
 
     public const string ContainmentPackedSvg = "connectivity-and-clusters/containment-packed.svg";
     public const string LayeredRegressionBaselineSvg =
@@ -155,8 +156,16 @@ internal static class GalleryCatalog
 
     /// <summary>Shared "Raster output" section intro, reused by every group with a PNG showcase.</summary>
     private const string RasterOutputIntro =
-        "One of the layout-algorithm diagrams above is rendered again here through the SkiaSharp "
+        "One of the layout-algorithm diagrams above is rendered again here through the CanvasNet "
         + "raster path to PNG with the same dark theme, proving multi-format output.";
+
+    /// <summary>
+    ///     "Raster output" section intro for the flow-pipeline group, which showcases both raster
+    ///     formats CanvasNet supports.
+    /// </summary>
+    private const string RasterOutputPngAndJpegIntro =
+        "One of the layout-algorithm diagrams above is rendered again here through the CanvasNet "
+        + "raster path to PNG and JPEG with the same dark theme, proving multi-format output.";
 
     /// <summary>Shared "The auto meta-algorithm" section intro, reused by every group showcasing it.</summary>
     private const string AutoMetaAlgorithmIntro =
@@ -228,12 +237,16 @@ internal static class GalleryCatalog
                     ]),
                 new GallerySection(
                     "Raster output",
-                    RasterOutputIntro,
+                    RasterOutputPngAndJpegIntro,
                     [
                         new GalleryImage(
                             LayeredPipelinePng,
                             "Layered pipeline diagram as PNG",
                             "The layered pipeline rendered to a raster PNG image."),
+                        new GalleryImage(
+                            LayeredPipelineJpeg,
+                            "Layered pipeline diagram as JPEG",
+                            "The same layered pipeline rendered to a raster JPEG image."),
                     ]),
             ]),
         new GalleryGroup(
@@ -467,7 +480,7 @@ internal static class GalleryCatalog
                             "A hub node with a named port on each of its left and right sides",
                             "Left/right named ports on a rightward-flowing hub node; the long left-side "
                             + "incoming label auto-computes a widened ContentInsetLeft margin, measured "
-                            + "with the Skia-backed text measurer."),
+                            + "with the CanvasNet-backed text measurer."),
                         new GalleryImage(
                             PortsShowcaseVerticalSvg,
                             "A hub node with a named port on each of its top and bottom sides",

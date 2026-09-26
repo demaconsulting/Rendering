@@ -569,101 +569,89 @@ reviews:
       - "docs/reqstream/rendering-svg.yaml"
 
   # =====================================================================
-  # Rendering.Skia system
+  # Rendering.CanvasNet system
   # =====================================================================
-  - id: Rendering-Skia-Architecture
-    title: Review that Rendering Skia Architecture Satisfies Requirements
+  - id: Rendering-CanvasNet-Architecture
+    title: Review that Rendering CanvasNet Architecture Satisfies Requirements
     paths:
-      - "docs/reqstream/rendering-skia.yaml"
+      - "docs/reqstream/rendering-canvasnet.yaml"
       - "docs/design/introduction.md"
-      - "docs/design/rendering-skia.md"
+      - "docs/design/rendering-canvasnet.md"
       - "docs/verification/introduction.md"
-      - "docs/verification/rendering-skia.md"
-      - "src/DemaConsulting.Rendering.Skia/NamespaceDoc.cs"
+      - "docs/verification/rendering-canvasnet.md"
+      - "src/DemaConsulting.Rendering.CanvasNet/NamespaceDoc.cs"
     context:
       - "README.md"
       - "docs/user_guide/**/*.md"
 
-  - id: Rendering-Skia-Design
-    title: Review that Rendering Skia Design is Consistent and Complete
+  - id: Rendering-CanvasNet-Design
+    title: Review that Rendering CanvasNet Design is Consistent and Complete
     paths:
       - "docs/design/introduction.md"
-      - "docs/design/rendering-skia.md"
-      - "docs/design/rendering-skia/**/*.md"
+      - "docs/design/rendering-canvasnet.md"
+      - "docs/design/rendering-canvasnet/**/*.md"
       - "docs/design/ots.md"
     context:
-      - "docs/reqstream/rendering-skia.yaml"
+      - "docs/reqstream/rendering-canvasnet.yaml"
 
-  - id: Rendering-Skia-Verification
-    title: Review that Rendering Skia Verification is Consistent and Complete
+  - id: Rendering-CanvasNet-Verification
+    title: Review that Rendering CanvasNet Verification is Consistent and Complete
     paths:
       - "docs/verification/introduction.md"
-      - "docs/verification/rendering-skia.md"
-      - "docs/verification/rendering-skia/**/*.md"
+      - "docs/verification/rendering-canvasnet.md"
+      - "docs/verification/rendering-canvasnet/**/*.md"
       - "docs/verification/ots.md"
     context:
-      - "docs/reqstream/rendering-skia.yaml"
+      - "docs/reqstream/rendering-canvasnet.yaml"
 
-  - id: Rendering-Skia-AllRequirements
-    title: Review that All Rendering Skia Requirements are Complete
+  - id: Rendering-CanvasNet-AllRequirements
+    title: Review that All Rendering CanvasNet Requirements are Complete
     paths:
-      - "docs/reqstream/rendering-skia/**/*.yaml"
+      - "docs/reqstream/rendering-canvasnet/**/*.yaml"
     context:
-      - "docs/design/rendering-skia.md"
-      - "docs/reqstream/rendering-skia.yaml"
+      - "docs/design/rendering-canvasnet.md"
+      - "docs/reqstream/rendering-canvasnet.yaml"
 
-  - id: Rendering-Skia-SkiaRasterRenderer
-    title: Review that Rendering Skia SkiaRasterRenderer Implementation is Correct
+  - id: Rendering-CanvasNet-CanvasNetRasterRenderer
+    title: Review that Rendering CanvasNet CanvasNetRasterRenderer Implementation is Correct
     paths:
-      - "docs/reqstream/rendering-skia/skia-raster-renderer.yaml"
-      - "docs/design/rendering-skia/skia-raster-renderer.md"
-      - "docs/verification/rendering-skia/skia-raster-renderer.md"
-      - "src/DemaConsulting.Rendering.Skia/SkiaRasterRenderer.cs"
-      - "src/DemaConsulting.Rendering.Skia/SkiaTypefaces.cs"
-      - "test/DemaConsulting.Rendering.Skia.Tests/PngRendererPortedTests.cs"
-      - "test/DemaConsulting.Rendering.Skia.Tests/PngEndMarkerTests.cs"
-      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaPortAndContentInsetTests.cs"
-      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaTypefacesTests.cs"
+      - "docs/reqstream/rendering-canvasnet/canvasnet-raster-renderer.yaml"
+      - "docs/design/rendering-canvasnet/canvasnet-raster-renderer.md"
+      - "docs/verification/rendering-canvasnet/canvasnet-raster-renderer.md"
+      - "src/DemaConsulting.Rendering.CanvasNet/CanvasNetRasterRenderer.cs"
+      - "src/DemaConsulting.Rendering.CanvasNet/CanvasNetTypefaces.cs"
+      - "test/DemaConsulting.Rendering.CanvasNet.Tests/PngRendererPortedTests.cs"
+      - "test/DemaConsulting.Rendering.CanvasNet.Tests/PngEndMarkerTests.cs"
+      - "test/DemaConsulting.Rendering.CanvasNet.Tests/CanvasNetPortAndContentInsetTests.cs"
+      - "test/DemaConsulting.Rendering.CanvasNet.Tests/CanvasNetTypefacesTests.cs"
     context:
-      - "docs/design/rendering-skia.md"
-      - "docs/reqstream/rendering-skia.yaml"
+      - "docs/design/rendering-canvasnet.md"
+      - "docs/reqstream/rendering-canvasnet.yaml"
 
-  - id: Rendering-Skia-PngRenderer
-    title: Review that Rendering Skia PngRenderer Implementation is Correct
+  - id: Rendering-CanvasNet-PngRenderer
+    title: Review that Rendering CanvasNet PngRenderer Implementation is Correct
     paths:
-      - "docs/reqstream/rendering-skia/png-renderer.yaml"
-      - "docs/design/rendering-skia/png-renderer.md"
-      - "docs/verification/rendering-skia/png-renderer.md"
-      - "src/DemaConsulting.Rendering.Skia/PngRenderer.cs"
-      - "test/DemaConsulting.Rendering.Skia.Tests/PngRendererTests.cs"
-      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaFormatRendererTests.cs"
+      - "docs/reqstream/rendering-canvasnet/png-renderer.yaml"
+      - "docs/design/rendering-canvasnet/png-renderer.md"
+      - "docs/verification/rendering-canvasnet/png-renderer.md"
+      - "src/DemaConsulting.Rendering.CanvasNet/PngRenderer.cs"
+      - "test/DemaConsulting.Rendering.CanvasNet.Tests/PngRendererTests.cs"
+      - "test/DemaConsulting.Rendering.CanvasNet.Tests/CanvasNetFormatRendererTests.cs"
     context:
-      - "docs/design/rendering-skia.md"
-      - "docs/reqstream/rendering-skia.yaml"
+      - "docs/design/rendering-canvasnet.md"
+      - "docs/reqstream/rendering-canvasnet.yaml"
 
-  - id: Rendering-Skia-JpegRenderer
-    title: Review that Rendering Skia JpegRenderer Implementation is Correct
+  - id: Rendering-CanvasNet-JpegRenderer
+    title: Review that Rendering CanvasNet JpegRenderer Implementation is Correct
     paths:
-      - "docs/reqstream/rendering-skia/jpeg-renderer.yaml"
-      - "docs/design/rendering-skia/jpeg-renderer.md"
-      - "docs/verification/rendering-skia/jpeg-renderer.md"
-      - "src/DemaConsulting.Rendering.Skia/JpegRenderer.cs"
-      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaFormatRendererTests.cs"
+      - "docs/reqstream/rendering-canvasnet/jpeg-renderer.yaml"
+      - "docs/design/rendering-canvasnet/jpeg-renderer.md"
+      - "docs/verification/rendering-canvasnet/jpeg-renderer.md"
+      - "src/DemaConsulting.Rendering.CanvasNet/JpegRenderer.cs"
+      - "test/DemaConsulting.Rendering.CanvasNet.Tests/CanvasNetFormatRendererTests.cs"
     context:
-      - "docs/design/rendering-skia.md"
-      - "docs/reqstream/rendering-skia.yaml"
-
-  - id: Rendering-Skia-WebpRenderer
-    title: Review that Rendering Skia WebpRenderer Implementation is Correct
-    paths:
-      - "docs/reqstream/rendering-skia/webp-renderer.yaml"
-      - "docs/design/rendering-skia/webp-renderer.md"
-      - "docs/verification/rendering-skia/webp-renderer.md"
-      - "src/DemaConsulting.Rendering.Skia/WebpRenderer.cs"
-      - "test/DemaConsulting.Rendering.Skia.Tests/SkiaFormatRendererTests.cs"
-    context:
-      - "docs/design/rendering-skia.md"
-      - "docs/reqstream/rendering-skia.yaml"
+      - "docs/design/rendering-canvasnet.md"
+      - "docs/reqstream/rendering-canvasnet.yaml"
 
   # Rendering gallery showcase
   - id: Rendering-Gallery
@@ -748,9 +736,9 @@ reviews:
       - "docs/design/ots/xunit.md"
       - "docs/verification/ots/xunit.md"
 
-  - id: OTS-SkiaSharp
-    title: Review that SkiaSharp Provides Required Functionality
+  - id: OTS-CanvasNet
+    title: Review that CanvasNet Provides Required Functionality
     paths:
-      - "docs/reqstream/ots/skiasharp.yaml"
-      - "docs/design/ots/skiasharp.md"
-      - "docs/verification/ots/skiasharp.md"
+      - "docs/reqstream/ots/canvasnet.yaml"
+      - "docs/design/ots/canvasnet.md"
+      - "docs/verification/ots/canvasnet.md"

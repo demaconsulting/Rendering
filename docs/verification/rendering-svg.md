@@ -17,7 +17,7 @@ use `Themes.Light`, write to `MemoryStream`, and inspect the resulting SVG text.
 
 ## Test Environment
 
-- **Framework**: xUnit v3 running under the .NET SDK.
+- **Framework**: xUnit v4 running under the .NET SDK.
 - **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Dependencies**: no external services, databases, files, or network access.
 - **Isolation**: each test constructs its own renderer, layout tree, render options, and stream.

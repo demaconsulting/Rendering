@@ -20,7 +20,7 @@ median-width fallback for an unmapped character, and the null-argument guard.
 
 ### Test Environment
 
-- **Framework**: xUnit v3 running under the .NET SDK on `net8.0`, `net9.0`, and `net10.0`.
+- **Framework**: xUnit v4 running under the .NET SDK on `net8.0`, `net9.0`, and `net10.0`.
 - **Execution**: `dotnet test` invoked by `build.ps1` and by the CI pipeline.
 - **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`PortLabelWidthEstimatorTests.cs`).
 - **External dependencies**: none.

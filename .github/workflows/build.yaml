@@ -172,7 +172,7 @@ jobs:
           /o:"demaconsulting"
           /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
           /d:sonar.host.url="https://sonarcloud.io"
-          /d:sonar.cs.opencover.reportsPaths=**/*.opencover.xml
+          /d:sonar.cs.cobertura.reportsPaths=**/*.cobertura.xml
           /d:sonar.scanner.scanAll=false
 
       - name: Build
@@ -183,14 +183,30 @@ jobs:
           --property:Version=${{ inputs.version }}
 
       - name: Test
+        # xUnit v4 tests run natively on Microsoft.Testing.Platform (MTP; see global.json), so the
+        # VSTest-era --collect/--logger options are replaced by their MTP equivalents:
+        # --coverage (via Microsoft.Testing.Extensions.CodeCoverage) and --report-trx (via
+        # Microsoft.Testing.Extensions.TrxReport). Coverage is emitted as Cobertura XML because MTP's
+        # coverage extension does not support the OpenCover format used previously.
+        #
+        # The old VSTest invocation used `--logger "trx;LogFilePrefix=${{ matrix.os }}"`, which
+        # embedded the OS name directly in the TRX filename. ReqStream's platform-requirement source
+        # filters (e.g. "windows@TestName" in docs/reqstream/**/platform-requirements.yaml) match by
+        # scanning the TRX *filename* for that keyword, so --report-trx-filename must reproduce the
+        # same OS-prefixed naming (MTP has no OS placeholder, so matrix.os is inlined literally).
+        # This also keeps each OS matrix build's results uniquely named, avoiding collisions when the
+        # Build Documents job merges every matrix.os build's artifacts into one flat directory - the
+        # OS-specific results-directory subfolder below is an additional safeguard for the same issue.
         run: >
           dotnet test
           --no-build
           --configuration Release
           --property:Version=${{ inputs.version }}
-          --collect "XPlat Code Coverage;Format=opencover"
-          --logger "trx;LogFilePrefix=${{ matrix.os }}"
-          --results-directory artifacts
+          --report-trx
+          --report-trx-filename "${{ matrix.os }}_{asm}_{tfm}_{arch}.trx"
+          --coverage
+          --coverage-output-format cobertura
+          --results-directory artifacts/${{ matrix.os }}
 
       - name: End Sonar Scanner
         env:

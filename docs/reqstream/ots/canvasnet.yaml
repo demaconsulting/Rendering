@@ -1,0 +1,56 @@
+---
+# CanvasNet OTS Software Requirements
+#
+# Requirements for the CanvasNet raster-graphics library functionality.
+#
+# Unlike the DemaConsulting tool OTS items (BuildMark, ReviewMark, ...) which are verified by their
+# own self-validation TRX, and like xUnit, CanvasNet is a runtime library rather than
+# build/compliance tooling: its OTS requirements are satisfied by this repository's own renderer
+# tests, which xUnit discovers, executes, and records into the TRX result files that ReqStream
+# traces. The linked tests below are a stable, representative sample spanning raster drawing, text
+# rendering, and image encoding.
+
+sections:
+  - title: OTS Software Requirements
+    sections:
+      - title: CanvasNet Requirements
+        requirements:
+          - id: Rendering-OTS-CanvasNet-Rasterize
+            title: CanvasNet shall draw shapes and lines onto a managed raster surface.
+            justification: |
+              CanvasNet's Surface and Canvas provide the in-memory raster surface, and its managed
+              drawing primitives render filled and stroked shapes, that CanvasNetRasterRenderer uses
+              to draw layout boxes and connector lines. Passing tests that sample drawn pixels
+              confirm these primitives operate correctly.
+            tags: [ots]
+            tests:
+              - Render_SingleBox_ProducesPngSignature
+              - PngRenderer_Render_SingleLine_PixelOnLineIsStrokeColor
+          - id: Rendering-OTS-CanvasNet-Text
+            title: CanvasNet shall render text using loaded typefaces.
+            justification: |
+              CanvasNet's TrueTypeFont loader resolves the embedded Noto Sans font resources, and
+              TextRenderer draws node titles and labels with them. A passing test that renders a
+              label containing special characters confirms typeface loading and text drawing operate
+              correctly.
+            tags: [ots]
+            tests:
+              - PngRenderer_Render_LabelWithXmlSpecialCharacters_ProducesValidPng
+          - id: Rendering-OTS-CanvasNet-EncodePng
+            title: CanvasNet shall encode a drawn surface into the PNG image format.
+            justification: |
+              CanvasNet's PNG codec converts the drawn Surface into a PNG container for PngRenderer.
+              A passing test that checks the PNG signature bytes confirms the encoder produces valid
+              output.
+            tags: [ots]
+            tests:
+              - Render_SingleBox_ProducesPngSignature
+          - id: Rendering-OTS-CanvasNet-EncodeJpeg
+            title: CanvasNet shall encode a drawn surface into the JPEG image format.
+            justification: |
+              CanvasNet's JPEG codec converts the drawn Surface into a JPEG container for
+              JpegRenderer. A passing test that checks the JPEG signature bytes confirms the encoder
+              produces valid output.
+            tags: [ots]
+            tests:
+              - JpegRenderer_Render_ProducesJpegSignature

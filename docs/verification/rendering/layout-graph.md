@@ -17,7 +17,7 @@ exceptions.
 
 ### Test Environment
 
-- **Framework**: xUnit v3 running on the .NET SDK.
+- **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Project**: `test/DemaConsulting.Rendering.Tests/LayoutGraphTests.cs` and
   `LayoutGraphPortTests.cs` (port-model scenarios).

@@ -13,7 +13,7 @@ avoidance), and validation are all observed on production code paths.
 
 ### Test Environment
 
-- **Framework**: xUnit v3 running on the .NET SDK.
+- **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs`, with the
   shared corridor-width helper covered by

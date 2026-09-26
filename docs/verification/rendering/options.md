@@ -18,7 +18,7 @@ either the stored value or the property's declared default is returned as specif
 
 ### Options Unit Test Environment
 
-- **Framework**: xUnit v3, run through the standard `dotnet test` runner.
+- **Framework**: xUnit v4, run through the standard `dotnet test` runner.
 - **Test project**: `DemaConsulting.Rendering.Tests`, source file `PropertyHolderTests.cs`
   (`PropertyHolder`/cascading tests) and `CoreOptionsTests.cs` (`CoreOptions.MergeParallelEdges` /
   `AssumedFontSize` key tests).

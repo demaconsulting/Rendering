@@ -40,7 +40,7 @@ The contracts and registries collaborate to make the pipeline extensible: caller
 formats are introduced purely additively. The `Theme` and the four geometry helpers (`NotationMetrics`,
 `BoxMetrics`, `ConnectorLabelPlacer`, `PortLabelWidthEstimator`) are the single source of truth that
 keeps SVG and raster outputs visually consistent. Concrete algorithm and renderer implementations live
-in the downstream Rendering.Layout, Rendering.Svg, and Rendering.Skia systems.
+in the downstream Rendering.Layout, Rendering.Svg, and Rendering.CanvasNet systems.
 
 ## External Interfaces
 

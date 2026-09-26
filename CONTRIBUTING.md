@@ -157,10 +157,10 @@ Examples:
 dotnet test --configuration Release
 
 # Run specific unit test
-dotnet test --filter "FullyQualifiedName~YourTestName"
+dotnet test --filter-method "YourTestName"
 
 # Run with coverage
-dotnet test --collect "XPlat Code Coverage"
+dotnet test --coverage
 ```
 
 ## Documentation
@@ -216,7 +216,7 @@ pwsh ./lint.ps1
 
 ### 3. Code Coverage
 
-Maintain or improve code coverage. Use the `--collect "XPlat Code Coverage"` option when running tests.
+Maintain or improve code coverage. Use the `--coverage` option when running tests.
 
 ## Commit Messages
 

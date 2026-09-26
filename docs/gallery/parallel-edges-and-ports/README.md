@@ -45,7 +45,7 @@ the three collapsed connectors a kept label would have belonged to.
 ![A hub node with a named port on each of its left and right sides](ports-showcase-horizontal.svg)
 
 Left/right named ports on a rightward-flowing hub node; the long left-side incoming label auto-computes a widened
-ContentInsetLeft margin, measured with the Skia-backed text measurer.
+ContentInsetLeft margin, measured with the CanvasNet-backed text measurer.
 
 ![A hub node with a named port on each of its top and bottom sides](ports-showcase-vertical.svg)
 

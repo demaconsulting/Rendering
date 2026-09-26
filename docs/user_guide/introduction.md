@@ -14,7 +14,7 @@ This user guide covers:
 
 - Installation of the packages
 - The core concepts (graph, options, algorithm, layout tree, renderer)
-- Basic usage: laying out a graph and rendering it to SVG, PNG, JPEG, or WEBP
+- Basic usage: laying out a graph and rendering it to SVG, PNG, or JPEG
 - Configuring layout through the open property system
 - Extending the library with custom algorithms and renderers
 
@@ -35,7 +35,7 @@ The library is split into focused packages so consumers take only what they need
 | `DemaConsulting.Rendering.Abstractions` | Always — the algorithm/renderer contracts and registries |
 | `DemaConsulting.Rendering.Layout` | To run the bundled algorithms and the `LayoutEngine` facade |
 | `DemaConsulting.Rendering.Svg` | To render diagrams to SVG (no native dependencies) |
-| `DemaConsulting.Rendering.Skia` | To render diagrams to PNG, JPEG, or WEBP (uses SkiaSharp) |
+| `DemaConsulting.Rendering.CanvasNet` | To render diagrams to PNG or JPEG (uses CanvasNet) |
 
 ```bash
 dotnet add package DemaConsulting.Rendering.Layout
@@ -62,7 +62,7 @@ Installing a renderer or the layout package transitively brings in the model and
 - **`LayoutTree`** — the *placed* result: boxes with absolute coordinates and orthogonally routed
   connectors.
 - **`IRenderer`** — draws a `LayoutTree` to a stream. Bundled implementations are `SvgRenderer`
-  and the SkiaSharp `PngRenderer`, `JpegRenderer`, and `WebpRenderer`.
+  and the CanvasNet `PngRenderer` and `JpegRenderer`.
 
 # Usage
 
@@ -97,8 +97,8 @@ using var output = File.Create("diagram.svg");
 renderer.Render(tree, new RenderOptions(Themes.Light), output);
 ```
 
-Swap `SvgRenderer` for `PngRenderer`, `JpegRenderer`, or `WebpRenderer` (from
-`DemaConsulting.Rendering.Skia`) to produce a raster image instead; the rest of the flow is identical.
+Swap `SvgRenderer` for `PngRenderer` or `JpegRenderer` (from
+`DemaConsulting.Rendering.CanvasNet`) to produce a raster image instead; the rest of the flow is identical.
 
 For a flat graph the hierarchical default is **byte-for-byte identical** to the `layered` algorithm, so
 the quickstart above lays the chain out exactly as the layered algorithm would — while a nested graph
@@ -639,14 +639,13 @@ var renderers = new RendererRegistry();
 renderers.Register(new SvgRenderer());
 renderers.Register(new PngRenderer());
 renderers.Register(new JpegRenderer());
-renderers.Register(new WebpRenderer());
 
 // Resolve and apply an algorithm by id (or hand the registry to LayoutEngine.Layout).
 var algorithm = algorithms.Resolve(options.Get(CoreOptions.Algorithm)); // e.g. "layered"
 var tree = algorithm.Apply(graph, options);
 
 // Resolve the renderer directly from the desired output filename's extension.
-var outputPath = "diagram.webp";
+var outputPath = "diagram.png";
 var renderer = renderers.ResolveByExtension(Path.GetExtension(outputPath));
 using var output = File.Create(outputPath);
 renderer.Render(tree, new RenderOptions(Themes.Light), output);
@@ -684,7 +683,7 @@ The library is open for extension without modifying existing code:
   `ILayoutAlgorithm` and are registered under a new id. Consumers select them via
   `CoreOptions.Algorithm`.
 - **New output formats** implement `IRenderer` with a distinct `MediaType` and file extensions and
-  register alongside the bundled SVG, PNG, JPEG, and WEBP renderers.
+  register alongside the bundled SVG, PNG, and JPEG renderers.
 - **New configuration options** are introduced by declaring additional `LayoutProperty<T>` keys.
   Because options travel in an open property bag, adding a key never changes an existing method
   signature.

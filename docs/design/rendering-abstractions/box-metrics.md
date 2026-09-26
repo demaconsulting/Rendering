@@ -43,7 +43,7 @@ returning `0.0`.
 
 - **Rendering.Svg `SvgRenderer` unit** — calls `FolderTabHeight` when drawing folder-shaped boxes
   and `TitleAreaHeight` when placing the title text of every box.
-- **Rendering.Skia raster renderers** — call the same helpers for the raster output so drawn
+- **Rendering.CanvasNet raster renderers** — call the same helpers for the raster output so drawn
   geometry matches the SVG.
 - **Rendering.Layout box layout strategies (`ContainmentPacker`, `LayeredPipeline`,
   `HierarchicalLayoutAlgorithm`)** — call both helpers to reserve space for the folder tab and title

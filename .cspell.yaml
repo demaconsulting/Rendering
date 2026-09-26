@@ -36,12 +36,13 @@ words:
   - netstandard
   - yamlfix
   # Rendering library technical terms and referenced code identifiers
-  - Skia
-  - SkiaSharp
+  - CanvasNet
+  - AARRGGBB
   - Noto
-  - webp
+  - postconditions
   - rasterizer
   - rasterizes
+  - Rgba
   - Sugiyama
   - Brandes
   - Kopf
@@ -76,6 +77,8 @@ words:
   - transversal
   - transversally
   - unwidened
+  - Skia
+  - WEBP
   # Non-ASCII terms retained verbatim in extracted source comments
   - façade
   - Köpf

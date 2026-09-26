@@ -231,7 +231,7 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
-    ///     Renders the layered pipeline diagram to PNG, proving the SkiaSharp raster path produces a
+    ///     Renders the layered pipeline diagram to PNG, proving the CanvasNet raster path produces a
     ///     valid, decodable image.
     /// </summary>
     [Fact]
@@ -244,6 +244,25 @@ public sealed class GalleryShowcaseTests
         // Act / Assert
         GalleryWriter.Png(
             GalleryCatalog.LayeredPipelinePng,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the layered pipeline diagram to JPEG, proving the CanvasNet raster path's
+    ///     <see cref="DemaConsulting.Rendering.CanvasNet.JpegRenderer"/> produces valid, non-empty
+    ///     JPEG output end-to-end alongside the existing PNG and SVG showcase coverage.
+    /// </summary>
+    [Fact]
+    public void Gallery_LayeredPipeline_RendersJpeg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.LayeredPipeline();
+        graph.Set(CoreOptions.Algorithm, "layered");
+
+        // Act / Assert
+        GalleryWriter.Jpeg(
+            GalleryCatalog.LayeredPipelineJpeg,
             graph,
             Themes.Dark);
     }

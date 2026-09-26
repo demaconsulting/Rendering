@@ -121,7 +121,7 @@ the two folder-tab values to the exact top-left folder tab geometry the renderer
 default to `null`, preserving the existing fallback behavior for callers that do not need exact
 shape-aware routing. The bundled leaf algorithms and the hierarchical engine's sized view propagate
 the hints unchanged onto the placed `LayoutBox`, where `ConnectorRouter`, `SvgRenderer`, and
-`SkiaRasterRenderer` can all consume the same resolved values without the layout APIs taking a
+`CanvasNetRasterRenderer` can all consume the same resolved values without the layout APIs taking a
 `Theme` dependency.
 
 ### Layout Graph Error Handling

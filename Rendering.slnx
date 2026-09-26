@@ -4,14 +4,14 @@
     <Project Path="src/DemaConsulting.Rendering.Abstractions/DemaConsulting.Rendering.Abstractions.csproj" />
     <Project Path="src/DemaConsulting.Rendering.Layout/DemaConsulting.Rendering.Layout.csproj" />
     <Project Path="src/DemaConsulting.Rendering.Svg/DemaConsulting.Rendering.Svg.csproj" />
-    <Project Path="src/DemaConsulting.Rendering.Skia/DemaConsulting.Rendering.Skia.csproj" />
+    <Project Path="src/DemaConsulting.Rendering.CanvasNet/DemaConsulting.Rendering.CanvasNet.csproj" />
   </Folder>
   <Folder Name="/test/">
     <Project Path="test/DemaConsulting.Rendering.Tests/DemaConsulting.Rendering.Tests.csproj" />
     <Project Path="test/DemaConsulting.Rendering.Abstractions.Tests/DemaConsulting.Rendering.Abstractions.Tests.csproj" />
     <Project Path="test/DemaConsulting.Rendering.Layout.Tests/DemaConsulting.Rendering.Layout.Tests.csproj" />
     <Project Path="test/DemaConsulting.Rendering.Svg.Tests/DemaConsulting.Rendering.Svg.Tests.csproj" />
-    <Project Path="test/DemaConsulting.Rendering.Skia.Tests/DemaConsulting.Rendering.Skia.Tests.csproj" />
+    <Project Path="test/DemaConsulting.Rendering.CanvasNet.Tests/DemaConsulting.Rendering.CanvasNet.Tests.csproj" />
     <Project Path="test/DemaConsulting.Rendering.Gallery/DemaConsulting.Rendering.Gallery.csproj" />
   </Folder>
 </Solution>

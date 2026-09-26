@@ -14,7 +14,7 @@
 # - The following public members are optional presentation or diagnostic metadata carried through
 #   unchanged by the model. They carry no algorithmic behavior of their own, and the rendered
 #   behavior they influence is specified and verified in the
-#   renderer systems (DemaConsulting.Rendering.Svg / DemaConsulting.Rendering.Skia), not in the
+#   renderer systems (DemaConsulting.Rendering.Svg / DemaConsulting.Rendering.CanvasNet), not in the
 #   model. They are therefore intentionally excluded from the Rendering-Model requirement set and
 #   are not given individual functional requirements:
 #     - LayoutBox.Keyword          - optional SysML keyword text drawn above the box label

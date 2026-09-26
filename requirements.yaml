@@ -43,11 +43,10 @@ includes:
   - docs/reqstream/rendering-layout/default-layout.yaml
   - docs/reqstream/rendering-svg.yaml
   - docs/reqstream/rendering-svg/svg-renderer.yaml
-  - docs/reqstream/rendering-skia.yaml
-  - docs/reqstream/rendering-skia/skia-raster-renderer.yaml
-  - docs/reqstream/rendering-skia/png-renderer.yaml
-  - docs/reqstream/rendering-skia/jpeg-renderer.yaml
-  - docs/reqstream/rendering-skia/webp-renderer.yaml
+  - docs/reqstream/rendering-canvasnet.yaml
+  - docs/reqstream/rendering-canvasnet/canvasnet-raster-renderer.yaml
+  - docs/reqstream/rendering-canvasnet/png-renderer.yaml
+  - docs/reqstream/rendering-canvasnet/jpeg-renderer.yaml
   # OTS software items
   - docs/reqstream/ots/xunit.yaml
   - docs/reqstream/ots/reqstream.yaml
@@ -59,4 +58,4 @@ includes:
   - docs/reqstream/ots/pandoc.yaml
   - docs/reqstream/ots/weasyprint.yaml
   - docs/reqstream/ots/fileassert.yaml
-  - docs/reqstream/ots/skiasharp.yaml
+  - docs/reqstream/ots/canvasnet.yaml

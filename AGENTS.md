@@ -4,11 +4,11 @@
 - **organization**: DEMA Consulting
 - **project-tagline**: General-purpose diagram layout and rendering for .NET
 - **description**: General-purpose diagram layout and rendering for .NET. Describe a diagram as a
-  graph, lay it out with a pluggable algorithm, and render it to SVG, PNG, JPEG, or WEBP. The design
+  graph, lay it out with a pluggable algorithm, and render it to SVG, PNG, or JPEG. The design
   is inspired by the Eclipse Layout Kernel (ELK): layout and rendering are configured through an
   open, extensible property system, and new algorithms, renderers, and options are added additively.
 - **languages**: C#
-- **technologies**: .NET, SkiaSharp
+- **technologies**: .NET, CanvasNet
 
 # Project Structure
 
@@ -29,13 +29,13 @@
 │   ├── DemaConsulting.Rendering.Abstractions/    (SPI: ILayoutAlgorithm/IRenderer, registries, Theme, metrics)
 │   ├── DemaConsulting.Rendering.Layout/          (layout algorithms: layered pipeline, LayeredLayoutAlgorithm)
 │   ├── DemaConsulting.Rendering.Svg/             (SVG renderer, zero external dependencies)
-│   └── DemaConsulting.Rendering.Skia/            (SkiaSharp raster renderers: PNG, JPEG, WEBP)
+│   └── DemaConsulting.Rendering.CanvasNet/       (CanvasNet raster renderers: PNG, JPEG)
 └── test/
     ├── DemaConsulting.Rendering.Tests/
     ├── DemaConsulting.Rendering.Abstractions.Tests/
     ├── DemaConsulting.Rendering.Layout.Tests/
     ├── DemaConsulting.Rendering.Svg.Tests/
-    ├── DemaConsulting.Rendering.Skia.Tests/
+    ├── DemaConsulting.Rendering.CanvasNet.Tests/
     └── DemaConsulting.Rendering.Gallery/         (visual gallery/sample output generator)
 ```
 
