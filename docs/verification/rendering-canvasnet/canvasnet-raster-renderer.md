@@ -70,14 +70,14 @@ genuinely theme-driven rather than a hardcoded white.
 
 **Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree`.
 
-#### Theme colours drive fills
+#### Theme colors drive fills
 
 Tests `PngRenderer_Render_SingleBox_FillColorMatchesTheme`,
 `PngRenderer_Render_SingleBox_DepthOneUsesSecondColor`, and
 `PngRenderer_Render_SingleGrid_HeaderFillMatchesTheme` render boxes and grids and assert that fill
 pixels equal the theme depth-palette color selected by nesting depth.
 
-**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColours`.
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColors`.
 
 #### End markers match notation metrics
 
@@ -156,7 +156,7 @@ against the exact same lazily loaded typeface objects.
   PngRenderer_Render_SingleBand_BorderIsStrokeColor,
   PngRenderer_Render_DeeplyNestedBoxes_DoesNotStackOverflow,
   PngRenderer_Render_LabelWithXmlSpecialCharacters_ProducesValidPng
-- **`Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColours`**:
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColors`**:
   PngRenderer_Render_SingleBox_FillColorMatchesTheme,
   PngRenderer_Render_SingleBox_DepthOneUsesSecondColor,
   PngRenderer_Render_SingleGrid_HeaderFillMatchesTheme

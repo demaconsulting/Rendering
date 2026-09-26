@@ -36,7 +36,7 @@ sections:
           eliminate.
         children:
           - Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree
-          - Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColours
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColors
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkers
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EmptyTree
           - Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelPlacement

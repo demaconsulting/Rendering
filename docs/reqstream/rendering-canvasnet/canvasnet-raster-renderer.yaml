@@ -33,12 +33,12 @@ sections:
           - PngRenderer_Render_DeeplyNestedBoxes_DoesNotStackOverflow
           - PngRenderer_Render_LabelWithXmlSpecialCharacters_ProducesValidPng
 
-      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColours
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColors
         title: >-
-          CanvasNetRasterRenderer shall derive box and grid fill colours from the render theme,
+          CanvasNetRasterRenderer shall derive box and grid fill colors from the render theme,
           indexing the depth-fill palette by nesting depth.
         justification: |
-          Deriving colours from the theme keeps raster output visually consistent with the SVG
+          Deriving colors from the theme keeps raster output visually consistent with the SVG
           renderer and lets callers restyle diagrams by supplying a different theme.
         tests:
           - PngRenderer_Render_SingleBox_FillColorMatchesTheme

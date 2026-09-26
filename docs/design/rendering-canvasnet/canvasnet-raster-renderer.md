@@ -133,7 +133,7 @@ step.
 | Requirement ID | Satisfied by |
 | --- | --- |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree | `RenderToSurface` drawing, markers, labels |
-| Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColours | Box and grid fill selection from `Theme.DepthFillColors` |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-ThemeColors | Box and grid fill selection from `Theme.DepthFillColors` |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkers | End-marker drawing helpers that use `NotationMetrics` |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-EmptyTree | Minimum surface size enforcement in `RenderToSurface` |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelPlacement | Port glyph/label placement on every side |
