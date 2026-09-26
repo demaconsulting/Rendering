@@ -231,7 +231,7 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
-    ///     Renders the layered pipeline diagram to PNG, proving the SkiaSharp raster path produces a
+    ///     Renders the layered pipeline diagram to PNG, proving the CanvasNet raster path produces a
     ///     valid, decodable image.
     /// </summary>
     [Fact]

@@ -4,12 +4,12 @@
 
 using System.Text;
 
-using DemaConsulting.Rendering.Abstractions;
-using DemaConsulting.Rendering.Layout;
-using DemaConsulting.Rendering.Skia;
-using DemaConsulting.Rendering.Svg;
+using DemaConsulting.CanvasNet.Codecs;
 
-using SkiaSharp;
+using DemaConsulting.Rendering.Abstractions;
+using DemaConsulting.Rendering.CanvasNet;
+using DemaConsulting.Rendering.Layout;
+using DemaConsulting.Rendering.Svg;
 
 namespace DemaConsulting.Rendering.Gallery;
 
@@ -122,8 +122,7 @@ internal static class GalleryWriter
             bytes.Take(PngSignature.Length).SequenceEqual(PngSignature),
             $"File does not start with the PNG signature: {path}");
 
-        using var bitmap = SKBitmap.Decode(path);
-        Assert.NotNull(bitmap);
-        Assert.True(bitmap.Width > 0 && bitmap.Height > 0, $"Decoded PNG has no pixels: {path}");
+        using var surface = PngCodec.Load(path);
+        Assert.True(surface.Width > 0 && surface.Height > 0, $"Decoded PNG has no pixels: {path}");
     }
 }

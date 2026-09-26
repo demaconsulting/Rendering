@@ -155,7 +155,7 @@ internal static class GalleryCatalog
 
     /// <summary>Shared "Raster output" section intro, reused by every group with a PNG showcase.</summary>
     private const string RasterOutputIntro =
-        "One of the layout-algorithm diagrams above is rendered again here through the SkiaSharp "
+        "One of the layout-algorithm diagrams above is rendered again here through the CanvasNet "
         + "raster path to PNG with the same dark theme, proving multi-format output.";
 
     /// <summary>Shared "The auto meta-algorithm" section intro, reused by every group showcasing it.</summary>
@@ -467,7 +467,7 @@ internal static class GalleryCatalog
                             "A hub node with a named port on each of its left and right sides",
                             "Left/right named ports on a rightward-flowing hub node; the long left-side "
                             + "incoming label auto-computes a widened ContentInsetLeft margin, measured "
-                            + "with the Skia-backed text measurer."),
+                            + "with the CanvasNet-backed text measurer."),
                         new GalleryImage(
                             PortsShowcaseVerticalSvg,
                             "A hub node with a named port on each of its top and bottom sides",

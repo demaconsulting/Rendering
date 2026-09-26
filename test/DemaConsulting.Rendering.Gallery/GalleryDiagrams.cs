@@ -117,7 +117,7 @@ internal static class GalleryDiagrams
             ("Model", 150),
             ("Layout", 110),
             ("Svg", 70),
-            ("Skia", 80),
+            ("CanvasNet", 80),
             ("Abstractions", 200),
             ("Themes", 120),
             ("Options", 130),
