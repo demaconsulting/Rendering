@@ -128,6 +128,8 @@ internal static class GalleryWriter
 
         AssertValidJpeg(path);
     }
+
+    /// <summary>Asserts that the file exists, is non-empty, and contains a well-formed SVG document.</summary>
     /// <param name="path">Absolute path of the generated SVG file.</param>
     public static void AssertValidSvg(string path)
     {
@@ -153,7 +155,7 @@ internal static class GalleryWriter
         Assert.True(surface.Width > 0 && surface.Height > 0, $"Decoded PNG has no pixels: {path}");
     }
 
-    /// <summary>Asserts that the file exists, is non-trivially sized, and starts with the JPEG signature.</summary>
+    /// <summary>Asserts that the file exists, starts with the JPEG signature, and decodes to a bitmap.</summary>
     /// <param name="path">Absolute path of the generated JPEG file.</param>
     public static void AssertValidJpeg(string path)
     {
@@ -163,5 +165,8 @@ internal static class GalleryWriter
         Assert.True(
             bytes.Take(JpegSignature.Length).SequenceEqual(JpegSignature),
             $"File does not start with the JPEG signature: {path}");
+
+        using var surface = JpegCodec.Load(path);
+        Assert.True(surface.Width > 0 && surface.Height > 0, $"Decoded JPEG has no pixels: {path}");
     }
 }
