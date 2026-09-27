@@ -956,17 +956,38 @@ public class LayeredLayoutAlgorithmTests
     ///     Proves that a titled node with two labeled ports stacked on its left (or right) face reserves
     ///     enough bottom clearance for the bottom-most port's downward-shifted label
     ///     (<c>SvgRenderer.EmitPortLabel</c> and the CanvasNet renderer's equivalent draw a Left/Right port's
-    ///     <see cref="LayoutGraphPort.ExternalLabel"/> at <c>CentreY + FontSizeBody / 2</c>, not centered
-    ///     on the port row). Regression coverage for the gallery bug where "Hub"'s bottom-most labeled
-    ///     port ("heartbeat"/"diag") rendered its label past the box's own bottom border: the growth
-    ///     floor's per-port compensation for this downward shift was a flat addend divided across every
-    ///     port's own equal-height slice (PortDistributor.DistributePorts centers each port within its
-    ///     own equal-height slice of the face), so it was fully absorbed only when a face carried
-    ///     exactly one port — a face with 2+ labeled ports lost most of that compensation to the other
-    ///     slices. Asserts the bottom-most port's own margin to the box's bottom edge covers both the
-    ///     downward shift itself and the shifted label's own half-height (2 * FontSizeBody / 2 =
-    ///     assumedFontSize), matching the margin the single-port case already achieves comfortably.
+    ///     <see cref="LayoutGraphPort.ExternalLabel"/> at <c>CentreY + FontSizeBody</c> — a full line's
+    ///     worth of clearance below the port row, matching the Top/Bottom convention's own
+    ///     <c>CentreY + offset + FontSizeBody</c> formula — not centered on the port row). Regression
+    ///     coverage for the gallery bug where "Hub"'s bottom-most labeled port ("heartbeat"/"diag")
+    ///     rendered its label past the box's own bottom border: the growth floor's per-port
+    ///     compensation for this downward shift was a flat addend divided across every port's own
+    ///     equal-height slice (PortDistributor.DistributePorts centers each port within its own
+    ///     equal-height slice of the face), so it was fully absorbed only when a face carried exactly
+    ///     one port — a face with 2+ labeled ports lost most of that compensation to the other slices.
     /// </summary>
+    /// <remarks>
+    ///     Derivation of the expected margin for this two-port scenario (Total = 2 ports on the Left
+    ///     face, both labeled): the multi-anchor growth floor sets
+    ///     <c>band = Math.Max(labelBasedHeight, clearanceBasedHeight) + (assumedFontSize * 2.0 *
+    ///     Total)</c>, where <c>labelBasedHeight = EstimateLabelHeight(assumedFontSize) * Total</c>
+    ///     (≈19.6 per port at the default 12px font, via ConnectorLabelPlacer's fixed
+    ///     1.3x-font-size-plus-2x2-gap formula) and <c>clearanceBasedHeight = 2 * ConnectorClearance *
+    ///     Total</c> (20 per port, since <c>LayeredLayoutMetrics.ConnectorClearance = 10</c>). Because
+    ///     20 > 19.6 for every label text at this font size, <c>clearanceBasedHeight</c> always wins
+    ///     here, so <c>band = (2 * ConnectorClearance + (2 * assumedFontSize)) * Total</c>. The
+    ///     compensation term is doubled (rather than a flat <c>assumedFontSize</c>) because
+    ///     PortDistributor (<see cref="DemaConsulting.Rendering.Layout.Engine.Layered.PortDistributor"/>)
+    ///     centers each of the <c>Total</c> ports within its own equal <c>band / Total</c>-tall slice of
+    ///     that band, so only HALF of any height added to the band ends up below a port's own centre —
+    ///     the other half grows the slice upward, where the label never reaches. The bottom-most port's
+    ///     own margin to the box's bottom edge is therefore half of one slice:
+    ///     <c>(band / Total) / 2 = (2 * ConnectorClearance + (2 * assumedFontSize)) / 2 =
+    ///     ConnectorClearance + assumedFontSize</c> — independent of <c>Total</c> whenever
+    ///     <c>clearanceBasedHeight</c> dominates. At the default constants (ConnectorClearance = 10,
+    ///     assumedFontSize = 12) this is <c>10 + 12 = 22</c>, confirmed empirically against the actual
+    ///     layout output for this exact scenario.
+    /// </remarks>
     [Fact]
     public void Apply_TitledNodeWithTwoLeftPortLabels_BottomPortRetainsDownwardShiftMargin()
     {
@@ -996,11 +1017,75 @@ public class LayeredLayoutAlgorithmTests
 
         var boxBottom = hubBox.Y + hubBox.Height;
         var bottomPortMargin = boxBottom - ports[^1].CentreY;
+
+        // requiredMargin = ConnectorClearance + assumedFontSize — see the <remarks> derivation
+        // above. This is strictly greater than the pre-fix requirement of
+        // ConnectorClearance + (assumedFontSize / 2), proving the doubled downward-shift
+        // compensation term actually reaches the bottom-most port of a multi-port face.
+        var requiredMargin = LayeredLayoutMetrics.ConnectorClearance + assumedFontSize;
         Assert.True(
-            bottomPortMargin >= assumedFontSize,
+            bottomPortMargin >= requiredMargin,
             $"Expected bottom-most left port's margin to box bottom ({bottomPortMargin}) to be at least "
-            + $"{assumedFontSize} — enough room for SvgRenderer.EmitPortLabel's own "
-            + "CentreY + FontSizeBody / 2 downward shift plus the shifted label's own half-height.");
+            + $"{requiredMargin} — enough room for SvgRenderer.EmitPortLabel's own "
+            + "CentreY + FontSizeBody downward shift plus the shifted label's own half-height.");
+    }
+
+    /// <summary>
+    ///     Proves that a rounded-rectangle node with two labeled ports stacked on its left face
+    ///     retains the same downward-shift margin guarantee as a plain rectangle
+    ///     (<see cref="Apply_TitledNodeWithTwoLeftPortLabels_BottomPortRetainsDownwardShiftMargin"/>).
+    ///     Regression coverage for a gap identified in PR review: for a shaped node,
+    ///     <c>PortDistributor.DistributeShapedPorts</c> used to place 2+ ports endpoint-to-endpoint
+    ///     across the shape's connectable extent (the first/last port pinned exactly at the corner
+    ///     -radius-excluded boundary), so growing the node's height to reserve the downward-shift
+    ///     compensation added by this PR never actually moved the bottom-most port — only the fixed
+    ///     corner-radius/<see cref="LayeredLayoutMetrics.ConnectorClearance"/> inset separated it from
+    ///     the box edge, regardless of how tall the box grew. A small corner radius (8, well under the
+    ///     default font size) reproduced an actual margin of 18 against this scenario, below the
+    ///     required 22 — i.e., the label would clip the box's own rounded border exactly like the bug
+    ///     this PR fixes for plain rectangles. Fixed by centering each port within its own equal slice
+    ///     of the usable extent (matching the plain-rectangle formula), so the outermost port's margin
+    ///     grows proportionally with the node's height like the rectangular case.
+    /// </summary>
+    [Fact]
+    public void Apply_RoundedRectangleWithTwoLeftPortLabels_BottomPortRetainsDownwardShiftMargin()
+    {
+        const double assumedFontSize = 12.0; // CoreOptions.AssumedFontSize default
+        var graph = new LayoutGraph();
+        var sourceA = graph.AddNode("sourceA", 80, 30);
+        var sourceB = graph.AddNode("sourceB", 80, 30);
+        var target = graph.AddNode("target", 80, 30);
+        var hub = graph.AddNode("hub", 200, 60);
+        hub.Label = "Hub";
+        hub.Shape = BoxShape.RoundedRectangle;
+        hub.RoundedCornerRadius = 8.0;
+        var topLeftPort = hub.Ports.AddPort("telemetry");
+        topLeftPort.ExternalLabel = "telemetry";
+        var bottomLeftPort = hub.Ports.AddPort("heartbeat");
+        bottomLeftPort.ExternalLabel = "heartbeat";
+        graph.AddEdge("e1", sourceA, topLeftPort);
+        graph.AddEdge("e2", sourceB, bottomLeftPort);
+        graph.AddEdge("e3", hub, target);
+
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        var hubBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Hub");
+        var ports = tree.Nodes.OfType<LayoutPort>()
+            .Where(p => p.Side == PortSide.Left)
+            .OrderBy(p => p.CentreY)
+            .ToList();
+        Assert.Equal(2, ports.Count);
+
+        var boxBottom = hubBox.Y + hubBox.Height;
+        var bottomPortMargin = boxBottom - ports[^1].CentreY;
+
+        var requiredMargin = LayeredLayoutMetrics.ConnectorClearance + assumedFontSize;
+        Assert.True(
+            bottomPortMargin >= requiredMargin,
+            $"Expected bottom-most left port's margin to box bottom ({bottomPortMargin}) to be at least "
+            + $"{requiredMargin}, matching the plain-rectangle guarantee, even though the node is a "
+            + "rounded rectangle whose shaped port distribution used to pin the port at a fixed "
+            + "corner-radius offset unaffected by any growth.");
     }
 
     /// <summary>

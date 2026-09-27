@@ -205,7 +205,18 @@ internal sealed class PortDistributor : ILayoutStage
         var count = sortedEdgeIndices.Count;
         for (var k = 0; k < count; k++)
         {
-            var distance = count == 1 ? total / 2.0 : k * total / (count - 1);
+            // Center each port within its own equal slice of the usable extent (the same
+            // (k + 0.5) / count pattern DistributePorts uses for a plain rectangular face), rather
+            // than spreading endpoint-to-endpoint. Endpoint placement pinned the first/last port
+            // exactly at the shape's own connectable-extent boundary, so growing the node's height to
+            // reserve extra label clearance (see LayeredLayoutAlgorithm's downward-label-shift
+            // compensation) never moved that port at all — the fixed corner/fold exclusion, not the
+            // node's height, was the only thing standing between the port and the box edge, so a
+            // shaped node with 2+ labeled ports on one face could still clip a label past its border
+            // even after "growing". Slice-centering makes the outermost port's margin from the
+            // extent's own boundary grow proportionally with the usable extent (and therefore with
+            // the node's height), exactly like the rectangular case.
+            var distance = (k + 0.5) * total / count;
             var local = ConnectorRouter.CoordinateAtDistance(usable, distance);
             portY[sortedEdgeIndices[k]] = nodeTop + local;
         }

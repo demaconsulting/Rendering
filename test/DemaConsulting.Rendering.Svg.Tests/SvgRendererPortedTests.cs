@@ -461,6 +461,39 @@ public sealed class SvgRendererPortedTests
     }
 
     /// <summary>
+    ///     Proves the exact vertical placement of a Left/Right port label: its y-coordinate must be
+    ///     <c>CentreY + FontSizeBody</c>, giving real perpendicular clearance from the port's own
+    ///     connector line. Pins this precise formula so a regression to the old, insufficient
+    ///     <c>CentreY + FontSizeBody / 2</c> offset (which let the label visually overlap the
+    ///     connector) would be caught, rather than merely checking the label is on the correct side.
+    /// </summary>
+    [Theory]
+    [InlineData(PortSide.Left)]
+    [InlineData(PortSide.Right)]
+    public void SvgRenderer_RenderPort_LeftRightLabel_HasFullFontSizeVerticalOffset(PortSide side)
+    {
+        // Arrange
+        var renderer = new SvgRenderer();
+        var theme = Themes.Light;
+        var port = new LayoutPort(100, 50, side, "label");
+        var layout = new LayoutTree(200, 100, [port]);
+        var options = new RenderOptions(theme);
+        using var output = new MemoryStream();
+
+        // Act
+        renderer.Render(layout, options, output);
+
+        // Assert
+        output.Position = 0;
+        var svgText = ReadAllText(output);
+        var match = System.Text.RegularExpressions.Regex.Match(svgText, """<text x="[\-0-9.]+" y="([\-0-9.]+)""");
+        Assert.True(match.Success);
+        var labelY = double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+
+        Assert.Equal(port.CentreY + theme.FontSizeBody, labelY, precision: 3);
+    }
+
+    /// <summary>
     ///     Proves that a port's label reads inward for the top/bottom sides too: a top-side port's
     ///     label y-coordinate is greater than the port's own y (downward, into the box below), and a
     ///     bottom-side port's label y-coordinate is less than the port's own y (upward, into the box
