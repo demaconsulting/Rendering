@@ -1031,6 +1031,64 @@ public class LayeredLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a rounded-rectangle node with two labeled ports stacked on its left face
+    ///     retains the same downward-shift margin guarantee as a plain rectangle
+    ///     (<see cref="Apply_TitledNodeWithTwoLeftPortLabels_BottomPortRetainsDownwardShiftMargin"/>).
+    ///     Regression coverage for a gap identified in PR review: for a shaped node,
+    ///     <c>PortDistributor.DistributeShapedPorts</c> used to place 2+ ports endpoint-to-endpoint
+    ///     across the shape's connectable extent (the first/last port pinned exactly at the corner
+    ///     -radius-excluded boundary), so growing the node's height to reserve the downward-shift
+    ///     compensation added by this PR never actually moved the bottom-most port — only the fixed
+    ///     corner-radius/<see cref="LayeredLayoutMetrics.ConnectorClearance"/> inset separated it from
+    ///     the box edge, regardless of how tall the box grew. A small corner radius (8, well under the
+    ///     default font size) reproduced an actual margin of 18 against this scenario, below the
+    ///     required 22 — i.e., the label would clip the box's own rounded border exactly like the bug
+    ///     this PR fixes for plain rectangles. Fixed by centering each port within its own equal slice
+    ///     of the usable extent (matching the plain-rectangle formula), so the outermost port's margin
+    ///     grows proportionally with the node's height like the rectangular case.
+    /// </summary>
+    [Fact]
+    public void Apply_RoundedRectangleWithTwoLeftPortLabels_BottomPortRetainsDownwardShiftMargin()
+    {
+        const double assumedFontSize = 12.0; // CoreOptions.AssumedFontSize default
+        var graph = new LayoutGraph();
+        var sourceA = graph.AddNode("sourceA", 80, 30);
+        var sourceB = graph.AddNode("sourceB", 80, 30);
+        var target = graph.AddNode("target", 80, 30);
+        var hub = graph.AddNode("hub", 200, 60);
+        hub.Label = "Hub";
+        hub.Shape = BoxShape.RoundedRectangle;
+        hub.RoundedCornerRadius = 8.0;
+        var topLeftPort = hub.Ports.AddPort("telemetry");
+        topLeftPort.ExternalLabel = "telemetry";
+        var bottomLeftPort = hub.Ports.AddPort("heartbeat");
+        bottomLeftPort.ExternalLabel = "heartbeat";
+        graph.AddEdge("e1", sourceA, topLeftPort);
+        graph.AddEdge("e2", sourceB, bottomLeftPort);
+        graph.AddEdge("e3", hub, target);
+
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        var hubBox = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Hub");
+        var ports = tree.Nodes.OfType<LayoutPort>()
+            .Where(p => p.Side == PortSide.Left)
+            .OrderBy(p => p.CentreY)
+            .ToList();
+        Assert.Equal(2, ports.Count);
+
+        var boxBottom = hubBox.Y + hubBox.Height;
+        var bottomPortMargin = boxBottom - ports[^1].CentreY;
+
+        var requiredMargin = LayeredLayoutMetrics.ConnectorClearance + assumedFontSize;
+        Assert.True(
+            bottomPortMargin >= requiredMargin,
+            $"Expected bottom-most left port's margin to box bottom ({bottomPortMargin}) to be at least "
+            + $"{requiredMargin}, matching the plain-rectangle guarantee, even though the node is a "
+            + "rounded rectangle whose shaped port distribution used to pin the port at a fixed "
+            + "corner-radius offset unaffected by any growth.");
+    }
+
+    /// <summary>
     ///     Proves that a node with several <em>unlabeled</em> outgoing edges fanning out from one face
     ///     still grows tall enough to give each connector a minimum clearance slice, even though none
     ///     of the edges or ports carry any label. Regression coverage for the reported "Motherboard"
