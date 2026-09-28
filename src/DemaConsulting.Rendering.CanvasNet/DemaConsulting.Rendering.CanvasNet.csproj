@@ -54,7 +54,7 @@ CanvasNet is used for PNG and JPEG rendering (MIT license, copyright DEMA Consul
   <!-- Build Tool Dependencies -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Sbom.Targets" Version="4.1.13" PrivateAssets="All" />
-    <PackageReference Include="Polyfill" Version="11.4.0" PrivateAssets="All" />
+    <PackageReference Include="Polyfill" Version="11.4.1" PrivateAssets="All" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.401" PrivateAssets="All" />
     <PackageReference Include="DemaConsulting.ApiMark.MSBuild" Version="0.5.1" PrivateAssets="All" />
     <PackageReference Include="DemaConsulting.CanvasNet" Version="0.1.0-beta.3" />
