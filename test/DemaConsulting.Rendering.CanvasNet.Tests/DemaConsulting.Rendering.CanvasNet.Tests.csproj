@@ -38,9 +38,9 @@
        Microsoft.Testing.Extensions.TrxReport adds the report-trx option so TRX result files
        (consumed by ReqStream) continue to be produced. -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2" />
-    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.4.1" />
-    <PackageReference Include="xunit.v3" Version="4.0.1" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.5.1" />
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
   </ItemGroup>
 
   <!-- Code Analysis Dependencies -->
