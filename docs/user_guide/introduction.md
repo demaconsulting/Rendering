@@ -12,7 +12,7 @@ The figure below shows how the pieces fit together: your application describes a
 algorithm positions it, and a renderer draws it, with the `Abstractions` package defining the
 contracts that algorithms and renderers implement.
 
-![Rendering architecture: your application describes a graph, the layout algorithms position it, and the SVG and CanvasNet renderers draw it, all through contracts in the Abstractions package](architecture.svg)
+![Rendering architecture: your application, layout algorithms, renderers, and SVG, PNG, and JPEG output](architecture.svg)
 
 ## Scope
 
