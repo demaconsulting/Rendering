@@ -8,6 +8,12 @@ packages for laying out and rendering node-and-edge diagrams. The design is insp
 a pluggable algorithm places it, and a pluggable renderer draws it — all configured through an
 open, extensible property system.
 
+The figure below shows how the pieces fit together: your application describes a graph, a layout
+algorithm positions it, and a renderer draws it, with the `Abstractions` package defining the
+contracts that algorithms and renderers implement.
+
+![Rendering architecture: your application, layout algorithms, renderers, and SVG, PNG, and JPEG output](architecture.svg)
+
 ## Scope
 
 This user guide covers:
