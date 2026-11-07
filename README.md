@@ -14,6 +14,8 @@ with a pluggable algorithm, and render it to SVG, PNG, or JPEG. The design is in
 [Eclipse Layout Kernel (ELK)][link-elk]: layout and rendering are configured through an open,
 extensible property system, and new algorithms, renderers, and options are added additively.
 
+![Rendering architecture: your application describes a graph, the layout algorithms position it, and the SVG and CanvasNet renderers draw it, all through contracts in the Abstractions package][architecture]
+
 ## Features
 
 - **Pluggable layout algorithms** — layered (Sugiyama-style), containment packing, a recursive
@@ -164,3 +166,4 @@ By contributing to this project, you agree that your contributions will be licen
 [link-gallery]: https://github.com/demaconsulting/Rendering/blob/main/docs/gallery/README.md
 [link-user-guide]: https://github.com/demaconsulting/Rendering/blob/main/docs/user_guide/introduction.md
 [link-contributing]: https://github.com/demaconsulting/Rendering/blob/main/CONTRIBUTING.md
+[architecture]: https://raw.githubusercontent.com/demaconsulting/Rendering/main/docs/images/architecture.png

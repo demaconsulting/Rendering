@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="470" viewBox="0 0 900 470" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+  </defs>
+  <!-- Transparent canvas; a white rounded card keeps the diagram readable in light and dark themes -->
+  <rect x="14" y="16" width="875" height="440" rx="28" fill="#d5dce6"/>
+  <rect x="10" y="10" width="875" height="440" rx="28" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+
+  <g transform="translate(30,30)">
+    <!-- Caller -->
+    <rect x="0" y="120" width="120" height="110" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+    <text x="60" y="152" font-size="15" font-weight="600" fill="#92400e" text-anchor="middle">Your</text>
+    <text x="60" y="171" font-size="15" font-weight="600" fill="#92400e" text-anchor="middle">application</text>
+    <text x="60" y="199" font-size="12" fill="#92400e" text-anchor="middle">describes a</text>
+    <text x="60" y="215" font-size="12" fill="#92400e" text-anchor="middle">diagram as a graph</text>
+    <line x1="124" y1="175" x2="156" y2="175" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+
+    <!-- Rendering frame -->
+    <rect x="160" y="20" width="550" height="370" rx="14" fill="#f8fafc" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 5"/>
+    <text x="176" y="46" font-size="14" font-weight="600" fill="#2563eb">DemaConsulting.Rendering</text>
+
+    <!-- Model -->
+    <rect x="176" y="62" width="150" height="230" rx="12" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+    <text x="251" y="88" font-size="16" font-weight="600" fill="#166534" text-anchor="middle">Core model</text>
+    <rect x="190" y="104" width="122" height="34" rx="6" fill="#ffffff" stroke="#16a34a"/>
+    <text x="251" y="126" font-size="13" font-family="Consolas, monospace" fill="#14532d" text-anchor="middle">LayoutGraph</text>
+    <rect x="190" y="146" width="122" height="34" rx="6" fill="#ffffff" stroke="#16a34a"/>
+    <text x="251" y="168" font-size="13" font-family="Consolas, monospace" fill="#14532d" text-anchor="middle">Properties</text>
+    <rect x="190" y="188" width="122" height="34" rx="6" fill="#ffffff" stroke="#16a34a"/>
+    <text x="251" y="210" font-size="13" font-family="Consolas, monospace" fill="#14532d" text-anchor="middle">LayoutTree</text>
+    <text x="251" y="250" font-size="12" fill="#166534" text-anchor="middle">Input graph, open</text>
+    <text x="251" y="266" font-size="12" fill="#166534" text-anchor="middle">option system, and</text>
+    <text x="251" y="282" font-size="12" fill="#166534" text-anchor="middle">positioned result</text>
+
+    <!-- Layout -->
+    <rect x="356" y="62" width="150" height="230" rx="12" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+    <text x="431" y="88" font-size="16" font-family="Consolas, monospace" font-weight="600" fill="#1e3a8a" text-anchor="middle">.Layout</text>
+    <rect x="370" y="104" width="122" height="30" rx="6" fill="#ffffff" stroke="#2563eb"/>
+    <text x="431" y="124" font-size="13" font-family="Consolas, monospace" fill="#1e3a8a" text-anchor="middle">layered</text>
+    <rect x="370" y="142" width="122" height="30" rx="6" fill="#ffffff" stroke="#2563eb"/>
+    <text x="431" y="162" font-size="13" font-family="Consolas, monospace" fill="#1e3a8a" text-anchor="middle">containment</text>
+    <rect x="370" y="180" width="122" height="30" rx="6" fill="#ffffff" stroke="#2563eb"/>
+    <text x="431" y="200" font-size="13" font-family="Consolas, monospace" fill="#1e3a8a" text-anchor="middle">hierarchical</text>
+    <rect x="370" y="218" width="122" height="30" rx="6" fill="#ffffff" stroke="#2563eb"/>
+    <text x="431" y="238" font-size="13" font-family="Consolas, monospace" fill="#1e3a8a" text-anchor="middle">auto</text>
+    <text x="431" y="264" font-size="12" fill="#1e40af" text-anchor="middle">Pluggable layout</text>
+    <text x="431" y="279" font-size="12" fill="#1e40af" text-anchor="middle">algorithms</text>
+
+    <!-- Renderers -->
+    <rect x="536" y="62" width="160" height="230" rx="12" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+    <text x="616" y="88" font-size="16" font-weight="600" fill="#4c1d95" text-anchor="middle">Renderers</text>
+    <rect x="550" y="104" width="132" height="56" rx="6" fill="#ffffff" stroke="#7c3aed"/>
+    <text x="616" y="127" font-size="13" font-family="Consolas, monospace" fill="#4c1d95" text-anchor="middle">.Svg</text>
+    <text x="616" y="146" font-size="12" fill="#5b21b6" text-anchor="middle">no dependencies</text>
+    <rect x="550" y="170" width="132" height="56" rx="6" fill="#ffffff" stroke="#7c3aed"/>
+    <text x="616" y="193" font-size="13" font-family="Consolas, monospace" fill="#4c1d95" text-anchor="middle">.CanvasNet</text>
+    <text x="616" y="212" font-size="12" fill="#5b21b6" text-anchor="middle">PNG and JPEG</text>
+    <text x="616" y="258" font-size="12" fill="#5b21b6" text-anchor="middle">Pluggable renderers</text>
+    <text x="616" y="274" font-size="12" fill="#5b21b6" text-anchor="middle">with light, dark, print</text>
+
+    <line x1="330" y1="177" x2="352" y2="177" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="510" y1="177" x2="532" y2="177" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+
+    <!-- Abstractions -->
+    <rect x="176" y="312" width="520" height="64" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+    <text x="436" y="338" font-size="14" font-family="Consolas, monospace" font-weight="600" fill="#9a3412" text-anchor="middle">.Abstractions</text>
+    <text x="436" y="360" font-size="12" fill="#9a3412" text-anchor="middle">ILayoutAlgorithm, IRenderer, registries, Theme: the contracts your own plug-ins implement</text>
+    <line x1="431" y1="296" x2="431" y2="308" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="616" y1="296" x2="616" y2="308" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+
+    <!-- Outputs -->
+    <text x="785" y="82" font-size="13" font-weight="600" fill="#475569" text-anchor="middle">Rendered output</text>
+    <rect x="750" y="120" width="70" height="46" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+    <text x="785" y="148" font-size="15" font-weight="600" fill="#334155" text-anchor="middle">SVG</text>
+    <rect x="750" y="176" width="70" height="46" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+    <text x="785" y="204" font-size="15" font-weight="600" fill="#334155" text-anchor="middle">PNG</text>
+    <rect x="750" y="232" width="70" height="46" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+    <text x="785" y="260" font-size="15" font-weight="600" fill="#334155" text-anchor="middle">JPEG</text>
+    <line x1="702" y1="143" x2="746" y2="143" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="702" y1="199" x2="746" y2="199" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="702" y1="255" x2="746" y2="255" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+  </g>
+</svg>
