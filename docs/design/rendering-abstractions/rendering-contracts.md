@@ -27,7 +27,7 @@ ignore the remainder. Postcondition: the returned `LayoutTree` describes the pla
 independent of the input `graph` reference.
 
 `void IRenderer.Render(LayoutTree layout, RenderOptions options, Stream output)` — writes the
-rendered artefact for `layout` to `output` using the theme, scale, DPI, and depth limit supplied by
+rendered artifact for `layout` to `output` using the theme, scale, DPI, and depth limit supplied by
 `options`. Preconditions: `layout`, `options`, and `output` are non-null and `output` is writable.
 Postcondition: all rendered bytes have been written to `output`; the renderer performs no
 filesystem access itself.
@@ -42,7 +42,7 @@ The contracts do not define custom exception types. Implementers are expected to
 parameters (`ArgumentNullException`) and to write only to the caller-supplied `Stream`; the
 registries unit adds `KeyNotFoundException` when an id, media type, or file extension is not
 registered. `RenderOptions` and `RenderOutput` are `sealed record` types whose properties are
-initialised by their primary constructors and require no additional validation. No logging is
+initialized by their primary constructors and require no additional validation. No logging is
 performed at the contract level; renderers surface non-fatal issues by populating
 `RenderOutput.Warnings` rather than by throwing.
 

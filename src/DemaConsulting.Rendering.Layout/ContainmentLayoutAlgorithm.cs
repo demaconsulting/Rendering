@@ -103,7 +103,7 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
     /// Largest-to-smallest box-size ratio (width, and separately height) at or below which the
     /// column-count-based width candidate (see <see cref="ComputeContentWidth"/>) applies at full
     /// weight. The motivating scenario for that candidate is many boxes that are each individually
-    /// wide-but-short and roughly uniform in size (for example a row of small labelled tiles); at or
+    /// wide-but-short and roughly uniform in size (for example a row of small labeled tiles); at or
     /// below this ratio, box sizes are considered uniform enough that the averaged width used by the
     /// estimate is representative of every box, so the candidate contributes its full computed width.
     /// Above this ratio the candidate's weight falls off smoothly toward zero, rather than being cut
@@ -345,7 +345,7 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
     /// above <see cref="ColumnEstimateZeroWeightSizeRatio"/>, and linearly interpolates between those two
     /// bounds for a ratio in between. A single hard cutoff at <see cref="ColumnEstimateFullWeightSizeRatio"/>
     /// (the candidate's original behavior) disabled the estimate entirely for box sets only marginally
-    /// over the threshold — for example ordinary, differently-labelled peer boxes whose width variance
+    /// over the threshold — for example ordinary, differently-labeled peer boxes whose width variance
     /// alone often exceeds a 2x ratio — collapsing what should be a balanced multi-column grid into a
     /// single degenerate column. Because the candidate can only ever widen the final budget (it is
     /// combined via <c>Math.Max</c> in <see cref="ComputeContentWidth"/>), over-applying it costs at most

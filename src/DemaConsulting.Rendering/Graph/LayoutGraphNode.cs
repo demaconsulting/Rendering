@@ -12,7 +12,7 @@ namespace DemaConsulting.Rendering;
 /// </summary>
 /// <remarks>
 ///     <para>
-///     Modelled after the Eclipse Layout Kernel (ELK) <c>ElkNode</c>: a node is either a
+///     Modeled after the Eclipse Layout Kernel (ELK) <c>ElkNode</c>: a node is either a
 ///     <em>leaf</em> (no children) or a <em>container</em> (compound node) that owns a child
 ///     subgraph of nested nodes and the edges contained at that level. The nesting is recursive, so
 ///     a container's children may themselves be containers, and the root <see cref="LayoutGraph"/>
@@ -135,7 +135,7 @@ public sealed class LayoutGraphNode : PropertyHolder, ILayoutConnectable
 
     /// <summary>
     /// Gets or sets the height, in logical pixels, of the title band a hierarchical layout engine
-    /// reserves above this node's children when it acts as a labelled container. <see langword="null"/>
+    /// reserves above this node's children when it acts as a labeled container. <see langword="null"/>
     /// (the default) selects the engine's own generic default band height; set this explicitly — for
     /// example to a theme's computed title-area height — when the container also carries a
     /// <see cref="Keyword"/> or a larger title font than the generic default assumes, so the reserved
@@ -207,7 +207,7 @@ public sealed class LayoutGraphNode : PropertyHolder, ILayoutConnectable
 
     /// <summary>
     /// Gets the collection of named ports (see <see cref="LayoutGraphPort"/>) owned by this node,
-    /// letting an edge attach to a specific, labelled location on the node's boundary instead of the
+    /// letting an edge attach to a specific, labeled location on the node's boundary instead of the
     /// node as a whole.
     /// </summary>
     /// <remarks>

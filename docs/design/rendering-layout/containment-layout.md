@@ -24,7 +24,7 @@ The unit comprises the public static class plus two records:
   `EdgeCounts` is an optional `IReadOnlyDictionary<(int First, int Second), int>` keyed by the unordered
   index pair (`First < Second`) that carries the number of parallel connectors routed between two
   adjacent same-row children; it defaults to `null`, in which case packing is byte-identical to the
-  prior behaviour.
+  prior behavior.
 - `ContainmentResult(Width, Height, Children)` — an immutable record carrying the enclosing region size
   (including outer padding) and the input boxes repositioned to their packed, region-relative
   coordinates, in input order.
@@ -56,7 +56,7 @@ to `ContainmentPacker`, which widens the horizontal gap between two adjacent chi
 shared `EdgeCountGapWidener` formula (`max(baseGap, 2·ConnectorClearance + (n − 1)·EdgeSpacing)`). This
 reserves a distinct routing lane for each of a fan of parallel connectors instead of crushing them into
 one narrow channel, exactly the reservation the layered pipeline already makes between its columns. The
-widening is deliberately scoped so existing behaviour is preserved on three axes: the row-wrap decision
+widening is deliberately scoped so existing behavior is preserved on three axes: the row-wrap decision
 is computed against the *un-widened* gap so no wrap point ever moves; a pair the wrap decision splits
 across two rows is never widened (it is no longer an adjacent same-row pair); and the *vertical* gap
 between rows is never touched, so a vertical stack keeps its exact prior geometry. A `null` `EdgeCounts`

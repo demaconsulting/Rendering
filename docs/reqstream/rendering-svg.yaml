@@ -5,7 +5,7 @@
 # - Define the SYSTEM-level requirement for the DemaConsulting.Rendering.Svg system.
 # - The system requirement is generic: it describes WHAT the SVG system delivers. It decomposes
 #   downward (children) into the SvgRenderer unit requirements that provide the detailed rendering
-#   behaviour. Those unit requirements live in the sibling file svg-renderer.yaml.
+#   behavior. Those unit requirements live in the sibling file svg-renderer.yaml.
 
 sections:
   - title: Rendering.Svg Requirements

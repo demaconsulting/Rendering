@@ -36,7 +36,7 @@ public readonly record struct LabelPlacement(double X, double Y, double HalfWidt
 /// Computes non-overlapping screen positions for connector (midpoint) labels.
 /// </summary>
 /// <remarks>
-/// Each labelled line prefers the midpoint of its longest segment (an open run between boxes), but
+/// Each labeled line prefers the midpoint of its longest segment (an open run between boxes), but
 /// when two labels would land on top of each other — for example where two connectors cross — the
 /// placer falls back to a shorter segment or nudges the label perpendicular to its segment until it
 /// no longer collides with an already-placed label. Lines are processed in the supplied order so the
@@ -60,7 +60,7 @@ public static class ConnectorLabelPlacer
     /// <param name="lines">The lines to place labels for, in render order.</param>
     /// <param name="fontSize">Body font size, in logical pixels, used to estimate label box sizes.</param>
     /// <returns>
-    /// A dictionary mapping each labelled line to its chosen <see cref="LabelPlacement"/> (label
+    /// A dictionary mapping each labeled line to its chosen <see cref="LabelPlacement"/> (label
     /// centre plus half-width/half-height, in logical pixels). Lines without a label are omitted.
     /// </returns>
     public static IReadOnlyDictionary<LayoutLine, LabelPlacement> Place(

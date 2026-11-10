@@ -14,7 +14,7 @@ sections:
         title: >-
           The connector-label placer shall omit lines that carry no midpoint label from its result.
         justification: |
-          Only labelled connectors need a placed position; omitting unlabelled lines keeps the result
+          Only labeled connectors need a placed position; omitting unlabelled lines keeps the result
           limited to the labels a renderer must actually draw.
         tests:
           - Place_LineWithoutLabel_IsOmitted

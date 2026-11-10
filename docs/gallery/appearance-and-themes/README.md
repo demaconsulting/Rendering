@@ -7,13 +7,13 @@ organized pragmatically by appearance rather than by topology, unlike the rest o
 
 ## Box appearance
 
-A node's Shape, Keyword, and Compartments properties select the box outline, an italicized keyword line, and labelled
+A node's Shape, Keyword, and Compartments properties select the box outline, an italicized keyword line, and labeled
 feature sections, all through the plain input graph model — no downstream renderer-specific code required. This is
 generic block-diagram notation; SysML is just one modeling language that uses it.
 
 ![A folder container with two boxes carrying a keyword, one also compartmented, joined by an edge](box-appearance.svg)
 
-A folder container holding two boxes with a keyword line — one also with a labelled compartment — joined by a decorated
+A folder container holding two boxes with a keyword line — one also with a labeled compartment — joined by a decorated
 edge.
 
 ## Shape-aware connectors
@@ -35,7 +35,7 @@ enough space so its content never overlaps the tab or the folded corner.
 
 ## Themes
 
-One representative diagram rendered with each of the three built-in themes, showing how the theme controls colours,
+One representative diagram rendered with each of the three built-in themes, showing how the theme controls colors,
 stroke, and corner style without touching the layout. These are rendered through the raster path to PNG so each carries
 a solid theme background.
 
@@ -49,4 +49,4 @@ The dark theme, suited to dark-mode viewing.
 
 ![Representative diagram in the print theme](theme-print.png)
 
-The print theme, optimised for black-and-white output.
+The print theme, optimized for black-and-white output.

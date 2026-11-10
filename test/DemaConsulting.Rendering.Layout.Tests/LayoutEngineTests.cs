@@ -161,7 +161,7 @@ public sealed class LayoutEngineTests
             () => LayoutEngine.Layout(new LayoutGraph(), null!));
     }
 
-    /// <summary>Builds a small deterministic flat graph of three labelled leaves and two edges.</summary>
+    /// <summary>Builds a small deterministic flat graph of three labeled leaves and two edges.</summary>
     private static LayoutGraph BuildFlatGraph()
     {
         var graph = new LayoutGraph();

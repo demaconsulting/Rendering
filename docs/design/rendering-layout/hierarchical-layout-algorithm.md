@@ -54,7 +54,7 @@ overrides win over the supplied options, exactly like every nested scope), and c
    property lives here by convention) onto the parent scope's already-resolved `effective` snapshot, via
    `PropertyHolder.OverlayOnto`. It then recursively lays out the child's subgraph with that snapshot and
    records both the sub-layout and the container's effective size — the sub-layout size grown by
-   `ContainerPadding` on every side plus a title band when the container is labelled.
+   `ContainerPadding` on every side plus a title band when the container is labeled.
 3. **Sized view.** The engine builds an internal, side-effect-free *view* graph with the same nodes in
    the same order (container nodes carrying their effective size, leaves their own size, labels copied,
    and each direct member's named ports copied onto its view counterpart), only the edges whose direct-

@@ -1,0 +1,83 @@
+---
+# Spell-Checking with TextLint
+#
+# PURPOSE:
+# - Maintain professional documentation and code quality
+# - Catch spelling errors before publication
+# - Support consistent technical terminology usage
+# - Misspelled words should be fixed in the source
+# - NEVER add a misspelled word to the 'words' list
+# - PROPOSE only genuine technical terms/names as needed
+
+version: "0.2"
+language: en
+
+# The files to spell-check
+files:
+  - "**/*.{md,yaml,yml,json,cs,cpp,hpp,h,txt}"
+enableGlobDot: true
+
+# Project-specific technical terms and tool names
+words:
+  - AARRGGBB
+  - assumedfontsize
+  - Brandes
+  - browsable
+  - centre
+  - Centre
+  - Collinearity
+  - collinearity
+  - collinearly
+  - DEMA
+  - demaconsulting
+  - DEMACONSULTINGNUGETKEY
+  - edgerouting
+  - façade
+  - Hanan
+  - hdir
+  - hierarchyhandling
+  - Köpf
+  - longedge
+  - mergeparalleledges
+  - ncipollo
+  - nestings
+  - netstandard
+  - pathfinding
+  - posis
+  - Precomputes
+  - sarif
+  - Sarif
+  - SARIF
+  - Seidel
+  - selfloop
+  - Setext
+  - settability
+  - snupkg
+  - sonarscanner
+  - thirdparty
+  - transversally
+  - Transversally
+  - unidirectionality
+  - unlabelled
+  - Unlabelled
+  - unwidened
+  - Unwidened
+  - vdir
+  - venv
+  - yamlfix
+
+# Exclude common build artifacts, dependencies, and vendored third-party code
+ignorePaths:
+  - "**/.git/**"
+  - "**/node_modules/**"
+  - "**/.venv/**"
+  - "**/thirdparty/**"
+  - "**/third-party/**"
+  - "**/3rd-party/**"
+  - "**/generated/**"
+  - "src/*/api/**"
+  - "**/AGENT_REPORT_*.md"
+  - "**/.agent-logs/**"
+  - "**/bin/**"
+  - "**/obj/**"
+  - package-lock.json

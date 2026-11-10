@@ -81,7 +81,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
     [Fact]
     public void Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely()
     {
-        // Arrange: a labelled container holding three leaves and an intra edge, plus a sibling leaf
+        // Arrange: a labeled container holding three leaves and an intra edge, plus a sibling leaf
         var graph = new LayoutGraph();
         var group = graph.AddNode("group", 10, 10);
         group.Label = "Group";
@@ -195,7 +195,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
     [Fact]
     public void Apply_FolderContainer_ReservesTabHeightAboveChildren()
     {
-        // Arrange: two otherwise-identical labelled single-child containers, one shaped as a folder
+        // Arrange: two otherwise-identical labeled single-child containers, one shaped as a folder
         // with an explicit tab height.
         var rectangleGraph = new LayoutGraph();
         var rectangleGroup = rectangleGraph.AddNode("group", 10, 10);
@@ -288,7 +288,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
     [Fact]
     public void Apply_ContainerWithDirectionOverride_HonorsNestedDirection()
     {
-        // Arrange: a labelled container whose children graph overrides Direction to Down, while the
+        // Arrange: a labeled container whose children graph overrides Direction to Down, while the
         // top-level options select the (default) Right direction.
         var graph = new LayoutGraph();
         var group = graph.AddNode("group", 10, 10);
@@ -557,11 +557,11 @@ public sealed class HierarchicalLayoutAlgorithmTests
         // it, and "pkg" (a container whose child "typed" is the real edge endpoint, after promotion to
         // the cross-container batch) is packed in a further row, also directly below "target" and also
         // wide enough to span its full width. Both "a" and "pkg" fully contain target's horizontal
-        // extent, so ConnectorRouter's face-anchor calculation (which centres on the *overlap* of the
+        // extent, so ConnectorRouter's face-anchor calculation (which centers on the *overlap* of the
         // two boxes, or the target's own centre when they don't overlap at all) resolves to target's
         // own bottom-face centre for BOTH edges independently. Before the fix, "a-target" was routed
         // alone in the leaf algorithm's own batch and "typed-target" was routed alone in this scope's
-        // separate cross-container batch, so each computed that identical centred point with no
+        // separate cross-container batch, so each computed that identical centered point with no
         // awareness of the other, landing both anchors on the exact same pixel. This mirrors the real
         // DictionaryMark diagram where a package-external specialization edge collided with a sibling
         // membership edge on the same shared target face.
@@ -1146,7 +1146,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
     [Fact]
     public void Apply_CompoundGraph_DoesNotMutateInputNodeSizes()
     {
-        // Arrange: a labelled container (small placeholder size) holding two differently sized leaves
+        // Arrange: a labeled container (small placeholder size) holding two differently sized leaves
         var graph = new LayoutGraph();
         var group = graph.AddNode("group", 10, 10);
         group.Label = "Group";
@@ -1568,7 +1568,7 @@ public sealed class HierarchicalLayoutAlgorithmTests
         var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
 
         // Assert: exactly one shared anchor carrying both labels, sitting on container B's boundary —
-        // the combined-pass behaviour, unperturbed by the no-boundary-port widening pass.
+        // the combined-pass behavior, unperturbed by the no-boundary-port widening pass.
         var emitted = Assert.Single(tree.Nodes.OfType<LayoutPort>());
         Assert.Equal("PWR_OUT", emitted.ExternalLabel);
         Assert.Equal("PWR_IN", emitted.InternalLabel);

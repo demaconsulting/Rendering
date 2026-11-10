@@ -105,7 +105,7 @@ sections:
 
       - id: Rendering-Layout-ContainmentLayout-EdgeCountGapWideningOptedOut
         title: >-
-          ContainmentLayout shall leave placement byte-identical to the prior behaviour when no
+          ContainmentLayout shall leave placement byte-identical to the prior behavior when no
           EdgeCounts lookup is supplied (or a null lookup is supplied).
         justification: |
           The EdgeCounts lookup is an optional, additive parameter; existing callers that predate it, or

@@ -26,7 +26,7 @@ public sealed class ContainmentLayoutTests
     [Fact]
     public void Pack_ItemsFitInRow_PreservesOrderLeftToRight()
     {
-        // Arrange: three labelled boxes that together fit within a 300px content width
+        // Arrange: three labeled boxes that together fit within a 300px content width
         var children = new[] { Box(60, 40, "first"), Box(60, 40, "second"), Box(60, 40, "third") };
 
         // Act: pack them into a single row
@@ -255,7 +255,7 @@ public sealed class ContainmentLayoutTests
 
     /// <summary>
     ///     Omitting <see cref="ContainmentOptions.EdgeCounts"/> leaves placement at the default
-    ///     horizontal gap, byte-identical to the pre-existing no-counts behaviour.
+    ///     horizontal gap, byte-identical to the pre-existing no-counts behavior.
     /// </summary>
     [Fact]
     public void Pack_WithoutEdgeCounts_UsesDefaultGap()

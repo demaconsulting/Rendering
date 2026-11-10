@@ -141,9 +141,9 @@ internal sealed class PortDistributor : ILayoutStage
     /// face's own edges that is proportional to the slice width, rather than a fixed absolute
     /// clearance — e.g. for two ports this naturally produces the 0.25 / 0.5 / 0.25 margin/gap/margin
     /// pattern (each port a quarter of the way in from its nearest edge, half the face apart from each
-    /// other), so a label centred on either port has room on both sides before the box's own edge.
+    /// other), so a label centered on either port has room on both sides before the box's own edge.
     /// The single-port case (<c>count == 1</c>) is simply the one-slice special case of the same
-    /// formula (centred on the whole face) and needs no separate branch. Because every computed
+    /// formula (centered on the whole face) and needs no separate branch. Because every computed
     /// position is strictly between <paramref name="nodeTop"/> and
     /// <c>nodeTop + nodeHeight</c> by construction, no clamp is needed even for a face far shorter
     /// than any fixed clearance would tolerate (the small-face regression this stage must not throw

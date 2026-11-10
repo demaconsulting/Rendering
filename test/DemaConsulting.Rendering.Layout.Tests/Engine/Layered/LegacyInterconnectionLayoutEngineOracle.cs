@@ -69,7 +69,7 @@ internal static class LegacyInterconnectionLayoutEngineOracle
         /// <summary>Assigned routing slot (column offset within corridor). Set by topological numbering.</summary>
         public int RoutingSlot;
 
-        /// <summary>Remaining in-degree during topological BFS; initialised from Incoming.Count.</summary>
+        /// <summary>Remaining in-degree during topological BFS; initialized from Incoming.Count.</summary>
         public int InWeight;
 
 

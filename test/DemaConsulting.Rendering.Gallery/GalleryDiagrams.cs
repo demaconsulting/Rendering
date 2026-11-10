@@ -18,16 +18,16 @@ internal static class GalleryDiagrams
     ///     A directed processing pipeline with a side branch, suited to the layered algorithm which
     ///     places it in left-to-right layers and routes the edges between them.
     /// </summary>
-    /// <returns>A flat graph of labelled boxes joined by arrowed edges.</returns>
+    /// <returns>A flat graph of labeled boxes joined by arrowed edges.</returns>
     public static LayoutGraph LayeredPipeline()
     {
         var graph = new LayoutGraph();
-        var ingest = AddLabelled(graph, "ingest", "Ingest");
-        var validate = AddLabelled(graph, "validate", "Validate");
-        var transform = AddLabelled(graph, "transform", "Transform");
-        var render = AddLabelled(graph, "render", "Render");
-        var publish = AddLabelled(graph, "publish", "Publish");
-        var report = AddLabelled(graph, "report", "Report");
+        var ingest = AddLabeled(graph, "ingest", "Ingest");
+        var validate = AddLabeled(graph, "validate", "Validate");
+        var transform = AddLabeled(graph, "transform", "Transform");
+        var render = AddLabeled(graph, "render", "Render");
+        var publish = AddLabeled(graph, "publish", "Publish");
+        var report = AddLabeled(graph, "report", "Report");
 
         Connect(graph, "ingest-validate", ingest, validate);
         Connect(graph, "validate-transform", validate, transform);
@@ -64,20 +64,20 @@ internal static class GalleryDiagrams
         // straighten that edge), and one genuinely isolated node with zero edges inserted between them
         // by insertion order — the pre-fix fallback sort key for a neighbor-less node — so it can land
         // sandwiched between an ordinary node and the pulled-down node.
-        var entry = AddLabelled(graph, "entry", "Entry");
-        AddLabelled(graph, "isolated", "Isolated");
-        var farSource = AddLabelled(graph, "farSource", "FarSource");
+        var entry = AddLabeled(graph, "entry", "Entry");
+        AddLabeled(graph, "isolated", "Isolated");
+        var farSource = AddLabeled(graph, "farSource", "FarSource");
 
         // Layer 1 (the "hub column"): a tall stack of ordinary nodes fed by entry, so the coordinate
         // assignment pass spreads them across a wide vertical range.
-        var hubA = AddLabelled(graph, "hubA", "HubA");
-        var hubB = AddLabelled(graph, "hubB", "HubB");
-        var hubC = AddLabelled(graph, "hubC", "HubC");
-        var hubD = AddLabelled(graph, "hubD", "HubD");
-        var hubE = AddLabelled(graph, "hubE", "HubE");
+        var hubA = AddLabeled(graph, "hubA", "HubA");
+        var hubB = AddLabeled(graph, "hubB", "HubB");
+        var hubC = AddLabeled(graph, "hubC", "HubC");
+        var hubD = AddLabeled(graph, "hubD", "HubD");
+        var hubE = AddLabeled(graph, "hubE", "HubE");
 
         // Layer 2: the ordinary hub target.
-        var sink = AddLabelled(graph, "sink", "Sink");
+        var sink = AddLabeled(graph, "sink", "Sink");
 
         Connect(graph, "entry-hubA", entry, hubA);
         Connect(graph, "entry-hubB", entry, hubB);
@@ -104,12 +104,12 @@ internal static class GalleryDiagrams
     ///     make the row packing visible, distinguishing it from the layered algorithm's connectivity-driven
     ///     layers.
     /// </summary>
-    /// <returns>A flat graph of labelled boxes of varied widths for packing.</returns>
+    /// <returns>A flat graph of labeled boxes of varied widths for packing.</returns>
     public static LayoutGraph ContainmentPacked()
     {
         var graph = new LayoutGraph();
 
-        // Labelled peers of varied widths; with no edges, the containment algorithm packs them by
+        // Labeled peers of varied widths; with no edges, the containment algorithm packs them by
         // reading order into rows that wrap into a tidy rectangle.
         (string Label, double Width)[] boxes =
         [
@@ -241,13 +241,13 @@ internal static class GalleryDiagrams
 
         var service = graph.AddNode("service", 10, 10);
         service.Label = "Service";
-        var api = AddLabelled(service.Children, "api", "API");
-        var worker = AddLabelled(service.Children, "worker", "Worker");
-        var store = AddLabelled(service.Children, "store", "Store");
+        var api = AddLabeled(service.Children, "api", "API");
+        var worker = AddLabeled(service.Children, "worker", "Worker");
+        var store = AddLabeled(service.Children, "store", "Store");
         Connect(service.Children, "api-worker", api, worker);
         Connect(service.Children, "worker-store", worker, store);
 
-        var client = AddLabelled(graph, "client", "Client");
+        var client = AddLabeled(graph, "client", "Client");
 
         // A cross-container edge added at the lowest common ancestor (the root) referencing a
         // descendant node inside the container.
@@ -267,15 +267,15 @@ internal static class GalleryDiagrams
 
         var left = graph.AddNode("left", 10, 10);
         left.Label = "Left";
-        var source = AddLabelled(left.Children, "source", "Source");
+        var source = AddLabeled(left.Children, "source", "Source");
 
         var middle = graph.AddNode("middle", 10, 10);
         middle.Label = "Obstacle";
-        AddLabelled(middle.Children, "blocker", "Blocker");
+        AddLabeled(middle.Children, "blocker", "Blocker");
 
         var right = graph.AddNode("right", 10, 10);
         right.Label = "Right";
-        var sink = AddLabelled(right.Children, "sink", "Sink");
+        var sink = AddLabeled(right.Children, "sink", "Sink");
 
         Connect(graph, "source-sink", source, sink);
 
@@ -284,7 +284,7 @@ internal static class GalleryDiagrams
 
     /// <summary>
     ///     A compact nested diagram used to compare the built-in themes: a container with two children
-    ///     and an edge exercises depth-based fills, stroke colour, and corner rounding.
+    ///     and an edge exercises depth-based fills, stroke color, and corner rounding.
     /// </summary>
     /// <returns>A two-level compound graph for theme comparison.</returns>
     public static LayoutGraph ThemeShowcase()
@@ -293,11 +293,11 @@ internal static class GalleryDiagrams
 
         var module = graph.AddNode("module", 10, 10);
         module.Label = "Module";
-        var input = AddLabelled(module.Children, "input", "Input");
-        var output = AddLabelled(module.Children, "output", "Output");
+        var input = AddLabeled(module.Children, "input", "Input");
+        var output = AddLabeled(module.Children, "output", "Output");
         Connect(module.Children, "input-output", input, output);
 
-        var sink = AddLabelled(graph, "consumer", "Consumer");
+        var sink = AddLabeled(graph, "consumer", "Consumer");
         Connect(graph, "output-consumer", output, sink);
 
         return graph;
@@ -312,11 +312,11 @@ internal static class GalleryDiagrams
     public static LayoutGraph DirectionShowcase()
     {
         var graph = new LayoutGraph();
-        var start = AddLabelled(graph, "start", "Start");
-        var collect = AddLabelled(graph, "collect", "Collect");
-        var analyze = AddLabelled(graph, "analyze", "Analyze");
-        var report = AddLabelled(graph, "report", "Report");
-        var archive = AddLabelled(graph, "archive", "Archive");
+        var start = AddLabeled(graph, "start", "Start");
+        var collect = AddLabeled(graph, "collect", "Collect");
+        var analyze = AddLabeled(graph, "analyze", "Analyze");
+        var report = AddLabeled(graph, "report", "Report");
+        var archive = AddLabeled(graph, "archive", "Archive");
 
         Connect(graph, "start-collect", start, collect);
         Connect(graph, "collect-analyze", collect, analyze);
@@ -340,18 +340,18 @@ internal static class GalleryDiagrams
     {
         var graph = new LayoutGraph();
 
-        var intake = AddLabelled(graph, "intake", "Intake");
+        var intake = AddLabeled(graph, "intake", "Intake");
 
         var pipeline = graph.AddNode("pipeline", 10, 10);
         pipeline.Label = "Pipeline";
         pipeline.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
-        var validate = AddLabelled(pipeline.Children, "validate", "Validate");
-        var transform = AddLabelled(pipeline.Children, "transform", "Transform");
-        var publish = AddLabelled(pipeline.Children, "publish", "Publish");
+        var validate = AddLabeled(pipeline.Children, "validate", "Validate");
+        var transform = AddLabeled(pipeline.Children, "transform", "Transform");
+        var publish = AddLabeled(pipeline.Children, "publish", "Publish");
         Connect(pipeline.Children, "validate-transform", validate, transform);
         Connect(pipeline.Children, "transform-publish", transform, publish);
 
-        var archive = AddLabelled(graph, "archive", "Archive");
+        var archive = AddLabeled(graph, "archive", "Archive");
 
         // Direct root-level edges (both endpoints are direct members of the root scope, not nested
         // descendants) so the outer scope has real connectivity and is genuinely laid out left-to-right,
@@ -435,11 +435,11 @@ internal static class GalleryDiagrams
         pkg.Shape = BoxShape.Folder;
         pkg.Keyword = "package";
 
-        var globMatcher = AddLabelled(pkg.Children, "glob-matcher", "GlobMatcher");
-        var pathHelpers = AddLabelled(pkg.Children, "path-helpers", "PathHelpers");
+        var globMatcher = AddLabeled(pkg.Children, "glob-matcher", "GlobMatcher");
+        var pathHelpers = AddLabeled(pkg.Children, "path-helpers", "PathHelpers");
         Connect(pkg.Children, "glob-matcher-path-helpers", globMatcher, pathHelpers);
 
-        var client = AddLabelled(graph, "client", "Client");
+        var client = AddLabeled(graph, "client", "Client");
 
         // Connect directly to the folder node itself (a direct root member, not a descendant), so this
         // edge belongs to the root's own leaf view and its ranking honors the Direction override above,
@@ -453,7 +453,7 @@ internal static class GalleryDiagrams
     /// <summary>
     ///     One sibling of each <see cref="BoxShape"/> value, side by side, each carrying content
     ///     appropriate to that shape: a plain rectangle and a rounded rectangle each with a keyword line
-    ///     and a labelled compartment, a folder holding a nested child box, and a note holding an
+    ///     and a labeled compartment, a folder holding a nested child box, and a note holding an
     ///     untitled compartment of free-form text. Demonstrates that every shape reserves enough space
     ///     for its own content (title area, compartments, or nested children) without the content
     ///     overlapping the shape's non-rectangular features (the folder's tab, the note's folded
@@ -468,14 +468,14 @@ internal static class GalleryDiagrams
         var titledKeywordHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: true);
         var titledOnlyHeight = BoxMetrics.TitleAreaHeight(theme, hasLabel: true, hasKeyword: false);
 
-        // A plain rectangle with a keyword line and a labelled compartment.
+        // A plain rectangle with a keyword line and a labeled compartment.
         var attributesCompartment = new LayoutCompartment("attributes", ["value : Real", "unit : String"]);
         var sensor = graph.AddNode("sensor", 160, titledKeywordHeight + TitledCompartmentHeight(theme, attributesCompartment));
         sensor.Label = "Sensor";
         sensor.Keyword = "part def";
         sensor.Compartments = [attributesCompartment];
 
-        // A rounded rectangle with a keyword line and a labelled compartment.
+        // A rounded rectangle with a keyword line and a labeled compartment.
         var portsCompartment = new LayoutCompartment("ports", ["cmd : Signal"]);
         var controller = graph.AddNode("controller", 160, titledKeywordHeight + TitledCompartmentHeight(theme, portsCompartment));
         controller.Label = "Controller";
@@ -489,7 +489,7 @@ internal static class GalleryDiagrams
         utilities.Label = "Utilities";
         utilities.Keyword = "package";
         utilities.Shape = BoxShape.Folder;
-        AddLabelled(utilities.Children, "path-helpers", "PathHelpers");
+        AddLabeled(utilities.Children, "path-helpers", "PathHelpers");
 
         // A note holding an untitled compartment of free-form text, exercising the folded-corner
         // routing fix: the compartment divider and text sit clear of the diagonal fold.
@@ -513,8 +513,8 @@ internal static class GalleryDiagrams
         var graph = new LayoutGraph();
         graph.Set(CoreOptions.MergeParallelEdges, false);
 
-        var producer = AddLabelled(graph, "producer", "Producer");
-        var consumer = AddLabelled(graph, "consumer", "Consumer");
+        var producer = AddLabeled(graph, "producer", "Producer");
+        var consumer = AddLabeled(graph, "consumer", "Consumer");
 
         Connect(graph, "primary", producer, consumer, "primary");
         Connect(graph, "retry", producer, consumer, "retry");
@@ -533,8 +533,8 @@ internal static class GalleryDiagrams
     {
         var graph = new LayoutGraph();
 
-        var producer = AddLabelled(graph, "producer", "Producer");
-        var consumer = AddLabelled(graph, "consumer", "Consumer");
+        var producer = AddLabeled(graph, "producer", "Producer");
+        var consumer = AddLabeled(graph, "consumer", "Consumer");
 
         Connect(graph, "primary", producer, consumer, "primary");
         Connect(graph, "retry", producer, consumer, "retry");
@@ -559,8 +559,8 @@ internal static class GalleryDiagrams
         graph.Set(CoreOptions.MergeParallelEdges, false);
         graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
-        var producer = AddLabelled(graph, "producer", "Producer");
-        var consumer = AddLabelled(graph, "consumer", "Consumer");
+        var producer = AddLabeled(graph, "producer", "Producer");
+        var consumer = AddLabeled(graph, "consumer", "Consumer");
 
         Connect(graph, "primary", producer, consumer, "primary");
         Connect(graph, "retry", producer, consumer, "retry");
@@ -588,9 +588,9 @@ internal static class GalleryDiagrams
     {
         var graph = new LayoutGraph();
 
-        var upstream = AddLabelled(graph, "upstream", "Upstream");
-        var hub = AddLabelled(graph, "hub", "Hub");
-        var downstream = AddLabelled(graph, "downstream", "Downstream");
+        var upstream = AddLabeled(graph, "upstream", "Upstream");
+        var hub = AddLabeled(graph, "hub", "Hub");
+        var downstream = AddLabeled(graph, "downstream", "Downstream");
 
         // Left side (incoming): a deliberately long label to demonstrate the auto-computed inset.
         var inPort = hub.Ports.AddPort("in");
@@ -618,9 +618,9 @@ internal static class GalleryDiagrams
         var graph = new LayoutGraph();
         graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
-        var monitor = AddLabelled(graph, "monitor", "Monitor");
-        var hub = AddLabelled(graph, "hub", "Hub");
-        var control = AddLabelled(graph, "control", "Control");
+        var monitor = AddLabeled(graph, "monitor", "Monitor");
+        var hub = AddLabeled(graph, "hub", "Hub");
+        var control = AddLabeled(graph, "control", "Control");
 
         // Top side (incoming).
         var statusPort = hub.Ports.AddPort("status");
@@ -639,7 +639,7 @@ internal static class GalleryDiagrams
     ///     A five-node left-to-right chain exercising <em>two</em> named <see cref="LayoutGraphPort"/>s
     ///     on each of the middle node's left and right sides — the multi-connector companion to
     ///     <see cref="PortsShowcaseHorizontal"/>'s single-port-per-side case, demonstrating
-    ///     same-face crowding: two independently-labelled ports sharing one face, one of them
+    ///     same-face crowding: two independently-labeled ports sharing one face, one of them
     ///     deliberately long, so the box's <see cref="LayoutBox.ContentInsetLeft"/>/Right auto-grow
     ///     from the widest same-side label and PortDistributor's even spacing between the two anchors
     ///     never collapses onto a single row.
@@ -654,11 +654,11 @@ internal static class GalleryDiagrams
     {
         var graph = new LayoutGraph();
 
-        var sensorA = AddLabelled(graph, "sensor-a", "SensorA");
-        var sensorB = AddLabelled(graph, "sensor-b", "SensorB");
-        var hub = AddLabelled(graph, "hub", "Hub");
-        var actuatorA = AddLabelled(graph, "actuator-a", "ActuatorA");
-        var actuatorB = AddLabelled(graph, "actuator-b", "ActuatorB");
+        var sensorA = AddLabeled(graph, "sensor-a", "SensorA");
+        var sensorB = AddLabeled(graph, "sensor-b", "SensorB");
+        var hub = AddLabeled(graph, "hub", "Hub");
+        var actuatorA = AddLabeled(graph, "actuator-a", "ActuatorA");
+        var actuatorB = AddLabeled(graph, "actuator-b", "ActuatorB");
 
         // Left side (incoming): two stacked ports, one with a deliberately long label.
         var telemetryPort = hub.Ports.AddPort("telemetry");
@@ -694,11 +694,11 @@ internal static class GalleryDiagrams
         var graph = new LayoutGraph();
         graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
-        var monitorA = AddLabelled(graph, "monitor-a", "MonitorA");
-        var monitorB = AddLabelled(graph, "monitor-b", "MonitorB");
-        var hub = AddLabelled(graph, "hub", "Hub");
-        var controlA = AddLabelled(graph, "control-a", "ControlA");
-        var controlB = AddLabelled(graph, "control-b", "ControlB");
+        var monitorA = AddLabeled(graph, "monitor-a", "MonitorA");
+        var monitorB = AddLabeled(graph, "monitor-b", "MonitorB");
+        var hub = AddLabeled(graph, "hub", "Hub");
+        var controlA = AddLabeled(graph, "control-a", "ControlA");
+        var controlB = AddLabeled(graph, "control-b", "ControlB");
 
         // Top side (incoming): two side-by-side ports, one with a deliberately long label.
         var statusPort = hub.Ports.AddPort("status");
@@ -738,11 +738,11 @@ internal static class GalleryDiagrams
         var board = graph.AddNode("board", 140, 50);
         board.Label = "board : Motherboard";
 
-        var cpu = AddLabelled(graph, "cpu", "cpu : Cpu");
-        var memory = AddLabelled(graph, "memory", "memory : Ram");
-        var storage = AddLabelled(graph, "storage", "storage : Ssd");
-        var network = AddLabelled(graph, "network", "network : NetworkCard");
-        var graphics = AddLabelled(graph, "graphics", "graphics : Gpu");
+        var cpu = AddLabeled(graph, "cpu", "cpu : Cpu");
+        var memory = AddLabeled(graph, "memory", "memory : Ram");
+        var storage = AddLabeled(graph, "storage", "storage : Ssd");
+        var network = AddLabeled(graph, "network", "network : NetworkCard");
+        var graphics = AddLabeled(graph, "graphics", "graphics : Gpu");
 
         var cpuPort = board.Ports.AddPort("cpu-link");
         Connect(graph, "board-cpu", cpuPort, cpu, null);
@@ -783,7 +783,7 @@ internal static class GalleryDiagrams
     {
         var graph = new LayoutGraph();
 
-        var sensor = AddLabelled(graph, "sensor", "Sensor");
+        var sensor = AddLabeled(graph, "sensor", "Sensor");
 
         // The container starts small; the hierarchical engine grows it to fit its nested children.
         var controller = graph.AddNode("controller", 10, 10);
@@ -795,8 +795,8 @@ internal static class GalleryDiagrams
         command.ExternalLabel = "command";
         command.InternalLabel = "dispatch";
 
-        var driver = AddLabelled(controller.Children, "driver", "Driver");
-        var logger = AddLabelled(controller.Children, "logger", "Logger");
+        var driver = AddLabeled(controller.Children, "driver", "Driver");
+        var logger = AddLabeled(controller.Children, "logger", "Logger");
 
         // The external approach edge lives in the root scope, joining the sibling to the boundary port.
         Connect(graph, "sensor-command", sensor, command, null);
@@ -821,8 +821,8 @@ internal static class GalleryDiagrams
         var graph = new LayoutGraph();
         graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
 
-        var monitor = AddLabelled(graph, "monitor", "Monitor");
-        var operatorConsole = AddLabelled(graph, "operator", "Operator");
+        var monitor = AddLabeled(graph, "monitor", "Monitor");
+        var operatorConsole = AddLabeled(graph, "operator", "Operator");
 
         var controller = graph.AddNode("controller", 10, 10);
         controller.Label = "Controller";
@@ -831,7 +831,7 @@ internal static class GalleryDiagrams
         command.ExternalLabel = "command";
         command.InternalLabel = "dispatch";
 
-        var driver = AddLabelled(controller.Children, "driver", "Driver");
+        var driver = AddLabeled(controller.Children, "driver", "Driver");
 
         // Two external approach edges (external fan-out) both reach the one shared top-face anchor.
         Connect(graph, "monitor-command", monitor, command, null);
@@ -864,7 +864,7 @@ internal static class GalleryDiagrams
     {
         var graph = new LayoutGraph();
 
-        var source = AddLabelled(graph, "source", "Source");
+        var source = AddLabeled(graph, "source", "Source");
 
         // Outer container; the engine grows it to fit its nested subsystem.
         var system = graph.AddNode("system", 10, 10);
@@ -886,7 +886,7 @@ internal static class GalleryDiagrams
         relay.ExternalLabel = "relay";
         relay.InternalLabel = "handle";
 
-        var core = AddLabelled(subsystem.Children, "core", "Core");
+        var core = AddLabeled(subsystem.Children, "core", "Core");
 
         // The external approach edge lives in the root scope, joining the sibling to the outer port.
         Connect(graph, "source-request", source, request, null);
@@ -908,14 +908,14 @@ internal static class GalleryDiagrams
     ///     this graph has a single connected component, so it never engages the layered pipeline's
     ///     internal component-packing path.
     /// </summary>
-    /// <returns>A flat, fully-connected graph of four labelled boxes.</returns>
+    /// <returns>A flat, fully-connected graph of four labeled boxes.</returns>
     public static LayoutGraph LayeredRegressionBaseline()
     {
         var graph = new LayoutGraph();
-        var start = AddLabelled(graph, "start", "Start");
-        var middle = AddLabelled(graph, "middle", "Middle");
-        var branch = AddLabelled(graph, "branch", "Branch");
-        var end = AddLabelled(graph, "end", "End");
+        var start = AddLabeled(graph, "start", "Start");
+        var middle = AddLabeled(graph, "middle", "Middle");
+        var branch = AddLabeled(graph, "branch", "Branch");
+        var end = AddLabeled(graph, "end", "End");
 
         Connect(graph, "start-middle", start, middle);
         Connect(graph, "middle-branch", middle, branch);
@@ -934,13 +934,13 @@ internal static class GalleryDiagrams
     public static LayoutGraph AutoClusterPlusIsolated()
     {
         var graph = new LayoutGraph();
-        var a = AddLabelled(graph, "a", "A");
-        var b = AddLabelled(graph, "b", "B");
+        var a = AddLabeled(graph, "a", "A");
+        var b = AddLabeled(graph, "b", "B");
         Connect(graph, "a-b", a, b);
 
-        AddLabelled(graph, "solo1", "Solo1");
-        AddLabelled(graph, "solo2", "Solo2");
-        AddLabelled(graph, "solo3", "Solo3");
+        AddLabeled(graph, "solo1", "Solo1");
+        AddLabeled(graph, "solo2", "Solo2");
+        AddLabeled(graph, "solo3", "Solo3");
 
         return graph;
     }
@@ -955,16 +955,16 @@ internal static class GalleryDiagrams
     public static LayoutGraph MultipleDisconnectedClusters()
     {
         var graph = new LayoutGraph();
-        var a1 = AddLabelled(graph, "a1", "A1");
-        var a2 = AddLabelled(graph, "a2", "A2");
+        var a1 = AddLabeled(graph, "a1", "A1");
+        var a2 = AddLabeled(graph, "a2", "A2");
         Connect(graph, "a1-a2", a1, a2);
 
-        var b1 = AddLabelled(graph, "b1", "B1");
-        var b2 = AddLabelled(graph, "b2", "B2");
+        var b1 = AddLabeled(graph, "b1", "B1");
+        var b2 = AddLabeled(graph, "b2", "B2");
         Connect(graph, "b1-b2", b1, b2);
 
-        var c1 = AddLabelled(graph, "c1", "C1");
-        var c2 = AddLabelled(graph, "c2", "C2");
+        var c1 = AddLabeled(graph, "c1", "C1");
+        var c2 = AddLabeled(graph, "c2", "C2");
         Connect(graph, "c1-c2", c1, c2);
 
         return graph;
@@ -975,15 +975,15 @@ internal static class GalleryDiagrams
     ///     meta-algorithm's all-singleton fast path: every node is gathered into the shared bucket and
     ///     routed through the containment algorithm, unchanged, with no splitting or packing needed.
     /// </summary>
-    /// <returns>A flat graph of five isolated labelled boxes.</returns>
+    /// <returns>A flat graph of five isolated labeled boxes.</returns>
     public static LayoutGraph AutoAllIsolated()
     {
         var graph = new LayoutGraph();
-        AddLabelled(graph, "n1", "N1");
-        AddLabelled(graph, "n2", "N2");
-        AddLabelled(graph, "n3", "N3");
-        AddLabelled(graph, "n4", "N4");
-        AddLabelled(graph, "n5", "N5");
+        AddLabeled(graph, "n1", "N1");
+        AddLabeled(graph, "n2", "N2");
+        AddLabeled(graph, "n3", "N3");
+        AddLabeled(graph, "n4", "N4");
+        AddLabeled(graph, "n5", "N5");
 
         return graph;
     }
@@ -1001,11 +1001,11 @@ internal static class GalleryDiagrams
 
         var group = graph.AddNode("group", 10, 10);
         group.Label = "Group";
-        var inner1 = AddLabelled(group.Children, "inner1", "Inner1");
-        var inner2 = AddLabelled(group.Children, "inner2", "Inner2");
+        var inner1 = AddLabeled(group.Children, "inner1", "Inner1");
+        var inner2 = AddLabeled(group.Children, "inner2", "Inner2");
         Connect(group.Children, "inner1-inner2", inner1, inner2);
 
-        AddLabelled(graph, "solo", "Solo");
+        AddLabeled(graph, "solo", "Solo");
 
         return graph;
     }
@@ -1030,22 +1030,22 @@ internal static class GalleryDiagrams
 
         // Level 2 (inside outer.Children): a connected pair, an unrelated singleton, and another
         // container going one level deeper still.
-        var mid1 = AddLabelled(outer.Children, "mid1", "Mid1");
-        var mid2 = AddLabelled(outer.Children, "mid2", "Mid2");
+        var mid1 = AddLabeled(outer.Children, "mid1", "Mid1");
+        var mid2 = AddLabeled(outer.Children, "mid2", "Mid2");
         Connect(outer.Children, "mid1-mid2", mid1, mid2);
-        AddLabelled(outer.Children, "midSolo", "MidSolo");
+        AddLabeled(outer.Children, "midSolo", "MidSolo");
 
         var deepContainer = outer.Children.AddNode("deepContainer", 10, 10);
         deepContainer.Label = "DeepContainer";
 
         // Level 3 (inside deepContainer.Children): again a connected pair plus an unrelated singleton.
-        var d1 = AddLabelled(deepContainer.Children, "d1", "D1");
-        var d2 = AddLabelled(deepContainer.Children, "d2", "D2");
+        var d1 = AddLabeled(deepContainer.Children, "d1", "D1");
+        var d2 = AddLabeled(deepContainer.Children, "d2", "D2");
         Connect(deepContainer.Children, "d1-d2", d1, d2);
-        AddLabelled(deepContainer.Children, "dSolo", "DSolo");
+        AddLabeled(deepContainer.Children, "dSolo", "DSolo");
 
         // An unrelated root-level singleton forces the genuine multi-group split path at the root too.
-        AddLabelled(graph, "rootSolo", "RootSolo");
+        AddLabeled(graph, "rootSolo", "RootSolo");
 
         return graph;
     }
@@ -1056,7 +1056,7 @@ internal static class GalleryDiagrams
     ///     would under-size the packing budget for this shape and pack the boxes into a single narrow
     ///     column instead of a balanced multi-column block.
     /// </summary>
-    /// <returns>A flat graph of twelve labelled boxes, each 160 by 40 logical pixels.</returns>
+    /// <returns>A flat graph of twelve labeled boxes, each 160 by 40 logical pixels.</returns>
     public static LayoutGraph ContainmentManySmallWideBoxes()
     {
         var graph = new LayoutGraph();
@@ -1189,8 +1189,8 @@ internal static class GalleryDiagrams
         (compartment.Rows.Count * (theme.LabelPadding + theme.FontSizeBody)) // data rows
         + theme.LabelPadding; // bottom gap
 
-    /// <summary>Adds a labelled leaf node of the standard showcase size to the given graph.</summary>
-    private static LayoutGraphNode AddLabelled(LayoutGraph graph, string id, string label)
+    /// <summary>Adds a labeled leaf node of the standard showcase size to the given graph.</summary>
+    private static LayoutGraphNode AddLabeled(LayoutGraph graph, string id, string label)
     {
         var node = graph.AddNode(id, 120, 50);
         node.Label = label;

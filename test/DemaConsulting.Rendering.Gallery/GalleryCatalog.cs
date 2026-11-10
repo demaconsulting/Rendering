@@ -447,7 +447,7 @@ internal static class GalleryCatalog
                     "Parallel edges and named ports",
                     "The layered algorithm's Phase 1 flat-graph support for multiple parallel "
                     + "connectors between the same two boxes, and for named ports attached to a "
-                    + "specific, labelled location on a node's boundary. Parallel edges either collapse "
+                    + "specific, labeled location on a node's boundary. Parallel edges either collapse "
                     + "to one rendered connector (the default) or each keep their own "
                     + "independently-routed line, selected with the MergeParallelEdges option; each "
                     + "node's ContentInset margins are auto-computed from its ports' measured label "
@@ -489,7 +489,7 @@ internal static class GalleryCatalog
                         new GalleryImage(
                             PortsShowcaseMultiConnectorHorizontalSvg,
                             "A hub node with two named ports on each of its left and right sides",
-                            "Same-face crowding with two independently-labelled ports per side (one "
+                            "Same-face crowding with two independently-labeled ports per side (one "
                             + "deliberately long): PortDistributor spreads both anchors on each face "
                             + "without collapsing them onto one row, and the hub's title stays clear of "
                             + "both stacked rows on either side."),
@@ -546,7 +546,7 @@ internal static class GalleryCatalog
                 new GallerySection(
                     "Box appearance",
                     "A node's Shape, Keyword, and Compartments properties select the box outline, an "
-                    + "italicized keyword line, and labelled feature sections, all through the plain "
+                    + "italicized keyword line, and labeled feature sections, all through the plain "
                     + "input graph model — no downstream renderer-specific code required. This is "
                     + "generic block-diagram notation; SysML is just one modeling language that uses "
                     + "it.",
@@ -556,7 +556,7 @@ internal static class GalleryCatalog
                             "A folder container with two boxes carrying a keyword, one also "
                             + "compartmented, joined by an edge",
                             "A folder container holding two boxes with a keyword line — one also with "
-                            + "a labelled compartment — joined by a decorated edge."),
+                            + "a labeled compartment — joined by a decorated edge."),
                     ]),
                 new GallerySection(
                     "Shape-aware connectors",
@@ -585,7 +585,7 @@ internal static class GalleryCatalog
                 new GallerySection(
                     "Themes",
                     "One representative diagram rendered with each of the three built-in themes, "
-                    + "showing how the theme controls colours, stroke, and corner style without "
+                    + "showing how the theme controls colors, stroke, and corner style without "
                     + "touching the layout. These are rendered through the raster path to PNG so each "
                     + "carries a solid theme background.",
                     [
@@ -600,7 +600,7 @@ internal static class GalleryCatalog
                         new GalleryImage(
                             ThemePrintPng,
                             "Representative diagram in the print theme",
-                            "The print theme, optimised for black-and-white output."),
+                            "The print theme, optimized for black-and-white output."),
                     ]),
             ]),
         new GalleryGroup(
@@ -634,7 +634,7 @@ internal static class GalleryCatalog
             + "exception. Its diagrams are hand-built LayoutTrees with boxes placed at explicit, "
             + "hardcoded coordinates, rendered by calling ConnectorRouter and the renderers directly — "
             + "no layout algorithm is involved at all. This is a legitimate, fully public capability "
-            + "(every type used here is public), so it earns its own honestly-labelled home rather than "
+            + "(every type used here is public), so it earns its own honestly-labeled home rather than "
             + "being mixed into a showcase of algorithm output. Expect rough edges: nothing here "
             + "benefited from any algorithm's spacing or routing intelligence, and a person taking this "
             + "path on their own diagrams should expect the same trade-off.",

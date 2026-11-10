@@ -14,12 +14,12 @@ coverage also appears in `DemaConsulting.Rendering.CanvasNet.Tests`
 ### Verification Approach
 
 The rendering-contracts unit is verified indirectly through the registry tests: because
-`ILayoutAlgorithm` and `IRenderer` are pure abstractions with no behaviour, their identity members
+`ILayoutAlgorithm` and `IRenderer` are pure abstractions with no behavior, their identity members
 (`Id`, `MediaType`, `DefaultExtension`, `FileExtensions`) are exercised by round-tripping them
 through the two registries. The tests use test-local `FakeAlgorithm` and `FakeRenderer`
 implementations for that round-trip, and additionally exercise the concrete `PngRenderer` to prove
-that a real renderer honours the extension-advertising portion of the contract. `RenderOptions`
-and `RenderOutput` are `sealed record` types whose behaviour is limited to their compiler-generated
+that a real renderer honors the extension-advertising portion of the contract. `RenderOptions`
+and `RenderOutput` are `sealed record` types whose behavior is limited to their compiler-generated
 members and needs no dedicated test scenarios beyond compilation.
 
 ### Test Environment

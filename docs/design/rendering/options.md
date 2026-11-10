@@ -8,7 +8,7 @@ The Options unit's single responsibility is to define the open, ELK-inspired pro
 carries configuration end-to-end through the rendering pipeline: it declares typed property keys
 (`LayoutProperty<T>`), the contract for any object that stores them (`IPropertyHolder`), a default
 dictionary-backed store (`PropertyHolder`), a free-standing options bag (`LayoutOptions`), and the
-well-known key catalogue (`CoreOptions`). It does not perform layout or rendering; it only defines and
+well-known key catalog (`CoreOptions`). It does not perform layout or rendering; it only defines and
 holds configuration values.
 
 ### Options Overview

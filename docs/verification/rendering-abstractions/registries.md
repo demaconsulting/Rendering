@@ -21,7 +21,7 @@ implementations under test: `FakeAlgorithm` implements `ILayoutAlgorithm` with a
 output stream. Both fakes produce deterministic, checkable output specifically so the registry tests
 can assert that the resolved instance's `Apply`/`Render` was actually invoked, not merely that the
 registry resolved the correct type. All registry instances are created inside each test so no state
-leaks between tests, and the `KeyNotFoundException` behaviour is verified with `Assert.Throws`.
+leaks between tests, and the `KeyNotFoundException` behavior is verified with `Assert.Throws`.
 
 ### Test Environment
 
