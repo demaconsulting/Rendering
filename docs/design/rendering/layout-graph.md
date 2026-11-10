@@ -42,7 +42,7 @@ the responsibility of a hierarchical layout engine (a later delivery).
   keyword line shown above the title), `Compartments` (an ordered, read-only list of
   `LayoutCompartment` feature sections, defaulting to empty), `TitleHeight` (an optional override, in
   logical pixels, of the title band a hierarchical layout engine reserves above this node's children
-  when it is a labelled container), `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight`
+  when it is a labeled container), `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight`
   (optional resolved shape-geometry hints copied onto placed boxes so routing and rendering can agree
   on the real outline of rounded rectangles and folders), `Children` (the lazily-created nested child
   subgraph), `HasChildren` (whether the node holds at least one child), `Ports` (the lazily-created
@@ -106,7 +106,7 @@ than after layout.
 
 `double? LayoutGraphNode.TitleHeight { get; set; }` — an optional override, in logical pixels, of the
 title band `HierarchicalLayoutAlgorithm` reserves above this node's children when the node is a
-labelled container. `null` (the default) selects the engine's own generic default band height;
+labeled container. `null` (the default) selects the engine's own generic default band height;
 setting it — typically to a theme's own computed title-area height when the container also carries a
 `Keyword` — lets the reserved band match what the renderer will actually draw instead of being limited
 to the engine's generic default. Ignored for a leaf node (one with no children) and for a container

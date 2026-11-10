@@ -6,7 +6,7 @@ namespace DemaConsulting.Rendering;
 
 /// <summary>
 /// A named connection point owned by a <see cref="LayoutGraphNode"/>, allowing an edge to attach to
-/// a specific, labelled location on the node's boundary instead of the node as a whole. Modelled
+/// a specific, labeled location on the node's boundary instead of the node as a whole. Modeled
 /// after the Eclipse Layout Kernel (ELK) <c>ElkPort</c>.
 /// </summary>
 /// <remarks>

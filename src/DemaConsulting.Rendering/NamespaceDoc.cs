@@ -22,7 +22,7 @@ namespace DemaConsulting.Rendering;
 /// <see cref="LayoutTree"/>: an immutable tree of placed nodes (<see cref="LayoutBox"/>,
 /// <see cref="LayoutLine"/>, and the other <c>Layout*</c> record types) carrying absolute
 /// coordinates. Geometry is expressed with <see cref="Point2D"/> and <see cref="Rect"/>. Layout and
-/// render behaviour is configured through the open property system (<c>LayoutProperty&lt;T&gt;</c>
+/// render behavior is configured through the open property system (<c>LayoutProperty&lt;T&gt;</c>
 /// keys carried on any <c>IPropertyHolder</c>), with the well-known keys gathered on
 /// <see cref="CoreOptions"/> (for example <see cref="CoreOptions.Algorithm"/>,
 /// <see cref="CoreOptions.EdgeRouting"/>, and <see cref="CoreOptions.HierarchyHandling"/>).
@@ -60,7 +60,7 @@ namespace DemaConsulting.Rendering;
 /// </para>
 /// <para>
 /// Configuration is <strong>open</strong> and <strong>property-based</strong>: algorithms and
-/// renderers read only the properties they understand, so unknown or not-yet-honoured properties
+/// renderers read only the properties they understand, so unknown or not-yet-honored properties
 /// default harmlessly. New diagram families and output formats are added additively by deriving from
 /// <c>LayoutAlgorithmBase</c> or implementing <c>IRenderer</c> and registering them — no existing
 /// contract changes. The public surface deliberately mirrors the

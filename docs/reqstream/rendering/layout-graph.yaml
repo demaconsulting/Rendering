@@ -85,7 +85,7 @@ sections:
           A graph node shall carry a box shape, an optional keyword, and an ordered list of
           compartments, and a layout algorithm shall propagate them unchanged onto the placed box.
         justification: |
-          Selecting a node's outline, italicized keyword line, and labelled feature sections through
+          Selecting a node's outline, italicized keyword line, and labeled feature sections through
           the input graph model — rather than only on the output box — lets a caller describe a
           node's full appearance once, before layout, so every bundled leaf algorithm and the
           hierarchical layout engine place a box with the requested appearance instead of defaulting

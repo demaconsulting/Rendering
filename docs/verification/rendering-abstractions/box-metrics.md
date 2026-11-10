@@ -46,7 +46,7 @@ two label paddings.
 Tests `BoxMetrics_TitleAreaHeight_NoLabelNoKeyword_IsZero`,
 `BoxMetrics_TitleAreaHeight_LabelOnly_ReservesTitleLine`, and
 `BoxMetrics_TitleAreaHeight_LabelAndKeyword_ReservesBothLines` assert that no title area is reserved
-when neither a name nor a keyword is present, that a labelled box reserves padding plus one title line,
+when neither a name nor a keyword is present, that a labeled box reserves padding plus one title line,
 and that a keyword-and-name box reserves padding plus both lines.
 
 **Covers**: `Rendering-Abstractions-BoxMetrics-TitleAreaHeight`.

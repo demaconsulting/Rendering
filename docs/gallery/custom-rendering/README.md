@@ -4,7 +4,7 @@ Every other group in this gallery shows what the layout engine itself produces: 
 LayoutEngine.Layout, render the result. This group is the deliberate exception. Its diagrams are hand-built LayoutTrees
 with boxes placed at explicit, hardcoded coordinates, rendered by calling ConnectorRouter and the renderers directly —
 no layout algorithm is involved at all. This is a legitimate, fully public capability (every type used here is public),
-so it earns its own honestly-labelled home rather than being mixed into a showcase of algorithm output. Expect rough
+so it earns its own honestly-labeled home rather than being mixed into a showcase of algorithm output. Expect rough
 edges: nothing here benefited from any algorithm's spacing or routing intelligence, and a person taking this path on
 their own diagrams should expect the same trade-off.
 

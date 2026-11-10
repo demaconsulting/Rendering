@@ -23,7 +23,7 @@ extensible property system, and new algorithms, renderers, and options are added
   picks the best fit per connected component, each selected through the open property system.
 - **Orthogonal edge routing** — axis-aligned connectors in all four flow directions, with obstacle
   avoidance around intervening containers.
-- **Named ports** — first-class, labelled attachment points on a node's boundary, including parallel
+- **Named ports** — first-class, labeled attachment points on a node's boundary, including parallel
   edges and per-side port labels.
 - **Boundary (delegation) ports** — a container port that carries both an outward external label and
   an inward internal label at one shared anchor, relaying an external connection into the container's

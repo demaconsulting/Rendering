@@ -677,7 +677,7 @@ public class LayeredLayoutAlgorithmTests
     ///     but the emission loop's own duplicate rule compared the raw, un-normalized declared
     ///     direction, so it did not recognize them as a collapsed pair and still tried to emit the
     ///     dropped edge. That edge had no route computed for it, so it fell back to a raw straight
-    ///     line between the two node centres — cutting through both boxes instead of a proper
+    ///     line between the two node centers — cutting through both boxes instead of a proper
     ///     orthogonal connector. Proves exactly one properly-anchored line survives instead.
     /// </summary>
     [Fact]
@@ -714,7 +714,7 @@ public class LayeredLayoutAlgorithmTests
     ///     packing stage built each component's child graph without propagating the caller's
     ///     <c>MergeParallelEdges</c> override, so it silently reverted to the engine's own default
     ///     (<see langword="true"/>) and collapsed the parallel edges anyway — leaving one of them with
-    ///     no computed route, which fell back to a crude straight line between the two node centres.
+    ///     no computed route, which fell back to a crude straight line between the two node centers.
     ///     Proves both parallel edges now survive as their own properly-routed, independently-labeled
     ///     connectors even when an unrelated, entirely disconnected second component is also present.
     /// </summary>

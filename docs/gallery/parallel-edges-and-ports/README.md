@@ -21,7 +21,7 @@ other already-routed connectors can no longer detour straight through its own ta
 ## Parallel edges and named ports
 
 The layered algorithm's Phase 1 flat-graph support for multiple parallel connectors between the same two boxes, and for
-named ports attached to a specific, labelled location on a node's boundary. Parallel edges either collapse to one
+named ports attached to a specific, labeled location on a node's boundary. Parallel edges either collapse to one
 rendered connector (the default) or each keep their own independently-routed line, selected with the MergeParallelEdges
 option; each node's ContentInset margins are auto-computed from its ports' measured label widths so port text never
 overlaps the box's own content.
@@ -53,7 +53,7 @@ The companion top/bottom case: a downward-flowing hub node, whose ports anchor o
 
 ![A hub node with two named ports on each of its left and right sides](ports-showcase-multi-connector-horizontal.svg)
 
-Same-face crowding with two independently-labelled ports per side (one deliberately long): PortDistributor spreads both
+Same-face crowding with two independently-labeled ports per side (one deliberately long): PortDistributor spreads both
 anchors on each face without collapsing them onto one row, and the hub's title stays clear of both stacked rows on
 either side.
 

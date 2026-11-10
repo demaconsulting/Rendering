@@ -177,7 +177,7 @@ public sealed class PortDistributorTests
 
         var tgt = graph.AugEdges[0].Target;
 
-        // Assert: each recorded port Y matches the equal-area-center formula exactly — port k centred
+        // Assert: each recorded port Y matches the equal-area-center formula exactly — port k centered
         // within the k-th of `count` equal slices of the face.
         var sorted = graph.AugEdges
             .Select((e, i) => (Edge: e, Index: i))

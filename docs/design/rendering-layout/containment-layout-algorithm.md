@@ -50,7 +50,7 @@ which returns a `LayoutTree` carrying the packed region size and a flat list of 
    budget, never narrow it; the graduated falloff exists because that asymmetry means over-applying the
    estimate costs at most some extra whitespace, while under-applying it (the original hard cutoff's
    failure mode) has no bound on how degenerate the resulting single-column layout gets — an ordinary
-   box set whose width variance only marginally exceeds the old cutoff (for example differently-labelled
+   box set whose width variance only marginally exceeds the old cutoff (for example differently-labeled
    peer boxes) still receives most of the estimate's benefit instead of losing it outright.
 3. **Packing.** Calls `ContainmentLayout.Pack` with the leaf boxes and a `ContainmentOptions` using the
    derived width, the connector-aware `NodeSpacing` on both axes, and an `EdgeCounts` map (see below),

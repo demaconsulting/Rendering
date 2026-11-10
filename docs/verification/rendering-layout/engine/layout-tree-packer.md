@@ -9,7 +9,7 @@ This document maps the layout-tree-packer unit requirements to named test scenar
 `LayoutTreePacker` is a stateless static engine, so verification is by direct xUnit unit tests that
 call `Pack` on synthetic `LayoutTree` lists. No mocks are used; the tests observe the real shelf-
 packing and recursive-translation logic end-to-end so multi-tree packing, coordinate translation
-(including nested children, waypoints, and port centres), degenerate cases, warning preservation, and
+(including nested children, waypoints, and port centers), degenerate cases, warning preservation, and
 the unsupported-node-type guard are all measured on production output.
 
 #### Test Environment

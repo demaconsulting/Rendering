@@ -5,7 +5,7 @@ Part of the Rendering Abstractions system.
 ### Connector Label Placer Purpose
 
 The Connector Label Placer unit computes non-overlapping screen positions for connector midpoint
-labels. Each labelled line prefers the midpoint of its longest segment; when two labels would collide,
+labels. Each labeled line prefers the midpoint of its longest segment; when two labels would collide,
 the placer falls back to a shorter segment or nudges the label perpendicular to its segment until it no
 longer overlaps an already-placed label. Lines are processed in the supplied order so the result is
 deterministic, and both renderers share this logic so their label layouts match.

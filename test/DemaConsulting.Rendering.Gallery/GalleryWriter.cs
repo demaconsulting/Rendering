@@ -61,7 +61,7 @@ internal static class GalleryWriter
     ///     well-formed SVG document. Every other gallery group exists to show what the layout engine
     ///     itself produces, so this overload must be used only by diagrams belonging to the
     ///     <c>custom-rendering</c> gallery group — the one group whose whole point is a hand-built box
-    ///     arrangement, honestly labelled as bypassing the engine, rather than algorithm output.
+    ///     arrangement, honestly labeled as bypassing the engine, rather than algorithm output.
     /// </summary>
     /// <param name="fileName">Stable output filename (for example <c>custom-rendering/my-diagram.svg</c>).</param>
     /// <param name="tree">The already-laid-out tree to render.</param>

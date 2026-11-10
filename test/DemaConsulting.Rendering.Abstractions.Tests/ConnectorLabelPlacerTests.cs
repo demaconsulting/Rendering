@@ -30,7 +30,7 @@ public sealed class ConnectorLabelPlacerTests
         Assert.Empty(result);
     }
 
-    /// <summary>A single labelled line is placed at the midpoint of its longest segment.</summary>
+    /// <summary>A single labeled line is placed at the midpoint of its longest segment.</summary>
     [Fact]
     public void Place_SingleLine_UsesLongestSegmentMidpoint()
     {

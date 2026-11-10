@@ -62,7 +62,7 @@ public sealed class ContainmentLayoutAlgorithmTests
     [Fact]
     public void Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas()
     {
-        // Arrange: a set of labelled peer nodes with no edges
+        // Arrange: a set of labeled peer nodes with no edges
         var graph = new LayoutGraph();
         var a = graph.AddNode("a", 80, 40);
         var b = graph.AddNode("b", 120, 40);

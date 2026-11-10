@@ -208,7 +208,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 // fallback below) so the connector remains visible. A non-self-loop edge with no
                 // surviving route was genuinely collapsed into another parallel edge — possibly one
                 // declared in the opposite direction — by CycleBreaker's merge/de-duplication, so it is skipped
-                // here rather than falling back to a spurious straight line through both node centres.
+                // here rather than falling back to a spurious straight line through both node centers.
                 if (mergeParallelEdges && s != t && !routes.ContainsKey(i))
                 {
                     continue;
@@ -334,7 +334,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             // can run past the box's bottom edge — exactly what a single labeled port on a titled box's
             // face produces (the title reserve leaves only one row for the port, so there is no slack
             // elsewhere to absorb the shift). A flat addition of assumedFontSize is not enough on its
-            // own, though: PortDistributor.DistributePorts centres the port within its face's available
+            // own, though: PortDistributor.DistributePorts centers the port within its face's available
             // band (nodeTop + nodeHeight / 2 for the single-anchor case), so only HALF of any height
             // added here ends up below the port's centre — the other half is spent growing the band
             // upward, where the label never reaches. Add 2 * assumedFontSize (not 1x) as extra bottom
@@ -441,7 +441,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                         // faceInfo.Total so every slice's height still gains the full compensation term
                         // the single-port case relies on, regardless of how many ports share the face.
                         // As with the single-port floor, each slice only receives HALF of any height
-                        // added here (the port is centred within its own slice, so the other half grows
+                        // added here (the port is centered within its own slice, so the other half grows
                         // the slice upward, where the label never reaches) — multiply by 2.0 so the
                         // required assumedFontSize of clearance actually materializes below every
                         // bottom-most labeled port's label.
@@ -656,7 +656,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         }
 
         // Self-loops and duplicate edges are dropped by the engine; fall back to a straight segment
-        // between the two node centres so the connector is still drawn.
+        // between the two node centers so the connector is still drawn.
         return [Centre(rects[source]), Centre(rects[target])];
     }
 

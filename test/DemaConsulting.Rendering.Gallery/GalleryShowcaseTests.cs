@@ -408,7 +408,7 @@ public sealed class GalleryShowcaseTests
 
     /// <summary>
     ///     Renders the multi-connector horizontal ports showcase to SVG, proving two independently
-    ///     labelled <see cref="LayoutGraphPort"/>s sharing a single left or right face spread evenly
+    ///     labeled <see cref="LayoutGraphPort"/>s sharing a single left or right face spread evenly
     ///     without collapsing onto one row, and that the hub's title stays clear of both stacked port
     ///     rows on either side.
     /// </summary>
@@ -531,7 +531,7 @@ public sealed class GalleryShowcaseTests
 
     /// <summary>
     ///     Renders the multi-connector horizontal ports showcase to PNG, proving the raster path
-    ///     handles two labelled ports sharing a single left or right face.
+    ///     handles two labeled ports sharing a single left or right face.
     /// </summary>
     [Fact]
     public void Gallery_PortsShowcaseMultiConnectorHorizontal_RendersPng()
@@ -545,7 +545,7 @@ public sealed class GalleryShowcaseTests
 
     /// <summary>
     ///     Renders the multi-connector vertical ports showcase to PNG, proving the raster path
-    ///     handles two labelled ports sharing a single top or bottom face.
+    ///     handles two labeled ports sharing a single top or bottom face.
     /// </summary>
     [Fact]
     public void Gallery_PortsShowcaseMultiConnectorVertical_RendersPng()

@@ -73,7 +73,7 @@ namespace DemaConsulting.Rendering.Layout;
 /// </remarks>
 /// <example>
 ///     <code>
-///     // A two-level graph: a labelled container laid out "layered", packed by a "containment" root.
+///     // A two-level graph: a labeled container laid out "layered", packed by a "containment" root.
 ///     var graph = new LayoutGraph();
 ///     var group = graph.AddNode("group", 10, 10);
 ///     group.Label = "Group";
@@ -484,7 +484,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             subLayouts[node] = sub;
 
             // Size the container to enclose its sub-layout plus a padding inset on every side and, when
-            // the container is labelled, a title band above the children.
+            // the container is labeled, a title band above the children.
             var titleHeight = ResolveContentOffsetHeight(node);
             effectiveSize[node] = (
                 sub.Width + (2 * ContainerPadding),
@@ -616,7 +616,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
 
     /// <summary>
     /// Composes the placed boxes for this level: each container box receives its recursively laid-out
-    /// children, translated from their local origin into the box's padded (and, when labelled,
+    /// children, translated from their local origin into the box's padded (and, when labeled,
     /// title-offset) interior.
     /// </summary>
     /// <param name="graph">The scope whose nodes align with <paramref name="placedBoxes"/> by index.</param>

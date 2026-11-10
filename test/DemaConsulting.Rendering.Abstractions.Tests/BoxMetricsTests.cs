@@ -43,7 +43,7 @@ public sealed class BoxMetricsTests
         Assert.Equal(0.0, height);
     }
 
-    /// <summary>A labelled box reserves padding plus one title line.</summary>
+    /// <summary>A labeled box reserves padding plus one title line.</summary>
     [Fact]
     public void BoxMetrics_TitleAreaHeight_LabelOnly_ReservesTitleLine()
     {

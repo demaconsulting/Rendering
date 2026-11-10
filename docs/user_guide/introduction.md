@@ -258,7 +258,7 @@ As with the algorithm, a declaration on the graph takes precedence over one on t
 A `LayoutGraphNode` can carry a set of `LayoutGraphPort`s — named attachment points on the node's
 boundary, each implementing `ILayoutConnectable` alongside the node itself, so an edge can target a
 specific port instead of the node as a whole. This lets several connectors land on different, clearly
-labelled locations of the same box rather than all converging on one anchor:
+labeled locations of the same box rather than all converging on one anchor:
 
 ```csharp
 var graph = new LayoutGraph();
@@ -277,7 +277,7 @@ connector, not from a settable `Side` property on `LayoutGraphPort` itself.
 
 Two or more edges between the same pair of boxes are parallel edges. By default they collapse to a
 single rendered connector and suppress the collapsed edges' own labels; set `MergeParallelEdges` to
-`false` to keep every parallel edge as its own independently-routed, independently-labelled connector:
+`false` to keep every parallel edge as its own independently-routed, independently-labeled connector:
 
 ```csharp
 graph.Set(CoreOptions.MergeParallelEdges, false);
@@ -591,7 +591,7 @@ Notes on the conditional cells:
 
 **Caveat on the `auto` row.** Because `auto` delegates every concern, its correctness on any row is
 contingent on the leaf algorithm it routes a component to: an `auto` cell reads `Yes, via delegation`
-to mean "faithfully inherits the delegated leaf's behaviour", not "implemented by `auto`". Where the
+to mean "faithfully inherits the delegated leaf's behavior", not "implemented by `auto`". Where the
 delegated leaves do not provide a capability — as in the vertical-gap-widening row, which no leaf
 widens on that axis today — `auto` does not provide it either, and the guarantee is only as strong as
 the leaf's. The `containment` column's two `N/A by design` rows (container auto-expansion) are never
