@@ -73,7 +73,8 @@ sections:
         title: >-
           CoreOptions.MergeParallelEdges shall default to true, exactly reproducing the layered
           algorithm's original unconditional deduplication of parallel edges, and shall cascade like
-          every other property when explicitly set on a graph or options scope.
+          every other property when explicitly set on a graph scope (the root graph or a container's
+          Children graph).
         justification: |
           A caller of the bundled layered algorithm (for example an interconnection/wiring-diagram
           view) needs a way to opt out of parallel-edge collapsing without affecting any existing

@@ -28,7 +28,7 @@ software items:
 
 - **Rendering (System)** — the layout model: the `LayoutTree` intermediate representation,
   the open property system, and the input `LayoutGraph`.
-- **Rendering.Abstractions (System)** — the service-provider interfaces: the `ILayoutAlgorithm`
+- **Rendering.Abstractions (System)** — the service-provider interfaces: the `LayoutAlgorithmBase`
   and `IRenderer` contracts, their registries, the `Theme`, render options, and the shared
   notation-geometry helpers.
 - **Rendering.Layout (System)** — the pluggable layout algorithms and the reusable geometric
@@ -48,6 +48,7 @@ covered (their internal design is out of scope):
 - **ReviewMark** — file review enforcement tool
 - **SarifMark** — SARIF report conversion tool
 - **SonarMark** — SonarCloud quality report tool
+- **SysML2Tools** — SysML2 architecture-model linting and view-rendering tool
 - **VersionMark** — tool-version documentation tool
 - **WeasyPrint** — HTML-to-PDF conversion tool
 - **xUnit** — unit-testing framework
@@ -64,9 +65,9 @@ The following topics are explicitly excluded:
 The libraries separate *what a diagram contains* from *how it is placed* and *how it is drawn*:
 
 ```text
-LayoutGraph + LayoutOptions   (Rendering: unplaced input + open property configuration)
+LayoutGraph (+ properties)    (Rendering: unplaced input + open property configuration)
         │
-        ▼  ILayoutAlgorithm            (Rendering.Abstractions: the layout SPI)
+        ▼  LayoutAlgorithmBase         (Rendering.Abstractions: the layout SPI)
    LayeredLayoutAlgorithm              (Rendering.Layout: the bundled "layered" algorithm)
         │
         ▼
@@ -83,7 +84,8 @@ Configuration is **open** and **property-based**: options are declared as typed
 `LayoutProperty<T>` keys and carried on any `IPropertyHolder` (the graph, a graph element, or a
 free-standing `LayoutOptions`). Algorithms and renderers read only the properties they
 understand, so unknown or not-yet-honored properties default harmlessly. New diagram families
-and output formats are introduced additively by implementing `ILayoutAlgorithm` or `IRenderer`
+and output formats are introduced additively by deriving from `LayoutAlgorithmBase` or implementing
+`IRenderer`
 and registering them — no existing contract changes.
 
 The delivered subset implements the `layered`, `containment`, `hierarchical`, and `auto` algorithms and
@@ -91,62 +93,27 @@ the SVG and CanvasNet (PNG, JPEG) renderers.
 
 ## Software Structure
 
-The following tree shows how the Rendering software items are organized across System,
-Subsystem, and Unit levels according to the software-items classification standard:
+The software structure is modeled in SysML2 under `docs/sysml2/` (see
+`docs/sysml2/model/**/*.sysml`) and rendered to the diagram below by SysML2Tools as part
+of the build pipeline. Each of the five systems is its own SysML2 package (the
+`DemaConsulting.Rendering` model system is the `RenderingModel` package) containing a system
+part definition and its subsystems and units; the OTS items are in the `OtsDependencies`
+package. The SysML2 model — not this diagram or prose — is the authoritative,
+machine-queryable source of structure. AI agents should query the SysML2 model directly
+(see the `sysml2tools-query` skill) rather than parsing this diagram before deep-diving into
+source code.
 
-```text
-Rendering (System)
-├── LayoutTree (Unit)      — immutable placed intermediate representation records
-├── Options (Unit)         — open property system (LayoutProperty, IPropertyHolder, LayoutOptions, CoreOptions)
-└── LayoutGraph (Unit)     — unplaced input graph model
+![Software Structure](SoftwareStructureView.svg)
 
-Rendering.Abstractions (System)
-├── RenderingContracts (Unit)   — ILayoutAlgorithm, IRenderer, RenderOptions, RenderOutput
-├── Registries (Unit)           — LayoutAlgorithmRegistry, RendererRegistry
-├── Theme (Unit)                — Theme record and built-in Themes
-├── NotationMetrics (Unit)      — intrinsic notation geometry shared by renderers
-├── BoxMetrics (Unit)           — box title-area and folder-tab geometry
-├── ConnectorLabelPlacer (Unit) — collision-aware connector-label placement
-└── PortLabelWidthEstimator (Unit) — shared port-label natural-width estimator (layout + SVG)
+The diagram below complements the structure view by showing the libraries in their run-time
+context: the calling application describes a diagram as a `LayoutGraph` in the core model, a
+layout algorithm from `.Layout` places it into a `LayoutTree`, and a renderer from `.Svg` or
+`.CanvasNet` draws it as SVG, PNG, or JPEG, with the layout algorithms and renderers built on
+the `.Abstractions` contracts.
 
-Rendering.Layout (System)
-├── Engine (Subsystem)
-│   ├── OrthogonalEdgeRouter (Unit)       — orthogonal (channel) edge router
-│   ├── ContainmentPacker (Unit)          — shelf packer for grouped/containment layout
-│   ├── InterconnectionLayoutEngine (Unit)— cross-edge routing among placed boxes
-│   ├── LayeredPipeline (Unit)            — the ELK-style layered Sugiyama stage pipeline
-│   ├── LayoutTreePacker (Unit)           — shelf packer merging multiple placed LayoutTrees
-│   └── EdgeCountGapWidener (Unit)        — shared edge-count-to-gap corridor-width formula
-├── LayeredLayoutAlgorithm (Unit)        — the public layered ILayoutAlgorithm
-├── ContainmentLayoutAlgorithm (Unit)    — the public containment ILayoutAlgorithm
-├── HierarchicalLayoutAlgorithm (Unit)   — the recursive hierarchical engine
-├── AutoLayoutAlgorithm (Unit)           — the auto-routing meta-algorithm
-├── ContainmentLayout (Unit)             — public containment packing entry point
-├── ConnectorRouter (Unit)              — public edge-routing orchestration
-├── EdgeRoutingOption (Unit)            — the EdgeRouting option realization
-└── DefaultLayout (Unit)               — LayoutEngine facade + default algorithm registry
-
-Rendering.Svg (System)
-└── SvgRenderer (Unit)
-
-Rendering.CanvasNet (System)
-├── CanvasNetRasterRenderer (Unit)  — abstract CanvasNet rasterizer shared by all formats
-├── PngRenderer (Unit)              — lossless PNG output
-└── JpegRenderer (Unit)             — JPEG output
-
-OTS Software Items
-├── BuildMark    — build-notes documentation from GitHub Actions metadata
-├── FileAssert   — generated-document assertion tool
-├── Pandoc       — Markdown-to-HTML conversion
-├── ReqStream    — requirements traceability and enforcement
-├── ReviewMark   — file-review plan, report, and enforcement
-├── SarifMark    — CodeQL SARIF-to-Markdown conversion
-├── CanvasNet    — pure managed raster graphics library (surface drawing and PNG/JPEG encoding)
-├── SonarMark    — SonarCloud quality-report generation
-├── VersionMark  — tool-version capture and publishing
-├── WeasyPrint   — HTML-to-PDF (PDF/A) conversion
-└── xUnit        — unit-testing framework
-```
+![Rendering architecture: your application describes a diagram as a graph, the core model,
+layout algorithms, and renderers turn it into SVG, PNG, and JPEG output, and the layout
+algorithms and renderers implement the Abstractions contracts](architecture.svg)
 
 Most OTS software items are compliance, build, and documentation tooling consumed while building,
 verifying, and documenting the Rendering libraries, and are not linked into the delivered packages.

@@ -2,7 +2,7 @@
 # DemaConsulting.Rendering.Abstractions - Rendering Contracts Unit Requirements
 #
 # PURPOSE:
-# - Unit-level requirements for the rendering-contracts unit: ILayoutAlgorithm, IRenderer,
+# - Unit-level requirements for the rendering-contracts unit: LayoutAlgorithmBase, IRenderer,
 #   RenderOptions, and RenderOutput.
 # - These unit requirements decompose the Rendering-Abstractions-Extensibility system requirement declared in
 #   rendering-abstractions.yaml.

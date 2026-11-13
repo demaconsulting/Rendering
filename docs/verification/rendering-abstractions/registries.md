@@ -14,8 +14,8 @@ system verification document; the test project is
 The registries unit is verified with in-process xUnit unit tests that exercise
 `LayoutAlgorithmRegistry` and `RendererRegistry` directly, without mocks or stubs of the
 `Dictionary`-based backing storage. Two minimal test-local fakes provide the interface
-implementations under test: `FakeAlgorithm` implements `ILayoutAlgorithm` with a fixed `Id` and an
-`Apply` that returns a `LayoutTree` with fixed, distinguishable `PlacedWidth`/`PlacedHeight` values;
+implementations under test: `FakeAlgorithm` derives from `LayoutAlgorithmBase` with a fixed `Id` and an
+`ApplyCore` that returns a `LayoutTree` with fixed, distinguishable `PlacedWidth`/`PlacedHeight` values;
 `FakeRenderer` implements `IRenderer` with a fixed `MediaType`, `DefaultExtension`, and
 `FileExtensions` and a `Render` that writes a fixed, distinguishable `RenderedText` string to the
 output stream. Both fakes produce deterministic, checkable output specifically so the registry tests
@@ -25,7 +25,7 @@ leaks between tests, and the `KeyNotFoundException` behavior is verified with `A
 
 ### Test Environment
 
-- **Framework**: xUnit v4 running under the .NET SDK on `net8.0`, `net9.0`, and `net10.0`.
+- **Framework**: xUnit v4 running under the .NET SDK on `net8.0`, `net9.0`, `net10.0`, and `net11.0`.
 - **Execution**: `dotnet test` invoked by `build.ps1` and by the CI pipeline.
 - **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`RegistryTests.cs`).
 - **External dependencies**: none; no network, filesystem, or external service is required.

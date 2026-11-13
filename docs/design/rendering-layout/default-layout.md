@@ -36,9 +36,10 @@ null arguments with `ArgumentNullException`, then:
    single place to configure a layout — since `LayoutGraph` is itself an `IPropertyHolder` — so there is
    no second, free-standing options object at this entry point that could disagree with it.
 2. **Resolve and apply.** The identifier is resolved from the registry and the resolved algorithm's
-   `Apply(graph, options)` produces the placed `LayoutTree`, where `options` is an empty `LayoutOptions`
-   used only to seed the algorithm's internal option-cascading contract (see the respective algorithm's
-   Unit Design document); the graph itself already carries every explicit setting.
+   public `Apply(graph)` produces the placed `LayoutTree`; `Apply` seeds the algorithm's
+   `ApplyCore(graph, options)` option-cascading contract with an empty `LayoutOptions` (see the
+   respective algorithm's Unit Design document), since the graph itself already carries every explicit
+   setting.
 
 Defaulting to the hierarchical engine is what lets the single facade serve both flat and nested graphs.
 It is safe because of the hierarchical engine's flat-graph equivalence guarantee: for a graph with no
@@ -67,7 +68,7 @@ declared algorithm identifier absent from the resolving registry surfaces the re
 
 `LayoutAlgorithms` and `LayoutEngine` depend on the following items:
 
-- **Rendering.Abstractions** (`LayoutAlgorithmRegistry`, `ILayoutAlgorithm`) — the registry type
+- **Rendering.Abstractions** (`LayoutAlgorithmRegistry`, `LayoutAlgorithmBase`) — the registry type
   populated by `CreateDefaultRegistry` and the algorithm contract resolved and invoked by
   `LayoutEngine.Layout`.
 - **Rendering model** (`DemaConsulting.Rendering`) — the `LayoutGraph` and

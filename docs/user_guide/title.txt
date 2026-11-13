@@ -1,13 +1,14 @@
 ---
 title: Rendering User Guide
-subtitle: A .NET Reference Implementation for Libraries
+subtitle: General-purpose diagram layout and rendering for .NET
 author: DEMA Consulting
-description: A .NET Reference Implementation for Libraries
+description: User guide for the Rendering libraries
 lang: en-US
 keywords:
   - Rendering
   - .NET
   - Library
   - Documentation
-  - Best Practices
+  - Diagram Layout
+  - Diagram Rendering
 ---

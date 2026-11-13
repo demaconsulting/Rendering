@@ -60,7 +60,7 @@ The library is split into focused packages so consumers take only what they need
 | Package | Purpose |
 | --- | --- |
 | `DemaConsulting.Rendering` | Layout model: the `LayoutTree` IR, the property system, and the input `LayoutGraph` |
-| `DemaConsulting.Rendering.Abstractions` | SPI: `ILayoutAlgorithm`/`IRenderer`, registries, `Theme`, notation metrics |
+| `DemaConsulting.Rendering.Abstractions` | SPI: `LayoutAlgorithmBase`/`IRenderer`, registries, `Theme`, metrics |
 | `DemaConsulting.Rendering.Layout` | Layout algorithms: the layered pipeline and `LayeredLayoutAlgorithm` |
 | `DemaConsulting.Rendering.Svg` | SVG renderer with zero external dependencies |
 | `DemaConsulting.Rendering.CanvasNet` | CanvasNet raster renderers (PNG, JPEG) with an embedded Noto Sans font |
@@ -70,7 +70,7 @@ Package dependencies form an acyclic graph: `Abstractions` and `Layout` depend o
 
 ### Use from a Roslyn analyzer or source generator
 
-Every package targets `net8.0`, `net9.0`, and `net10.0`. The model, SPI, layout, and SVG packages
+Every package targets `net8.0`, `net9.0`, `net10.0`, and `net11.0`. The model, SPI, layout, and SVG packages
 additionally target `netstandard2.0` with no external dependencies on that target, so a Roslyn
 analyzer or source generator can reference them and lay out and emit SVG diagrams at compile time.
 The raster package is deliberately excluded, because the CanvasNet package does not support
@@ -99,7 +99,7 @@ var b = graph.AddNode("b", width: 80, height: 40);
 graph.AddEdge("a-b", a, b);
 
 // Lay it out, then render the placed tree to SVG.
-var tree = new LayeredLayoutAlgorithm().Apply(graph, new LayoutOptions());
+var tree = new LayeredLayoutAlgorithm().Apply(graph);
 using var output = File.Create("diagram.svg");
 new SvgRenderer().Render(tree, new RenderOptions(Themes.Light), output);
 ```
@@ -122,7 +122,7 @@ as an end-to-end rendering smoke test. Regenerate it with `./gallery.ps1`.
 
 ## Extensibility
 
-- **New layout algorithms** implement `ILayoutAlgorithm` and register under a new id.
+- **New layout algorithms** derive from `LayoutAlgorithmBase` and register under a new id.
 - **New output formats** implement `IRenderer` with a distinct media type.
 - **New configuration options** are declared as typed `LayoutProperty<T>` keys carried in an open
   property bag, so adding an option never changes an existing method signature.

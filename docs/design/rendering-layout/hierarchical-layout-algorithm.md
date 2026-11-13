@@ -4,7 +4,7 @@ Part of the Rendering Layout system.
 
 ### HierarchicalLayoutAlgorithm Purpose
 
-`HierarchicalLayoutAlgorithm` is a third public `ILayoutAlgorithm` implementation: the recursive
+`HierarchicalLayoutAlgorithm` is a third public `LayoutAlgorithmBase` implementation: the recursive
 hierarchical layout engine, analogous to ELK's `RecursiveGraphLayoutEngine`. Where the layered and
 containment algorithms place a single flat scope, this engine lays out a *compound* graph — a graph
 whose nodes may be containers of nested subgraphs — by recursively placing each container's children
@@ -38,7 +38,8 @@ recursion always terminates in a bundled leaf algorithm.
 
 ### HierarchicalLayoutAlgorithm Methods
 
-`Apply(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, builds the
+`ApplyCore(graph, options)` (the `LayoutAlgorithmBase` override reached through the public
+`Apply(graph)`) rejects null `graph` or `options` with `ArgumentNullException`, builds the
 root scope's cascaded effective options (`graph.OverlayOnto(options)` — the graph's own explicit
 overrides win over the supplied options, exactly like every nested scope), and calls the recursive
 `LayoutScope`. `LayoutScope(graph, effective)` performs:
@@ -184,7 +185,7 @@ would be in a flat graph.
 
 `HierarchicalLayoutAlgorithm` depends on the following items:
 
-- **Rendering.Abstractions** (`ILayoutAlgorithm`, `LayoutAlgorithmRegistry`) — implements the layout
+- **Rendering.Abstractions** (`LayoutAlgorithmBase`, `LayoutAlgorithmRegistry`) — implements the layout
   contract and resolves the per-scope leaf algorithm from the injected registry.
 - **Rendering model** (`DemaConsulting.Rendering`) — the `LayoutGraph`, `LayoutGraphNode`,
   `LayoutTree`, `LayoutBox`, `LayoutLine`, and `Point2D` types on the layout contract, plus
@@ -205,21 +206,21 @@ No OTS runtime component or shared package is consumed.
 
 ### HierarchicalLayoutAlgorithm Callers
 
-`HierarchicalLayoutAlgorithm` is invoked through the `ILayoutAlgorithm` contract, so callers reach
+`HierarchicalLayoutAlgorithm` is invoked through the `LayoutAlgorithmBase` contract, so callers reach
 it by algorithm identifier rather than by direct type reference:
 
 - **DefaultLayout** (`LayoutEngine.Layout`) — resolves this algorithm from the bundled default
   registry under the `"hierarchical"` identifier and defaults to it when no algorithm is declared on
-  the graph or options. See *DefaultLayout Unit Design*.
+  the graph. See *DefaultLayout Unit Design*.
 - **External application code** — any caller that registers `HierarchicalLayoutAlgorithm` in its own
   `LayoutAlgorithmRegistry` (or uses `LayoutAlgorithms.CreateDefaultRegistry()`) and selects it via
-  `CoreOptions.Algorithm = "hierarchical"` on the graph or standalone `LayoutOptions`.
+  `CoreOptions.Algorithm = "hierarchical"` on the graph.
 - **Renderer host code** — indirectly via `LayoutEngine.Layout` when driving nested/compound
   diagrams from graph to rendered output.
 
 ### HierarchicalLayoutAlgorithm Interactions
 
-`HierarchicalLayoutAlgorithm` depends on the `ILayoutAlgorithm`, `LayoutAlgorithmRegistry`,
+`HierarchicalLayoutAlgorithm` depends on the `LayoutAlgorithmBase`, `LayoutAlgorithmRegistry`,
 `LayoutGraph`, `LayoutGraphNode`, `LayoutTree`, `CoreOptions`, and related model types, and composes
 the public `ConnectorRouter` unit for cross-container routing and the bundled leaf algorithms
 (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`) for per-scope placement. It is resolvable by

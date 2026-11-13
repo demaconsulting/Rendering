@@ -17,7 +17,7 @@ per-requirement scenarios live in the unit documents:
 ## Verification Approach
 
 The abstractions system is verified through in-process unit tests. The contract interfaces
-(`ILayoutAlgorithm`, `IRenderer`) are exercised through minimal fake implementations that the registry
+(`LayoutAlgorithmBase`, `IRenderer`) are exercised through minimal fake implementations that the registry
 tests register and resolve, confirming the identity members of each contract. The registry tests also
 verify extension-based renderer lookup using advertised file-extension aliases. The registries, theme,
 and the four geometry helpers are pure and deterministic, so their tests construct inputs directly

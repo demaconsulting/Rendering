@@ -1,8 +1,8 @@
 ---
-title: Rendering Requirements
-subtitle: Requirements Specification for the Rendering
+title: Rendering Requirements Document
+subtitle: General-purpose diagram layout and rendering for .NET
 author: DEMA Consulting
-description: Requirements Specification for the Rendering
+description: Requirements Specification for the Rendering libraries
 lang: en-US
 keywords:
   - Rendering

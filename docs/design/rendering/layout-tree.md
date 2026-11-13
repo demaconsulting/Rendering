@@ -103,7 +103,7 @@ Layout Graph unit, not this unit.
 ### Layout Tree Interactions
 
 The Layout Tree is produced by a layout algorithm (see the *Rendering Abstractions* design,
-`ILayoutAlgorithm`) and consumed by a renderer (`IRenderer`). Within the tree, `LayoutBox` and
+`LayoutAlgorithmBase`) and consumed by a renderer (`IRenderer`). Within the tree, `LayoutBox` and
 `LayoutBand` hold nested `Children`, so renderers walk the node hierarchy recursively.
 
 ### Layout Tree Dependencies
@@ -119,7 +119,7 @@ the shared notation vocabulary).
 The unit is written by layout algorithms in `DemaConsulting.Rendering.Layout` — the `layered`,
 `containment`, and `hierarchical` algorithms and the orthogonal edge router — and read by renderers
 in `DemaConsulting.Rendering.Svg` and `DemaConsulting.Rendering.CanvasNet` (`SvgRenderer`,
-`PngRenderer`, `JpegRenderer`). The `ILayoutAlgorithm` and `IRenderer` contracts in
+`PngRenderer`, `JpegRenderer`). The `LayoutAlgorithmBase` and `IRenderer` contracts in
 `DemaConsulting.Rendering.Abstractions` reference `LayoutTree` and its geometry types as their
 produced and consumed values. Application code typically does not construct a `LayoutTree` directly;
 it obtains one from a layout algorithm and passes it to a renderer.

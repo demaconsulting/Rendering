@@ -3,7 +3,7 @@
 ## Architecture
 
 `DemaConsulting.Rendering.Layout` is the placement system for the Rendering stack. A caller supplies a
-`LayoutGraph` plus `LayoutOptions`; the system returns a placed `LayoutTree` of boxes and orthogonally
+`LayoutGraph` configured through its own properties; the system returns a placed `LayoutTree` of boxes and orthogonally
 routed connectors that downstream renderers can draw without layout knowledge. The system exposes
 bundled algorithms for layered, containment, hierarchical, and auto (meta-algorithm) layout, built on
 reusable geometric engines.
@@ -48,7 +48,7 @@ DemaConsulting.Rendering.Layout (System)
   components, routes each to whichever bundled leaf algorithm best suits its shape, and packs the
   results into one combined tree. Detailed in AutoLayoutAlgorithm Unit Design.
 
-The public algorithms implement `ILayoutAlgorithm` from Rendering.Abstractions and compose the Engine
+The public algorithms derive from `LayoutAlgorithmBase` from Rendering.Abstractions and compose the Engine
 subsystem's model-agnostic geometry. The `DefaultLayout` facade resolves the requested algorithm from
 the bundled registry. The hierarchical algorithm composes leaf algorithms per container and routes
 cross-container edges at the owning scope. The auto algorithm composes the other three bundled
@@ -56,11 +56,12 @@ algorithms per connected component and packs their independently-placed results 
 
 ## External Interfaces
 
-- **`ILayoutAlgorithm` implementations** — outbound; `LayeredLayoutAlgorithm`,
+- **`LayoutAlgorithmBase` implementations** — outbound; `LayeredLayoutAlgorithm`,
   `ContainmentLayoutAlgorithm`, `HierarchicalLayoutAlgorithm`, and `AutoLayoutAlgorithm` each realize
-  the Abstractions layout contract, accepting a `LayoutGraph` plus `LayoutOptions` and returning a
-  placed `LayoutTree`. Each advertises an identifier (`layered`, `containment`, `hierarchical`,
-  `auto`) for registry resolution.
+  the Abstractions layout contract: the public `Apply(LayoutGraph)` accepts a `LayoutGraph` (configured
+  through its own properties) and returns a placed `LayoutTree`, and each overrides the protected
+  `ApplyCore(LayoutGraph, LayoutOptions)` that receives cascaded scope settings. Each advertises an
+  identifier (`layered`, `containment`, `hierarchical`, `auto`) for registry resolution.
 - **`LayoutEngine` facade / bundled registry (DefaultLayout)** — outbound entry points; resolve and run
   the requested (or default) algorithm.
 - **`EdgeRoutingOption`** — outbound `LayoutProperty` keys that select connector routing style.
@@ -72,7 +73,7 @@ algorithms per connected component and packs their independently-placed results 
 
 The system references the *Rendering Model* package (`DemaConsulting.Rendering`) for `LayoutGraph`,
 `LayoutOptions`, `CoreOptions`, and `LayoutTree`, and the *Rendering Abstractions* package
-(`DemaConsulting.Rendering.Abstractions`) for the `ILayoutAlgorithm` contract and registries. It has no
+(`DemaConsulting.Rendering.Abstractions`) for the `LayoutAlgorithmBase` contract and registries. It has no
 runtime NuGet package dependencies beyond the .NET base class library; all NuGet references are
 build-time-only private assets (SBOM, SourceLink, API documentation, and `Polyfill`). No OTS runtime
 component or Shared Package is consumed.
@@ -85,22 +86,22 @@ architectural segregation (IEC 62304 §5.3.3).
 ## Data Flow
 
 ```text
-LayoutGraph + LayoutOptions
+LayoutGraph (+ properties)
         │
-        ▼  selected ILayoutAlgorithm (layered / containment / hierarchical / auto)
+        ▼  selected LayoutAlgorithmBase (layered / containment / hierarchical / auto)
    Engine geometry (layered pipeline, packing, routing)
         │
         ▼
     LayoutTree  (placed boxes + orthogonally routed connectors)  ──►  renderer
 ```
 
-A caller passes an input graph and options; the selected algorithm drives the Engine subsystem to
+A caller passes an input graph that carries its own options; the selected algorithm drives the Engine subsystem to
 assign positions, pack containers, and route connectors, then returns a placed `LayoutTree`. Renderers
 consume only that placed tree and never call the geometric engines directly.
 
 ## Design Constraints
 
-- **Target frameworks**: `netstandard2.0`, `net8.0`, `net9.0`, and `net10.0`. The `netstandard2.0`
+- **Target frameworks**: `netstandard2.0`, `net8.0`, `net9.0`, `net10.0`, and `net11.0`. The `netstandard2.0`
   target exists so layout can run inside a Roslyn analyzer or source generator, which the compiler
   loads into a `netstandard2.0` context.
 - **Determinism**: algorithms and engines are stateless between calls and produce reproducible

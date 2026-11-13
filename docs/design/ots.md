@@ -9,7 +9,7 @@ one exception: it is a pure managed runtime library linked into the delivered
 
 ## OTS Items
 
-The repository integrates eleven OTS items:
+The repository integrates twelve OTS items:
 
 ```text
 OTS Software Items
@@ -21,6 +21,7 @@ OTS Software Items
 ├── SarifMark    — CodeQL SARIF-to-Markdown conversion
 ├── CanvasNet          — pure managed raster graphics library (surface drawing and PNG/JPEG encoding)
 ├── SonarMark          — SonarCloud quality-report generation
+├── SysML2Tools  — SysML2 architecture-model linting and view rendering
 ├── VersionMark  — tool-version capture and publishing
 ├── WeasyPrint   — HTML-to-PDF (PDF/A) conversion
 └── xUnit        — unit-testing framework
@@ -34,7 +35,7 @@ Features Used, and Integration Pattern. This document covers the shared integrat
 The OTS items fall into three consumption models:
 
 - **.NET local tools** — BuildMark, FileAssert, Pandoc, ReqStream, ReviewMark, SarifMark,
-  SonarScanner for .NET, SonarMark, VersionMark, and WeasyPrint are installed as local .NET tools
+  SonarScanner for .NET, SonarMark, SysML2Tools, VersionMark, and WeasyPrint are installed as local .NET tools
   through the `.config/dotnet-tools.json` manifest and restored with `dotnet tool restore`. They are
   invoked as `dotnet {tool}` commands from the CI workflows (`.github/workflows/build.yaml` and
   `release.yaml`) and, for the linting subset, from `lint.ps1`. The Pandoc and WeasyPrint tools are

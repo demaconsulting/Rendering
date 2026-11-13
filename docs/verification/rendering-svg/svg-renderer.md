@@ -22,7 +22,7 @@ attribute values, well-formed XML, and geometric parity with `NotationMetrics`.
 
 ### Test Environment
 
-- **Framework**: xUnit v4 on the .NET SDK, run against the `net8.0`, `net9.0`, and `net10.0`
+- **Framework**: xUnit v4 on the .NET SDK, run against the `net8.0`, `net9.0`, `net10.0`, and `net11.0`
   target frameworks.
 - **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Dependencies**: none — no external services, databases, files, or network access are used;

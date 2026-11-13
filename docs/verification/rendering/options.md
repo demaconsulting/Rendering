@@ -22,7 +22,7 @@ either the stored value or the property's declared default is returned as specif
 - **Test project**: `DemaConsulting.Rendering.Tests`, source file `PropertyHolderTests.cs`
   (`PropertyHolder`/cascading tests) and `CoreOptionsTests.cs` (`CoreOptions.MergeParallelEdges` /
   `AssumedFontSize` key tests).
-- **Runtime**: any target framework built by the solution (`net8.0`, `net9.0`, or `net10.0`).
+- **Runtime**: any target framework built by the solution (`net8.0`, `net9.0`, `net10.0`, or `net11.0`).
 - **Dependencies**: none beyond the standard test runner; no external services, network, filesystem,
   or configuration is required.
 - **Isolation**: each test constructs its own `PropertyHolder` and `LayoutProperty<T>` instances, so

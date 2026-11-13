@@ -9,7 +9,7 @@ algorithm consumes: a `LayoutGraph` container of `LayoutGraphNode` boxes and `La
 connections, each derived from `PropertyHolder` so that graph-wide, node-level, and edge-level
 options may be attached anywhere on the input. It supports hierarchical (compound) nesting through a
 node's lazily-allocated `Children` graph. The unit performs no layout and no rendering; it is only
-the input vocabulary passed to `ILayoutAlgorithm.Apply`.
+the input vocabulary passed to `LayoutAlgorithmBase.Apply`.
 
 ### Layout Graph Overview
 
@@ -191,7 +191,7 @@ the .NET base class library.
 
 Application code constructs a `LayoutGraph` and populates it through `AddNode`, `AddEdge`, and (for
 compound diagrams) the recursive `LayoutGraphNode.Children` graph. The populated graph is passed to
-`ILayoutAlgorithm.Apply` in `DemaConsulting.Rendering.Abstractions`, which is implemented by the
+`LayoutAlgorithmBase.Apply` in `DemaConsulting.Rendering.Abstractions`, which is implemented by the
 `LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`, and `HierarchicalLayoutAlgorithm` in
 `DemaConsulting.Rendering.Layout`. The bundled `LayeredLayoutAlgorithm` consumes only the top-level
 `Nodes` and `Edges`; the recursive `Children` structure is consumed by the hierarchical layout
@@ -199,11 +199,12 @@ engine.
 
 ### Layout Graph Interactions
 
-A `LayoutGraph` plus a `LayoutOptions` is the input to `ILayoutAlgorithm.Apply` (see the
-*Rendering Abstractions* design), which produces a placed `LayoutTree`. Each `LayoutGraphEdge`
+A `LayoutGraph`, configured through its own properties, is the input to the public
+`LayoutAlgorithmBase.Apply(LayoutGraph)` (see the *Rendering Abstractions* design), which produces a
+placed `LayoutTree`. Each `LayoutGraphEdge`
 carries an `EndMarkerStyle` and `LineStyle` from the Layout Tree unit's enumerations. The bundled
 `LayeredLayoutAlgorithm` (see the *Rendering Layout* design) consumes only the top-level `Nodes` and
-`Edges`; the recursive `Children` structure is intended for a future hierarchical layout engine.
+`Edges`; the recursive `Children` structure is consumed by the hierarchical layout engine.
 
 ### Requirements Traceability
 

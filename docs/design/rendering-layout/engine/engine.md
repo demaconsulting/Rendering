@@ -34,7 +34,7 @@ design documents listed above.
 #### Engine Interfaces
 
 The Engine subsystem is a Layout-internal collection of geometric services; it exposes no public
-`ILayoutAlgorithm` or `IRenderer` interface of its own. Its interfaces are:
+`LayoutAlgorithmBase` subclass or `IRenderer` implementation of its own. Its interfaces are:
 
 - **Inbound (composed by the public Layout algorithms and by `ConnectorRouter`):**
   - `OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, clearance, sourceSide?,

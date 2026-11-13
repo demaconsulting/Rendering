@@ -30,14 +30,15 @@ The units collaborate through the Options unit's `PropertyHolder`, which is the 
 Layout Graph elements, so configuration flows from the input model into the algorithms uniformly. The
 model performs no layout and no rendering; it defines only the shared vocabulary at both ends of the
 pipeline. A layout algorithm (defined in the *Rendering Abstractions* system) consumes a `LayoutGraph`
-plus a `LayoutOptions` and produces a placed `LayoutTree`; a renderer then draws that tree.
+(configured through its own properties) and produces a placed `LayoutTree`; a renderer then draws that tree.
 
 ## External Interfaces
 
 The model exposes its contract as public .NET types rather than service interfaces:
 
 - **`LayoutGraph` (with `LayoutGraphNode`, `LayoutGraphEdge`)** — outbound to layout algorithms; the
-  unplaced input a caller builds and an `ILayoutAlgorithm` consumes. In-memory object model.
+  unplaced input a caller builds and configures through its own properties, and that
+  `LayoutAlgorithmBase.Apply(LayoutGraph)` consumes. In-memory object model.
 - **`LayoutOptions` / `IPropertyHolder` / `LayoutProperty<T>` / `CoreOptions`** — outbound to both
   algorithms and renderers; typed property keys carried on any property holder. Unknown properties
   are ignored, so callers may set options that a given algorithm or renderer does not honor.
@@ -63,9 +64,9 @@ architectural segregation (IEC 62304 §5.3.3).
 The model sits at both ends of the rendering pipeline:
 
 ```text
-LayoutGraph + LayoutOptions        (Rendering: unplaced input + open configuration)
+LayoutGraph (+ properties)         (Rendering: unplaced input + open configuration)
         │
-        ▼  ILayoutAlgorithm        (Rendering.Abstractions: layout SPI)
+        ▼  LayoutAlgorithmBase     (Rendering.Abstractions: layout SPI)
     LayoutTree                     (Rendering: placed boxes and routed connectors)
         │
         ▼  IRenderer               (Rendering.Abstractions: render SPI)
@@ -78,7 +79,7 @@ format. The model itself only defines and carries these values; it neither trans
 
 ## Design Constraints
 
-- **Target frameworks**: `netstandard2.0`, `net8.0`, `net9.0`, and `net10.0`. The `netstandard2.0`
+- **Target frameworks**: `netstandard2.0`, `net8.0`, `net9.0`, `net10.0`, and `net11.0`. The `netstandard2.0`
   target exists so the model can be referenced from a Roslyn analyzer or source generator, which the
   compiler loads into a `netstandard2.0` context.
 - **Determinism and immutability**: the placed types are immutable records or small mutable holders;

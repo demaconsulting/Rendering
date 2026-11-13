@@ -6,7 +6,7 @@ This document maps the containment-layout-algorithm unit requirements to named t
 
 ### Verification Approach
 
-`ContainmentLayoutAlgorithm` is verified by direct xUnit unit tests that call `Apply(graph,
+`ContainmentLayoutAlgorithm` is verified by direct xUnit unit tests that call `ApplyCore(graph,
 options)` on synthetic `LayoutGraph` inputs. The tests use the real `ContainmentPacker` and
 `ConnectorRouter` collaborators (no mocks) so identity, packing, routing (including obstacle
 avoidance), and validation are all observed on production code paths.

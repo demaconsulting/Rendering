@@ -1,8 +1,8 @@
 ---
 title: Rendering Software Design Document
-subtitle: A .NET Reference Implementation for Libraries
+subtitle: General-purpose diagram layout and rendering for .NET
 author: DEMA Consulting
-description: Detailed design document for the Rendering
+description: Software design document for the Rendering libraries
 lang: en-US
 keywords:
   - Rendering

@@ -7,7 +7,7 @@
 #   and renderer implementations.
 # - Each system requirement decomposes downward (children) into unit requirements in the per-unit
 #   sibling files:
-#     - rendering-contracts.yaml      (ILayoutAlgorithm, IRenderer, RenderOptions, RenderOutput)
+#     - rendering-contracts.yaml      (LayoutAlgorithmBase, IRenderer, RenderOptions, RenderOutput)
 #     - registries.yaml               (LayoutAlgorithmRegistry, RendererRegistry)
 #     - theme.yaml                    (Theme and built-in Themes)
 #     - notation-metrics.yaml         (shared notation geometry)

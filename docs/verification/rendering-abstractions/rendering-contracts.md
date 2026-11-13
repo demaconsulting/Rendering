@@ -14,7 +14,7 @@ coverage also appears in `DemaConsulting.Rendering.CanvasNet.Tests`
 ### Verification Approach
 
 The rendering-contracts unit is verified indirectly through the registry tests: because
-`ILayoutAlgorithm` and `IRenderer` are pure abstractions with no behavior, their identity members
+`LayoutAlgorithmBase` and `IRenderer` are abstractions whose behavior is supplied by implementations, their identity members
 (`Id`, `MediaType`, `DefaultExtension`, `FileExtensions`) are exercised by round-tripping them
 through the two registries. The tests use test-local `FakeAlgorithm` and `FakeRenderer`
 implementations for that round-trip, and additionally exercise the concrete `PngRenderer` to prove
@@ -24,7 +24,7 @@ members and needs no dedicated test scenarios beyond compilation.
 
 ### Test Environment
 
-- **Framework**: xUnit v4 running under the .NET SDK on `net8.0`, `net9.0`, and `net10.0`.
+- **Framework**: xUnit v4 running under the .NET SDK on `net8.0`, `net9.0`, `net10.0`, and `net11.0`.
 - **Execution**: `dotnet test` invoked by `build.ps1` and by the CI pipeline.
 - **Test projects**: `DemaConsulting.Rendering.Abstractions.Tests` (`RegistryTests.cs`) and
   `DemaConsulting.Rendering.CanvasNet.Tests` (`CanvasNetFormatRendererTests.cs`) for
@@ -40,23 +40,23 @@ documented identity member value; any missing member on a resolved instance or a
 ### Test Scenarios
 
 The contract interfaces carry no behavior of their own; their identity members are verified through
-the fake implementations registered in the registry tests. `FakeAlgorithm` implements
-`ILayoutAlgorithm` (returning `Id` "fake") and `FakeRenderer` implements `IRenderer` (returning
+the fake implementations registered in the registry tests. `FakeAlgorithm` derives from
+`LayoutAlgorithmBase` (returning `Id` "fake") and `FakeRenderer` implements `IRenderer` (returning
 `MediaType` "text/plain", `DefaultExtension` ".txt", and `FileExtensions` ".txt" and ".text").
 
 #### Algorithm identifier is exercised
 
 Test `LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm` registers a `FakeAlgorithm`,
 resolves it, and reads the resolved algorithm's `Id`, asserting it is "fake" and thereby exercising
-`ILayoutAlgorithm.Id`.
+`LayoutAlgorithmBase.Id`.
 
 **Covers**: `Rendering-Abstractions-Contracts-AlgorithmIdentifier`.
 
 #### Algorithm apply contract is exercised
 
 Test `LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm` registers and resolves a
-`FakeAlgorithm` implementing `ILayoutAlgorithm.Apply`, exercising the contract's apply operation
-through the registry round-trip.
+`FakeAlgorithm` overriding `LayoutAlgorithmBase.ApplyCore` and invokes the public `Apply`,
+exercising the contract's apply operation through the registry round-trip.
 
 **Covers**: `Rendering-Abstractions-Contracts-AlgorithmApply`.
 

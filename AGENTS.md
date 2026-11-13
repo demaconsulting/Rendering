@@ -8,7 +8,8 @@
   is inspired by the Eclipse Layout Kernel (ELK): layout and rendering are configured through an
   open, extensible property system, and new algorithms, renderers, and options are added additively.
 - **languages**: C#
-- **technologies**: .NET, CanvasNet
+- **technologies**: .NET (netstandard2.0, net8.0, net9.0, net10.0, net11.0; the CanvasNet
+  renderer package targets net8.0, net9.0, net10.0, net11.0), CanvasNet
 
 # Project Structure
 
@@ -22,11 +23,12 @@
 │   ├── requirements_doc/
 │   ├── requirements_report/
 │   ├── reqstream/
+│   ├── sysml2/
 │   ├── user_guide/
 │   └── verification/
 ├── src/
 │   ├── DemaConsulting.Rendering/                (layout model: LayoutTree IR, property system, LayoutGraph)
-│   ├── DemaConsulting.Rendering.Abstractions/    (SPI: ILayoutAlgorithm/IRenderer, registries, Theme, metrics)
+│   ├── DemaConsulting.Rendering.Abstractions/    (SPI: LayoutAlgorithmBase/IRenderer, registries, Theme, metrics)
 │   ├── DemaConsulting.Rendering.Layout/          (layout algorithms: layered pipeline, LayeredLayoutAlgorithm)
 │   ├── DemaConsulting.Rendering.Svg/             (SVG renderer, zero external dependencies)
 │   └── DemaConsulting.Rendering.CanvasNet/       (CanvasNet raster renderers: PNG, JPEG)
@@ -54,10 +56,12 @@ This repository follows a reference template for structure and file conventions.
 
 # Codebase Navigation (ALL Agents)
 
-When working with source code, design, or requirements artifacts, read
-`docs/design/introduction.md` first. It provides the software structure,
-folder layout, and companion artifact locations. Use it as the primary map
-before searching the filesystem.
+When working with source code, design, or requirements artifacts, query the SysML2
+architecture model under `docs/sysml2/` first (see the `sysml2tools-query` skill) to
+understand software structure, purpose, and relationships. Fall back to
+`docs/design/introduction.md` for the human-facing narrative, folder layout, and
+companion artifact locations, and use it as the primary map when the model doesn't
+yet cover something.
 
 # Key Configuration Files
 
@@ -72,6 +76,7 @@ before searching the filesystem.
 - **`package.json`** - Node.js dependencies for formatting tools
 - **`requirements.yaml`** - Root requirements file with includes
 - **`pip-requirements.txt`** - Python dependencies for yamllint and yamlfix
+- **`docs/sysml2/`** - SysML2 architecture model; authoritative source for software structure
 - **`fix.ps1`** - Applies all auto-fixers silently (dotnet format, markdown, YAML). Always exits 0.
 - **`build.ps1`** - Builds the solution and runs all tests.
 
@@ -88,10 +93,31 @@ from `.github/standards/`. Use this matrix to determine which to load:
 - **Design docs**: `software-items.md`, `design-documentation.md`, `technical-documentation.md`
 - **Verification docs**: `software-items.md`, `verification-documentation.md`, `technical-documentation.md`
 - **Review configuration**: `software-items.md`, `reviewmark-usage.md`
+- **Software structure**: `sysml2-modeling.md`
 - **Any documentation**: `technical-documentation.md`
 - **Diagrams in documentation**: `diagram-documentation.md` (and the `canvasnet` skill for tooling)
 
 Load only the standards relevant to your specific task scope.
+
+# Repository-Specific Standards Exceptions
+
+The files in `.github/standards/` are shared verbatim across repositories. This repository
+applies these accepted exceptions on top of them:
+
+## Microsoft.Testing.Platform Test Runner (`csharp-testing.md`)
+
+The test projects run xUnit v4 on Microsoft.Testing.Platform (MTP) rather than the VSTest host,
+as selected by `global.json` (`"test": { "runner": "Microsoft.Testing.Platform" }`). In place
+of the package references listed in `csharp-testing.md`:
+
+- Reference `xunit.v3` (xUnit v4, with built-in MTP support),
+  `Microsoft.Testing.Extensions.CodeCoverage` (coverage collector), and
+  `Microsoft.Testing.Extensions.TrxReport` (adds `--report-trx`).
+- Set `<UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>` so each
+  test assembly runs as a standalone MTP executable.
+- Do not reference `Microsoft.NET.Test.Sdk` or `xunit.runner.visualstudio`; `dotnet test`
+  rejects VSTest-based projects under the MTP runner.
+- Produce TRX results with `dotnet test --report-trx` (not `--logger trx`).
 
 # Agent Delegation Guidelines
 
@@ -143,7 +169,7 @@ responsibility - invoke the lint-fix agent once before submitting a pull request
 ## CI Quality Tools
 
 CI runs `lint.ps1` which checks: markdownlint-cli2, textlint, yamllint, dotnet format,
-reqstream, versionmark, and reviewmark.
+reqstream, versionmark, reviewmark, and sysml2tools.
 
 # Scope Discipline (ALL Agents Must Follow)
 

@@ -12,7 +12,7 @@ authors, they are verified through a combination of self-validation and observab
 than through bespoke test suites:
 
 - **Self-validation** — most DemaConsulting tools (BuildMark, ReqStream, ReviewMark, SarifMark,
-  SonarMark, VersionMark) expose a `--validate` mode that runs a built-in self-validation suite and
+  SonarMark, SysML2Tools, VersionMark) expose a `--validate` mode that runs a built-in self-validation suite and
   writes a TRX result (for example, `dotnet reqstream --validate --results
   artifacts/reqstream-self-validation.trx`). ReqStream then traces those TRX results against the OTS
   requirements in `requirements.yaml`.

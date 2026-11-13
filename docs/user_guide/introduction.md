@@ -56,9 +56,11 @@ Installing a renderer or the layout package transitively brings in the model and
   `LayoutGraphEdge` connections. The graph is recursive — a node may contain a nested child subgraph
   through its `Children` — so hierarchical (grouped) diagrams are expressible (see below).
 - **`LayoutOptions`** — an open, property-keyed configuration bag. Options are declared as typed
-  `LayoutProperty<T>` keys (see `CoreOptions`) and can be attached to the whole graph, a single
-  element, or a free-standing options object.
-- **`ILayoutAlgorithm`** — consumes a `LayoutGraph` plus `LayoutOptions` and produces a placed
+  `LayoutProperty<T>` keys (see `CoreOptions`) and are attached to the whole graph or a single
+  element; a free-standing `LayoutOptions` only carries the cascaded settings an algorithm passes to a
+  nested scope internally.
+- **`LayoutAlgorithmBase`** — the base class every layout algorithm derives from. Its `Apply(graph)`
+  consumes a `LayoutGraph` (configured through the graph's own properties) and produces a placed
   `LayoutTree`. Bundled implementations are `LayeredLayoutAlgorithm` (id `"layered"`),
   `ContainmentLayoutAlgorithm` (id `"containment"`), the recursive `HierarchicalLayoutAlgorithm`
   (id `"hierarchical"`), and the auto-routing `AutoLayoutAlgorithm` (id `"auto"`).
@@ -134,8 +136,8 @@ var packed = LayoutEngine.Layout(graph);
 The graph is the single place to configure a layout — `LayoutGraph` is itself an `IPropertyHolder`, so
 `graph.Set(CoreOptions.Algorithm, "containment")` is all it takes to select an algorithm; there is no
 separate options object to keep in sync with it. If you prefer to skip the facade you can still
-instantiate an algorithm directly and call `Apply` — `new LayeredLayoutAlgorithm().Apply(graph, new
-LayoutOptions())` — but `LayoutEngine` is the recommended
+instantiate an algorithm directly and call `Apply` — `new LayeredLayoutAlgorithm().Apply(graph)` — but
+`LayoutEngine` is the recommended
 entry point because it also handles nesting.
 
 ## Describing nested (hierarchical) graphs
@@ -231,27 +233,26 @@ group.TitleHeight = BoxMetrics.TitleAreaHeight(Themes.Light, hasLabel: true, has
 
 ## Configuring layout with options
 
-Options are set with typed keys from `CoreOptions`. Unknown or not-yet-honored options default
+Options are set with typed keys from `CoreOptions` directly on the graph and its elements — the graph
+is the single place a layout is configured. Unknown or not-yet-honored options default
 harmlessly, so it is always safe to set an option even if the chosen algorithm does not yet act
 on it:
 
 ```csharp
-var options = new LayoutOptions();
-options.Set(CoreOptions.Algorithm, "layered");
-options.Set(CoreOptions.Direction, LayoutFlowDirection.Down);   // flow the layers top-to-bottom
+graph.Set(CoreOptions.Algorithm, "layered");
+graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);   // flow the layers top-to-bottom
 
 // Per-element overrides: any graph element is also a property holder.
 a.Set(CoreOptions.NodeSpacing, 32.0);
 
 // Routing style rides the same property system, mirroring ELK's elk.edgeRouting.
-options.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
+graph.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
 ```
 
 `CoreOptions.Direction` selects the flow direction the layered algorithm arranges its layers along:
 `Right` (the default) and `Left` flow the layers left-to-right and right-to-left, while `Down` and
 `Up` flow them top-to-bottom and bottom-to-top — the convention for action flows and state machines. A
 downward flow swaps each node's width and height before layering so layer spacing follows node height.
-As with the algorithm, a declaration on the graph takes precedence over one on the options.
 
 ## Parallel edges and named ports
 
@@ -343,17 +344,16 @@ horizontal- and vertical-flow examples, including both fan-out directions.
 
 ## Option cascading
 
-Every well-known option cascades: it can be set at the free-standing `LayoutOptions`, at a
-`LayoutGraph` (a node's or the whole graph's own scope), or at a container node's `Children` graph, and
+Every well-known option cascades: it can be set on the root `LayoutGraph` (the whole graph's own scope),
+on a node, or on a container node's `Children` graph, and
 each scope's own explicit value wins over its parent's, falling back to the option's declared default
 only when no scope in the chain sets it. This is nearest-ancestor-wins resolution, not first-set-wins:
 a deeper, more specific override always takes precedence over one set higher in the tree.
 
 ```csharp
-var options = new LayoutOptions();
-options.Set(CoreOptions.Direction, LayoutFlowDirection.Right);   // root default: flow rightward
-
 var graph = new LayoutGraph();
+graph.Set(CoreOptions.Direction, LayoutFlowDirection.Right);   // root default: flow rightward
+
 var pipeline = graph.AddNode("pipeline", 10, 10);
 
 // A container's own children graph may override an option for everything nested inside it...
@@ -368,9 +368,8 @@ nested.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Right);
 Here `validate`'s siblings inherit `pipeline.Children`'s `Down` override (the nearest ancestor that set
 one), while `nested`'s own children flow `Right` again, because `nested.Children`'s own explicit
 override is nearer than `pipeline.Children`'s. `HierarchicalLayoutAlgorithm` builds this per-scope
-resolution automatically for every nested container using `PropertyHolder.OverlayOnto`; algorithms
-invoked directly on a single flat graph resolve the same way against whatever `LayoutOptions` they are
-given.
+resolution automatically for every nested container using `PropertyHolder.OverlayOnto`; an algorithm
+applied directly to a single flat graph resolves the same way against the graph's own settings.
 
 ## Routing connectors among placed boxes
 
@@ -647,8 +646,8 @@ renderers.Register(new PngRenderer());
 renderers.Register(new JpegRenderer());
 
 // Resolve and apply an algorithm by id (or hand the registry to LayoutEngine.Layout).
-var algorithm = algorithms.Resolve(options.Get(CoreOptions.Algorithm)); // e.g. "layered"
-var tree = algorithm.Apply(graph, options);
+var algorithm = algorithms.Resolve(graph.Get(CoreOptions.Algorithm)); // e.g. "layered"
+var tree = algorithm.Apply(graph);
 
 // Resolve the renderer directly from the desired output filename's extension.
 var outputPath = "diagram.png";
@@ -685,8 +684,9 @@ assert that each image is valid, so the gallery never dirties the repository dur
 
 The library is open for extension without modifying existing code:
 
-- **New layout algorithms** (for example tree, force, or packing layouts) implement
-  `ILayoutAlgorithm` and are registered under a new id. Consumers select them via
+- **New layout algorithms** (for example tree, force, or packing layouts) derive from
+  `LayoutAlgorithmBase` (overriding `Id` and `ApplyCore`) and are registered under a new id.
+  Consumers select them via
   `CoreOptions.Algorithm`.
 - **New output formats** implement `IRenderer` with a distinct `MediaType` and file extensions and
   register alongside the bundled SVG, PNG, and JPEG renderers.

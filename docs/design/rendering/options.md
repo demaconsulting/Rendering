@@ -90,9 +90,11 @@ Within the Rendering model, the Layout Graph unit's `LayoutGraph`, `LayoutGraphN
 this unit. Outside the model, layout algorithms in `DemaConsulting.Rendering.Layout` and renderers in
 `DemaConsulting.Rendering.Svg` and `DemaConsulting.Rendering.CanvasNet` read `LayoutOptions` and
 `CoreOptions` keys to configure their behavior; the shared abstractions in
-`DemaConsulting.Rendering.Abstractions` also consume `LayoutOptions` as the configuration parameter of
-`ILayoutAlgorithm.Apply`. Application code builds a `LayoutOptions` (often via `ForAlgorithm`) and
-passes it to a layout facade.
+`DemaConsulting.Rendering.Abstractions` pass `LayoutOptions` only to the protected
+`LayoutAlgorithmBase.ApplyCore(LayoutGraph, LayoutOptions)`, as the cascaded settings of an enclosing
+scope. Application code configures a layout by setting options directly on the `LayoutGraph` and its
+elements and calls the public `LayoutAlgorithmBase.Apply(LayoutGraph)` or the `LayoutEngine` facade;
+there is no separate options argument on the public API.
 
 ### Options Design Constraints
 

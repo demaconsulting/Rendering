@@ -4,7 +4,7 @@ Part of the Rendering Layout system.
 
 ### ContainmentLayoutAlgorithm Purpose
 
-`ContainmentLayoutAlgorithm` is a second public `ILayoutAlgorithm` implementation alongside
+`ContainmentLayoutAlgorithm` is a second public `LayoutAlgorithmBase` implementation alongside
 `LayeredLayoutAlgorithm`. Where the layered algorithm arranges nodes by their connectivity into
 Sugiyama layers, the containment algorithm arranges them by their reading order: it packs the graph's
 top-level nodes into rows within a heuristic width budget and then routes each edge around the packed
@@ -23,13 +23,15 @@ the router's approach stub so a connector can pass cleanly between two packed bo
 (`6`) gates the column-count-based content-width candidate to sets large enough for multi-column packing
 to plausibly make sense; and `ColumnEstimateFullWeightSizeRatio` (`2.0`) / `ColumnEstimateZeroWeightSizeRatio`
 (`6.0`) bound the graduated falloff that scales that candidate's contribution by how uniform the boxes
-are in size (see Methods, below). Its single behavior is `Apply(LayoutGraph graph, LayoutOptions options)`,
+are in size (see Methods, below). Its single behavior is the
+`ApplyCore(LayoutGraph graph, LayoutOptions options)` override (reached through the base class's public
+`Apply(LayoutGraph graph)`),
 which returns a `LayoutTree` carrying the packed region size and a flat list of `LayoutNode` items
 (`LayoutBox` per top-level node followed by `LayoutLine` per routed edge).
 
 ### ContainmentLayoutAlgorithm Methods
 
-`Apply(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, then:
+`ApplyCore(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, then:
 
 1. **Leaf-box conversion.** Converts each top-level `LayoutGraphNode` into a leaf `LayoutBox` at the
    origin (carrying the node's width, height, and label), recording each node's positional index. A
@@ -96,7 +98,7 @@ skipped rather than treated as errors. All other behavior is inherited from the 
 
 ### ContainmentLayoutAlgorithm Dependencies
 
-- `DemaConsulting.Rendering.Abstractions` — `ILayoutAlgorithm` defines the service-provider contract
+- `DemaConsulting.Rendering.Abstractions` — `LayoutAlgorithmBase` defines the service-provider contract
   this public algorithm implements.
 - `DemaConsulting.Rendering` — `LayoutGraph`, `LayoutTree`, `LayoutBox`, `LayoutLine`, and the graph
   node and edge model types carry the input graph and returned placed layout.
@@ -120,7 +122,7 @@ through the layout registry under the `"containment"` identifier and select it t
 ### ContainmentLayoutAlgorithm Interactions
 
 `ContainmentLayoutAlgorithm` composes `ContainmentLayout` for packing and `ConnectorRouter` for edge
-routing, adapting their combined output to the public `ILayoutAlgorithm` contract.
+routing, adapting their combined output to the public `LayoutAlgorithmBase` contract.
 
 ### Requirements Traceability
 
