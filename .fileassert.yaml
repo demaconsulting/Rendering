@@ -245,7 +245,7 @@ tests:
             - field: "Author"
               contains: "DEMA Consulting"
             - field: "Subject"
-              contains: "Reference Implementation"
+              contains: "User guide"
           pages:
             min: 3
           text:

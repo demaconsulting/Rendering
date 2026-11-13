@@ -4,7 +4,7 @@ Part of the Rendering Layout system.
 
 ### LayeredLayoutAlgorithm Purpose
 
-`LayeredLayoutAlgorithm` is the public `ILayoutAlgorithm` implementation and the system's product
+`LayeredLayoutAlgorithm` is the public `LayoutAlgorithmBase` implementation and the system's product
 boundary. It arranges an input `LayoutGraph` into Sugiyama layers, routes edges orthogonally, and
 produces a placed `LayoutTree` of boxes and connectors. It wraps the reusable layered pipeline via
 `InterconnectionLayoutEngine`.
@@ -149,7 +149,7 @@ minimal-size empty result, which produces an empty canvas.
 
 ### LayeredLayoutAlgorithm Interactions
 
-`LayeredLayoutAlgorithm` depends on the `ILayoutAlgorithm`, `LayoutGraph`, `LayoutTree`, and related
+`LayeredLayoutAlgorithm` depends on the `LayoutAlgorithmBase`, `LayoutGraph`, `LayoutTree`, and related
 model types from `DemaConsulting.Rendering.Abstractions` and on `InterconnectionLayoutEngine` from
 the Engine subsystem. It is the entry point resolved by renderers through the layout registry.
 

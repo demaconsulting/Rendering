@@ -67,7 +67,7 @@ declared algorithm identifier absent from the resolving registry surfaces the re
 
 `LayoutAlgorithms` and `LayoutEngine` depend on the following items:
 
-- **Rendering.Abstractions** (`LayoutAlgorithmRegistry`, `ILayoutAlgorithm`) — the registry type
+- **Rendering.Abstractions** (`LayoutAlgorithmRegistry`, `LayoutAlgorithmBase`) — the registry type
   populated by `CreateDefaultRegistry` and the algorithm contract resolved and invoked by
   `LayoutEngine.Layout`.
 - **Rendering model** (`DemaConsulting.Rendering`) — the `LayoutGraph` and

@@ -2,7 +2,7 @@
 title: Rendering Verification Design Document
 subtitle: General-purpose diagram layout and rendering for .NET
 author: DEMA Consulting
-description: Verification design document for the Rendering
+description: Verification design document for the Rendering libraries
 lang: en-US
 keywords:
   - Rendering

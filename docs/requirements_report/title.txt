@@ -2,7 +2,7 @@
 title: Rendering Trace Matrix
 subtitle: General-purpose diagram layout and rendering for .NET
 author: DEMA Consulting
-description: Requirements Traceability Matrix for the Rendering
+description: Requirements Traceability Matrix for the Rendering libraries
 lang: en-US
 keywords:
   - Rendering

@@ -91,7 +91,7 @@ this unit. Outside the model, layout algorithms in `DemaConsulting.Rendering.Lay
 `DemaConsulting.Rendering.Svg` and `DemaConsulting.Rendering.CanvasNet` read `LayoutOptions` and
 `CoreOptions` keys to configure their behavior; the shared abstractions in
 `DemaConsulting.Rendering.Abstractions` also consume `LayoutOptions` as the configuration parameter of
-`ILayoutAlgorithm.Apply`. Application code builds a `LayoutOptions` (often via `ForAlgorithm`) and
+`LayoutAlgorithmBase.Apply`. Application code builds a `LayoutOptions` (often via `ForAlgorithm`) and
 passes it to a layout facade.
 
 ### Options Design Constraints

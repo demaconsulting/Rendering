@@ -4,7 +4,7 @@
 
 `DemaConsulting.Rendering.Abstractions` is the service provider interface (SPI) that sits between the
 rendering model (*Rendering Model* system, `DemaConsulting.Rendering`) and the concrete layout and
-renderer implementations. It defines the pluggable `ILayoutAlgorithm` and `IRenderer` contracts, the
+renderer implementations. It defines the pluggable `LayoutAlgorithmBase` and `IRenderer` contracts, the
 registries that resolve an implementation by identifier, media type, or file extension, the visual
 `Theme` model, and the single-source geometry helpers that let every renderer draw identical
 decorations.
@@ -22,7 +22,7 @@ DemaConsulting.Rendering.Abstractions (System)
 └── PortLabelWidthEstimator (Unit)
 ```
 
-- **Rendering Contracts** — `ILayoutAlgorithm`, `IRenderer`, `RenderOptions`, `RenderOutput`. Detailed
+- **Rendering Contracts** — `LayoutAlgorithmBase`, `IRenderer`, `RenderOptions`, `RenderOutput`. Detailed
   in Rendering Contracts Unit Design.
 - **Registries** — `LayoutAlgorithmRegistry`, `RendererRegistry`. Detailed in Registries Unit Design.
 - **Theme** — `Theme` and the built-in `Themes`. Detailed in Theme Unit Design.
@@ -35,7 +35,7 @@ DemaConsulting.Rendering.Abstractions (System)
   between layout time and render time. Detailed in Port Label Width Estimator Unit Design.
 
 The contracts and registries collaborate to make the pipeline extensible: callers resolve an
-`ILayoutAlgorithm` from `LayoutAlgorithmRegistry` by its configured identifier and an `IRenderer` from
+`LayoutAlgorithmBase` from `LayoutAlgorithmRegistry` by its configured identifier and an `IRenderer` from
 `RendererRegistry` by media type or output file extension, so additional diagram families and output
 formats are introduced purely additively. The `Theme` and the four geometry helpers (`NotationMetrics`,
 `BoxMetrics`, `ConnectorLabelPlacer`, `PortLabelWidthEstimator`) are the single source of truth that
@@ -44,7 +44,7 @@ in the downstream Rendering.Layout, Rendering.Svg, and Rendering.CanvasNet syste
 
 ## External Interfaces
 
-- **`ILayoutAlgorithm`** — inbound extension point implemented by layout systems; accepts a
+- **`LayoutAlgorithmBase`** — inbound extension point implemented by layout systems; accepts a
   `LayoutGraph` plus `LayoutOptions` and returns a placed `LayoutTree`. Each implementation advertises
   an identifier used for registry lookup.
 - **`IRenderer`** — inbound extension point implemented by renderer systems; accepts a `LayoutTree`,
@@ -73,14 +73,14 @@ architectural segregation (IEC 62304 §5.3.3).
 ## Data Flow
 
 ```text
-LayoutGraph + LayoutOptions  ──►  ILayoutAlgorithm  ──►  LayoutTree
+LayoutGraph + LayoutOptions  ──►  LayoutAlgorithmBase  ──►  LayoutTree
                                                             │
                                     RenderOptions (Theme)   ▼
                                           └────────►  IRenderer  ──►  output Stream
 ```
 
 A `LayoutGraph` plus `LayoutOptions` from the *Rendering Model* system is the input consumed by a
-selected `ILayoutAlgorithm`; the algorithm produces a placed `LayoutTree`, which a selected `IRenderer`
+selected `LayoutAlgorithmBase`; the algorithm produces a placed `LayoutTree`, which a selected `IRenderer`
 draws to a caller-supplied stream. The renderer receives `RenderOptions` (including a `Theme`) and
 reads the shared notation, box, and connector-label geometry so every output format draws the same
 decorations. This system defines the contracts and shared geometry; it moves no data itself.

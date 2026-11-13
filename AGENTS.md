@@ -99,6 +99,26 @@ from `.github/standards/`. Use this matrix to determine which to load:
 
 Load only the standards relevant to your specific task scope.
 
+# Repository-Specific Standards Exceptions
+
+The files in `.github/standards/` are shared verbatim across repositories. This repository
+applies these accepted exceptions on top of them:
+
+## Microsoft.Testing.Platform Test Runner (`csharp-testing.md`)
+
+The test projects run xUnit v4 on Microsoft.Testing.Platform (MTP) rather than the VSTest host,
+as selected by `global.json` (`"test": { "runner": "Microsoft.Testing.Platform" }`). In place
+of the package references listed in `csharp-testing.md`:
+
+- Reference `xunit.v3` (xUnit v4, with built-in MTP support),
+  `Microsoft.Testing.Extensions.CodeCoverage` (coverage collector), and
+  `Microsoft.Testing.Extensions.TrxReport` (adds `--report-trx`).
+- Set `<UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>` so each
+  test assembly runs as a standalone MTP executable.
+- Do not reference `Microsoft.NET.Test.Sdk` or `xunit.runner.visualstudio`; `dotnet test`
+  rejects VSTest-based projects under the MTP runner.
+- Produce TRX results with `dotnet test --report-trx` (not `--logger trx`).
+
 # Agent Delegation Guidelines
 
 The default agent should handle simple, straightforward tasks directly.

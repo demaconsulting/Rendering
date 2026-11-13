@@ -4,7 +4,7 @@ Part of the Rendering Layout system.
 
 ### ContainmentLayoutAlgorithm Purpose
 
-`ContainmentLayoutAlgorithm` is a second public `ILayoutAlgorithm` implementation alongside
+`ContainmentLayoutAlgorithm` is a second public `LayoutAlgorithmBase` implementation alongside
 `LayeredLayoutAlgorithm`. Where the layered algorithm arranges nodes by their connectivity into
 Sugiyama layers, the containment algorithm arranges them by their reading order: it packs the graph's
 top-level nodes into rows within a heuristic width budget and then routes each edge around the packed
@@ -96,7 +96,7 @@ skipped rather than treated as errors. All other behavior is inherited from the 
 
 ### ContainmentLayoutAlgorithm Dependencies
 
-- `DemaConsulting.Rendering.Abstractions` — `ILayoutAlgorithm` defines the service-provider contract
+- `DemaConsulting.Rendering.Abstractions` — `LayoutAlgorithmBase` defines the service-provider contract
   this public algorithm implements.
 - `DemaConsulting.Rendering` — `LayoutGraph`, `LayoutTree`, `LayoutBox`, `LayoutLine`, and the graph
   node and edge model types carry the input graph and returned placed layout.
@@ -120,7 +120,7 @@ through the layout registry under the `"containment"` identifier and select it t
 ### ContainmentLayoutAlgorithm Interactions
 
 `ContainmentLayoutAlgorithm` composes `ContainmentLayout` for packing and `ConnectorRouter` for edge
-routing, adapting their combined output to the public `ILayoutAlgorithm` contract.
+routing, adapting their combined output to the public `LayoutAlgorithmBase` contract.
 
 ### Requirements Traceability
 

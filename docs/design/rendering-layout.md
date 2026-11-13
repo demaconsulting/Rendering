@@ -48,7 +48,7 @@ DemaConsulting.Rendering.Layout (System)
   components, routes each to whichever bundled leaf algorithm best suits its shape, and packs the
   results into one combined tree. Detailed in AutoLayoutAlgorithm Unit Design.
 
-The public algorithms implement `ILayoutAlgorithm` from Rendering.Abstractions and compose the Engine
+The public algorithms derive from `LayoutAlgorithmBase` from Rendering.Abstractions and compose the Engine
 subsystem's model-agnostic geometry. The `DefaultLayout` facade resolves the requested algorithm from
 the bundled registry. The hierarchical algorithm composes leaf algorithms per container and routes
 cross-container edges at the owning scope. The auto algorithm composes the other three bundled
@@ -56,7 +56,7 @@ algorithms per connected component and packs their independently-placed results 
 
 ## External Interfaces
 
-- **`ILayoutAlgorithm` implementations** — outbound; `LayeredLayoutAlgorithm`,
+- **`LayoutAlgorithmBase` implementations** — outbound; `LayeredLayoutAlgorithm`,
   `ContainmentLayoutAlgorithm`, `HierarchicalLayoutAlgorithm`, and `AutoLayoutAlgorithm` each realize
   the Abstractions layout contract, accepting a `LayoutGraph` plus `LayoutOptions` and returning a
   placed `LayoutTree`. Each advertises an identifier (`layered`, `containment`, `hierarchical`,
@@ -72,7 +72,7 @@ algorithms per connected component and packs their independently-placed results 
 
 The system references the *Rendering Model* package (`DemaConsulting.Rendering`) for `LayoutGraph`,
 `LayoutOptions`, `CoreOptions`, and `LayoutTree`, and the *Rendering Abstractions* package
-(`DemaConsulting.Rendering.Abstractions`) for the `ILayoutAlgorithm` contract and registries. It has no
+(`DemaConsulting.Rendering.Abstractions`) for the `LayoutAlgorithmBase` contract and registries. It has no
 runtime NuGet package dependencies beyond the .NET base class library; all NuGet references are
 build-time-only private assets (SBOM, SourceLink, API documentation, and `Polyfill`). No OTS runtime
 component or Shared Package is consumed.
@@ -87,7 +87,7 @@ architectural segregation (IEC 62304 §5.3.3).
 ```text
 LayoutGraph + LayoutOptions
         │
-        ▼  selected ILayoutAlgorithm (layered / containment / hierarchical / auto)
+        ▼  selected LayoutAlgorithmBase (layered / containment / hierarchical / auto)
    Engine geometry (layered pipeline, packing, routing)
         │
         ▼

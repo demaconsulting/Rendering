@@ -2,7 +2,7 @@
 title: Rendering Code Quality Report
 subtitle: General-purpose diagram layout and rendering for .NET
 author: DEMA Consulting
-description: Code Quality Analysis Report for Rendering
+description: Code Quality Analysis Report for the Rendering libraries
 lang: en-US
 keywords:
   - Rendering

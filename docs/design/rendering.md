@@ -37,7 +37,7 @@ plus a `LayoutOptions` and produces a placed `LayoutTree`; a renderer then draws
 The model exposes its contract as public .NET types rather than service interfaces:
 
 - **`LayoutGraph` (with `LayoutGraphNode`, `LayoutGraphEdge`)** — outbound to layout algorithms; the
-  unplaced input a caller builds and an `ILayoutAlgorithm` consumes. In-memory object model.
+  unplaced input a caller builds and a `LayoutAlgorithmBase` consumes. In-memory object model.
 - **`LayoutOptions` / `IPropertyHolder` / `LayoutProperty<T>` / `CoreOptions`** — outbound to both
   algorithms and renderers; typed property keys carried on any property holder. Unknown properties
   are ignored, so callers may set options that a given algorithm or renderer does not honor.
@@ -65,7 +65,7 @@ The model sits at both ends of the rendering pipeline:
 ```text
 LayoutGraph + LayoutOptions        (Rendering: unplaced input + open configuration)
         │
-        ▼  ILayoutAlgorithm        (Rendering.Abstractions: layout SPI)
+        ▼  LayoutAlgorithmBase     (Rendering.Abstractions: layout SPI)
     LayoutTree                     (Rendering: placed boxes and routed connectors)
         │
         ▼  IRenderer               (Rendering.Abstractions: render SPI)

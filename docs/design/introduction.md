@@ -28,7 +28,7 @@ software items:
 
 - **Rendering (System)** — the layout model: the `LayoutTree` intermediate representation,
   the open property system, and the input `LayoutGraph`.
-- **Rendering.Abstractions (System)** — the service-provider interfaces: the `ILayoutAlgorithm`
+- **Rendering.Abstractions (System)** — the service-provider interfaces: the `LayoutAlgorithmBase`
   and `IRenderer` contracts, their registries, the `Theme`, render options, and the shared
   notation-geometry helpers.
 - **Rendering.Layout (System)** — the pluggable layout algorithms and the reusable geometric
@@ -67,7 +67,7 @@ The libraries separate *what a diagram contains* from *how it is placed* and *ho
 ```text
 LayoutGraph + LayoutOptions   (Rendering: unplaced input + open property configuration)
         │
-        ▼  ILayoutAlgorithm            (Rendering.Abstractions: the layout SPI)
+        ▼  LayoutAlgorithmBase         (Rendering.Abstractions: the layout SPI)
    LayeredLayoutAlgorithm              (Rendering.Layout: the bundled "layered" algorithm)
         │
         ▼
@@ -84,7 +84,8 @@ Configuration is **open** and **property-based**: options are declared as typed
 `LayoutProperty<T>` keys and carried on any `IPropertyHolder` (the graph, a graph element, or a
 free-standing `LayoutOptions`). Algorithms and renderers read only the properties they
 understand, so unknown or not-yet-honored properties default harmlessly. New diagram families
-and output formats are introduced additively by implementing `ILayoutAlgorithm` or `IRenderer`
+and output formats are introduced additively by deriving from `LayoutAlgorithmBase` or implementing
+`IRenderer`
 and registering them — no existing contract changes.
 
 The delivered subset implements the `layered`, `containment`, `hierarchical`, and `auto` algorithms and

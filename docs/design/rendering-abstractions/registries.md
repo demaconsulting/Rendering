@@ -18,12 +18,12 @@ registry is thread-safe for concurrent registration.
 
 ### Registries Key Methods
 
-`LayoutAlgorithmRegistry Register(ILayoutAlgorithm algorithm)` — stores the algorithm keyed by its
+`LayoutAlgorithmRegistry Register(LayoutAlgorithmBase algorithm)` — stores the algorithm keyed by its
 `Id`, replacing any previous algorithm with the same identifier, and returns the registry for fluent
 chaining.
 
-`ILayoutAlgorithm Resolve(string id)` — returns the algorithm registered under `id`, or throws
-`KeyNotFoundException` when none is registered. `bool TryResolve(string, out ILayoutAlgorithm?)`
+`LayoutAlgorithmBase Resolve(string id)` — returns the algorithm registered under `id`, or throws
+`KeyNotFoundException` when none is registered. `bool TryResolve(string, out LayoutAlgorithmBase?)`
 performs the same lookup without throwing.
 
 `RendererRegistry.Register` stores the renderer by `MediaType` and by every extension in
@@ -50,7 +50,7 @@ callers are responsible for building each registry on a single thread before pub
 
 ### Registries Dependencies
 
-- **Rendering Contracts Unit** (same system) — `ILayoutAlgorithm` and `IRenderer` are the value types
+- **Rendering Contracts Unit** (same system) — `LayoutAlgorithmBase` and `IRenderer` are the value types
   stored and returned by the two registries; `IRenderer.MediaType` and `IRenderer.FileExtensions`
   supply the keys used by `RendererRegistry`.
 - **.NET base class library** — `System.Collections.Generic.Dictionary<TKey, TValue>` for the backing
@@ -63,7 +63,7 @@ No OTS runtime component or Shared Package is consumed.
 
 - **Rendering.Layout `DefaultLayout` unit** — builds a `LayoutAlgorithmRegistry` populated with the
   layered, containment, and hierarchical algorithms and resolves the algorithm identified by
-  `CoreOptions.Algorithm` before invoking `ILayoutAlgorithm.Apply`.
+  `CoreOptions.Algorithm` before invoking `LayoutAlgorithmBase.Apply`.
 - **Rendering.Svg and Rendering.CanvasNet systems** — register their `IRenderer` implementations in a
   shared `RendererRegistry` so callers can resolve a renderer by media type (for example
   `image/svg+xml`, `image/png`) or by an output file extension (`.svg`, `.png`, `.jpg`).
@@ -83,7 +83,7 @@ No OTS runtime component or Shared Package is consumed.
 
 ### Registries Interactions
 
-The registries hold `ILayoutAlgorithm` and `IRenderer` instances from the Rendering Contracts unit. A
+The registries hold `LayoutAlgorithmBase` and `IRenderer` instances from the Rendering Contracts unit. A
 caller resolves an algorithm using the identifier from `CoreOptions.Algorithm` and resolves a renderer
 using either the desired output media type or an output filename extension such as `.svg`, `.png`, or
 `.jpg`.

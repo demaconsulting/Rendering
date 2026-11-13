@@ -190,7 +190,7 @@ reviews:
       - "docs/reqstream/rendering-abstractions/rendering-contracts.yaml"
       - "docs/design/rendering-abstractions/rendering-contracts.md"
       - "docs/verification/rendering-abstractions/rendering-contracts.md"
-      - "src/DemaConsulting.Rendering.Abstractions/ILayoutAlgorithm.cs"
+      - "src/DemaConsulting.Rendering.Abstractions/LayoutAlgorithmBase.cs"
       - "src/DemaConsulting.Rendering.Abstractions/IRenderer.cs"
       - "src/DemaConsulting.Rendering.Abstractions/RenderOptions.cs"
       - "src/DemaConsulting.Rendering.Abstractions/RenderOutput.cs"
