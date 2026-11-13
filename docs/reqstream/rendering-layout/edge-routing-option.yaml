@@ -14,8 +14,9 @@ sections:
           rendering.edgerouting property key, which shall default to orthogonal routing when unset.
         justification: |
           Mirroring ELK's elk.edgeRouting, routing style rides the same open property system that
-          selects the algorithm, so any scope (graph, node, edge, or a free-standing options object)
-          can choose a style. An unset scope must fall back to the orthogonal default so existing
+          selects the algorithm, so any property holder - the graph, a node, an edge, or the
+          LayoutOptions holder that carries an enclosing scope's cascaded settings into a layout
+          algorithm - can carry a style. An unset scope must fall back to the orthogonal default so existing
           callers route orthogonally without opting in.
         tests:
           - CoreOptions_EdgeRouting_DefaultValue_IsOrthogonal

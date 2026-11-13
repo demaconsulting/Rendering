@@ -224,7 +224,7 @@ sections:
       - id: Rendering-Layout-DefaultLayout
         title: >-
           The rendering layout system shall provide a batteries-included facade that lays out a layout
-          graph with the algorithm the graph or options declares, resolved from the bundled algorithms,
+          graph with the algorithm declared on the graph itself, resolved from the bundled algorithms,
           defaulting to the hierarchical engine so both flat and nested graphs lay out from one call.
         tags: [system]
         justification: |
