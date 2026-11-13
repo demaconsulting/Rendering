@@ -6,7 +6,7 @@ This document maps the layered-layout-algorithm unit requirements to named test 
 
 ### Verification Approach
 
-`LayeredLayoutAlgorithm` is verified by direct xUnit unit tests that call `Apply(graph, options)` on
+`LayeredLayoutAlgorithm` is verified by direct xUnit unit tests that call `ApplyCore(graph, options)` on
 synthetic `LayoutGraph` inputs. The tests exercise the real ELK-style layered pipeline end-to-end
 (no stage is mocked) so identity, placement, routing, and direction handling are all observed on
 production code paths.

@@ -13,13 +13,14 @@ produces a placed `LayoutTree` of boxes and connectors. It wraps the reusable la
 
 The class is stateless and sealed. It exposes the `AlgorithmId` constant (`"layered"`) and returns it
 from the `Id` property, the stable identifier under which the algorithm is selected and registered.
-Its single behavior is `Apply(LayoutGraph graph, LayoutOptions options)`, which returns a
+Its single behavior is the `ApplyCore(LayoutGraph graph, LayoutOptions options)` override (reached
+through the base class's public `Apply(LayoutGraph graph)`), which returns a
 `LayoutTree` carrying the total width and height and a flat list of `LayoutNode` items (`LayoutBox`
 per node followed by `LayoutLine` per edge).
 
 ### LayeredLayoutAlgorithm Methods
 
-`Apply(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, then:
+`ApplyCore(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, then:
 
 1. **Index mapping.** Assigns each `LayoutGraphNode` a positional index and builds the
    `LayerNode` array from node sizes and shape metadata (`Shape`, `RoundedCornerRadius`,

@@ -6,7 +6,7 @@ This document maps the hierarchical-layout-algorithm unit requirements to named 
 
 ### Verification Approach
 
-`HierarchicalLayoutAlgorithm` is verified by direct xUnit unit tests that call `Apply(graph,
+`HierarchicalLayoutAlgorithm` is verified by direct xUnit unit tests that call `ApplyCore(graph,
 options)` on synthetic flat and nested `LayoutGraph` inputs. The tests use the real bundled leaf
 algorithms (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`) rather than mocks, so
 per-scope resolution, container sizing, cross-container routing through `ConnectorRouter`, and the

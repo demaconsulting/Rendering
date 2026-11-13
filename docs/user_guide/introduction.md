@@ -58,7 +58,8 @@ Installing a renderer or the layout package transitively brings in the model and
 - **`LayoutOptions`** — an open, property-keyed configuration bag. Options are declared as typed
   `LayoutProperty<T>` keys (see `CoreOptions`) and can be attached to the whole graph, a single
   element, or a free-standing options object.
-- **`ILayoutAlgorithm`** — consumes a `LayoutGraph` plus `LayoutOptions` and produces a placed
+- **`LayoutAlgorithmBase`** — the base class every layout algorithm derives from. Its `Apply(graph)`
+  consumes a `LayoutGraph` (configured through the graph's own properties) and produces a placed
   `LayoutTree`. Bundled implementations are `LayeredLayoutAlgorithm` (id `"layered"`),
   `ContainmentLayoutAlgorithm` (id `"containment"`), the recursive `HierarchicalLayoutAlgorithm`
   (id `"hierarchical"`), and the auto-routing `AutoLayoutAlgorithm` (id `"auto"`).
@@ -134,8 +135,8 @@ var packed = LayoutEngine.Layout(graph);
 The graph is the single place to configure a layout — `LayoutGraph` is itself an `IPropertyHolder`, so
 `graph.Set(CoreOptions.Algorithm, "containment")` is all it takes to select an algorithm; there is no
 separate options object to keep in sync with it. If you prefer to skip the facade you can still
-instantiate an algorithm directly and call `Apply` — `new LayeredLayoutAlgorithm().Apply(graph, new
-LayoutOptions())` — but `LayoutEngine` is the recommended
+instantiate an algorithm directly and call `Apply` — `new LayeredLayoutAlgorithm().Apply(graph)` — but
+`LayoutEngine` is the recommended
 entry point because it also handles nesting.
 
 ## Describing nested (hierarchical) graphs
@@ -647,8 +648,8 @@ renderers.Register(new PngRenderer());
 renderers.Register(new JpegRenderer());
 
 // Resolve and apply an algorithm by id (or hand the registry to LayoutEngine.Layout).
-var algorithm = algorithms.Resolve(options.Get(CoreOptions.Algorithm)); // e.g. "layered"
-var tree = algorithm.Apply(graph, options);
+var algorithm = algorithms.Resolve(graph.Get(CoreOptions.Algorithm)); // e.g. "layered"
+var tree = algorithm.Apply(graph);
 
 // Resolve the renderer directly from the desired output filename's extension.
 var outputPath = "diagram.png";
@@ -685,8 +686,9 @@ assert that each image is valid, so the gallery never dirties the repository dur
 
 The library is open for extension without modifying existing code:
 
-- **New layout algorithms** (for example tree, force, or packing layouts) implement
-  `ILayoutAlgorithm` and are registered under a new id. Consumers select them via
+- **New layout algorithms** (for example tree, force, or packing layouts) derive from
+  `LayoutAlgorithmBase` (overriding `Id` and `ApplyCore`) and are registered under a new id.
+  Consumers select them via
   `CoreOptions.Algorithm`.
 - **New output formats** implement `IRenderer` with a distinct `MediaType` and file extensions and
   register alongside the bundled SVG, PNG, and JPEG renderers.

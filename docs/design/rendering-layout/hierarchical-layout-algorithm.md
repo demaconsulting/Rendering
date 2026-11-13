@@ -38,7 +38,8 @@ recursion always terminates in a bundled leaf algorithm.
 
 ### HierarchicalLayoutAlgorithm Methods
 
-`Apply(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, builds the
+`ApplyCore(graph, options)` (the `LayoutAlgorithmBase` override reached through the public
+`Apply(graph)`) rejects null `graph` or `options` with `ArgumentNullException`, builds the
 root scope's cascaded effective options (`graph.OverlayOnto(options)` — the graph's own explicit
 overrides win over the supplied options, exactly like every nested scope), and calls the recursive
 `LayoutScope`. `LayoutScope(graph, effective)` performs:

@@ -28,7 +28,7 @@
 │   └── verification/
 ├── src/
 │   ├── DemaConsulting.Rendering/                (layout model: LayoutTree IR, property system, LayoutGraph)
-│   ├── DemaConsulting.Rendering.Abstractions/    (SPI: ILayoutAlgorithm/IRenderer, registries, Theme, metrics)
+│   ├── DemaConsulting.Rendering.Abstractions/    (SPI: LayoutAlgorithmBase/IRenderer, registries, Theme, metrics)
 │   ├── DemaConsulting.Rendering.Layout/          (layout algorithms: layered pipeline, LayeredLayoutAlgorithm)
 │   ├── DemaConsulting.Rendering.Svg/             (SVG renderer, zero external dependencies)
 │   └── DemaConsulting.Rendering.CanvasNet/       (CanvasNet raster renderers: PNG, JPEG)

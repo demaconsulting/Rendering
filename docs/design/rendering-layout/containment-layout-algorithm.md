@@ -23,13 +23,15 @@ the router's approach stub so a connector can pass cleanly between two packed bo
 (`6`) gates the column-count-based content-width candidate to sets large enough for multi-column packing
 to plausibly make sense; and `ColumnEstimateFullWeightSizeRatio` (`2.0`) / `ColumnEstimateZeroWeightSizeRatio`
 (`6.0`) bound the graduated falloff that scales that candidate's contribution by how uniform the boxes
-are in size (see Methods, below). Its single behavior is `Apply(LayoutGraph graph, LayoutOptions options)`,
+are in size (see Methods, below). Its single behavior is the
+`ApplyCore(LayoutGraph graph, LayoutOptions options)` override (reached through the base class's public
+`Apply(LayoutGraph graph)`),
 which returns a `LayoutTree` carrying the packed region size and a flat list of `LayoutNode` items
 (`LayoutBox` per top-level node followed by `LayoutLine` per routed edge).
 
 ### ContainmentLayoutAlgorithm Methods
 
-`Apply(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, then:
+`ApplyCore(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, then:
 
 1. **Leaf-box conversion.** Converts each top-level `LayoutGraphNode` into a leaf `LayoutBox` at the
    origin (carrying the node's width, height, and label), recording each node's positional index. A

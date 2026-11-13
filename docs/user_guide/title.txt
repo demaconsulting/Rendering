@@ -9,5 +9,6 @@ keywords:
   - .NET
   - Library
   - Documentation
-  - Best Practices
+  - Diagram Layout
+  - Diagram Rendering
 ---
