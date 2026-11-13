@@ -60,7 +60,11 @@ which returns a `LayoutTree` carrying the packed region size and a flat list of 
 4. **Connection building.** Builds one `Connection` per edge whose source and target are both top-level
    nodes — carrying the edge's `TargetEnd`, `LineStyle`, and `Label` — using the packed box that
    represents each endpoint. Edges referencing a node outside the graph's top-level nodes are skipped,
-   mirroring the layered algorithm's handling of out-of-graph endpoints.
+   mirroring the layered algorithm's handling of out-of-graph endpoints. A layout-only edge (an edge
+   marked through `HierarchicalLayoutAlgorithm.MarkLayoutOnly`; see the layered algorithm's design - the
+   marker is identity-keyed, so an ordinary edge is never mistaken for one whatever its identifier) is
+   still counted toward the `EdgeCounts` gap widening below but no
+   `Connection` is built for it, so it is never routed or drawn.
 5. **Routing.** Routes the connections around the packed boxes via `ConnectorRouter.Route`, selecting
    the routing style with `ResolveEdgeRouting`: the graph's own explicit `CoreOptions.EdgeRouting`
    override takes precedence, then the supplied options' value, falling back to the property's default
@@ -139,3 +143,5 @@ routing, adapting their combined output to the public `LayoutAlgorithmBase` cont
 | Rendering-Layout-ContainmentAlgorithm-EdgeCountGapWidening | ContainmentLayoutAlgorithm behavior described above |
 | Rendering-Layout-ContainmentAlgorithm-VerticalStackUnaffected | ContainmentLayoutAlgorithm behavior described above |
 | Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula | EdgeCountGapWidener helper described above |
+| Rendering-Layout-ContainmentAlgorithm-LayoutOnlyEdges | Connection building (step 4) |
+| Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly | Connection building (step 4) |

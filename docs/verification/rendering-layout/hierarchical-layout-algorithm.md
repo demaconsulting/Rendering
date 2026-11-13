@@ -65,11 +65,96 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   internal sized view and never mutates the caller's input node dimensions.
   `HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange`
   confirms the combined-pass gate is additive: a two-container, cross-container-edge hierarchy with no
-  boundary port is composed byte-for-byte identically to before the boundary-port combined pass existed.
+  boundary port still takes the leaf-composition path (not the combined pass). Its golden snapshot was
+  refreshed deliberately when cross-hierarchy edges began steering placement and anchoring on nested
+  nodes: the two containers, joined by an edge between their children, now sit side by side instead of
+  stacked, and the connector runs between the nested children.
 - **Cross-container edge** (`Rendering-Layout-HierarchicalLayout-CrossContainerEdge`):
   `Apply_CrossContainerEdge_RoutesAroundInterveningContainer` confirms an edge between children of
   different sibling containers is routed at the owning scope and no routed segment passes through the
-  intervening container's interior.
+  intervening container's interior. `Apply_CrossContainerEdge_ToWideContainer_DoesNotCrossEndpointBoxes`
+  confirms the connector to a wide container's nested child ends on that child and crosses no leaf box
+  (the enclosing container's wall is the only boundary it legitimately crosses).
+- **Cross-hierarchy nested anchors** (`Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-NestedAnchors`):
+  a shared `AssertCleanRoute` oracle checks a connector is orthogonal, starts and ends on the boundaries
+  of the actual nested endpoint boxes, leaves and enters perpendicular and outward from those faces,
+  carries the arrowhead at the target end, and never crosses the interior of any box other than the
+  endpoints' enclosing containers nor the title text of those containers. It is applied, for both the
+  `auto` and `hierarchical` root algorithms, by
+  `Apply_CrossHierarchyEdge_TwoLevels_AnchorsOnNestedBoxesAndAvoidsUnrelatedBoxes` (with an unrelated
+  third container), `Apply_CrossHierarchyEdge_DepthTwoToDepthOne_AnchorsOnNestedBoxes`,
+  `Apply_CrossHierarchyEdge_FourLevelNesting_AnchorsOnInnermostBoxes`,
+  `Apply_CrossHierarchyEdge_DeclaredInMiddleContainer_AnchorsOnNestedBoxes` (the edge declared on a
+  middle container's own graph),
+  `Apply_CrossHierarchyEdges_MixedLeafAndContainerChildren_AnchorOnActualEndpoints` (leaf to nested,
+  nested to leaf, nested to nested at one scope), and
+  `Apply_CrossHierarchyEdge_ToContainerItself_AnchorsOnContainerBoundary` (an edge naming a container
+  stays on its boundary while an edge to a nested node anchors on that node).
+  `Apply_CrossHierarchyEdges_ConvergingOnOneNestedNode_UseDistinctAnchors` confirms three connectors
+  converging on one nested node end at distinct boundary points.
+  `Apply_CrossHierarchyEdge_FromNodeWithInternalEdge_AnchorsApartFromInternalAnchor` confirms a
+  connector leaving a nested node that already has an internal connector on the same face does not start
+  at the internal connector's end point. `Apply_CrossHierarchyEdges_ConnectorsDoNotOverlapCollinearly`
+  confirms two long connectors with aligned endpoint rows share no collinear run (the `auto` root).
+  `Apply_CrossHierarchyEdge_WithBoundaryPortHierarchy_AnchorsOnNestedBoxes` confirms the combined-pass
+  (boundary-port) path also anchors on the nested nodes.
+  `Apply_CrossHierarchyEdge_CustomLeafAlgorithm_ReceivesNoLayoutOnlyEdges` confirms a non-bundled leaf
+  algorithm is never handed a layout-only edge yet the nested routing still applies.
+  `Apply_EdgeBetweenContainerAndItsOwnDescendant_IsSkipped` confirms the container-to-own-descendant
+  edge (which cannot be drawn between two distinct boxes) neither throws nor draws,
+  `Apply_NestedPortEdgeAcrossContainers_StillThrowsNotSupported`
+  confirms the existing named-port limitation is unchanged, and
+  `Apply_CrossHierarchyEdge_DoesNotMutateInputAndIsDeterministic` confirms the caller's graph is
+  untouched (no proxy edge leaks into any scope) and repeated runs are identical.
+- **Cross-hierarchy ancestor placement** (`Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-AncestorPlacement`):
+  `Apply_CrossHierarchyEdge_LayeredRoot_PlacesJoinedContainersAdjacent` confirms that with a layered
+  root two containers joined only by an edge between their nested nodes sit in adjacent layers with an
+  unrelated container not between them, and
+  `Apply_CrossHierarchyEdges_ContainmentRoot_WidensGapForParallelEdges` confirms a fan of parallel
+  nested-endpoint edges widens the gap between two side-by-side containers relative to a single edge.
+- **Cross-hierarchy same container** (`Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-SameContainer`):
+  `Apply_CrossHierarchyEdge_RootDeclaredBothEndpointsUnderOneContainer_RoutesBetweenNestedNodes`
+  confirms a root-declared edge between nodes in two sub-containers of one top-level container is routed
+  between those nested nodes instead of dropped.
+- **Cross-hierarchy clean routing** (`Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-CleanRouting`;
+  the nested-anchor rule's straight-lane, jog and shared-face cases are verified here too):
+  the gallery's two nested diagrams are replicated exactly (folder containers, 120 x 50 leaves, `auto`
+  and `hierarchical`/`Down` roots) and asserted against the strict criteria that exposed the original
+  defects. For the `auto` diagram (Storage declared before API): `Apply_GalleryCrossHierarchyAuto_UiToDb_LongLegsAndNoBorderHugging`
+  (first and final legs at least 24, first leg at least 36, at most two bends, no run within 24 px of a
+  Client / Server / Storage border), `Apply_GalleryCrossHierarchyAuto_SessionToApi_IsStraight` (one two-
+  waypoint segment) and `Apply_GalleryCrossHierarchyAuto_ConnectorsDoNotCrossEachOther` (zero crossings,
+  so Auth to Storage's arrowhead is not crossed). For the downward diagram:
+  `Apply_GalleryCrossHierarchyDown_CustomerEdges_CleanAndDirect` (Customer to Cart overlaps its target's
+  face by only 13 px, too narrow to draw straight without the arrowhead overhanging a corner, so it is a
+  clean Z — legs and interior segments of at least 24, at most two bends, ports clear of the corners, length
+  at most 1.25 times the Manhattan distance; Customer to Invoice at most two bends under the same limits),
+  `Apply_GalleryCrossHierarchyDown_ToFulfillment_OneBendLongApproachClearOfBorders` (Checkout to Inventory
+  and Payment to Shipping use one bend, a final leg of at least 36, and keep 24 px from Fulfillment's
+  border) and `Apply_GalleryCrossHierarchyDown_AllConnectors_NoCrossingsAndComfortable` (zero crossings;
+  every connector has legs of at least 24, no tiny jog and no border hugging). All of these fail on the
+  fixed-anchor router. The obstacle diagram (Source to Sink between outer containers past an intervening
+  container) is replicated by `Apply_CrossHierarchyEdge_NoCleanStraightLane_RoutesCleanZBelowObstacle`
+  (50 px endpoints: no lane is both 24 px under the Obstacle and 8 px from the face corners, so the
+  connector is a clean Z of at most four bends whose long run is at least 24 px under the Obstacle's
+  border, direct within 1.25) and `Apply_CrossHierarchyEdge_CleanLaneWithinBothFaces_StaysStraight` (90 px
+  endpoints: the lane 24 px under the Obstacle lies inside both faces, so Source to Sink stays one
+  straight segment); `Apply_CrossHierarchyEdge_JogRequired_FinalApproachAtLeastArrowPlusRadius` and
+  `Apply_CrossHierarchyEdge_SharedNestedFace_PortsStayDistinct` guard the unavoidable-jog final approach
+  and distinct ports on a shared nested face. `AssertComfortableConnector` and `AssertCleanRoute`, used by
+  every nested-edge test above, additionally enforce that both ports lie at least the marker reach
+  (7.125 px, computed from the theme and notation metrics) from the ends of their face — so no arrowhead
+  wing touches or overhangs a corner — and `AssertCleanRoute` a first leg of at least the connector stub
+  and a final leg of at least the end marker plus the bend radius. The tests assert these properties, not
+  exact waypoints.
+- **Layout-only marker is collision-proof**
+  (`Rendering-Layout-HierarchicalLayout-LayoutOnlyMarkerIsCollisionProof`):
+  `IsLayoutOnlyEdge_MarkedEdgeTrueUnmarkedFalseRegardlessOfId` confirms the marker is keyed by edge
+  object identity (a marked edge reports layout-only, an unmarked edge - even one whose identifier is
+  the literal former reserved prefix - does not), and
+  `Apply_UserLeafEdgeNamedLikeProxyOfRoutedEdge_RendersBoth` (`auto` and `hierarchical` roots) confirms
+  a root leaf edge whose identifier is `"\u0001layout-only:e1"` neither collides with the proxy of the
+  routed cross-hierarchy edge `e1` (no duplicate-identifier error) nor is dropped: both lines render.
 - **Propagates direction** (`Rendering-Layout-HierarchicalLayout-CascadesOptions`):
   `Apply_ContainerWithDirectionOverride_HonorsNestedDirection` sets `CoreOptions.Direction` on a
   container's own children graph (while the top-level options select the default direction) and
@@ -168,8 +253,20 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
 - **`Rendering-Layout-HierarchicalLayout-HierarchyHandling`**:
   Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely, Apply_CompoundGraph_DoesNotMutateInputNodeSizes,
   HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange
+- **`Rendering-Layout-HierarchicalLayout-LayoutOnlyMarkerIsCollisionProof`**:
+  IsLayoutOnlyEdge_MarkedEdgeTrueUnmarkedFalseRegardlessOfId,
+  Apply_UserLeafEdgeNamedLikeProxyOfRoutedEdge_RendersBoth
 - **`Rendering-Layout-HierarchicalLayout-CrossContainerEdge`**:
   Apply_CrossContainerEdge_RoutesAroundInterveningContainer
+- **`Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-CleanRouting`**:
+  Apply_GalleryCrossHierarchyAuto_UiToDb_LongLegsAndNoBorderHugging,
+  Apply_GalleryCrossHierarchyAuto_SessionToApi_IsStraight,
+  Apply_GalleryCrossHierarchyAuto_ConnectorsDoNotCrossEachOther,
+  Apply_GalleryCrossHierarchyDown_CustomerEdges_CleanAndDirect,
+  Apply_GalleryCrossHierarchyDown_ToFulfillment_OneBendLongApproachClearOfBorders,
+  Apply_GalleryCrossHierarchyDown_AllConnectors_NoCrossingsAndComfortable,
+  Apply_CrossHierarchyEdge_NoCleanStraightLane_RoutesCleanZBelowObstacle,
+  Apply_CrossHierarchyEdge_CleanLaneWithinBothFaces_StaysStraight
 - **`Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening`**:
   Apply_SiblingContainersWithEightCrossEdges_WidensGapToCorridorWidth
 - **`Rendering-Layout-HierarchicalLayout-SiblingContainerGapWideningSingleEdgeUnaffected`**:

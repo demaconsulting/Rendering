@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="438.00" height="914.00" viewBox="0 0 438.00 914.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+      <line x1="7" y1="0" x2="7" y2="7" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#1E1E2E"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="159.00" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="219.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Customer</text>
+  <path d="M 20.00 164.00 L 20.00 140.00 L 84.80 140.00 L 84.80 164.00 L 204.00 164.00 L 204.00 422.00 L 20.00 422.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="112.00" y="177.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Ordering</text>
+  <rect x="52.00" y="220.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="112.00" y="245.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Cart</text>
+  <rect x="52.00" y="340.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="112.00" y="365.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Checkout</text>
+  <path d="M 112.00 270.00 L 112.00 340.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 234.00 164.00 L 234.00 140.00 L 294.00 140.00 L 294.00 164.00 L 418.00 164.00 L 418.00 422.00 L 234.00 422.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="326.00" y="177.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Billing</text>
+  <rect x="266.00" y="220.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="326.00" y="245.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Invoice</text>
+  <rect x="266.00" y="340.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="326.00" y="365.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Payment</text>
+  <path d="M 326.00 270.00 L 326.00 340.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 127.00 516.00 L 127.00 492.00 L 209.80 492.00 L 209.80 516.00 L 311.00 516.00 L 311.00 774.00 L 127.00 774.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="219.00" y="529.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Fulfillment</text>
+  <rect x="159.00" y="572.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="219.00" y="597.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Inventory</text>
+  <rect x="159.00" y="692.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="219.00" y="717.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Shipping</text>
+  <path d="M 219.00 622.00 L 219.00 692.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="159.00" y="844.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="219.00" y="869.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Notifier</text>
+  <path d="M 189.00 70.00 L 189.00 102.00 A 4.00 4.00 0 0 1 185.00 106.00 L 166.80 106.00 A 4.00 4.00 0 0 0 162.80 110.00 L 162.80 220.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 279.00 45.00 L 369.20 45.00 A 4.00 4.00 0 0 1 373.20 49.00 L 373.20 220.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 103.00 390.00 L 103.00 593.00 A 4.00 4.00 0 0 0 107.00 597.00 L 159.00 597.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 335.00 390.00 L 335.00 713.00 A 4.00 4.00 0 0 1 331.00 717.00 L 279.00 717.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 219.00 742.00 L 219.00 844.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+</svg>

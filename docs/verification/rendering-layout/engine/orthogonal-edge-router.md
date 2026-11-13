@@ -82,6 +82,37 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
   obstacles never include connectors routed after it. See
   `docs/gallery/parallel-edges-and-ports/README.md`'s side-by-side gallery entry for the documented
   visual disclosure of this residual case.
+- **Minimum end legs, cost and clearance reporting** (`Rendering-Layout-OrthogonalEdgeRouter-MinimumEndLegs`):
+  `RouteWithStatus_TargetLeg_PlacesBendAtLeastLegFromFace` forces a route under a block and confirms a 40 px
+  target-leg hint moves the final bend from the stub end (20 px from the face) to at least 40 px while the
+  legacy route keeps 20; `RouteWithStatus_ComfortLegZone_PlacesFirstBendAtLeastComfortFromFace` makes the
+  far lane costly with a soft obstacle so the legacy route bends right after the source stub (20 px), and
+  confirms the comfort zone moves the first bend to at least 36 px; `RouteWithStatus_LegsZero_MatchesLegacyRoute`
+  confirms all-zero hints change neither the waypoints nor the cost; and
+  `RouteWithStatus_ReportsCostAndClearanceUsed` confirms a free run costs its length (200) at the full
+  clearance, a detour costs more, and a source 2 px from a box is routed at a smaller clearance level.
+- **Port ranges** (`Rendering-Layout-OrthogonalEdgeRouter-PortRanges`):
+  `RoutePorts_LaneWithinBothRanges_SlidesPortsToStraightLane` gives each end a 5..45 interval around a
+  25 preferred port, with a block whose edge plus the clearance leaves the lane at 32, and confirms the route
+  is one straight segment at y = 32 starting and ending on the chosen ports.
+- **Wall keep-out** (`Rendering-Layout-OrthogonalEdgeRouter-WallKeepOut`):
+  `RouteWithStatus_VerticalWall_BlocksParallelRunInsideMarginButAllowsHorizontalCrossing` uses two barriers
+  whose gap lanes (x = 112 / 118) lie within 24 px of a wall at x = 100: without the hint the route threads
+  the gap beside the wall; with it the route goes around the barrier, every vertical run keeps at least 24 px
+  from the wall, and a horizontal run still crosses the wall.
+- **Crossing cost** (`Rendering-Layout-OrthogonalEdgeRouter-CrossingCost`):
+  `RouteWithStatus_CrossingPenalty_PrefersRouteWithFewerCrossings` seeds two vertical soft lines across a
+  straight run: without the penalty the route stays straight through both, with a penalty of 100 it detours
+  around them.
+- **Minimum interior segment** (`Rendering-Layout-OrthogonalEdgeRouter-MinimumInteriorSegment`):
+  `RoutePorts_MinInteriorSegment_FacesOverlapNarrowly_ReturnsZWithJogAtLeastMinimum` gives two facing
+  faces whose preferred ports are 8.2 px apart and whose other usable spans do not overlap: the legacy
+  route jogs by 8.2 px, the hinted route (minimum 24) is a Z with a middle run of at least 24 px.
+  `RoutePorts_MinInteriorSegment_NoReversalToSatisfyMinimum` (a theory over four target spans) confirms
+  no two consecutive segments run along one axis in opposite directions and every interior segment meets
+  the minimum. `RouteWithStatus_MinInteriorSegmentInfeasible_FallsBackToUnconstrainedRoute` asks for an
+  unreachable minimum (1000 px) and confirms the unconstrained route comes back unchanged, not crossed.
+  `RouteWithStatus_LegsZero_MatchesLegacyRoute` confirms an all-zero hint is the legacy route.
 
 #### Requirements Coverage
 
@@ -106,3 +137,18 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
 - **`Rendering-Layout-OrthogonalEdgeRouter-AvoidsConnectorCrossing`**:
   RouteWithStatus_VerticalOrientedSoftObstacleAcrossOneLRoute_PrefersNonCrossingAlternative,
   Route_NineParallelEdgesIntoCompartmentBox_DoNotLoopBehindEitherBox
+- **`Rendering-Layout-OrthogonalEdgeRouter-MinimumEndLegs`**:
+  RouteWithStatus_TargetLeg_PlacesBendAtLeastLegFromFace,
+  RouteWithStatus_ComfortLegZone_PlacesFirstBendAtLeastComfortFromFace,
+  RouteWithStatus_LegsZero_MatchesLegacyRoute, RouteWithStatus_ReportsCostAndClearanceUsed
+- **`Rendering-Layout-OrthogonalEdgeRouter-PortRanges`**:
+  RoutePorts_LaneWithinBothRanges_SlidesPortsToStraightLane
+- **`Rendering-Layout-OrthogonalEdgeRouter-WallKeepOut`**:
+  RouteWithStatus_VerticalWall_BlocksParallelRunInsideMarginButAllowsHorizontalCrossing
+- **`Rendering-Layout-OrthogonalEdgeRouter-CrossingCost`**:
+  RouteWithStatus_CrossingPenalty_PrefersRouteWithFewerCrossings
+- **`Rendering-Layout-OrthogonalEdgeRouter-MinimumInteriorSegment`**:
+  RoutePorts_MinInteriorSegment_FacesOverlapNarrowly_ReturnsZWithJogAtLeastMinimum,
+  RoutePorts_MinInteriorSegment_NoReversalToSatisfyMinimum,
+  RouteWithStatus_MinInteriorSegmentInfeasible_FallsBackToUnconstrainedRoute,
+  RouteWithStatus_LegsZero_MatchesLegacyRoute

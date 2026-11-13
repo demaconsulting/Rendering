@@ -236,3 +236,40 @@ sections:
           - Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab
           - Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone
           - Apply_RectangleChain_MatchesPreShapeAwarenessOutput
+
+      - id: Rendering-Layout-LayeredAlgorithm-LayoutOnlyEdges
+        title: >-
+          LayeredLayoutAlgorithm shall let a layout-only edge influence node placement exactly like a
+          real edge while emitting no connector, port, or anchor for it and without changing the label of
+          any real connector between the same nodes.
+        justification: |
+          The hierarchical engine needs the layered placement to account for edges that are routed
+          separately between nested nodes; honoring such an edge as a placement hint only, never drawing
+          it, lets containers joined by those edges be placed near each other without a spurious line.
+        tests:
+          - Apply_LayoutOnlyEdge_AffectsLayeringButEmitsNoLine
+          - Apply_LayoutOnlyEdgeParallelToRealEdge_KeepsRealEdgeAndItsLabel
+
+      - id: Rendering-Layout-LayeredAlgorithm-RealEdgeNeverHiddenByLayoutOnlyEdge
+        title: >-
+          LayeredLayoutAlgorithm shall emit the connector of a real edge even when a layout-only edge on
+          the same node pair is declared before it and parallel edges are merged.
+        justification: |
+          Parallel-edge de-duplication keeps the first edge of each pair; if a layout-only placement hint
+          could become that representative, the real connector between the pair would silently vanish.
+          Real edges therefore always take precedence over layout-only edges as the retained
+          representative, whatever order the caller declares them in.
+        tests:
+          - Apply_LayoutOnlyEdgeDeclaredFirstWithMergeParallelEdges_EmitsRealConnector
+          - Apply_LayoutOnlyEdgeFirstThenTwoRealParallelEdgesWithMerge_EmitsOneMergedConnector
+          - Apply_LayoutOnlyEdgeFirstWithMergeParallelEdgesFalse_EmitsRealConnectorOnly
+
+      - id: Rendering-Layout-LayeredAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly
+        title: >-
+          LayeredLayoutAlgorithm shall treat a caller edge as a real edge whatever its identifier,
+          including an identifier that starts with the former reserved layout-only prefix.
+        justification: |
+          The layout-only marker is held against the edge object, not in its public identifier, so no
+          caller-chosen identifier can silently turn a real edge into a placement hint that is never drawn.
+        tests:
+          - Apply_UserEdgeWithOldReservedPrefix_StillEmitsLine

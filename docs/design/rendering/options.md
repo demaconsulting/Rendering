@@ -31,8 +31,11 @@ by each property's identifier.
 - `LayoutFlowDirection` (enum) — `Right`, `Left`, `Down`, `Up`.
 - `HierarchyHandling` (enum) — `SeparateChildren` (the only shipped mode). Mirrors ELK's
   `elk.hierarchyHandling`; selects how a hierarchical layout engine treats a container node's nested
-  children. Under `SeparateChildren` each container is laid out in its own coordinate space and sized
-  to fit its children. An `IncludeChildren` (cross-boundary) mode is a planned future additive value.
+  children. Under `SeparateChildren` each container's interior is laid out in its own coordinate space
+  and the container sized to fit its children; edges declared on an ancestor graph still connect the
+  actual nested endpoint nodes, and the declaring graph's placement accounts for them. Placing all
+  children in one shared layout pass (ELK's `INCLUDE_CHILDREN`) is not implemented and is tracked in
+  the roadmap.
 
 ### Options Key Methods
 

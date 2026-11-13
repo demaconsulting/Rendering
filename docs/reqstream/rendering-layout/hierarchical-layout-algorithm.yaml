@@ -69,12 +69,109 @@ sections:
       - id: Rendering-Layout-HierarchicalLayout-CrossContainerEdge
         title: >-
           HierarchicalLayoutAlgorithm shall route an edge whose endpoints live in different containers at
-          the scope that owns it, steering around any intervening container rather than through it.
+          the scope that declares it, steering around every unrelated box and container rather than
+          through it.
         justification: |
-          A cross-container edge belongs to the coordinate space of the container that owns it; routing
+          A cross-container edge belongs to the coordinate space of the graph that declares it; routing
           it around the sibling containers between its endpoints keeps the connector unambiguous.
         tests:
           - Apply_CrossContainerEdge_RoutesAroundInterveningContainer
+          - Apply_CrossContainerEdge_ToWideContainer_DoesNotCrossEndpointBoxes
+
+      - id: Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-NestedAnchors
+        title: >-
+          When an edge declared on an ancestor graph references nodes nested inside containers at any
+          depth, HierarchicalLayoutAlgorithm shall route the connector from the actual nested source node
+          to the actual nested target node, leaving and entering each node perpendicular to its face and
+          crossing only the walls of the containers that enclose its own two endpoints, for any root
+          algorithm and for mixed leaf and container siblings; an edge whose endpoint is a container
+          itself shall remain anchored on that container.
+        justification: |
+          Drawing a connector between the enclosing containers instead of the nodes the model actually
+          relates hides the real relationship; anchoring on the nested nodes, without cutting through
+          unrelated boxes or container titles, reproduces the declared relationship faithfully.
+        tests:
+          - Apply_CrossHierarchyEdge_TwoLevels_AnchorsOnNestedBoxesAndAvoidsUnrelatedBoxes
+          - Apply_CrossHierarchyEdge_DepthTwoToDepthOne_AnchorsOnNestedBoxes
+          - Apply_CrossHierarchyEdge_FourLevelNesting_AnchorsOnInnermostBoxes
+          - Apply_CrossHierarchyEdge_DeclaredInMiddleContainer_AnchorsOnNestedBoxes
+          - Apply_CrossHierarchyEdges_MixedLeafAndContainerChildren_AnchorOnActualEndpoints
+          - Apply_CrossHierarchyEdge_ToContainerItself_AnchorsOnContainerBoundary
+          - Apply_CrossHierarchyEdges_ConvergingOnOneNestedNode_UseDistinctAnchors
+          - Apply_CrossHierarchyEdge_FromNodeWithInternalEdge_AnchorsApartFromInternalAnchor
+          - Apply_CrossHierarchyEdges_ConnectorsDoNotOverlapCollinearly
+          - Apply_CrossHierarchyEdge_WithBoundaryPortHierarchy_AnchorsOnNestedBoxes
+          - Apply_CrossHierarchyEdge_CustomLeafAlgorithm_ReceivesNoLayoutOnlyEdges
+          - Apply_EdgeBetweenContainerAndItsOwnDescendant_IsSkipped
+          - Apply_CrossHierarchyEdge_JogRequired_FinalApproachAtLeastArrowPlusRadius
+          - Apply_CrossHierarchyEdge_SharedNestedFace_PortsStayDistinct
+
+      - id: Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-CleanRouting
+        title: >-
+          HierarchicalLayoutAlgorithm shall route cross-hierarchy connectors so they read cleanly: a
+          straight connector wherever a lane lies inside both endpoint faces (kept the arrowhead's reach
+          from the face corners) and at least twice the clearance from every container border it runs
+          along, otherwise a clean Z or U with straight legs and interior segments of at least twice the
+          clearance off both ends and between bends (the arrowhead on a run of at least marker plus
+          radius), no run along or bend within twice the clearance of any container border — the
+          endpoints' enclosing containers and every unrelated container alike (borders are crossed at
+          right angles) — no arrowhead overhanging a box corner, no detour through a container's header
+          band, and no connector crossing another or an arrowhead.
+        justification: |
+          Valid geometry is not enough for the showcase diagrams: connectors that bend right after
+          leaving a node, hug a container frame (an unrelated container's border included), run
+          through a title band, jog a few pixels sideways, leave an arrowhead overhanging a box corner
+          or cross another connector at its arrowhead look like defects. The gallery's nested diagrams
+          are replicated as tests so these properties are enforced for the exact topologies that
+          exposed them, and the properties — not the exact waypoints — are what the tests assert.
+        tests:
+          - Apply_GalleryCrossHierarchyAuto_UiToDb_LongLegsAndNoBorderHugging
+          - Apply_GalleryCrossHierarchyAuto_SessionToApi_IsStraight
+          - Apply_GalleryCrossHierarchyAuto_ConnectorsDoNotCrossEachOther
+          - Apply_GalleryCrossHierarchyDown_CustomerEdges_CleanAndDirect
+          - Apply_GalleryCrossHierarchyDown_ToFulfillment_OneBendLongApproachClearOfBorders
+          - Apply_GalleryCrossHierarchyDown_AllConnectors_NoCrossingsAndComfortable
+          - Apply_CrossHierarchyEdge_NoCleanStraightLane_RoutesCleanZBelowObstacle
+          - Apply_CrossHierarchyEdge_CleanLaneWithinBothFaces_StaysStraight
+          - Apply_NestedPortEdgeAcrossContainers_StillThrowsNotSupported
+          - Apply_CrossHierarchyEdge_DoesNotMutateInputAndIsDeterministic
+
+      - id: Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-AncestorPlacement
+        title: >-
+          HierarchicalLayoutAlgorithm shall account for an edge between nodes nested in two different
+          direct members of a scope when placing that scope, so containers joined by such an edge are
+          placed near each other, without drawing anything for the placement hint.
+        justification: |
+          If placement ignored these edges, related containers could end up far apart or separated by
+          unrelated ones, forcing long, tangled connectors; treating the edge as joining the two
+          containers during placement yields compact, readable diagrams.
+        tests:
+          - Apply_CrossHierarchyEdge_LayeredRoot_PlacesJoinedContainersAdjacent
+          - Apply_CrossHierarchyEdges_ContainmentRoot_WidensGapForParallelEdges
+
+      - id: Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-SameContainer
+        title: >-
+          HierarchicalLayoutAlgorithm shall route an edge declared on an ancestor graph whose two
+          endpoints are distinct, unrelated nodes nested under the same direct member between those
+          nested nodes instead of dropping it.
+        justification: |
+          Callers may add every non-trivial edge to the root graph without locating the lowest common
+          ancestor; an edge between two nodes inside one container must still be drawn.
+        tests:
+          - Apply_CrossHierarchyEdge_RootDeclaredBothEndpointsUnderOneContainer_RoutesBetweenNestedNodes
+
+      - id: Rendering-Layout-HierarchicalLayout-LayoutOnlyMarkerIsCollisionProof
+        title: >-
+          HierarchicalLayoutAlgorithm shall identify its layout-only proxy edges by an internal marker
+          keyed by edge object identity, never by edge identifier, so that no caller-chosen edge
+          identifier can be mistaken for a proxy or collide with one.
+        justification: |
+          Identifying proxies by an identifier prefix silently dropped a real edge whose identifier began
+          with that prefix and could throw a duplicate-identifier error; an identity-keyed marker cannot
+          collide with any public value.
+        tests:
+          - IsLayoutOnlyEdge_MarkedEdgeTrueUnmarkedFalseRegardlessOfId
+          - Apply_UserLeafEdgeNamedLikeProxyOfRoutedEdge_RendersBoth
 
       - id: Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening
         title: >-

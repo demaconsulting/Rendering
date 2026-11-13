@@ -136,6 +136,103 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
+    ///     Proves the obstacle-routing diagram's connectors are clean and keep every arrowhead inside its
+    ///     face: Left-to-Obstacle and Obstacle-to-Right are single straight segments, while the faces of
+    ///     Source and Sink hold no lane that is both 24 px under the Obstacle and clear of the corners, so
+    ///     Source-to-Sink is a clean Z (no tiny jog, ports at least the marker's reach from the corners,
+    ///     its long run at least 24 px under the Obstacle's border, not a detour).
+    /// </summary>
+    [Fact]
+    public void Gallery_OrthogonalObstacle_ConnectorsAreCleanAndCornerSafe()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.OrthogonalObstacle();
+
+        // Act
+        var tree = DemaConsulting.Rendering.Layout.LayoutEngine.Layout(graph);
+
+        // Assert: three connectors; the two container-to-container ones are straight.
+        var lines = CollectLines(tree.Nodes).ToList();
+        Assert.Equal(3, lines.Count);
+        var boxes = CollectBoxes(tree.Nodes).ToList();
+        var obstacle = boxes.Single(b => b.Label == "Obstacle");
+        var source = boxes.Single(b => b.Label == "Source");
+        var sink = boxes.Single(b => b.Label == "Sink");
+        var straight = lines.Where(l => l.Waypoints.Count == 2).ToList();
+        Assert.Equal(2, straight.Count);
+
+        // The Source -> Sink connector is the routed one: a clean Z of at most four bends.
+        var routed = Assert.Single(lines, l => l.Waypoints.Count > 2);
+        var w = routed.Waypoints;
+        Assert.True(w.Count <= 6, $"Source -> Sink needs at most four bends, got {w.Count - 2}.");
+
+        // Every interior segment is at least 24 px, the final leg holds the arrowhead plus the bend radius.
+        for (var i = 1; i <= w.Count - 3; i++)
+        {
+            Assert.True(Length(w, i) >= 24.0 - 1e-6, $"Interior segment {i} is {Length(w, i)} long, a tiny jog.");
+        }
+
+        Assert.True(Length(w, w.Count - 2) >= NotationMetrics.AlongLineLength(routed.TargetEnd) + Themes.Dark.LineCornerRadius, "The final leg is shorter than the arrowhead plus the bend radius.");
+
+        // Both ports keep the arrowhead (stroke-scaled half-width plus the border's half stroke) inside the face.
+        var reach = (Themes.Dark.StrokeWidth * (NotationMetrics.EndMarkerHalfWidth + (Themes.Dark.StrokeWidth / 2.0))) + (Themes.Dark.StrokeWidth / 2.0);
+        Assert.True(Math.Min(w[0].Y - source.Y, source.Y + source.Height - w[0].Y) >= reach - 1e-6, "The Source port is nearer a corner than the arrowhead reach.");
+        Assert.True(Math.Min(w[^1].Y - sink.Y, sink.Y + sink.Height - w[^1].Y) >= reach - 1e-6, "The Sink port is nearer a corner than the arrowhead reach.");
+
+        // Every horizontal run beside the Obstacle is at least 24 px (twice the clearance) from its bottom border.
+        for (var i = 0; i < w.Count - 1; i++)
+        {
+            var horizontal = Math.Abs(w[i].Y - w[i + 1].Y) < 1e-6;
+            var beside = Math.Max(w[i].X, w[i + 1].X) > obstacle.X && Math.Min(w[i].X, w[i + 1].X) < obstacle.X + obstacle.Width;
+            if (horizontal && beside)
+            {
+                Assert.True(Math.Abs(w[i].Y - (obstacle.Y + obstacle.Height)) >= 24.0 - 1e-6, $"The run at y={w[i].Y} hugs the Obstacle border.");
+            }
+        }
+
+        // Not a detour.
+        var length = Enumerable.Range(0, w.Count - 1).Sum(i => Length(w, i));
+        var manhattan = Math.Abs(w[^1].X - w[0].X) + Math.Abs(w[^1].Y - w[0].Y);
+        Assert.True(length <= (1.25 * manhattan) + 0.5, $"Source -> Sink is a detour ({length} vs {manhattan}).");
+    }
+
+    /// <summary>Returns the length of the segment starting at waypoint <paramref name="i"/>.</summary>
+    private static double Length(IReadOnlyList<Point2D> waypoints, int i) =>
+        Math.Abs(waypoints[i + 1].X - waypoints[i].X) + Math.Abs(waypoints[i + 1].Y - waypoints[i].Y);
+
+    /// <summary>Enumerates every box in the node list, recursing into box children.</summary>
+    private static IEnumerable<LayoutBox> CollectBoxes(IEnumerable<LayoutNode> nodes)
+    {
+        foreach (var box in nodes.OfType<LayoutBox>())
+        {
+            yield return box;
+            foreach (var nested in CollectBoxes(box.Children))
+            {
+                yield return nested;
+            }
+        }
+    }
+
+    /// <summary>Enumerates every line in the node list, recursing into box children.</summary>
+    private static IEnumerable<LayoutLine> CollectLines(IEnumerable<LayoutNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            if (node is LayoutLine line)
+            {
+                yield return line;
+            }
+            else if (node is LayoutBox box)
+            {
+                foreach (var nested in CollectLines(box.Children))
+                {
+                    yield return nested;
+                }
+            }
+        }
+    }
+
+    /// <summary>
     ///     Renders the direction showcase left-to-right, proving the layered algorithm honors the
     ///     default rightward flow direction.
     /// </summary>
@@ -792,6 +889,44 @@ public sealed class GalleryShowcaseTests
         // Act / Assert
         GalleryWriter.Svg(
             GalleryCatalog.AutoDeepNestedMixedConnectivitySvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the cross-hierarchy edges diagram to SVG with the "auto" root algorithm, proving
+    ///     root-declared edges between nested nodes (and nested containers) are kept and drawn between
+    ///     the actual nested boxes.
+    /// </summary>
+    [Fact]
+    public void Gallery_CrossHierarchyEdges_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.CrossHierarchyEdges();
+        graph.Set(CoreOptions.Algorithm, "auto");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.CrossHierarchyEdgesSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the downward-flowing cross-hierarchy edges diagram to SVG with the "hierarchical" root
+    ///     algorithm, proving edges between leaves and nested nodes route cleanly through container title
+    ///     bands and walls.
+    /// </summary>
+    [Fact]
+    public void Gallery_CrossHierarchyEdgesHierarchical_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.CrossHierarchyEdgesHierarchical();
+        graph.Set(CoreOptions.Algorithm, "hierarchical");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.CrossHierarchyEdgesHierarchicalSvg,
             graph,
             Themes.Dark);
     }

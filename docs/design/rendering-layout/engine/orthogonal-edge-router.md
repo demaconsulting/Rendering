@@ -12,15 +12,34 @@ which all single-connector routing quality flows.
 
 `OrthogonalEdgeRouter` is a static class with no instance state. Inputs are the source and target
 `Point2D` anchors, a list of obstacle `Rect`, a clearance distance, optional source and target
-`PortSide` values, an optional list of `CostBand` records, and an optional list of soft-obstacle
-`Rect` values (typically already-routed connector segments). The result is a `RouteResult` record
-carrying the ordered `Waypoints` and a `Crossed` flag.
+`PortSide` values, an optional list of `CostBand` records, an optional list of soft-obstacle
+`Rect` values (typically already-routed connector segments) and optional `RouteHints`. The result is a
+`RouteResult` record carrying the ordered `Waypoints`, a `Crossed` flag, and the search `Cost` and
+`ClearanceUsed` of the route it found (so a caller can compare alternative routes produced by the same
+cost function). The supporting internal types are:
+
+- `RouteHints` — optional quality hints: soft minimum and comfort end legs for each end
+  (`SourceLeg`/`TargetLeg`, `SourceComfort`/`TargetComfort`), a list of `RouterWall` keep-out strips and a
+  `CrossingPenalty`, and a hard `MinInteriorSegment` (shortest segment between two bends, no reversal).
+  A route computed without hints (or with all-zero hints) is exactly the legacy route.
+- `RouterWall(IsVertical, Coordinate, Lo, Hi, OutwardIsPositive)` — one container border: a direction-
+  selective obstacle that blocks runs parallel to the wall (and bends) within twice the current clearance
+  but never a move across it.
+- `PortRange(Side, Face, Preferred, Intervals, Extra, FixedPoint)` — where along one face the connector
+  may attach (see `RoutePorts` below); `PortRange.Single` wraps one fixed anchor.
 
 #### OrthogonalEdgeRouter Methods
 
 `RouteWithStatus(source, target, obstacles, clearance, sourceSide?, targetSide?, costBands?,
-softObstacles?)`
-computes the route and reports whether it had to cross an obstacle. The algorithm is:
+softObstacles?, hints?)`
+computes the route and reports whether it had to cross an obstacle. `RoutePorts(sourceRange, targetRange,
+obstacles, clearance, costBands?, softObstacles?, hints?)` is the same search with the ports left to the
+router: every grid line along each face that lies inside the range's permitted intervals (plus the
+preferred position) is a candidate port, the search starts from every candidate source stub end and
+finishes at any candidate target stub end, and each candidate carries a small extra cost per pixel of
+displacement from the preferred position (slightly above one per pixel, so a port only moves when that
+removes bends, and the preferred, centered anchor wins every tie). Both share one implementation. The
+algorithm is:
 
 1. **Perpendicular stubs.** When a side is supplied, the anchor is stepped off its edge by a short
    stub so the connector leaves and enters boxes at right angles. Each stub length is capped to half
@@ -44,10 +63,43 @@ computes the route and reports whether it had to cross an obstacle. The algorith
    that revisits one waypoint before continuing, so callers never receive a visibly redundant loop
    even if a future soft-obstacle pattern reintroduces one.
 
-A turn penalty biases the search toward routes with fewer bends. When cost bands are supplied, each
+A turn penalty biases the search toward routes with fewer bends. **Hints** add, per clearance level, the
+following soft or directional terms (none of which changes a route when the hint is absent):
+
+- *End-leg zones.* A bend (any move lateral to an end's face normal) whose distance from that face is below
+  the end's minimum leg is charged 100, below its comfort leg 30; grid lines are added at the zone
+  boundaries so a bend can sit exactly one leg from the face. The zones are soft, so a gap too narrow to
+  hold them still yields the legacy half-gap stub route.
+- *Wall keep-out.* A move parallel to a wall within twice the clearance of it (strictly) that overlaps the
+  wall's extent is blocked; a move across a wall, or touching the connector's own stub-end nodes, never is.
+  The margin therefore narrows with the clearance ladder (24, 12, 6, 0) so a narrow channel is still
+  routable. Grid lines are added at the wall coordinate plus and minus the margin and at the centre of each
+  corridor between two walls facing each other, and a move parallel to nearby walls earns a cost discount of
+  at most 5 % the farther it stays from the nearest one (up to five clearances), so equally good lanes resolve
+  to the middle of a corridor instead of hugging a border.
+- *Crossing penalty.* Each right-angle crossing of a soft obstacle (an earlier connector's segment, detected
+  from its thin aspect ratio) adds the hint's penalty on top of the usual soft-obstacle cost.
+- *Minimum interior segment* (`MinInteriorSegment`). A route's interior segments — those between two bends —
+  must be at least the hint's length, so a Z never carries a few-pixel jog. The search state widens from
+  (grid node, axis) to (grid node, axis, run, sign): `sign` is the direction of the last move along its axis
+  and `run` is the grid index where the run being drawn began while it is still shorter than the minimum
+  (otherwise -1). A turn is forbidden while a short run is pending, and a move that reverses `sign` along its
+  own axis is forbidden — without the sign a path could "satisfy" the minimum by going 24 px left and
+  coming back right. The two end legs are exempt, but only where they really are the end legs: a run that
+  continues the step-off stub (first run along the start stub's axis, last run along the goal stub's axis)
+  is part of the end leg, while a run across the stub axis is an interior segment and is measured (a goal
+  reached in the middle of a short run across its stub is not accepted). The requirement is a hard
+  constraint of a first pass that tries every clearance level; only when that pass finds no route is it
+  dropped and the unconstrained passes run (so the hint can improve a route but never lose it or turn it
+  into a crossing fallback). With a zero or absent hint the state's two extra components are constant, a
+  single pass runs, and the route is byte-identical to the legacy one.
+
+A multi-port search ends at a *done* state per goal that carries the goal's extra cost, so the cheapest
+total wins; a search over a single goal without extra cost ends at the first dequeued goal node exactly as
+before. The thin `Route` wrapper returns only the `Waypoints` for callers that do not need the crossing
+status. When cost bands are supplied, each
 segment's length is scaled by the cheapest band covering its midpoint, so a discounted highway band
-attracts wires into shared corridors while a null band list leaves cost neutral. The thin `Route`
-wrapper returns only the `Waypoints` for callers that do not need the crossing status. Soft obstacles
+attracts wires into shared corridors while a null band list leaves cost neutral. Soft obstacles
 add a penalty rather than a hard block, which is what keeps a shared box face reachable even when one
 connector's interior corridor has already been claimed by an earlier route. That penalty is
 proportional to the length of the overlap between the candidate move and the soft obstacle, not a flat
@@ -113,3 +165,8 @@ route individual connectors; the `Crossed` flag feeds their layout-warning handl
 | Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit | OrthogonalEdgeRouter behavior described above |
 | Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap | OrthogonalEdgeRouter behavior described above |
 | Rendering-Layout-OrthogonalEdgeRouter-AvoidsConnectorCrossing | OrthogonalEdgeRouter behavior described above |
+| Rendering-Layout-OrthogonalEdgeRouter-MinimumEndLegs | End-leg zones (hints); `RouteResult.Cost` / `ClearanceUsed` |
+| Rendering-Layout-OrthogonalEdgeRouter-PortRanges | `RoutePorts` multi-port search |
+| Rendering-Layout-OrthogonalEdgeRouter-WallKeepOut | Wall keep-out (hints) |
+| Rendering-Layout-OrthogonalEdgeRouter-CrossingCost | Crossing penalty (hints) |
+| Rendering-Layout-OrthogonalEdgeRouter-MinimumInteriorSegment | Minimum interior segment (hints) |

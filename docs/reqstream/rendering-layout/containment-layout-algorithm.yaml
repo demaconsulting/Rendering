@@ -131,3 +131,24 @@ sections:
           - Widen_SingleConnector_ReturnsBaseGap
           - Widen_ZeroConnectors_ReturnsBaseGap
           - Widen_BaseGapExceedsCorridor_ReturnsBaseGap
+
+      - id: Rendering-Layout-ContainmentAlgorithm-LayoutOnlyEdges
+        title: >-
+          ContainmentLayoutAlgorithm shall count a layout-only edge toward the gap widening between its
+          two boxes exactly like a real edge while routing and emitting no connector for it.
+        justification: |
+          The hierarchical engine adds layout-only edges to represent connectors that are routed
+          separately between nested nodes; counting them toward the corridor width gives those
+          connectors lanes without the packer drawing anything for the hint itself.
+        tests:
+          - Apply_SameRowPeersWithLayoutOnlyEdges_WidensGapButEmitsNoLine
+
+      - id: Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly
+        title: >-
+          ContainmentLayoutAlgorithm shall treat a caller edge as a real edge whatever its identifier,
+          including an identifier that starts with the former reserved layout-only prefix.
+        justification: |
+          The layout-only marker is held against the edge object, not in its public identifier, so no
+          caller-chosen identifier can silently turn a real edge into a placement hint that is never drawn.
+        tests:
+          - Apply_UserEdgeWithOldReservedPrefixOnPackedPeers_StillEmitsLine

@@ -19,7 +19,10 @@ namespace DemaConsulting.Rendering.Layout;
 ///     the graph's top-level edges (mirroring <see cref="LayeredLayoutAlgorithm"/>'s and
 ///     <see cref="HierarchicalLayoutAlgorithm"/>'s own node/port endpoint resolution — replicated here
 ///     rather than shared, since each caller's resolution serves a slightly different purpose and the
-///     three implementations are independently small). Each component is then routed by shape:
+///     three implementations are independently small). An edge endpoint nested at any depth inside a
+///     top-level container counts as that container for connectivity, so an edge between nodes nested
+///     in two different containers keeps those containers (and the edge) in one component instead of
+///     being dropped. Each component is then routed by shape:
 ///     </para>
 ///     <list type="bullet">
 ///         <item><description>
@@ -50,6 +53,11 @@ namespace DemaConsulting.Rendering.Layout;
 ///     <see cref="HierarchicalLayoutAlgorithm"/>'s own flat-graph equivalence guarantee, and is the
 ///     common case: a single fully (or mostly) connected diagram never pays any splitting or copying
 ///     cost.
+///     </para>
+///     <para>
+///     <strong>Input box order.</strong> The packed tree lists its top-level boxes in the original input
+///     node order (not group order), preserving the one-box-per-node, input-order contract every bundled
+///     leaf algorithm honors and the hierarchical engine relies on.
 ///     </para>
 ///     <para>
 ///     <strong>Sub-graph construction copies, it cannot reuse, node instances.</strong> When more than
@@ -193,28 +201,24 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
             return _hierarchical.ApplyCore(graph, options);
         }
 
+        // Map every node and named port at every nesting depth to the index of the top-level node that
+        // contains it (a top-level node maps to itself). Resolving descendants lets an edge declared on
+        // this scope whose endpoints are nested inside different containers connect those containers'
+        // components, so such an edge is never lost to a split between separate components.
         var indexOf = new Dictionary<LayoutGraphNode, int>(count);
         var portOwnerIndex = new Dictionary<LayoutGraphPort, int>();
         for (var i = 0; i < count; i++)
         {
-            var node = nodes[i];
-            indexOf[node] = i;
-            if (!node.HasPorts)
-            {
-                continue;
-            }
-
-            foreach (var port in node.Ports.Ports)
-            {
-                portOwnerIndex[port] = i;
-            }
+            MapSubtree(nodes[i], i, indexOf, portOwnerIndex);
         }
 
         // Union-find over top-level nodes, connected by every top-level edge whose endpoints both
-        // resolve to a top-level node or one of its own ports (an edge referencing a node outside this
-        // scope, or a deeply-nested descendant referenced directly rather than through its top-level
-        // container, is not considered for connectivity — mirroring the "drop unresolvable endpoints"
-        // convention every bundled leaf algorithm already follows).
+        // resolve (directly, or through any depth of nesting) to a top-level node or one of its ports.
+        // An edge referencing a node outside this scope is not considered for connectivity —
+        // mirroring the "drop unresolvable endpoints" convention every bundled leaf algorithm follows.
+        // An edge whose two endpoints resolve to the same top-level node never joins two components; it
+        // only marks that node as carrying a self-connection (irrelevant for a container, which is
+        // always routed to the hierarchical engine anyway).
         var parent = new int[count];
         for (var i = 0; i < count; i++)
         {
@@ -315,19 +319,87 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
         var effective = graph.OverlayOnto(options);
 
         var trees = new List<LayoutTree>(routedGroups.Count + (singletons.Count > 0 ? 1 : 0));
+        var packedOrder = new List<int>(count);
         foreach (var (members, algorithm) in routedGroups)
         {
             var subGraph = BuildComponentGraph(graph, members);
             trees.Add(algorithm.ApplyCore(subGraph, effective));
+            packedOrder.AddRange(members);
         }
 
         if (singletons.Count > 0)
         {
             var subGraph = BuildComponentGraph(graph, singletons);
             trees.Add(_containment.ApplyCore(subGraph, effective));
+            packedOrder.AddRange(singletons);
         }
 
-        return LayoutTreePacker.Pack(trees, ComponentSpacing, ComponentAspectRatio);
+        return RestoreInputBoxOrder(LayoutTreePacker.Pack(trees, ComponentSpacing, ComponentAspectRatio), packedOrder);
+    }
+
+    /// <summary>
+    /// Re-lists the top-level boxes of a packed multi-group tree in the original input node order.
+    /// </summary>
+    /// <remarks>
+    /// Packing concatenates the group trees, so the boxes come out in <em>group</em> order (routed
+    /// groups first, then the singleton bucket). Downstream consumers — notably
+    /// <see cref="HierarchicalLayoutAlgorithm"/>, which attaches each container's laid-out children to
+    /// the placed box at the container's own node index — rely on one box per input node in input order,
+    /// as every bundled leaf algorithm produces. Boxes are reordered in place; lines and ports keep
+    /// their relative order after the boxes. When the box count does not match the node count the tree
+    /// is returned unchanged.
+    /// </remarks>
+    /// <param name="packed">The packed tree whose boxes are in group order.</param>
+    /// <param name="packedOrder">The input node index of each box, in packed (group) order.</param>
+    /// <returns>The packed tree with boxes listed in input node order.</returns>
+    private static LayoutTree RestoreInputBoxOrder(LayoutTree packed, List<int> packedOrder)
+    {
+        var boxes = packed.Nodes.OfType<LayoutBox>().ToList();
+        if (boxes.Count != packedOrder.Count)
+        {
+            return packed;
+        }
+
+        var ordered = new LayoutBox[boxes.Count];
+        for (var i = 0; i < boxes.Count; i++)
+        {
+            ordered[packedOrder[i]] = boxes[i];
+        }
+
+        var nodes = new List<LayoutNode>(packed.Nodes.Count);
+        nodes.AddRange(ordered);
+        nodes.AddRange(packed.Nodes.Where(node => node is not LayoutBox));
+        return packed with { Nodes = nodes };
+    }
+
+    /// <summary>
+    /// Records that <paramref name="node"/> and every descendant (and each named port of any of them)
+    /// belongs to the top-level node at <paramref name="topIndex"/>.
+    /// </summary>
+    private static void MapSubtree(
+        LayoutGraphNode node,
+        int topIndex,
+        Dictionary<LayoutGraphNode, int> indexOf,
+        Dictionary<LayoutGraphPort, int> portOwnerIndex)
+    {
+        indexOf[node] = topIndex;
+        if (node.HasPorts)
+        {
+            foreach (var port in node.Ports.Ports)
+            {
+                portOwnerIndex[port] = topIndex;
+            }
+        }
+
+        if (!node.HasChildren)
+        {
+            return;
+        }
+
+        foreach (var child in node.Children.Nodes)
+        {
+            MapSubtree(child, topIndex, indexOf, portOwnerIndex);
+        }
     }
 
     /// <summary>
@@ -422,6 +494,12 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
             copy.TargetEnd = edge.TargetEnd;
             copy.LineStyle = edge.LineStyle;
             copy.Label = edge.Label;
+
+            // The layout-only marker is keyed by edge identity, so it must be carried onto the copy.
+            if (HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(edge))
+            {
+                HierarchicalLayoutAlgorithm.MarkLayoutOnly(copy);
+            }
         }
 
         return target;

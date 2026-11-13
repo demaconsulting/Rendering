@@ -30,7 +30,10 @@ rejects a null `graph`), then:
    `LayeredLayoutAlgorithm`'s and `HierarchicalLayoutAlgorithm`'s own node/port endpoint resolution.
    The helper is replicated locally rather than extracted into a shared type, since each caller's
    resolution serves a slightly different purpose and all three implementations are independently
-   small.
+   small. An endpoint nested at any depth inside a top-level container resolves to that top-level
+   container's index (descendant nodes and their named ports are mapped recursively), so an edge
+   between nodes nested in two different containers unions those containers into one component
+   instead of being dropped.
 2. **Routing rule.** Each detected component is routed by shape:
    - A component containing any node with `HasChildren` is routed to `HierarchicalLayoutAlgorithm`
      (which recurses further into any nesting on its own), regardless of the component's size — a
@@ -60,7 +63,11 @@ rejects a null `graph`), then:
    an override) restores the cascade to exactly what an ordinary caller not using `"auto"` would see.
    Each group is then built into its own freshly-constructed `LayoutGraph` (see Sub-graph Construction
    below), laid out through its routed algorithm, and every resulting `LayoutTree` is packed into one
-   combined tree via `LayoutTreePacker.Pack` (see its own Unit Design document).
+   combined tree via `LayoutTreePacker.Pack` (see its own Unit Design document). Packing concatenates
+   the group trees, so the boxes come out in group order; the algorithm then re-lists the top-level
+   boxes in the original input node order (lines and ports follow the boxes), preserving the
+   one-box-per-node, input-order contract that `HierarchicalLayoutAlgorithm` relies on to attach each
+   container's children to the right box.
 
 ### AutoLayoutAlgorithm Sub-Graph Construction
 
@@ -72,7 +79,10 @@ to a new parent graph. Every node in a split-off component is therefore copied f
 shape, keyword, compartments, title height, rounded-corner radius, folder-tab dimensions, its named
 ports, and (recursively) its entire nested `Children` subgraph — with edges re-added afterward once
 every node and port in the component has a copy, so both direct and cross-container edge endpoints
-resolve correctly regardless of nesting depth.
+resolve correctly regardless of nesting depth. A layout-only edge (see the hierarchical algorithm's
+design) is marked by edge object identity rather than by its identifier, so each edge copy is re-marked
+when its original was marked; every other edge copy stays an ordinary, drawn edge whatever its
+identifier.
 
 **Known, disclosed limitation.** A node's or edge's own arbitrary `PropertyHolder` option overrides
 (set with `node.Set(property, value)`, for example a per-node `CoreOptions.Algorithm` override on a
@@ -111,3 +121,6 @@ bundled algorithms and is resolved by renderers through the layout registry like
 | Rendering-Layout-AutoAlgorithm-CascadesOptions | AutoLayoutAlgorithm behavior described above |
 | Rendering-Layout-AutoAlgorithm-EmptyGraph | AutoLayoutAlgorithm behavior described above |
 | Rendering-Layout-AutoAlgorithm-Validation | AutoLayoutAlgorithm behavior described above |
+| Rendering-Layout-AutoAlgorithm-NestedEndpointConnectivity | Component detection (step 1) |
+| Rendering-Layout-AutoAlgorithm-PreservesInputBoxOrder | Genuine multi-group split (step 4) |
+| Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker | Sub-Graph Construction (edge copying) |

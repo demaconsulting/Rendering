@@ -51,7 +51,8 @@ DemaConsulting.Rendering.Layout (System)
 The public algorithms derive from `LayoutAlgorithmBase` from Rendering.Abstractions and compose the Engine
 subsystem's model-agnostic geometry. The `DefaultLayout` facade resolves the requested algorithm from
 the bundled registry. The hierarchical algorithm composes leaf algorithms per container and routes
-cross-container edges at the owning scope. The auto algorithm composes the other three bundled
+cross-hierarchy edges at the declaring scope, between the actual nested endpoint nodes. The auto
+algorithm composes the other three bundled
 algorithms per connected component and packs their independently-placed results with `LayoutTreePacker`.
 
 ## External Interfaces

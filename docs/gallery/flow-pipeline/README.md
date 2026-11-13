@@ -38,9 +38,13 @@ nested container runs top-to-bottom.
 
 Orthogonal connectors step around the boxes between their endpoints instead of cutting through them.
 
-![Orthogonal edge routed around an obstacle](orthogonal-obstacle.svg)
+![Orthogonal edge routed under an obstacle](orthogonal-obstacle.svg)
 
-A connector routed orthogonally around an intervening container box.
+A connector between two nested boxes slides its ports to a free lane when a straight lane exists that lies inside both
+faces, keeps every arrowhead clear of the box corners and stays at least 24 px from the borders it runs along. Here the
+faces hold no such lane under the intervening container box, so Source to Sink takes a clean Z instead — down a
+corridor, along a run 24 px under the container's border and back up into the Sink — rather than hugging the container
+or letting an arrowhead overhang a corner.
 
 ## Raster output
 

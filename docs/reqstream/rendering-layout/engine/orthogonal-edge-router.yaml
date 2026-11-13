@@ -141,3 +141,79 @@ sections:
         tests:
           - RouteWithStatus_VerticalOrientedSoftObstacleAcrossOneLRoute_PrefersNonCrossingAlternative
           - Route_NineParallelEdgesIntoCompartmentBox_DoNotLoopBehindEitherBox
+
+      - id: Rendering-Layout-OrthogonalEdgeRouter-MinimumEndLegs
+        title: >-
+          Given end-leg hints, OrthogonalEdgeRouter shall place the first and last bends at least the
+          requested (minimum, and softly the comfortable) distance from the source and target faces
+          when the geometry allows it, shall report the search cost and the clearance level of the
+          route it found, and shall return exactly the legacy route when no hint is supplied.
+        justification: |
+          A connector that bends the moment it clears its face, or whose arrowhead sits on a bend,
+          looks cramped. The end legs are soft costs (never hard blocks) so a gap too narrow to hold
+          them still yields a route, and the cost and clearance level let a caller compare alternative
+          routes produced by the same cost function.
+        tests:
+          - RouteWithStatus_TargetLeg_PlacesBendAtLeastLegFromFace
+          - RouteWithStatus_ComfortLegZone_PlacesFirstBendAtLeastComfortFromFace
+          - RouteWithStatus_LegsZero_MatchesLegacyRoute
+          - RouteWithStatus_ReportsCostAndClearanceUsed
+
+      - id: Rendering-Layout-OrthogonalEdgeRouter-PortRanges
+        title: >-
+          Given a permitted along-face range for each end, OrthogonalEdgeRouter shall choose the port on
+          each face itself — preferring a straight run when a free lane lies inside both ranges and
+          otherwise the port nearest the preferred position — and shall start and end the route on the
+          chosen ports.
+        justification: |
+          Fixed anchors are picked before obstacles are known, so they can force a jog even where a free
+          lane exists inside both faces. Choosing the ports during the search removes such jogs, while a
+          small cost per pixel of displacement keeps the default, centered anchor wherever sliding does
+          not remove a bend.
+        tests:
+          - RoutePorts_LaneWithinBothRanges_SlidesPortsToStraightLane
+
+      - id: Rendering-Layout-OrthogonalEdgeRouter-WallKeepOut
+        title: >-
+          Given wall hints, OrthogonalEdgeRouter shall not run a segment parallel to a wall, nor bend,
+          within twice the current clearance of it (a move across the wall is never blocked), shall
+          scale that margin with the clearance level, and shall exempt the moves that touch the
+          connector's own end points.
+        justification: |
+          A connector that runs along a container border, or bends against it, reads as part of the
+          border. Crossing a border is allowed, and necessarily perpendicular, so only parallel runs
+          are kept out; the exemption lets a port that sits close to its own container's wall still
+          leave it.
+        tests:
+          - RouteWithStatus_VerticalWall_BlocksParallelRunInsideMarginButAllowsHorizontalCrossing
+
+      - id: Rendering-Layout-OrthogonalEdgeRouter-CrossingCost
+        title: >-
+          Given a crossing penalty, OrthogonalEdgeRouter shall charge each right-angle crossing of an
+          already-routed connector that penalty, so a detour that avoids the crossings is preferred
+          when it costs less.
+        justification: |
+          Crossings that can be avoided cheaply should be avoided; the penalty prices them above a short
+          detour while leaving a forced crossing possible at the cheapest place.
+        tests:
+          - RouteWithStatus_CrossingPenalty_PrefersRouteWithFewerCrossings
+
+      - id: Rendering-Layout-OrthogonalEdgeRouter-MinimumInteriorSegment
+        title: >-
+          Given a minimum interior segment hint, OrthogonalEdgeRouter shall first search every clearance
+          level for a route whose every interior segment (between two bends, excluding the end legs
+          that continue the step-off stubs) is at least that long and that never reverses direction
+          along an axis to reach the length, and only when no such route exists shall it drop the
+          requirement and return the unconstrained route (never a crossing fallback); it shall return
+          exactly the legacy route when the hint is zero or absent.
+        justification: |
+          A Z whose middle run is a few pixels long reads as a rendering glitch rather than a bend.
+          Making the minimum a hard constraint of the first pass — with the direction of travel part of
+          the search state so a run cannot satisfy it by doubling back — gives clean jogs wherever the
+          grid allows them, while the fall-back guarantees the hint can only improve a route and never
+          lose one.
+        tests:
+          - RoutePorts_MinInteriorSegment_FacesOverlapNarrowly_ReturnsZWithJogAtLeastMinimum
+          - RoutePorts_MinInteriorSegment_NoReversalToSatisfyMinimum
+          - RouteWithStatus_MinInteriorSegmentInfeasible_FallsBackToUnconstrainedRoute
+          - RouteWithStatus_LegsZero_MatchesLegacyRoute

@@ -121,3 +121,43 @@ sections:
         tests:
           - Apply_NullGraph_ThrowsArgumentNullException
           - ApplyCore_NullOptions_ThrowsArgumentNullException
+
+      - id: Rendering-Layout-AutoAlgorithm-NestedEndpointConnectivity
+        title: >-
+          AutoLayoutAlgorithm shall treat an edge endpoint nested at any depth inside a top-level
+          container as that container for connectivity, so an edge between nodes nested in different
+          containers keeps those containers in one component and is routed between the nested nodes
+          rather than dropped.
+        justification: |
+          Callers declare edges on the root without locating the lowest common ancestor; resolving only
+          directly-listed endpoints split the containers into separate components and silently lost the
+          edge.
+        tests:
+          - Apply_CrossHierarchyEdgeBetweenNestedNodes_KeepsAndRoutesEdge
+          - Apply_CrossHierarchyEdgeWithUnrelatedGroups_KeepsAndRoutesEdge
+          - Apply_NestedNodeToRootLeafEdge_KeepsAndRoutesEdge
+          - Apply_CrossHierarchyEdgeThroughDepthTwoEndpoint_KeepsAndRoutesEdge
+
+      - id: Rendering-Layout-AutoAlgorithm-PreservesInputBoxOrder
+        title: >-
+          When AutoLayoutAlgorithm splits a graph into several groups, it shall list the packed tree's
+          top-level boxes in the original input node order.
+        justification: |
+          The hierarchical engine attaches each container's laid-out children to the box at the
+          container's own node index; group-ordered boxes attached children to the wrong box.
+        tests:
+          - Apply_MultiGroupScopeWithContainer_EmitsBoxesInInputOrder
+          - Apply_NestedAutoScopeWithContainerAndPair_AttachesChildToItsOwnContainer
+
+      - id: Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker
+        title: >-
+          When AutoLayoutAlgorithm splits a graph into components, it shall keep a layout-only edge
+          layout-only in its component copy (placed but never drawn) and shall keep treating every other
+          edge, whatever its identifier, as a real edge.
+        justification: |
+          The layout-only marker is keyed by edge object identity, so the component copy must carry it
+          across explicitly; losing it would draw a spurious connector for a placement hint, and keying
+          it by identifier would hide a real edge whose identifier happened to match.
+        tests:
+          - Apply_MarkedLayoutOnlyEdge_IsNotDrawnAfterComponentSplit
+          - Apply_UserEdgeWithOldReservedPrefixAcrossComponents_StillEmitsLine

@@ -332,6 +332,35 @@ public sealed class ContainmentLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves layout-only edges (placement hints that are never drawn) widen the gap between two
+    ///     same-row peer boxes exactly like real parallel edges do, yet emit no connector.
+    /// </summary>
+    [Fact]
+    public void Apply_SameRowPeersWithLayoutOnlyEdges_WidensGapButEmitsNoLine()
+    {
+        // Arrange: the same tall/narrow peers as the real-edge fan test, joined by eight layout-only edges.
+        var graph = new LayoutGraph();
+        var left = graph.AddNode("left", 100, 218);
+        var right = graph.AddNode("right", 100, 218);
+        left.Label = "Left";
+        right.Label = "Right";
+        for (var i = 0; i < 8; i++)
+        {
+            var layoutOnly = graph.AddEdge("ab" + i, left, right);
+            HierarchicalLayoutAlgorithm.MarkLayoutOnly(layoutOnly);
+        }
+
+        // Act
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert: same eight-connector corridor gap, but nothing is drawn.
+        var boxes = tree.Nodes.OfType<LayoutBox>().OrderBy(box => box.X).ToList();
+        Assert.Equal(boxes[0].Y, boxes[1].Y);
+        Assert.Equal(132.0, boxes[1].X - (boxes[0].X + boxes[0].Width));
+        Assert.Empty(tree.Nodes.OfType<LayoutLine>());
+    }
+
+    /// <summary>
     ///     Proves the horizontal-only widening leaves a vertical stack byte-identical: a small Source box
     ///     stacked above a tall Target box (joined by nine parallel edges) lands at exactly the same box
     ///     positions as the same boxes with no edges at all, because the pair spans two rows and the
@@ -519,6 +548,26 @@ public sealed class ContainmentLayoutAlgorithmTests
         b.X < a.X + a.Width &&
         a.Y < b.Y + b.Height &&
         b.Y < a.Y + a.Height;
+
+    /// <summary>
+    ///     Proves an ordinary caller edge whose identifier starts with the OLD reserved layout-only prefix
+    ///     is a real edge and still renders (the marker is identity-keyed, never id-keyed).
+    /// </summary>
+    [Fact]
+    public void Apply_UserEdgeWithOldReservedPrefixOnPackedPeers_StillEmitsLine()
+    {
+        // Arrange: the literal old prefix, so this compiles whether or not the constant still exists.
+        var graph = new LayoutGraph();
+        var left = graph.AddNode("left", 100, 60);
+        var right = graph.AddNode("right", 100, 60);
+        graph.AddEdge("\u0001layout-only:user", left, right);
+
+        // Act
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        Assert.Single(tree.Nodes.OfType<LayoutLine>());
+    }
 
     /// <summary>
     ///     Returns true when the axis-aligned segment passes through the strict interior of the rect.

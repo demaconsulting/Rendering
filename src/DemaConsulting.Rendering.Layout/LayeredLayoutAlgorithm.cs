@@ -23,7 +23,11 @@ namespace DemaConsulting.Rendering.Layout;
 /// endpoint, and each node's <see cref="LayoutBox.ContentInsetLeft"/>/Right/Top/Bottom reserve space
 /// for its ports' labels, measured via the shared <see cref="PortLabelWidthEstimator"/> (in
 /// <c>Rendering.Abstractions</c>, also consumed by <c>Rendering.Svg</c>'s renderer so layout-time and
-/// render-time measurements never disagree) at <see cref="CoreOptions.AssumedFontSize"/>.
+/// render-time measurements never disagree) at <see cref="CoreOptions.AssumedFontSize"/>. An edge
+/// marked layout-only by the hierarchical engine (an identity-keyed marker, see
+/// <c>HierarchicalLayoutAlgorithm.MarkLayoutOnly</c>) takes part in layering, ordering,
+/// and spacing exactly like a real edge but emits no connector, port, or anchor reservation, and never
+/// displaces a real parallel edge as the retained representative when parallel edges are merged.
 /// </summary>
 public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
 {
@@ -112,6 +116,11 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         var edgeSourcePorts = new List<LayoutGraphPort?>(graph.Edges.Count);
         var edgeTargetPorts = new List<LayoutGraphPort?>(graph.Edges.Count);
         var edgeByEngineIndex = new List<LayoutGraphEdge>(graph.Edges.Count);
+        // Real edges are added first and layout-only edges last (relative order preserved within each
+        // group): the cycle breaker keeps the FIRST edge of each parallel group as the retained
+        // representative, so a layout-only edge must never precede a real edge on the same node pair or
+        // it would win the de-duplication and hide the real connector when MergeParallelEdges is true.
+        var layoutOnlyEdges = new List<(LayerEdge Edge, LayoutGraphPort? SourcePort, LayoutGraphPort? TargetPort, LayoutGraphEdge Source)>();
         foreach (var edge in graph.Edges)
         {
             if (!TryResolveEndpoint(edge.Source, indexOf, portOwnerIndex, out var s, out var sourcePort) ||
@@ -120,10 +129,24 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 continue;
             }
 
+            if (HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(edge))
+            {
+                layoutOnlyEdges.Add((new LayerEdge(s, t), sourcePort, targetPort, edge));
+                continue;
+            }
+
             engineEdges.Add(new LayerEdge(s, t));
             edgeSourcePorts.Add(sourcePort);
             edgeTargetPorts.Add(targetPort);
             edgeByEngineIndex.Add(edge);
+        }
+
+        foreach (var (layoutOnlyEdge, sourcePort, targetPort, original) in layoutOnlyEdges)
+        {
+            engineEdges.Add(layoutOnlyEdge);
+            edgeSourcePorts.Add(sourcePort);
+            edgeTargetPorts.Add(targetPort);
+            edgeByEngineIndex.Add(original);
         }
 
         var direction = ToEngineDirection(ResolveDirection(graph, options));
@@ -142,8 +165,15 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         var pairCounts = new Dictionary<(int Low, int High), int>();
         if (mergeParallelEdges)
         {
-            foreach (var edge in engineEdges)
+            for (var i = 0; i < engineEdges.Count; i++)
             {
+                // A layout-only edge never renders, so it never counts as a collapsed parallel edge.
+                if (HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(edgeByEngineIndex[i]))
+                {
+                    continue;
+                }
+
+                var edge = engineEdges[i];
                 var key = (Math.Min(edge.Source, edge.Target), Math.Max(edge.Source, edge.Target));
                 pairCounts[key] = pairCounts.TryGetValue(key, out var existing) ? existing + 1 : 1;
             }
@@ -202,6 +232,14 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             {
                 var s = engineEdges[i].Source;
                 var t = engineEdges[i].Target;
+
+                // A layout-only edge (see HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge) stays in the
+                // engine edge list so it still drives layering, ordering, and gap sizing, but it is
+                // never emitted: no connector, port, or anchor reservation is produced for it.
+                if (HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(edgeByEngineIndex[i]))
+                {
+                    continue;
+                }
 
                 // A self-loop (s == t) is always dropped by CycleBreaker regardless of
                 // MergeParallelEdges, yet must still be emitted (via ResolveRoute's centre-to-centre

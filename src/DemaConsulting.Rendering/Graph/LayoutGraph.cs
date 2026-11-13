@@ -36,7 +36,9 @@ namespace DemaConsulting.Rendering;
 ///     <see cref="LayoutGraphEdge.Source"/> and <see cref="LayoutGraphEdge.Target"/> reference the
 ///     descendant nodes directly. No separate cross-container edge type is required, and no
 ///     membership validation forbids these references; a hierarchical layout engine resolves the
-///     routing in the owning container's coordinate space.
+///     routing in the owning container's coordinate space, anchoring the connector on the referenced
+///     nested nodes themselves (not on their enclosing containers). The edge may be declared at the
+///     LCA or on any ancestor graph above it, including the root.
 ///     </para>
 /// </remarks>
 public sealed class LayoutGraph : PropertyHolder

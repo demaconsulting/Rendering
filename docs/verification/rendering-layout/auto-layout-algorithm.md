@@ -103,3 +103,20 @@ argument-null validation behavior constitutes a failure.
   Apply_EmptyGraph_ReturnsEmptyTree
 - **`Rendering-Layout-AutoAlgorithm-Validation`**:
   Apply_NullGraph_ThrowsArgumentNullException, ApplyCore_NullOptions_ThrowsArgumentNullException
+- **`Rendering-Layout-AutoAlgorithm-NestedEndpointConnectivity`**:
+  Apply_CrossHierarchyEdgeBetweenNestedNodes_KeepsAndRoutesEdge (`P{a}`, `Q{b}`, root edge `a -> b`
+  yields exactly one line from `a`'s boundary to `b`'s, where previously none was drawn),
+  Apply_CrossHierarchyEdgeWithUnrelatedGroups_KeepsAndRoutesEdge (the same on the multi-group copy and
+  pack path beside an unrelated singleton and pair), Apply_NestedNodeToRootLeafEdge_KeepsAndRoutesEdge,
+  Apply_CrossHierarchyEdgeThroughDepthTwoEndpoint_KeepsAndRoutesEdge
+- **`Rendering-Layout-AutoAlgorithm-PreservesInputBoxOrder`**:
+  Apply_MultiGroupScopeWithContainer_EmitsBoxesInInputOrder (children `[Q(container), S, T, U]` with
+  edge `T-U` emit boxes `Q, S, T, U`, with `Q`'s child inside `Q`),
+  Apply_NestedAutoScopeWithContainerAndPair_AttachesChildToItsOwnContainer (the same through a nested
+  scope inheriting `auto`, where the container's child was previously attached to the wrong box)
+- **`Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker`**:
+  Apply_MarkedLayoutOnlyEdge_IsNotDrawnAfterComponentSplit (a marked layout-only edge `a -> b` beside a
+  separate real component `c -> d` is carried onto its component copy, so exactly one line - the real
+  one - is emitted), Apply_UserEdgeWithOldReservedPrefixAcrossComponents_StillEmitsLine (two components,
+  one joined by an edge whose identifier is the literal former reserved prefix `"\u0001layout-only:"`
+  plus a suffix: both edges are drawn)
