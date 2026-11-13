@@ -172,10 +172,11 @@ the appropriate ancestor container.
   behavior; when set, a layout algorithm shall propagate each hint unchanged onto the placed box.
 - An edge shall reside in the container at or above the *lowest common ancestor* (LCA) of its two
   endpoints. An edge whose endpoints live in different descendant containers (a *cross-container*
-  edge) shall therefore be added to an ancestor container while its `Source` and `Target` reference
-  the descendant nodes directly; the model shall not add membership validation that would forbid such
-  cross-scope references. A hierarchical layout engine resolves the routing in the owning container's
-  coordinate space.
+  edge) shall therefore be added to an ancestor container (the LCA, or any graph above it such as the
+  root) while its `Source` and `Target` reference the descendant nodes directly; the model shall not
+  add membership validation that would forbid such cross-scope references. A hierarchical layout
+  engine resolves the routing in the declaring container's coordinate space, anchoring the connector
+  on the referenced nested nodes themselves rather than on their enclosing containers.
 
 ### Layout Graph Dependencies
 

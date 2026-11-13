@@ -105,3 +105,13 @@ level rather than introducing a new `ConnectorRouter`-level responsibility:
   Route_MultipleConnections_ReturnsOneLinePerConnectionInOrder
 - **`Rendering-Layout-ConnectorRouter-Validation`**:
   Route_NullBoxes_Throws, Route_NullConnections_Throws, Route_NullOptions_Throws, Route_NullConnection_Throws
+
+The internal per-connection batch entry point used by the hierarchical engine is verified without a
+dedicated requirement (the public contract is unchanged): RouteBatch_EndpointAncestorOmittedFromObstacles_RouteCrossesAncestorWall
+(a nested endpoint's route crosses its enclosing container's wall when that container is omitted from the
+connection's obstacles), RouteBatch_PerConnectionObstacles_AreHonoredIndependently (a blocker present in
+one connection's obstacle set is avoided there while another connection stays straight),
+Route_BatchOverload_MatchesInternalBatchWithSharedObstacles (the public batch overload yields the same
+routes as the internal entry point with a shared list), RouteBatch_FixedAnchorOnFace_MovesBatchAnchorClearOfIt
+(an anchor on an occupied face position moves to a free spot), and
+TryResolveFaceAnchor_PointOnFace_ResolvesFaceAndAlong.

@@ -1062,6 +1062,134 @@ public sealed class ConnectorRouterTests
     }
 
     /// <summary>
+    ///     The internal per-connection-obstacle batch entry point lets a connector whose endpoint is
+    ///     nested in a container cross that container's wall: with the enclosing container omitted from
+    ///     the connector's obstacle set, the route from the nested box straight out to a far box is a
+    ///     clean orthogonal line that crosses the container's boundary.
+    /// </summary>
+    [Fact]
+    public void RouteBatch_EndpointAncestorOmittedFromObstacles_RouteCrossesAncestorWall()
+    {
+        // Arrange: container C (0..200 x 0..200) holding nested a, and a far target b outside it.
+        var container = Box(0, 0, 200, 200, "C");
+        var nested = Box(40, 80, 60, 40, "a");
+        var far = Box(400, 80, 60, 40, "b");
+        var connections = new[] { new Connection(nested, far, EndMarkerStyle.FilledArrow) };
+
+        // Act: the obstacle set holds the target and a sibling but not the endpoint's ancestor container.
+        var lines = ConnectorRouter.RouteBatch(
+            connections,
+            new ConnectorRouteOptions(),
+            _ => new[] { nested, far });
+
+        // Assert: the line starts on the nested box, ends on the target, and crosses the container wall.
+        var line = Assert.Single(lines);
+        Assert.Equal(nested.X + nested.Width, line.Waypoints[0].X, 3);
+        Assert.Equal(far.X, line.Waypoints[^1].X, 3);
+        Assert.Contains(
+            Enumerable.Range(0, line.Waypoints.Count - 1),
+            i => Math.Min(line.Waypoints[i].X, line.Waypoints[i + 1].X) < container.X + container.Width &&
+                 Math.Max(line.Waypoints[i].X, line.Waypoints[i + 1].X) > container.X + container.Width);
+        Assert.Equal(EndMarkerStyle.FilledArrow, line.TargetEnd);
+    }
+
+    /// <summary>
+    ///     Each connection in a batch is avoided against its own obstacle set: an unrelated box present in
+    ///     a connection's set is steered around, while the same box absent from another connection's set
+    ///     leaves that connection's straight route untouched.
+    /// </summary>
+    [Fact]
+    public void RouteBatch_PerConnectionObstacles_AreHonoredIndependently()
+    {
+        // Arrange: two parallel source/target pairs at different heights, and a blocker sitting only on
+        // the first pair's straight path.
+        var from1 = Box(0, 0, 60, 60);
+        var to1 = Box(400, 0, 60, 60);
+        var from2 = Box(0, 300, 60, 60);
+        var to2 = Box(400, 300, 60, 60);
+        var blocker = Box(200, -20, 40, 100);
+        var connections = new[] { new Connection(from1, to1), new Connection(from2, to2) };
+
+        // Act: only the first connection knows about the blocker.
+        var lines = ConnectorRouter.RouteBatch(
+            connections,
+            new ConnectorRouteOptions(),
+            index => index == 0 ? new[] { from1, to1, blocker } : new[] { from2, to2 });
+
+        // Assert: the first route avoids the blocker; the second stays a straight line.
+        AssertNoSegmentCrossesObstacle(lines[0].Waypoints, new Rect(blocker.X, blocker.Y, blocker.Width, blocker.Height));
+        Assert.Equal(2, lines[1].Waypoints.Count);
+    }
+
+    /// <summary>
+    ///     The public batch overload is unchanged by the internal entry point: it produces exactly the
+    ///     routes the internal entry point yields when every connection shares the same obstacle list.
+    /// </summary>
+    [Fact]
+    public void Route_BatchOverload_MatchesInternalBatchWithSharedObstacles()
+    {
+        // Arrange
+        var from = Box(0, 0, 60, 60);
+        var middle = Box(150, -20, 60, 100);
+        var to = Box(300, 0, 60, 60);
+        var boxes = new[] { from, middle, to };
+        var connections = new[] { new Connection(from, to), new Connection(to, from) };
+
+        // Act
+        var publicLines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+        var internalLines = ConnectorRouter.RouteBatch(connections, new ConnectorRouteOptions(), _ => boxes);
+
+        // Assert
+        Assert.Equal(publicLines.Count, internalLines.Count);
+        for (var i = 0; i < publicLines.Count; i++)
+        {
+            Assert.Equal(publicLines[i].Waypoints, internalLines[i].Waypoints);
+        }
+    }
+
+    /// <summary>
+    ///     A fixed (already occupied) anchor on a box face makes a batch anchor that would land on top of it
+    ///     move along the face to a free spot, while an anchor already clear of it stays where it was.
+    /// </summary>
+    [Fact]
+    public void RouteBatch_FixedAnchorOnFace_MovesBatchAnchorClearOfIt()
+    {
+        // Arrange: a -> b with the natural anchor at the middle of a's right face, which is occupied.
+        var a = Box(0, 0, 60, 60);
+        var b = Box(300, 0, 60, 60);
+        var connections = new[] { new Connection(a, b) };
+        var occupied = new[] { new ConnectorRouter.FixedAnchor(a, PortSide.Right, 30.0) };
+
+        // Act
+        var unconstrained = ConnectorRouter.RouteBatch(connections, new ConnectorRouteOptions(), _ => new[] { a, b });
+        var moved = ConnectorRouter.RouteBatch(connections, new ConnectorRouteOptions(), _ => new[] { a, b }, occupied);
+
+        // Assert: unconstrained anchors mid-face; with the occupied anchor it sits at least 16px away.
+        Assert.Equal(30.0, unconstrained[0].Waypoints[0].Y, 3);
+        Assert.True(Math.Abs(moved[0].Waypoints[0].Y - 30.0) >= 16.0);
+    }
+
+    /// <summary>
+    ///     A point on a box face resolves to that face with its local along-coordinate; a point away from
+    ///     every face does not resolve.
+    /// </summary>
+    [Fact]
+    public void TryResolveFaceAnchor_PointOnFace_ResolvesFaceAndAlong()
+    {
+        // Arrange
+        var box = Box(100, 50, 80, 40);
+
+        // Act / Assert
+        Assert.True(ConnectorRouter.TryResolveFaceAnchor(box, new Point2D(180, 62), out var right));
+        Assert.Equal(PortSide.Right, right.Side);
+        Assert.Equal(12.0, right.Along, 3);
+        Assert.True(ConnectorRouter.TryResolveFaceAnchor(box, new Point2D(130, 50), out var top));
+        Assert.Equal(PortSide.Top, top.Side);
+        Assert.Equal(30.0, top.Along, 3);
+        Assert.False(ConnectorRouter.TryResolveFaceAnchor(box, new Point2D(140, 70), out _));
+    }
+
+    /// <summary>
     ///     Asserts that no segment of the path passes through the strict interior of the obstacle.
     /// </summary>
     private static void AssertNoSegmentCrossesObstacle(IReadOnlyList<Point2D> path, Rect obstacle)

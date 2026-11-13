@@ -23,7 +23,10 @@ namespace DemaConsulting.Rendering.Layout;
 /// endpoint, and each node's <see cref="LayoutBox.ContentInsetLeft"/>/Right/Top/Bottom reserve space
 /// for its ports' labels, measured via the shared <see cref="PortLabelWidthEstimator"/> (in
 /// <c>Rendering.Abstractions</c>, also consumed by <c>Rendering.Svg</c>'s renderer so layout-time and
-/// render-time measurements never disagree) at <see cref="CoreOptions.AssumedFontSize"/>.
+/// render-time measurements never disagree) at <see cref="CoreOptions.AssumedFontSize"/>. An edge
+/// marked layout-only by the hierarchical engine (see
+/// <see cref="HierarchicalLayoutAlgorithm.LayoutOnlyEdgeIdPrefix"/>) takes part in layering, ordering,
+/// and spacing exactly like a real edge but emits no connector, port, or anchor reservation.
 /// </summary>
 public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
 {
@@ -142,8 +145,15 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         var pairCounts = new Dictionary<(int Low, int High), int>();
         if (mergeParallelEdges)
         {
-            foreach (var edge in engineEdges)
+            for (var i = 0; i < engineEdges.Count; i++)
             {
+                // A layout-only edge never renders, so it never counts as a collapsed parallel edge.
+                if (HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(edgeByEngineIndex[i]))
+                {
+                    continue;
+                }
+
+                var edge = engineEdges[i];
                 var key = (Math.Min(edge.Source, edge.Target), Math.Max(edge.Source, edge.Target));
                 pairCounts[key] = pairCounts.TryGetValue(key, out var existing) ? existing + 1 : 1;
             }
@@ -202,6 +212,14 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             {
                 var s = engineEdges[i].Source;
                 var t = engineEdges[i].Target;
+
+                // A layout-only edge (see HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge) stays in the
+                // engine edge list so it still drives layering, ordering, and gap sizing, but it is
+                // never emitted: no connector, port, or anchor reservation is produced for it.
+                if (HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(edgeByEngineIndex[i]))
+                {
+                    continue;
+                }
 
                 // A self-loop (s == t) is always dropped by CycleBreaker regardless of
                 // MergeParallelEdges, yet must still be emitted (via ResolveRoute's centre-to-centre

@@ -22,7 +22,8 @@ extensible property system, and new algorithms, renderers, and options are added
   hierarchical engine for compound (nested-container) graphs, and an auto-routing meta-algorithm that
   picks the best fit per connected component, each selected through the open property system.
 - **Orthogonal edge routing** — axis-aligned connectors in all four flow directions, with obstacle
-  avoidance around intervening containers.
+  avoidance around intervening containers, and edges declared on an ancestor graph drawn between the
+  actual nested nodes they reference (across container boundaries, at any nesting depth).
 - **Named ports** — first-class, labeled attachment points on a node's boundary, including parallel
   edges and per-side port labels.
 - **Boundary (delegation) ports** — a container port that carries both an outward external label and

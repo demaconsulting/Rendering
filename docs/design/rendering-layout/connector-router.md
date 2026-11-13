@@ -88,6 +88,21 @@ proportion to how far it extends, rather than treating every overlap as an equal
 parallel fan-out or fan-in connectors separate into visually distinct corridors instead of merging
 along a shared trunk for an extended span.
 
+**Internal per-connection batch (`RouteBatch`).** The public batch overload delegates to an internal
+entry point, `RouteBatch(connections, options, obstaclesFor, fixedAnchors, penalizeLongEndSegments)`,
+that is otherwise the same algorithm but (a) takes each connection's hard-obstacle list from the
+`obstaclesFor` callback instead of one shared box list, (b) accepts _fixed anchors_ — end points already
+occupied on a box face by connectors routed elsewhere — and moves any batch anchor that would land within
+a minimum separation of one to the nearest free position on the face's usable extent (an anchor that is
+already clear is left untouched), and (c) can optionally also turn the long runs of the first and last
+segments of already-routed lines (beyond a short corridor at each end) into soft obstacles. The
+`HierarchicalLayoutAlgorithm` uses it to route connectors whose endpoints are boxes nested inside
+containers (their coordinates are absolute like every box's): it expands the endpoints' ancestor
+containers in that connector's obstacle list so the connector can cross their walls, passes the face
+anchors taken by the endpoint's own container's connectors, and enables the end-segment penalty. The
+public overloads' behavior is unchanged (no fixed anchors, shared obstacle list, interior segments
+only).
+
 ### ConnectorRouter Error Handling
 
 Null `boxes`, `connections`, `connection`, `options`, or a connection's `From`/`To` throw

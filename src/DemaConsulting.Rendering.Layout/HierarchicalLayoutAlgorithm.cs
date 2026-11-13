@@ -42,10 +42,15 @@ namespace DemaConsulting.Rendering.Layout;
 ///     </para>
 ///     <para>
 ///     Hierarchy is handled in <see cref="HierarchyHandling.SeparateChildren"/> mode: each container is
-///     laid out in isolation and sized to fit its children, so container placements are independent and
-///     deterministic. Cross-container edges — edges whose endpoints live in different descendant
-///     containers, added to their lowest common ancestor per the model's LCA convention — are routed at
-///     the level that owns them, steering around the sibling containers between the two endpoints.
+///     laid out in isolation and sized to fit its children, so container interiors are independent and
+///     deterministic. Cross-hierarchy edges — edges declared on an ancestor graph whose endpoints live
+///     in different (or the same) descendant containers, added to their lowest common ancestor per
+///     the model's LCA convention or any graph above it — are routed at the level that declares them,
+///     from the actual nested source node to the actual nested target node, steering around every
+///     unrelated box and crossing only the walls of the containers that enclose their own endpoints.
+///     The declaring level's placement accounts for an edge joining two different direct members as
+///     if it joined those members (a layout-only proxy edge understood by the bundled leaf
+///     algorithms), so related containers end up adjacent.
 ///     </para>
 ///     <para>
 ///     <strong>Flat-graph equivalence guarantee.</strong> When no direct node of a scope is a container
@@ -117,6 +122,25 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     internal const double ContainerPadding = 12.0;
 
     /// <summary>
+    /// Reserved edge-identifier prefix marking a <em>layout-only</em> edge: an edge that participates in
+    /// the bundled leaf algorithms' placement (layering, ordering, gap sizing) but is never emitted as a
+    /// connector, port, or anchor. This engine adds one per cross-hierarchy routed edge to the per-scope
+    /// sized view so a scope's placement accounts for edges that are really routed between nested
+    /// endpoints afterwards. The marker travels in the edge identifier because an edge's identifier
+    /// (unlike its property overrides) survives <see cref="AutoLayoutAlgorithm"/>'s component split.
+    /// </summary>
+    internal const string LayoutOnlyEdgeIdPrefix = "\u0001layout-only:";
+
+    /// <summary>
+    /// Determines whether <paramref name="edge"/> is a layout-only edge (see
+    /// <see cref="LayoutOnlyEdgeIdPrefix"/>) that influences placement but is never drawn.
+    /// </summary>
+    /// <param name="edge">The edge to test.</param>
+    /// <returns><see langword="true"/> when the edge is layout-only.</returns>
+    internal static bool IsLayoutOnlyEdge(LayoutGraphEdge edge) =>
+        edge.Id.StartsWith(LayoutOnlyEdgeIdPrefix, StringComparison.Ordinal);
+
+    /// <summary>
     /// Maximum number of cascading-sizing re-runs the combined pass performs before accepting the
     /// current sizes. Growth only ever propagates outward through the finite nesting chain, so a stable
     /// fixed point is reached in at most chain-depth iterations; this cap is a safety bound well above any
@@ -137,6 +161,13 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// and the nested content never overlap; a container with no label reserves no band.
     /// </summary>
     private const double DefaultContainerTitleHeight = 24.0;
+
+    /// <summary>
+    /// Extra width, in logical pixels, added to the estimated title/keyword text width when a
+    /// container's title is treated as a routing obstacle, so a connector crossing the title band keeps
+    /// a little clear space beside the text.
+    /// </summary>
+    private const double TitleTextMargin = 16.0;
 
     /// <summary>
     /// Resolves the title-band height reserved above a container's children: the node's own
@@ -267,14 +298,25 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         // endpoint to its owning node the same way as a plain node endpoint).
         var descendantToDirect = new Dictionary<LayoutGraphNode, LayoutGraphNode>();
         var portOwner = new Dictionary<LayoutGraphPort, LayoutGraphNode>();
-        foreach (var direct in graph.Nodes)
+        var nesting = new Dictionary<LayoutGraphNode, (LayoutGraphNode? Parent, int Index)>();
+        for (var directIndex = 0; directIndex < graph.Nodes.Count; directIndex++)
         {
-            MapDescendants(direct, direct, descendantToDirect, portOwner);
+            var direct = graph.Nodes[directIndex];
+            nesting[direct] = (null, directIndex);
+            MapDescendants(direct, direct, descendantToDirect, portOwner, nesting);
         }
 
-        var (leafEdges, routedEdges) = ClassifyEdges(graph, descendantToDirect, portOwner);
+        var (leafEdges, routedEdges) = ClassifyEdges(graph, descendantToDirect, portOwner, nesting);
 
-        var (view, _, viewPortOf) = BuildSizedView(graph, effectiveSize, leafEdges);
+        // An edge between two different direct members is invisible to a leaf algorithm that only sees
+        // the sized view, so — when the leaf algorithm is one of the bundled ones that understands
+        // layout-only edges — a proxy edge joining the two direct members is added to the view. It
+        // steers placement (layering, ordering, gap sizing) but is never drawn: the real connector is
+        // routed afterwards between the actual nested endpoints. A custom leaf algorithm gets the view
+        // unchanged (backward compatible) and the real connector is still routed to the nested endpoints.
+        var addProxies = algo is LayeredLayoutAlgorithm or ContainmentLayoutAlgorithm or AutoLayoutAlgorithm;
+        var (view, _, viewPortOf) = BuildSizedView(
+            graph, effectiveSize, leafEdges, addProxies ? routedEdges : new List<LayoutGraphEdge>(), descendantToDirect);
 
         // Place this level with the resolved leaf algorithm over the sized view. The leaf algorithm
         // emits one box per node in Nodes order, so placed boxes align with graph.Nodes by index.
@@ -317,7 +359,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             var (widenedBoxes, widenedLines, widenedPorts, widenedWidth) = WidenSiblingContainerGaps(
                 composed, indexOf, routedEdges, descendantToDirect, placedLines, placedPorts, placed.Width);
 
-            var leafCrossLines = RouteCrossContainerEdges(routedEdges, widenedBoxes, indexOf, descendantToDirect, effective);
+            var leafCrossLines = RouteCrossContainerEdges(routedEdges, widenedBoxes, indexOf, descendantToDirect, nesting, effective);
             var leafNodes = new List<LayoutNode>(
                 widenedBoxes.Length + widenedLines.Count + widenedPorts.Count + leafCrossLines.Count);
             leafNodes.AddRange(widenedBoxes);
@@ -353,7 +395,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         var placement = RunRecursiveWithCascadingSizing(region, effectiveSize, engineDirection, assumedFontSize: 0.0);
         var decomposed = MergeRegionDecomposer.Decompose(placement, engineDirection, composed);
 
-        var crossLines = RouteCrossContainerEdges(routedEdges, decomposed.Boxes, decomposed.IndexOf, descendantToDirect, effective);
+        var crossLines = RouteCrossContainerEdges(routedEdges, decomposed.Boxes, decomposed.IndexOf, descendantToDirect, nesting, effective);
 
         var nodes = new List<LayoutNode>(
             decomposed.Boxes.Length + decomposed.Lines.Count + decomposed.Ports.Count + crossLines.Count);
@@ -509,6 +551,12 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// <param name="graph">The caller's scope, which is never mutated.</param>
     /// <param name="effectiveSize">Effective sizes for the container nodes of this scope.</param>
     /// <param name="leafEdges">The edges this scope's leaf algorithm should route locally.</param>
+    /// <param name="proxyEdges">
+    /// The routed edges (see <see cref="ClassifyEdges"/>) for which a layout-only proxy edge between the
+    /// two endpoints' direct members is added to the view, so the leaf algorithm's placement accounts
+    /// for them; empty when the leaf algorithm does not understand layout-only edges.
+    /// </param>
+    /// <param name="descendantToDirect">Map from every descendant node to the direct member that owns it.</param>
     /// <returns>
     /// The sized view graph, a map from each original node to its view counterpart, and a map from each
     /// original port to its view counterpart (surfaced so callers can translate a placed
@@ -521,7 +569,9 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         Dictionary<LayoutGraphPort, LayoutGraphPort> ViewPortOf) BuildSizedView(
         LayoutGraph graph,
         Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize,
-        HashSet<LayoutGraphEdge> leafEdges)
+        HashSet<LayoutGraphEdge> leafEdges,
+        List<LayoutGraphEdge> proxyEdges,
+        Dictionary<LayoutGraphNode, LayoutGraphNode> descendantToDirect)
     {
         var view = new LayoutGraph();
 
@@ -578,6 +628,23 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 viewEdge.LineStyle = edge.LineStyle;
                 viewEdge.Label = edge.Label;
             }
+        }
+
+        // Layout-only proxy edges: one per routed edge whose endpoints live under two different direct
+        // members, joining those direct members. Ids carry the reserved prefix so they survive any
+        // component split and are recognized (and never drawn) by the bundled leaf algorithms.
+        foreach (var edge in proxyEdges)
+        {
+            if (!descendantToDirect.TryGetValue((LayoutGraphNode)edge.Source, out var sourceDirect) ||
+                !descendantToDirect.TryGetValue((LayoutGraphNode)edge.Target, out var targetDirect) ||
+                ReferenceEquals(sourceDirect, targetDirect) ||
+                !viewOf.TryGetValue(sourceDirect, out var viewSourceDirect) ||
+                !viewOf.TryGetValue(targetDirect, out var viewTargetDirect))
+            {
+                continue;
+            }
+
+            view.AddEdge(LayoutOnlyEdgeIdPrefix + edge.Id, viewSourceDirect, viewTargetDirect);
         }
 
         return (view, viewOf, viewPortOf);
@@ -661,14 +728,20 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     }
 
     /// <summary>
-    /// Routes every edge this scope's router is responsible for — genuine cross-container edges, plus
-    /// any direct-member edge promoted alongside one by <see cref="ClassifyEdges"/> because it shares a
-    /// box with a cross-container edge — around the sibling boxes between them, all in one batch call.
+    /// Routes every edge this scope's router is responsible for — genuine cross-container edges, any
+    /// direct-member edge promoted alongside one by <see cref="ClassifyEdges"/> because it shares a
+    /// box with a cross-container edge, and ancestor-declared edges between two nodes nested under the
+    /// same direct member — in one batch call. Each connector is anchored on the actual placed box of
+    /// its source and target (the nested nodes themselves, at any depth, or the container itself when the
+    /// edge names the container) and routed around every unrelated box; only the containers that enclose
+    /// its own two endpoints are opened up (title band plus children) so the connector can cross their
+    /// walls cleanly.
     /// </summary>
     /// <param name="routedEdges">The edges this scope must route, per <see cref="ClassifyEdges"/>.</param>
     /// <param name="composed">The composed top-level boxes of this scope, aligned with its nodes by index.</param>
     /// <param name="indexOf">Map from each direct-member node to its positional index in <paramref name="composed"/>.</param>
     /// <param name="descendantToDirect">Map from every descendant node to the direct member that owns it.</param>
+    /// <param name="placement">Parent and index-in-parent of every node of this scope's subtree.</param>
     /// <param name="effective">This scope's cascaded effective options, supplying <see cref="CoreOptions.EdgeRouting"/>.</param>
     /// <returns>One routed line per edge in <paramref name="routedEdges"/>.</returns>
     private static List<LayoutLine> RouteCrossContainerEdges(
@@ -676,17 +749,20 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         LayoutBox[] composed,
         Dictionary<LayoutGraphNode, int> indexOf,
         Dictionary<LayoutGraphNode, LayoutGraphNode> descendantToDirect,
+        Dictionary<LayoutGraphNode, (LayoutGraphNode? Parent, int Index)> placement,
         LayoutOptions effective)
     {
         var routeOptions = new ConnectorRouteOptions(effective.Get(CoreOptions.EdgeRouting));
-        var boxesForRouting = (IReadOnlyList<LayoutBox>)composed;
+        var fontSize = effective.Get(CoreOptions.AssumedFontSize);
 
         // Collect every edge this scope must route into one list of Connections, then route them all in
         // a single batch call. Routing them independently (one ConnectorRouter.Route call per edge)
         // would let separate edges that converge on the same box face pick colliding anchors, and
-        // separate edges on similar paths collapse onto the same corridor — the batch overload spreads
+        // separate edges on similar paths collapse onto the same corridor — the batch routing spreads
         // shared-face anchors and steers later connectors around earlier ones.
         var connections = new List<Connection>(routedEdges.Count);
+        var obstacleSets = new List<IReadOnlyList<LayoutBox>>(routedEdges.Count);
+        var fixedAnchors = new List<ConnectorRouter.FixedAnchor>();
         foreach (var edge in routedEdges)
         {
             // ClassifyEdges only ever adds edges with LayoutGraphNode endpoints to routedEdges — a
@@ -695,12 +771,176 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             // are box-only and have no port concept.
             var sourceNode = (LayoutGraphNode)edge.Source;
             var targetNode = (LayoutGraphNode)edge.Target;
-            var from = composed[indexOf[descendantToDirect[sourceNode]]];
-            var to = composed[indexOf[descendantToDirect[targetNode]]];
+
+            // Anchor on the actual placed box of each endpoint — the nested node itself, not the
+            // top-level container that holds it.
+            var (from, fromAncestors) = ResolveEndpointBox(sourceNode, composed, indexOf, descendantToDirect, placement);
+            var (to, toAncestors) = ResolveEndpointBox(targetNode, composed, indexOf, descendantToDirect, placement);
+            if (ReferenceEquals(from, to))
+            {
+                continue;
+            }
+
+            // The connector may cross the walls of the containers that hold its own endpoints, so those
+            // ancestor containers are expanded (title band plus children) instead of being one solid
+            // obstacle; every other box stays whole.
+            var expanded = new List<(LayoutBox Box, LayoutGraphNode Node)>(fromAncestors);
+            foreach (var ancestor in toAncestors.Where(a => !expanded.Exists(e => ReferenceEquals(e.Box, a.Box))))
+            {
+                expanded.Add(ancestor);
+            }
+
+            var obstacles = new List<LayoutBox>(composed.Length);
+            foreach (var box in composed)
+            {
+                AddObstacle(box, expanded, fontSize, obstacles);
+            }
+
             connections.Add(new Connection(from, to, edge.TargetEnd, edge.LineStyle, edge.Label));
+            obstacleSets.Add(obstacles);
+            AddOccupiedAnchors(from, fromAncestors, fixedAnchors);
+            AddOccupiedAnchors(to, toAncestors, fixedAnchors);
         }
 
-        return new List<LayoutLine>(ConnectorRouter.Route(boxesForRouting, connections, routeOptions));
+        return new List<LayoutLine>(
+            ConnectorRouter.RouteBatch(
+                connections, routeOptions, index => obstacleSets[index], fixedAnchors, penalizeLongEndSegments: true));
+    }
+
+    /// <summary>
+    /// Records, for a nested endpoint box, the face anchors already taken by the connectors its own
+    /// enclosing scope routed to it (those lines live in the parent container box's children), so the
+    /// cross-hierarchy connector landing on the same box does not sit on top of one of them.
+    /// </summary>
+    /// <param name="endpoint">The endpoint's placed box.</param>
+    /// <param name="ancestors">The container boxes enclosing the endpoint, outermost first.</param>
+    /// <param name="fixedAnchors">The accumulating occupied-anchor list.</param>
+    private static void AddOccupiedAnchors(
+        LayoutBox endpoint,
+        List<(LayoutBox Box, LayoutGraphNode Node)> ancestors,
+        List<ConnectorRouter.FixedAnchor> fixedAnchors)
+    {
+        if (ancestors.Count == 0)
+        {
+            return;
+        }
+
+        var endpoints = ancestors[^1].Box.Children.OfType<LayoutLine>()
+            .Where(l => l.Waypoints.Count > 0)
+            .SelectMany(l => new[] { l.Waypoints[0], l.Waypoints[^1] });
+        foreach (var point in endpoints)
+        {
+            if (ConnectorRouter.TryResolveFaceAnchor(endpoint, point, out var anchor))
+            {
+                fixedAnchors.Add(anchor);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resolves the placed box of <paramref name="node"/> — a direct member or a node nested at any
+    /// depth — by walking down from its direct member's composed box through each level's child boxes,
+    /// which are index-aligned with that level's graph nodes.
+    /// </summary>
+    /// <param name="node">The endpoint node to resolve.</param>
+    /// <param name="composed">The composed top-level boxes of this scope, aligned with its nodes by index.</param>
+    /// <param name="indexOf">Map from each direct-member node to its positional index in <paramref name="composed"/>.</param>
+    /// <param name="descendantToDirect">Map from every descendant node to the direct member that owns it.</param>
+    /// <param name="placement">Parent and index-in-parent of every node of this scope's subtree.</param>
+    /// <returns>
+    /// The endpoint's placed box and, from the direct member downward, the container boxes (with their
+    /// nodes) that enclose it. If a level cannot be resolved the deepest resolvable box is returned, so
+    /// the connector degrades to the old container-anchored behavior instead of failing.
+    /// </returns>
+    private static (LayoutBox Box, List<(LayoutBox Box, LayoutGraphNode Node)> Ancestors) ResolveEndpointBox(
+        LayoutGraphNode node,
+        LayoutBox[] composed,
+        Dictionary<LayoutGraphNode, int> indexOf,
+        Dictionary<LayoutGraphNode, LayoutGraphNode> descendantToDirect,
+        Dictionary<LayoutGraphNode, (LayoutGraphNode? Parent, int Index)> placement)
+    {
+        // Path from the direct member (first) down to the endpoint (last).
+        var path = new List<LayoutGraphNode>();
+        for (LayoutGraphNode? current = node; current != null; current = placement[current].Parent)
+        {
+            path.Add(current);
+        }
+
+        path.Reverse();
+
+        var box = composed[indexOf[descendantToDirect[node]]];
+        var ancestors = new List<(LayoutBox Box, LayoutGraphNode Node)>();
+        for (var level = 1; level < path.Count; level++)
+        {
+            var parent = path[level - 1];
+            var childBoxes = box.Children.OfType<LayoutBox>().ToList();
+            var childIndex = placement[path[level]].Index;
+            if (childBoxes.Count != parent.Children.Nodes.Count || childIndex >= childBoxes.Count)
+            {
+                break;
+            }
+
+            ancestors.Add((box, parent));
+            box = childBoxes[childIndex];
+        }
+
+        return (box, ancestors);
+    }
+
+    /// <summary>
+    /// Adds <paramref name="box"/> to <paramref name="obstacles"/> as a solid obstacle, unless it is one
+    /// of the <paramref name="expanded"/> endpoint-ancestor containers, in which case only its title
+    /// text (a thin pseudo-box centered in the title band, as wide as the estimated title/keyword text)
+    /// is added and its child boxes are visited recursively instead. Keeping the obstacle as narrow as
+    /// the text lets a connector enter or leave the container through the title band beside the text
+    /// rather than being forced around the whole container.
+    /// </summary>
+    /// <param name="box">The box to add or expand.</param>
+    /// <param name="expanded">The containers (and their nodes) enclosing the connector's endpoints.</param>
+    /// <param name="fontSize">The assumed font size used to estimate the title text width.</param>
+    /// <param name="obstacles">The accumulating obstacle list.</param>
+    private static void AddObstacle(
+        LayoutBox box,
+        List<(LayoutBox Box, LayoutGraphNode Node)> expanded,
+        double fontSize,
+        List<LayoutBox> obstacles)
+    {
+        var index = expanded.FindIndex(e => ReferenceEquals(e.Box, box));
+        if (index < 0)
+        {
+            obstacles.Add(box);
+            return;
+        }
+
+        var node = expanded[index].Node;
+        var band = Math.Min(ResolveContentOffsetHeight(node), box.Height);
+        if (band > 0.0)
+        {
+            var textWidth = Math.Max(
+                node.Label is null ? 0.0 : ConnectorLabelPlacer.EstimateLabelWidth(node.Label, fontSize),
+                node.Keyword is null ? 0.0 : ConnectorLabelPlacer.EstimateLabelWidth(node.Keyword, fontSize));
+            var width = Math.Min(box.Width, textWidth + TitleTextMargin);
+            obstacles.Add(new LayoutBox(
+                box.X + ((box.Width - width) / 2.0), box.Y, width, band, null, box.Depth, BoxShape.Rectangle, [], []));
+        }
+
+        // A folder's tab protrudes above the body's top edge at the top-left; keep connectors from
+        // slicing through it.
+        if (box.Shape == BoxShape.Folder)
+        {
+            var tabWidth = Math.Min(box.Width, ConnectorRouter.FolderGeometry.ResolveFolderTabWidth(box));
+            var tabHeight = Math.Min(box.Height, ConnectorRouter.FolderGeometry.ResolveFolderTabHeight(box));
+            if (tabWidth > 0.0 && tabHeight > 0.0)
+            {
+                obstacles.Add(new LayoutBox(
+                    box.X, box.Y, tabWidth, tabHeight, null, box.Depth, BoxShape.Rectangle, [], []));
+            }
+        }
+
+        foreach (var child in box.Children.OfType<LayoutBox>())
+        {
+            AddObstacle(child, expanded, fontSize, obstacles);
+        }
     }
 
     /// <summary>
@@ -893,10 +1133,16 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///     An edge whose direct-member endpoints (per <paramref name="descendantToDirect"/>) resolve to
-    ///     the same node belongs to a lower scope entirely and is skipped here. An edge between two
-    ///     distinct direct members, with at least one endpoint actually nested inside a container, is a
-    ///     genuine cross-container edge routed by this scope's router. An edge between two distinct
+    ///     An edge whose endpoints are the same node, or a container and one of its own descendants,
+    ///     cannot be drawn between two distinct boxes and is skipped. An edge whose direct-member
+    ///     endpoints (per <paramref name="descendantToDirect"/>) resolve to the same node and whose
+    ///     endpoints are two distinct, unrelated nodes (an ancestor graph referencing nodes nested under
+    ///     one container) is routed by this scope's router between the nested boxes; it cannot influence
+    ///     the container's interior placement, which is laid out in isolation, and is never promoted
+    ///     alongside leaf edges. An edge between two distinct
+    ///     direct members, with at least one endpoint actually nested inside a container, is a
+    ///     genuine cross-container edge routed by this scope's router (between the actual nested
+    ///     endpoint nodes, not their containers). An edge between two distinct
     ///     direct members that are <em>both</em> literally direct (neither endpoint nested) would
     ///     normally be routed locally by the leaf algorithm — but when either of those direct members is
     ///     also an endpoint of a genuine cross-container edge, the edge is promoted to this scope's
@@ -926,6 +1172,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// <param name="graph">The scope whose edges are classified.</param>
     /// <param name="descendantToDirect">Map from every descendant node to the direct member that owns it.</param>
     /// <param name="portOwner">Map from every descendant's named port to the node that owns it.</param>
+    /// <param name="placement">Parent and index-in-parent of every node of this scope's subtree.</param>
     /// <returns>The edges to route locally, and the edges this scope's router must handle.</returns>
     /// <exception cref="NotSupportedException">
     /// Thrown when a named-port edge is a genuine cross-container edge (at least one endpoint nested
@@ -937,7 +1184,8 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     private static (HashSet<LayoutGraphEdge> LeafEdges, List<LayoutGraphEdge> RoutedEdges) ClassifyEdges(
         LayoutGraph graph,
         Dictionary<LayoutGraphNode, LayoutGraphNode> descendantToDirect,
-        Dictionary<LayoutGraphPort, LayoutGraphNode> portOwner)
+        Dictionary<LayoutGraphPort, LayoutGraphNode> portOwner,
+        Dictionary<LayoutGraphNode, (LayoutGraphNode? Parent, int Index)> placement)
     {
         const string boundaryPortMessage =
             "Named ports on edges crossing a container boundary are not yet supported; see ROADMAP.md Phase 2.";
@@ -958,9 +1206,24 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 continue;
             }
 
-            // An edge whose endpoints share one container belongs to that lower scope, not this one.
+            // Both endpoints live under one direct member. Such an edge normally belongs to that lower
+            // scope. When it is nevertheless declared here (an ancestor graph referencing nested nodes
+            // directly) and its endpoints are two distinct nodes neither of which contains the other,
+            // it is routed here between the actual nested boxes. It cannot influence the container's
+            // interior placement (that is laid out in isolation), and is never promoted alongside leaf
+            // edges. An edge from a container to its own descendant, a self-edge, and any port edge
+            // remain skipped.
             if (ReferenceEquals(sourceDirect, targetDirect))
             {
+                if (!ReferenceEquals(sourceOwner, targetOwner) &&
+                    !IsAncestor(sourceOwner, targetOwner, placement) &&
+                    !IsAncestor(targetOwner, sourceOwner, placement) &&
+                    edge.Source is LayoutGraphNode &&
+                    edge.Target is LayoutGraphNode)
+                {
+                    routedEdges.Add(edge);
+                }
+
                 continue;
             }
 
@@ -1087,11 +1350,17 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// <param name="direct">The direct member of the scope that owns this subtree.</param>
     /// <param name="map">The descendant-to-direct-member map being populated.</param>
     /// <param name="portOwner">The port-to-owning-node map being populated.</param>
+    /// <param name="placement">
+    /// The map being populated from each node to its parent node (<see langword="null"/> for a direct
+    /// member) and its index within its parent's child list; the direct member's own entry is recorded
+    /// by the caller.
+    /// </param>
     private static void MapDescendants(
         LayoutGraphNode node,
         LayoutGraphNode direct,
         Dictionary<LayoutGraphNode, LayoutGraphNode> map,
-        Dictionary<LayoutGraphPort, LayoutGraphNode> portOwner)
+        Dictionary<LayoutGraphPort, LayoutGraphNode> portOwner,
+        Dictionary<LayoutGraphNode, (LayoutGraphNode? Parent, int Index)> placement)
     {
         map[node] = direct;
         if (node.HasPorts)
@@ -1104,11 +1373,37 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
 
         if (node.HasChildren)
         {
-            foreach (var child in node.Children.Nodes)
+            for (var i = 0; i < node.Children.Nodes.Count; i++)
             {
-                MapDescendants(child, direct, map, portOwner);
+                var child = node.Children.Nodes[i];
+                placement[child] = (node, i);
+                MapDescendants(child, direct, map, portOwner, placement);
             }
         }
+    }
+
+    /// <summary>
+    /// Determines whether <paramref name="ancestor"/> strictly contains <paramref name="node"/> in the
+    /// nesting hierarchy recorded by <paramref name="placement"/>.
+    /// </summary>
+    /// <param name="ancestor">The candidate containing node.</param>
+    /// <param name="node">The node whose parent chain is walked.</param>
+    /// <param name="placement">Parent and index-in-parent of every node of the scope's subtree.</param>
+    /// <returns><see langword="true"/> when <paramref name="ancestor"/> is a proper ancestor of <paramref name="node"/>.</returns>
+    private static bool IsAncestor(
+        LayoutGraphNode ancestor,
+        LayoutGraphNode node,
+        Dictionary<LayoutGraphNode, (LayoutGraphNode? Parent, int Index)> placement)
+    {
+        for (var current = placement[node].Parent; current != null; current = placement[current].Parent)
+        {
+            if (ReferenceEquals(current, ancestor))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

@@ -25,11 +25,16 @@ already-working cascading mechanism:
   else, before any code is written.
 - **`CoreOptions.HierarchyHandling`** (hardest) — only `HierarchyHandling.SeparateChildren` exists and
   is implicitly what the bundled `HierarchicalLayoutAlgorithm` does; no algorithm branches on this
-  property's value, and no second mode exists yet. Implementing an additional mode (e.g. an ELK-style
-  "include children in the parent's own layout space" mode) is genuine new layout logic in
-  `HierarchicalLayoutAlgorithm` — not a matter of reading an already-cascaded value — and introduces new
-  user-visible layout behavior, so it belongs in a proper planning/implementation pass rather than an
-  opportunistic fix.
+  property's value, and no second mode exists yet. Cross-hierarchy edge anchoring is delivered as the
+  default behavior: an edge declared on an ancestor graph is routed from the actual nested source node to
+  the actual nested target node, and the declaring scope's placement accounts for it (through layout-only
+  proxy edges), while each container's interior is still laid out in isolation. What remains is an
+  ELK-style "include children in the parent's own layout space" mode (one joint layout pass across
+  container boundaries, which would also let such an edge reshuffle the interior of the container holding
+  both its endpoints, and let boundary-port hierarchies place around cross-hierarchy edges). That is
+  genuine new layout logic in `HierarchicalLayoutAlgorithm` — not a matter of reading an already-cascaded
+  value — and introduces new user-visible layout behavior, so it belongs in a proper
+  planning/implementation pass rather than an opportunistic fix.
 
 ## Parallel-edge (multi-edge) support in the layered algorithm
 

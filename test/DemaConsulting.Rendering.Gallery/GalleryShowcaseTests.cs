@@ -797,6 +797,44 @@ public sealed class GalleryShowcaseTests
     }
 
     /// <summary>
+    ///     Renders the cross-hierarchy edges diagram to SVG with the "auto" root algorithm, proving
+    ///     root-declared edges between nested nodes (and nested containers) are kept and drawn between
+    ///     the actual nested boxes.
+    /// </summary>
+    [Fact]
+    public void Gallery_CrossHierarchyEdges_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.CrossHierarchyEdges();
+        graph.Set(CoreOptions.Algorithm, "auto");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.CrossHierarchyEdgesSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the downward-flowing cross-hierarchy edges diagram to SVG with the "hierarchical" root
+    ///     algorithm, proving edges between leaves and nested nodes route cleanly through container title
+    ///     bands and walls.
+    /// </summary>
+    [Fact]
+    public void Gallery_CrossHierarchyEdgesHierarchical_RendersSvg()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.CrossHierarchyEdgesHierarchical();
+        graph.Set(CoreOptions.Algorithm, "hierarchical");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.CrossHierarchyEdgesHierarchicalSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
     ///     Renders twelve small, wide boxes packed by the containment algorithm to SVG, proving the
     ///     column-count-based content-width candidate keeps the algorithm from packing them into one
     ///     long, narrow column, wrapping them into a balanced grid of columns instead.

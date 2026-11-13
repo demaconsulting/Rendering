@@ -153,3 +153,7 @@ the argument-null validation behavior constitutes a failure.
   Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab,
   Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone,
   Apply_RectangleChain_MatchesPreShapeAwarenessOutput
+- **`Rendering-Layout-LayeredAlgorithm-LayoutOnlyEdges`**:
+  Apply_LayoutOnlyEdge_AffectsLayeringButEmitsNoLine (two nodes with no edge share a layer; adding only a
+  layout-only edge layers the target after the source yet emits no line or port, for both
+  `MergeParallelEdges` settings), Apply_LayoutOnlyEdgeParallelToRealEdge_KeepsRealEdgeAndItsLabel

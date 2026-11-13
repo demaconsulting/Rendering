@@ -65,11 +65,57 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   internal sized view and never mutates the caller's input node dimensions.
   `HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange`
   confirms the combined-pass gate is additive: a two-container, cross-container-edge hierarchy with no
-  boundary port is composed byte-for-byte identically to before the boundary-port combined pass existed.
+  boundary port still takes the leaf-composition path (not the combined pass). Its golden snapshot was
+  refreshed deliberately when cross-hierarchy edges began steering placement and anchoring on nested
+  nodes: the two containers, joined by an edge between their children, now sit side by side instead of
+  stacked, and the connector runs between the nested children.
 - **Cross-container edge** (`Rendering-Layout-HierarchicalLayout-CrossContainerEdge`):
   `Apply_CrossContainerEdge_RoutesAroundInterveningContainer` confirms an edge between children of
   different sibling containers is routed at the owning scope and no routed segment passes through the
-  intervening container's interior.
+  intervening container's interior. `Apply_CrossContainerEdge_ToWideContainer_DoesNotCrossEndpointBoxes`
+  confirms the connector to a wide container's nested child ends on that child and crosses no leaf box
+  (the enclosing container's wall is the only boundary it legitimately crosses).
+- **Cross-hierarchy nested anchors** (`Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-NestedAnchors`):
+  a shared `AssertCleanRoute` oracle checks a connector is orthogonal, starts and ends on the boundaries
+  of the actual nested endpoint boxes, leaves and enters perpendicular and outward from those faces,
+  carries the arrowhead at the target end, and never crosses the interior of any box other than the
+  endpoints' enclosing containers nor the title text of those containers. It is applied, for both the
+  `auto` and `hierarchical` root algorithms, by
+  `Apply_CrossHierarchyEdge_TwoLevels_AnchorsOnNestedBoxesAndAvoidsUnrelatedBoxes` (with an unrelated
+  third container), `Apply_CrossHierarchyEdge_DepthTwoToDepthOne_AnchorsOnNestedBoxes`,
+  `Apply_CrossHierarchyEdge_FourLevelNesting_AnchorsOnInnermostBoxes`,
+  `Apply_CrossHierarchyEdge_DeclaredInMiddleContainer_AnchorsOnNestedBoxes` (the edge declared on a
+  middle container's own graph),
+  `Apply_CrossHierarchyEdges_MixedLeafAndContainerChildren_AnchorOnActualEndpoints` (leaf to nested,
+  nested to leaf, nested to nested at one scope), and
+  `Apply_CrossHierarchyEdge_ToContainerItself_AnchorsOnContainerBoundary` (an edge naming a container
+  stays on its boundary while an edge to a nested node anchors on that node).
+  `Apply_CrossHierarchyEdges_ConvergingOnOneNestedNode_UseDistinctAnchors` confirms three connectors
+  converging on one nested node end at distinct boundary points.
+  `Apply_CrossHierarchyEdge_FromNodeWithInternalEdge_AnchorsApartFromInternalAnchor` confirms a
+  connector leaving a nested node that already has an internal connector on the same face does not start
+  at the internal connector's end point. `Apply_CrossHierarchyEdges_ConnectorsDoNotOverlapCollinearly`
+  confirms two long connectors with aligned endpoint rows share no collinear run (the `auto` root).
+  `Apply_CrossHierarchyEdge_WithBoundaryPortHierarchy_AnchorsOnNestedBoxes` confirms the combined-pass
+  (boundary-port) path also anchors on the nested nodes.
+  `Apply_CrossHierarchyEdge_CustomLeafAlgorithm_ReceivesNoLayoutOnlyEdges` confirms a non-bundled leaf
+  algorithm is never handed a layout-only edge yet the nested routing still applies.
+  `Apply_EdgeBetweenContainerAndItsOwnDescendant_IsSkipped` confirms the container-to-own-descendant
+  edge (which cannot be drawn between two distinct boxes) neither throws nor draws,
+  `Apply_NestedPortEdgeAcrossContainers_StillThrowsNotSupported`
+  confirms the existing named-port limitation is unchanged, and
+  `Apply_CrossHierarchyEdge_DoesNotMutateInputAndIsDeterministic` confirms the caller's graph is
+  untouched (no proxy edge leaks into any scope) and repeated runs are identical.
+- **Cross-hierarchy ancestor placement** (`Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-AncestorPlacement`):
+  `Apply_CrossHierarchyEdge_LayeredRoot_PlacesJoinedContainersAdjacent` confirms that with a layered
+  root two containers joined only by an edge between their nested nodes sit in adjacent layers with an
+  unrelated container not between them, and
+  `Apply_CrossHierarchyEdges_ContainmentRoot_WidensGapForParallelEdges` confirms a fan of parallel
+  nested-endpoint edges widens the gap between two side-by-side containers relative to a single edge.
+- **Cross-hierarchy same container** (`Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-SameContainer`):
+  `Apply_CrossHierarchyEdge_RootDeclaredBothEndpointsUnderOneContainer_RoutesBetweenNestedNodes`
+  confirms a root-declared edge between nodes in two sub-containers of one top-level container is routed
+  between those nested nodes instead of dropped.
 - **Propagates direction** (`Rendering-Layout-HierarchicalLayout-CascadesOptions`):
   `Apply_ContainerWithDirectionOverride_HonorsNestedDirection` sets `CoreOptions.Direction` on a
   container's own children graph (while the top-level options select the default direction) and

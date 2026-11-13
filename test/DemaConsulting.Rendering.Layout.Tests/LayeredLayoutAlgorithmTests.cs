@@ -1507,6 +1507,73 @@ public class LayeredLayoutAlgorithmTests
                 $"Expected adjacent parallel lanes to be spaced at least {maxLabelWidth}px apart, was {lineXs[i] - lineXs[i - 1]}.");
         }
     }
+
+    /// <summary>
+    ///     Proves a layout-only edge influences placement (it layers its target after its source) yet
+    ///     produces no connector: two nodes with no real edge share a layer, and adding only a
+    ///     layout-only edge between them moves the target to a later layer while the tree still holds no
+    ///     line, for both settings of <see cref="CoreOptions.MergeParallelEdges"/>.
+    /// </summary>
+    /// <param name="mergeParallelEdges">Whether parallel edges are merged.</param>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Apply_LayoutOnlyEdge_AffectsLayeringButEmitsNoLine(bool mergeParallelEdges)
+    {
+        // Arrange: A and B with no real edge, versus the same pair joined by a layout-only edge.
+        static LayoutGraph Build(bool withLayoutOnlyEdge, bool merge)
+        {
+            var graph = new LayoutGraph();
+            graph.Set(CoreOptions.MergeParallelEdges, merge);
+            var a = graph.AddNode("A", 80, 40);
+            a.Label = "A";
+            var b = graph.AddNode("B", 80, 40);
+            b.Label = "B";
+            if (withLayoutOnlyEdge)
+            {
+                graph.AddEdge(HierarchicalLayoutAlgorithm.LayoutOnlyEdgeIdPrefix + "ab", a, b);
+            }
+
+            return graph;
+        }
+
+        // Act
+        var without = new LayeredLayoutAlgorithm().ApplyCore(Build(false, mergeParallelEdges), new LayoutOptions());
+        var with = new LayeredLayoutAlgorithm().ApplyCore(Build(true, mergeParallelEdges), new LayoutOptions());
+
+        // Assert: no edge, no line; the layout-only edge separates the layers but still draws nothing.
+        var withoutBoxes = without.Nodes.OfType<LayoutBox>().ToList();
+        Assert.Equal(withoutBoxes[0].X, withoutBoxes[1].X);
+        var withBoxes = with.Nodes.OfType<LayoutBox>().ToList();
+        Assert.True(withBoxes[1].X > withBoxes[0].X + withBoxes[0].Width, "B must be layered after A.");
+        Assert.Empty(with.Nodes.OfType<LayoutLine>());
+        Assert.Empty(with.Nodes.OfType<LayoutPort>());
+    }
+
+    /// <summary>
+    ///     Proves a layout-only edge parallel to a real edge never marks the real edge as a collapsed
+    ///     parallel group: the real connector is emitted once and keeps its own midpoint label.
+    /// </summary>
+    [Fact]
+    public void Apply_LayoutOnlyEdgeParallelToRealEdge_KeepsRealEdgeAndItsLabel()
+    {
+        // Arrange: a real labeled edge A -> B plus a layout-only edge A -> B.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, true);
+        var a = graph.AddNode("A", 80, 40);
+        a.Label = "A";
+        var b = graph.AddNode("B", 80, 40);
+        b.Label = "B";
+        graph.AddEdge("real", a, b).Label = "owns";
+        graph.AddEdge(HierarchicalLayoutAlgorithm.LayoutOnlyEdgeIdPrefix + "ab", a, b);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        Assert.Equal("owns", line.MidpointLabel);
+    }
 }
 
 

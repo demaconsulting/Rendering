@@ -89,6 +89,13 @@ public sealed record ConnectorRouteOptions(
 /// passed to the underlying router so the connector exits and enters perpendicular to the edge.
 /// </para>
 /// <para>
+/// A connection's endpoints may be boxes nested inside container boxes (their coordinates are absolute
+/// like every other box). The public overloads treat every box passed in as a hard obstacle; an
+/// internal batch entry point lets the hierarchical engine give each connector its own obstacle set,
+/// with that connector's endpoint-ancestor containers expanded into their title bands and children so
+/// the connector can cross those containers' walls without crossing any unrelated box.
+/// </para>
+/// <para>
 /// Today the only supported style is <see cref="Rendering.EdgeRouting.Orthogonal"/>, realized by the
 /// library's internal orthogonal edge router. The dispatch is a single-arm switch structured so new
 /// routing styles slot in additively without changing this contract.
@@ -161,40 +168,7 @@ public static class ConnectorRouter
         ConnectorRouteOptions options)
     {
         ArgumentNullException.ThrowIfNull(boxes);
-        ArgumentNullException.ThrowIfNull(connections);
-        ArgumentNullException.ThrowIfNull(options);
-
-        var anchors = new FaceAnchors[connections.Count];
-        for (var i = 0; i < connections.Count; i++)
-        {
-            var connection = connections[i];
-            ArgumentNullException.ThrowIfNull(connection);
-            ArgumentNullException.ThrowIfNull(connection.From);
-            ArgumentNullException.ThrowIfNull(connection.To);
-
-            var (sourceAlong, sourceSide, targetAlong, targetSide) = FacingAnchors(connection.From, connection.To, options.Clearance);
-            anchors[i] = new FaceAnchors(sourceAlong, sourceSide, targetAlong, targetSide);
-        }
-
-        DistributeSharedFaceAnchors(connections, anchors, options.Clearance);
-
-        // Route one connector at a time, growing a soft-obstacle set with each already-routed line (as
-        // a thin rectangle per segment) so later connectors prefer a free lane over one already used by
-        // an earlier connector. These are soft (cost-penalized), not hard, obstacles: several connectors
-        // converging on the same box face legitimately share their final short approach corridor, and
-        // hard-blocking it would make that shared face unreachable for every connector after the first
-        // (see AddLineObstacles remarks).
-        var lines = new List<LayoutLine>(connections.Count);
-        var routedLineObstacles = new List<Rect>();
-        foreach (var t in anchors)
-        {
-            var index = lines.Count;
-            var line = RouteWithAnchors(boxes, connections[index], options, t, routedLineObstacles);
-            lines.Add(line);
-            AddLineObstacles(line.Waypoints, routedLineObstacles);
-        }
-
-        return lines;
+        return RouteBatch(connections, options, _ => boxes);
     }
 
     /// <summary>
@@ -251,6 +225,77 @@ public static class ConnectorRouter
     }
 
     /// <summary>
+    /// Routes every connection in <paramref name="connections"/> in one batch, exactly like the public
+    /// batch <see cref="Route(IReadOnlyList{LayoutBox},IReadOnlyList{Connection},ConnectorRouteOptions)"/>
+    /// overload, except that each connection is routed against its own hard-obstacle set supplied by
+    /// <paramref name="obstaclesFor"/> rather than one shared box list. The hierarchical engine uses this
+    /// to route a connector whose endpoints are nested inside containers: the endpoints' ancestor
+    /// containers are replaced, for that connector only, by their title bands and children, so the
+    /// connector may cross those containers' walls while every unrelated box stays a hard obstacle.
+    /// </summary>
+    /// <param name="connections">The connectors to route; endpoints may be nested boxes.</param>
+    /// <param name="options">Routing options, including the routing style and obstacle clearance.</param>
+    /// <param name="obstaclesFor">
+    /// Returns the hard-obstacle boxes for the connection at the given index (its own endpoints included).
+    /// </param>
+    /// <param name="fixedAnchors">
+    /// Anchor points already occupied on box faces by connectors routed elsewhere (for example the
+    /// internal connectors of a container whose nested box is one of this batch's endpoints). A batch
+    /// anchor that would land too close to one is moved along its face to a free spot. May be
+    /// <see langword="null"/> or empty.
+    /// </param>
+    /// <param name="penalizeLongEndSegments">
+    /// When <see langword="true"/>, the long runs of an already-routed connector's first and last
+    /// segments (beyond a short approach corridor next to each endpoint) are also treated as soft
+    /// obstacles for the connectors routed after it, so connectors with nested endpoints do not run
+    /// collinearly along one another's final approach.
+    /// </param>
+    /// <returns>One routed <see cref="LayoutLine"/> per connection, in input order.</returns>
+    internal static IReadOnlyList<LayoutLine> RouteBatch(
+        IReadOnlyList<Connection> connections,
+        ConnectorRouteOptions options,
+        Func<int, IReadOnlyList<LayoutBox>> obstaclesFor,
+        IReadOnlyList<FixedAnchor>? fixedAnchors = null,
+        bool penalizeLongEndSegments = false)
+    {
+        ArgumentNullException.ThrowIfNull(connections);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(obstaclesFor);
+
+        var anchors = new FaceAnchors[connections.Count];
+        for (var i = 0; i < connections.Count; i++)
+        {
+            var connection = connections[i];
+            ArgumentNullException.ThrowIfNull(connection);
+            ArgumentNullException.ThrowIfNull(connection.From);
+            ArgumentNullException.ThrowIfNull(connection.To);
+
+            var (sourceAlong, sourceSide, targetAlong, targetSide) = FacingAnchors(connection.From, connection.To, options.Clearance);
+            anchors[i] = new FaceAnchors(sourceAlong, sourceSide, targetAlong, targetSide);
+        }
+
+        DistributeSharedFaceAnchors(connections, anchors, options.Clearance, fixedAnchors ?? []);
+
+        // Route one connector at a time, growing a soft-obstacle set with each already-routed line (as
+        // a thin rectangle per segment) so later connectors prefer a free lane over one already used by
+        // an earlier connector. These are soft (cost-penalized), not hard, obstacles: several connectors
+        // converging on the same box face legitimately share their final short approach corridor, and
+        // hard-blocking it would make that shared face unreachable for every connector after the first
+        // (see AddLineObstacles remarks).
+        var lines = new List<LayoutLine>(connections.Count);
+        var routedLineObstacles = new List<Rect>();
+        foreach (var t in anchors)
+        {
+            var index = lines.Count;
+            var line = RouteWithAnchors(obstaclesFor(index), connections[index], options, t, routedLineObstacles);
+            lines.Add(line);
+            AddLineObstacles(line.Waypoints, routedLineObstacles, penalizeLongEndSegments ? options.Clearance : 0.0);
+        }
+
+        return lines;
+    }
+
+    /// <summary>
     /// Builds the obstacle set for <paramref name="connection"/> — every box on the canvas, including
     /// this connection's own two endpoints, plus any already routed <paramref name="extraSoftObstacles"/>
     /// treated as soft (cost-penalized, never hard-blocking) obstacles — and routes it between the
@@ -299,12 +344,16 @@ public static class ConnectorRouter
     /// obstacle clearance) rather than freely overlapping it.
     /// </summary>
     /// <remarks>
-    /// The first and last segments are intentionally excluded. Those short endpoint-adjacent approach
-    /// legs are the one place where several connectors may legitimately share the same corridor while
-    /// still reaching a common face cleanly; penalizing them as soft obstacles is what causes the
-    /// redundant leave-and-return detours this method now avoids.
+    /// By default the first and last segments are intentionally excluded. Those short endpoint-adjacent
+    /// approach legs are the one place where several connectors may legitimately share the same
+    /// corridor while still reaching a common face cleanly; penalizing them as soft obstacles is what
+    /// causes the redundant leave-and-return detours this method avoids. A positive
+    /// <paramref name="endInset"/> (used for connectors with nested endpoints, whose end legs can be
+    /// long straight runs) includes those end segments too, but leaves the last
+    /// <paramref name="endInset"/> logical pixels next to each endpoint free so the shared approach
+    /// corridor stays usable.
     /// </remarks>
-    private static void AddLineObstacles(IReadOnlyList<Point2D> waypoints, List<Rect> obstacles)
+    private static void AddLineObstacles(IReadOnlyList<Point2D> waypoints, List<Rect> obstacles, double endInset = 0.0)
     {
         // A hairline thickness is enough: the router already keeps a clearance gap between paths and
         // any obstacle, so a wide slab here would only double up on that margin unnecessarily.
@@ -312,13 +361,31 @@ public static class ConnectorRouter
 
         for (var i = 0; i < waypoints.Count - 1; i++)
         {
-            if (i == 0 || i == waypoints.Count - 2)
-            {
-                continue;
-            }
-
             var a = waypoints[i];
             var b = waypoints[i + 1];
+
+            var isFirst = i == 0;
+            var isLast = i == waypoints.Count - 2;
+            if (isFirst || isLast)
+            {
+                if (endInset <= 0.0)
+                {
+                    continue;
+                }
+
+                var length = Math.Abs(b.X - a.X) + Math.Abs(b.Y - a.Y);
+                var trimStart = isFirst ? endInset : 0.0;
+                var trimEnd = isLast ? endInset : 0.0;
+                if (length <= trimStart + trimEnd + 1e-6)
+                {
+                    continue;
+                }
+
+                var ux = Math.Sign(b.X - a.X);
+                var uy = Math.Sign(b.Y - a.Y);
+                a = new Point2D(a.X + (ux * trimStart), a.Y + (uy * trimStart));
+                b = new Point2D(b.X - (ux * trimEnd), b.Y - (uy * trimEnd));
+            }
 
             if (Math.Abs(a.Y - b.Y) < 1e-6)
             {
@@ -374,10 +441,15 @@ public static class ConnectorRouter
     /// the union of the face's connectable extents rather than the full bounding-box edge.
     /// </param>
     /// <param name="clearance">Minimum inset kept between a redistributed anchor and the ends of the face.</param>
+    /// <param name="fixedAnchors">
+    /// Anchor points already occupied on box faces; a face carrying one never keeps a batch anchor that
+    /// would sit on top of it (see <see cref="SeparateFromFixedAnchors"/>).
+    /// </param>
     private static void DistributeSharedFaceAnchors(
         IReadOnlyList<Connection> connections,
         FaceAnchors[] anchors,
-        double clearance)
+        double clearance,
+        IReadOnlyList<FixedAnchor> fixedAnchors)
     {
         var groups = new Dictionary<(LayoutBox Box, PortSide Side), List<FaceSlot>>(FaceKeyComparer.Instance);
 
@@ -392,18 +464,29 @@ public static class ConnectorRouter
 
         foreach (var (key, slots) in groups)
         {
-            if (slots.Count < 2)
+            var (box, side) = key;
+            var occupied = fixedAnchors
+                .Where(f => ReferenceEquals(f.Box, box) && f.Side == side)
+                .Select(f => f.Along)
+                .ToList();
+
+            if (slots.Count < 2 && occupied.Count == 0)
             {
                 // A face claimed by a single connector already has the best anchor FacingAnchors could
                 // compute for that pair of boxes; leave it untouched.
                 continue;
             }
 
-            var (box, side) = key;
             var geometry = ResolveShapeGeometry(box);
             var usableExtents = BuildUsableExtents(geometry.GetConnectableExtents(side), clearance);
             if (usableExtents.Count == 0)
             {
+                continue;
+            }
+
+            if (occupied.Count > 0)
+            {
+                SeparateFromFixedAnchors(slots, anchors, usableExtents, occupied);
                 continue;
             }
 
@@ -422,6 +505,129 @@ public static class ConnectorRouter
                     : current with { TargetAlong = along };
             }
         }
+    }
+
+    /// <summary>
+    /// An anchor point already occupied on a box face by a connector that is routed elsewhere, in the
+    /// box's local face coordinate system (0 at the face start). Used so a batch connector never lands on
+    /// top of an existing connector's end point.
+    /// </summary>
+    internal readonly record struct FixedAnchor(LayoutBox Box, PortSide Side, double Along);
+
+    /// <summary>
+    /// Minimum separation, in logical pixels, kept along a face between a batch anchor and an anchor
+    /// that is already occupied on that face.
+    /// </summary>
+    private const double MinFixedAnchorSeparation = 16.0;
+
+    /// <summary>Number of evenly spaced candidate positions tried along a face when separating anchors.</summary>
+    private const int FixedAnchorCandidateCount = 24;
+
+    /// <summary>
+    /// Resolves whether <paramref name="point"/> lies on the bounding-box boundary of
+    /// <paramref name="box"/> and, when it does, describes it as an occupied face anchor.
+    /// </summary>
+    /// <param name="box">The box whose faces are tested.</param>
+    /// <param name="point">The connector end point to classify.</param>
+    /// <param name="anchor">The resulting occupied anchor, when the point is on a face.</param>
+    /// <returns><see langword="true"/> when the point sits on one of the box's four faces.</returns>
+    internal static bool TryResolveFaceAnchor(LayoutBox box, Point2D point, out FixedAnchor anchor)
+    {
+        const double tolerance = 0.5;
+        var withinX = point.X >= box.X - tolerance && point.X <= box.X + box.Width + tolerance;
+        var withinY = point.Y >= box.Y - tolerance && point.Y <= box.Y + box.Height + tolerance;
+
+        PortSide? side = null;
+        if (withinY && Math.Abs(point.X - box.X) <= tolerance)
+        {
+            side = PortSide.Left;
+        }
+        else if (withinY && Math.Abs(point.X - (box.X + box.Width)) <= tolerance)
+        {
+            side = PortSide.Right;
+        }
+        else if (withinX && Math.Abs(point.Y - box.Y) <= tolerance)
+        {
+            side = PortSide.Top;
+        }
+        else if (withinX && Math.Abs(point.Y - (box.Y + box.Height)) <= tolerance)
+        {
+            side = PortSide.Bottom;
+        }
+
+        if (side is null)
+        {
+            anchor = default;
+            return false;
+        }
+
+        var absolute = side is PortSide.Left or PortSide.Right ? point.Y : point.X;
+        anchor = new FixedAnchor(box, side.Value, ToLocalAlong(box, side.Value, absolute));
+        return true;
+    }
+
+    /// <summary>
+    /// Moves each batch anchor claiming a face that already carries occupied anchors to the nearest
+    /// position at least <see cref="MinFixedAnchorSeparation"/> from every occupied anchor (including the
+    /// ones already moved here), leaving anchors that are already clear untouched. When no position
+    /// satisfies the separation, the most separated candidate is used.
+    /// </summary>
+    /// <param name="slots">The batch connectors claiming the face.</param>
+    /// <param name="anchors">The per-connection anchors, updated in place.</param>
+    /// <param name="usableExtents">The usable (connectable) extents of the face, in local coordinates.</param>
+    /// <param name="occupied">The local along-coordinates already occupied on the face; extended in place.</param>
+    private static void SeparateFromFixedAnchors(
+        List<FaceSlot> slots,
+        FaceAnchors[] anchors,
+        IReadOnlyList<(double Lo, double Hi)> usableExtents,
+        List<double> occupied)
+    {
+        var usableLength = TotalExtentLength(usableExtents);
+        foreach (var slot in slots.OrderBy(s => s.Counterpart).ThenBy(s => s.ConnectionIndex))
+        {
+            var current = anchors[slot.ConnectionIndex];
+            var preferred = slot.IsSource ? current.SourceAlong : current.TargetAlong;
+            var chosen = preferred;
+
+            if (MinDistance(preferred, occupied) < MinFixedAnchorSeparation)
+            {
+                var bestClear = false;
+                var bestScore = double.NegativeInfinity;
+                for (var j = 0; j <= FixedAnchorCandidateCount; j++)
+                {
+                    var candidate = CoordinateAtDistance(usableExtents, usableLength * j / FixedAnchorCandidateCount);
+                    var separation = MinDistance(candidate, occupied);
+                    var clear = separation >= MinFixedAnchorSeparation;
+
+                    // A clear candidate always beats an unclear one; among clear candidates the closest to
+                    // the preferred anchor wins, among unclear ones the most separated wins.
+                    var score = clear ? -Math.Abs(candidate - preferred) : separation;
+                    if ((clear && !bestClear) || (clear == bestClear && score > bestScore))
+                    {
+                        bestClear = clear;
+                        bestScore = score;
+                        chosen = candidate;
+                    }
+                }
+            }
+
+            occupied.Add(chosen);
+            anchors[slot.ConnectionIndex] = slot.IsSource
+                ? current with { SourceAlong = chosen }
+                : current with { TargetAlong = chosen };
+        }
+    }
+
+    /// <summary>Returns the smallest absolute distance from <paramref name="value"/> to any of <paramref name="others"/>.</summary>
+    private static double MinDistance(double value, List<double> others)
+    {
+        var min = double.PositiveInfinity;
+        foreach (var other in others)
+        {
+            min = Math.Min(min, Math.Abs(value - other));
+        }
+
+        return min;
     }
 
     /// <summary>Records one connector's claim on a shared box face for later distribution.</summary>
@@ -758,7 +964,7 @@ public static class ConnectorRouter
         /// </summary>
         /// <param name="box">Box whose folder-tab width is being resolved.</param>
         /// <returns>The non-negative folder-tab width, in logical pixels.</returns>
-        private static double ResolveFolderTabWidth(LayoutBox box)
+        internal static double ResolveFolderTabWidth(LayoutBox box)
         {
             if (box.FolderTabWidth.HasValue)
             {
@@ -780,7 +986,7 @@ public static class ConnectorRouter
         /// </summary>
         /// <param name="box">Box whose folder-tab height is being resolved.</param>
         /// <returns>The non-negative folder-tab height, in logical pixels.</returns>
-        private static double ResolveFolderTabHeight(LayoutBox box) =>
+        internal static double ResolveFolderTabHeight(LayoutBox box) =>
             box.FolderTabHeight.HasValue
                 ? Math.Max(0.0, box.FolderTabHeight.Value)
                 : BoxMetrics.FolderTabHeight(Themes.Light);

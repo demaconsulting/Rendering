@@ -32,7 +32,12 @@ per node followed by `LayoutLine` per edge).
    projected inward to the recessed body outline, and a `BoxShape.Note`'s folded corner is similarly
    excluded, matching `ConnectorRouter`'s existing shape-geometry rules for cross-container edges.
 2. **Edge mapping.** Maps each edge to an index pair, dropping any edge that references a node
-   outside this graph.
+   outside this graph. A *layout-only* edge (an edge whose identifier carries
+   `HierarchicalLayoutAlgorithm.LayoutOnlyEdgeIdPrefix`, added by the hierarchical engine as a placement
+   hint for a connector it routes separately between nested nodes) is kept in the engine edge list so it
+   still drives layering, ordering, and spacing, but is skipped at line emission (so no connector, port
+   or anchor reservation is produced) and excluded from the parallel-edge group counts (so it never
+   hides a real parallel edge's label).
 3. **Direction resolution.** Resolves the requested flow direction from `CoreOptions.Direction`,
    taking an explicit value on the graph in preference to one on the options and falling back to the
    property default (`Right`), then maps the public `LayoutFlowDirection` to the engine's internal
@@ -171,3 +176,4 @@ the Engine subsystem. It is the entry point resolved by renderers through the la
 | Rendering-Layout-LayeredAlgorithm-ParallelLabelSpacing | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-PortLabelWidthFloor | LayeredLayoutAlgorithm behavior described above |
 | Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting | LayeredLayoutAlgorithm behavior described above |
+| Rendering-Layout-LayeredAlgorithm-LayoutOnlyEdges | Edge mapping (step 2) |

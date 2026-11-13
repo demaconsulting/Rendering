@@ -96,3 +96,6 @@ behavior constitutes a failure.
 - **`Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula`**:
   Widen_ManyConnectors_ReturnsCorridorWidth, Widen_TwoConnectors, Widen_SingleConnector,
   Widen_ZeroConnectors, Widen_BaseGapExceedsCorridor
+- **`Rendering-Layout-ContainmentAlgorithm-LayoutOnlyEdges`**:
+  Apply_SameRowPeersWithLayoutOnlyEdges_WidensGapButEmitsNoLine (eight layout-only edges between
+  same-row peers produce the same 132px corridor as real edges but no line)

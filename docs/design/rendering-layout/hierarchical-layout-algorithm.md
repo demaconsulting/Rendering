@@ -65,26 +65,59 @@ overrides win over the supplied options, exactly like every nested scope), and c
    graph, regardless of whether the scope also contains an unrelated container elsewhere. Every
    `CoreOptions` property this scope needs is already present in `effective`, so the view carries no
    options of its own — the leaf algorithm resolves them from `effective`, not from the view graph. The
-   caller's input graph is never mutated.
+   caller's input graph is never mutated. In addition, when the resolved leaf algorithm is one of the
+   bundled ones that understands layout-only edges (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`,
+   or `AutoLayoutAlgorithm`), the view receives one *layout-only proxy edge* per routed edge (step 6)
+   whose endpoints live under two different direct members, joining those two direct members. The proxy's
+   edge identifier carries the reserved prefix `LayoutOnlyEdgeIdPrefix` (the marker travels in the
+   identifier because an identifier, unlike a property override, survives `AutoLayoutAlgorithm`'s
+   component split); the bundled leaf algorithms let such an edge drive layering, ordering, and gap
+   sizing but emit no connector, port, or anchor for it. A custom leaf algorithm receives the view
+   unchanged (no proxies), so it is never handed an edge it does not understand.
 4. **Placement.** The resolved leaf algorithm places the sized view against `effective`, emitting one box
    per node in input order, followed by routed lines and any named-port anchors (`LayoutPort`) for the
-   in-scope edges.
+   in-scope edges. The one-box-per-node, input-order contract is what lets step 5 and the nested-endpoint
+   lookup in step 6 index the placed boxes by node index; `AutoLayoutAlgorithm` restores input order after
+   packing a multi-group result to honor it.
 5. **Composition.** Each container's placed box receives its recursively laid-out children, translated
    from their local origin to the box's padded (and title-offset) interior via a recursive `Translate`
    that shifts nested boxes, line waypoints, and port anchors (local-to-absolute translation, following
    the `ComponentPacker` precedent).
-6. **Cross-container (LCA) routing.** Edges whose endpoints resolve to different direct-member
-   containers of this scope — mapped from any descendant endpoint up to its owning top-level box — are
-   routed at this level with `ConnectorRouter.Route`, steering around the sibling boxes; the
-   `EdgeRouting` style is read from this scope's own cascaded `effective` snapshot, so an override set
-   on the owning scope's graph is honored rather than falling back to the root options. Edges already
-   routed by the leaf algorithm (both endpoints direct) or belonging to a lower scope (both endpoints
-   under one container) are skipped. A genuine cross-container edge whose endpoint is a named
-   `LayoutGraphPort` in a shape the boundary-port delegation mechanism does not cover — for example a
-   port owned by a plain (non-container) node with an edge straight into a different container — throws
-   `NotSupportedException` instead of being routed or silently dropped; that port's owner has no child
-   scope to delegate into, so this scope's box-only router (which has no port concept) cannot anchor it.
-   Broader boundary-crossing port support is a separate future effort (see ROADMAP.md).
+6. **Cross-hierarchy routing.** `ClassifyEdges` first records, for every node of the scope's subtree,
+   its parent and its index in that parent's child list (`MapDescendants`), and then sorts the scope's
+   edges. An edge whose endpoints resolve to different direct members of this scope, with at least one
+   endpoint nested, is a *cross-hierarchy edge*; an edge between two direct members that shares a box
+   with such an edge is promoted into the same batch so one coordinated pass anchors every connector
+   on that box. An edge declared on this scope whose two endpoints are distinct, unrelated nodes
+   nested under the *same* direct member (an ancestor graph referencing nested nodes, for example a
+   root graph naming two nodes of one package) is routed here too, between the nested nodes; it cannot
+   influence the container's interior placement, which was laid out in isolation first. An edge between
+   a container and one of its own descendants, a self-edge, and any same-direct-member port edge are
+   skipped (documented limitation). Each routed edge is routed with the internal
+   `ConnectorRouter.RouteBatch`: both endpoints are resolved to their actual placed boxes
+   (`ResolveEndpointBox` walks from the direct member's composed box down through each level's child
+   boxes, which are index-aligned with that level's graph nodes; if a level cannot be resolved the
+   deepest resolvable box is used, degrading to the old container-anchored behavior instead of failing),
+   and each connector gets its own hard-obstacle set: every box of the scope, with the containers
+   enclosing that connector's two endpoints *expanded* — replaced by an obstacle for the title text (a
+   thin box as wide as the estimated title or keyword text, centered in the title band), the folder tab
+   when the container is a folder, and their children, recursively — so the connector may cross those
+   containers' walls beside the title while every unrelated box and container stays solid. Face
+   anchors already occupied by the internal connectors of the endpoint's own container are passed as
+   fixed anchors so a new connector does not land on top of one, and the long runs of already-routed
+   end segments are soft obstacles for later connectors so connectors do not run collinearly along one
+   another's approach. The `EdgeRouting` style is read from this scope's own cascaded `effective`
+   snapshot. An edge whose endpoint is a container itself still anchors on that container. A genuine
+   cross-container edge whose endpoint is a named `LayoutGraphPort` in a shape the boundary-port
+   delegation mechanism does not cover — for example a port owned by a plain (non-container) node
+   with an edge straight into a different container — throws `NotSupportedException` instead of being
+   routed or silently dropped; that port's owner has no child scope to delegate into, so this scope's
+   box-only router (which has no port concept) cannot anchor it. Broader boundary-crossing port support
+   is a separate future effort (see ROADMAP.md). Known limitations: placement accounts for an edge only
+   at the declaring scope (an edge cannot reshuffle the interior of the container that holds both of
+   its endpoints), the boundary-port combined-pass path routes the connector between the nested nodes
+   but does not yet let it influence that path's placement, and a dense corridor can still yield
+   closely spaced parallel connector lanes.
 7. **Assembly.** The engine returns a `LayoutTree` with the leaf algorithm's canvas size for this level
    and the composed boxes followed by the leaf-routed lines, any leaf-emitted port anchors, and the
    cross-container lines.
@@ -161,8 +194,12 @@ input graph and ignores the supplied options would silently break cascading for 
 - The engine shall not mutate the caller's graph; re-sizing is expressed through the internal sized
   view rather than by altering node sizes in place.
 - Hierarchy handling is `HierarchyHandling.SeparateChildren` (see the *Rendering Model* design): each
-  container is laid out in isolation and sized to fit its children. The `CoreOptions.HierarchyHandling`
-  option records this selection; only the separate-children mode is honored today.
+  container's interior is laid out in isolation and the container sized to fit its children. The
+  `CoreOptions.HierarchyHandling` option records this selection; only the separate-children mode is
+  honored today. Edges declared on an ancestor graph are nevertheless routed between the actual nested
+  endpoint nodes (the default behavior, with no separate mode), and the declaring scope's placement
+  accounts for them through layout-only proxy edges; sharing one layout pass across container
+  boundaries remains future work (see ROADMAP.md).
 
 ### HierarchicalLayoutAlgorithm Error Handling
 
@@ -237,6 +274,9 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-PerNodeAlgorithm | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-HierarchyHandling | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-CrossContainerEdge | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-NestedAnchors | Cross-hierarchy routing (step 6) |
+| Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-AncestorPlacement | Layout-only proxy edges (step 3) |
+| Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-SameContainer | Cross-hierarchy routing (step 6) |
 | Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening | Widening pass described above |
 | Rendering-Layout-HierarchicalLayout-SiblingContainerGapWideningSingleEdgeUnaffected | Widening pass described above |
 | Rendering-Layout-HierarchicalLayout-SiblingGapWideningPortPathUnaffected | Widening pass described above |

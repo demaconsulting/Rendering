@@ -35,7 +35,10 @@ namespace DemaConsulting.Rendering.Layout;
 ///     Edges whose <see cref="LayoutGraphEdge.Source"/> or <see cref="LayoutGraphEdge.Target"/> is not a
 ///     top-level node of the graph are skipped, mirroring how the layered algorithm drops out-of-graph
 ///     endpoints. Every routed connector carries its edge's <see cref="LayoutGraphEdge.TargetEnd"/>,
-///     <see cref="LayoutGraphEdge.LineStyle"/>, and <see cref="LayoutGraphEdge.Label"/>.
+///     <see cref="LayoutGraphEdge.LineStyle"/>, and <see cref="LayoutGraphEdge.Label"/>. An edge marked
+///     layout-only by the hierarchical engine (see
+///     <see cref="HierarchicalLayoutAlgorithm.LayoutOnlyEdgeIdPrefix"/>) is counted toward the gap
+///     widening between its two boxes like a real edge but is never routed or drawn.
 ///     </para>
 /// </remarks>
 /// <example>
@@ -195,12 +198,14 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
         var packedBoxes = result.Children;
 
         // Build one connection per edge whose endpoints are both top-level nodes, carrying the edge's
-        // styling; edges referencing out-of-graph nodes are skipped.
+        // styling; edges referencing out-of-graph nodes are skipped, as are layout-only edges (which
+        // were counted above so they widen the gap, but are never drawn).
         var connections = new List<Connection>(graph.Edges.Count);
         foreach (var edge in graph.Edges)
         {
             if (edge.Source is LayoutGraphNode sourceNode && indexOf.TryGetValue(sourceNode, out var s) &&
-                edge.Target is LayoutGraphNode targetNode && indexOf.TryGetValue(targetNode, out var t))
+                edge.Target is LayoutGraphNode targetNode && indexOf.TryGetValue(targetNode, out var t) &&
+                !HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(edge))
             {
                 connections.Add(new Connection(
                     packedBoxes[s],

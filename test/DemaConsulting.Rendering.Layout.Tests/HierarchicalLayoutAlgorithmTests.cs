@@ -523,10 +523,17 @@ public sealed class HierarchicalLayoutAlgorithmTests
         // Act
         var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
 
-        // Assert: the single top-level cross-container line does not pass through the interior of either
-        // endpoint container box (the wide container or the leaf).
+        // Assert: the single cross-container line is anchored on the nested "api" box (the actual
+        // endpoint) and does not pass through the interior of any leaf box — the client, or any of the
+        // service's nested boxes. The line necessarily crosses the wall of the enclosing service
+        // container to reach its nested target, so that container is not a forbidden obstacle.
         var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
-        foreach (var box in tree.Nodes.OfType<LayoutBox>())
+        var end = line.Waypoints[^1];
+        var apiBox = Assert.Single(
+            AllBoxes(tree.Nodes),
+            box => box.Children.Count == 0 && OnBoxBoundary(end.X, end.Y, box));
+        Assert.Equal(120, apiBox.Width);
+        foreach (var box in AllBoxes(tree.Nodes).Where(b => b.Children.Count == 0))
         {
             var rect = new Rect(box.X, box.Y, box.Width, box.Height);
             for (var i = 0; i < line.Waypoints.Count - 1; i++)
@@ -1050,6 +1057,700 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves (Rendering#46) that an edge declared on the root between nodes nested in two different
+    ///     containers is routed from the actual nested source node to the actual nested target node:
+    ///     the endpoints sit on the nested boxes' faces, the first and last segments leave and enter
+    ///     perpendicular to those faces, the target end carries its arrowhead, and the route never
+    ///     passes through an unrelated box nor over an enclosing container's title band.
+    /// </summary>
+    /// <param name="algorithm">The root layout algorithm.</param>
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("hierarchical")]
+    public void Apply_CrossHierarchyEdge_TwoLevels_AnchorsOnNestedBoxesAndAvoidsUnrelatedBoxes(string algorithm)
+    {
+        // Arrange: P{a, a2}, Q{b, b2}, an unrelated container R{r}, and the edge a -> b2.
+        var graph = new LayoutGraph();
+        var p = AddContainer(graph, "P");
+        var a = AddLeaf(p.Children, "a");
+        AddLeaf(p.Children, "a2");
+        var q = AddContainer(graph, "Q");
+        AddLeaf(q.Children, "b");
+        var b2 = AddLeaf(q.Children, "b2");
+        var r = AddContainer(graph, "R");
+        AddLeaf(r.Children, "r");
+        AddCrossEdge(graph, "a-b2", a, b2);
+
+        // Act
+        var tree = LayoutWith(algorithm, graph);
+
+        // Assert
+        var line = Assert.Single(AllLines(tree.Nodes));
+        AssertCleanRoute(tree, line, FindBox(tree.Nodes, "a"), FindBox(tree.Nodes, "b2"));
+    }
+
+    /// <summary>
+    ///     Proves an edge from a depth-2 nested node (a leaf inside a sub-container) to a depth-1 node of
+    ///     another container is anchored on the actual endpoints, crossing the sub-container's and the
+    ///     container's walls cleanly.
+    /// </summary>
+    /// <param name="algorithm">The root layout algorithm.</param>
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("hierarchical")]
+    public void Apply_CrossHierarchyEdge_DepthTwoToDepthOne_AnchorsOnNestedBoxes(string algorithm)
+    {
+        // Arrange: P{Inner{a}, p1}, Q{b}, an unrelated container R, and the edge a -> b.
+        var graph = new LayoutGraph();
+        var p = AddContainer(graph, "P");
+        var inner = AddContainer(p.Children, "Inner");
+        var a = AddLeaf(inner.Children, "a");
+        AddLeaf(p.Children, "p1");
+        var q = AddContainer(graph, "Q");
+        var b = AddLeaf(q.Children, "b");
+        var r = AddContainer(graph, "R");
+        AddLeaf(r.Children, "r");
+        AddCrossEdge(graph, "a-b", a, b);
+
+        // Act
+        var tree = LayoutWith(algorithm, graph);
+
+        // Assert
+        var line = Assert.Single(AllLines(tree.Nodes));
+        AssertCleanRoute(tree, line, FindBox(tree.Nodes, "a"), FindBox(tree.Nodes, "b"));
+    }
+
+    /// <summary>
+    ///     Proves the engine handles four levels of nesting on each side: the connector runs between the
+    ///     two innermost leaves and crosses every enclosing container wall cleanly.
+    /// </summary>
+    /// <param name="algorithm">The root layout algorithm.</param>
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("hierarchical")]
+    public void Apply_CrossHierarchyEdge_FourLevelNesting_AnchorsOnInnermostBoxes(string algorithm)
+    {
+        // Arrange: P{P2{P3{a}}} and Q{Q2{Q3{b}}} (four levels counting the root's direct members).
+        var graph = new LayoutGraph();
+        var p = AddContainer(graph, "P");
+        var p2 = AddContainer(p.Children, "P2");
+        var p3 = AddContainer(p2.Children, "P3");
+        var a = AddLeaf(p3.Children, "a");
+        AddLeaf(p3.Children, "a2");
+        var q = AddContainer(graph, "Q");
+        var q2 = AddContainer(q.Children, "Q2");
+        var q3 = AddContainer(q2.Children, "Q3");
+        var b = AddLeaf(q3.Children, "b");
+        AddLeaf(q3.Children, "b2");
+        AddCrossEdge(graph, "a-b", a, b);
+
+        // Act
+        var tree = LayoutWith(algorithm, graph);
+
+        // Assert
+        var line = Assert.Single(AllLines(tree.Nodes));
+        AssertCleanRoute(tree, line, FindBox(tree.Nodes, "a"), FindBox(tree.Nodes, "b"));
+    }
+
+    /// <summary>
+    ///     Proves an edge declared in a middle container (their lowest common ancestor) between nodes in
+    ///     two of its sub-containers is routed between the nested nodes at that container's level.
+    /// </summary>
+    /// <param name="algorithm">The root layout algorithm.</param>
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("hierarchical")]
+    public void Apply_CrossHierarchyEdge_DeclaredInMiddleContainer_AnchorsOnNestedBoxes(string algorithm)
+    {
+        // Arrange: P{X{x1, x2}, Y{y1}, Z{z1}}, an outside leaf, and an edge declared on P's own graph.
+        var graph = new LayoutGraph();
+        var p = AddContainer(graph, "P");
+        var x = AddContainer(p.Children, "X");
+        var x1 = AddLeaf(x.Children, "x1");
+        AddLeaf(x.Children, "x2");
+        var y = AddContainer(p.Children, "Y");
+        var y1 = AddLeaf(y.Children, "y1");
+        var z = AddContainer(p.Children, "Z");
+        AddLeaf(z.Children, "z1");
+        AddLeaf(graph, "outside");
+        AddCrossEdge(p.Children, "x1-y1", x1, y1);
+
+        // Act
+        var tree = LayoutWith(algorithm, graph);
+
+        // Assert
+        var line = Assert.Single(AllLines(tree.Nodes));
+        AssertCleanRoute(tree, line, FindBox(tree.Nodes, "x1"), FindBox(tree.Nodes, "y1"));
+    }
+
+    /// <summary>
+    ///     Proves a root-declared edge whose endpoints are both under one top-level container (in
+    ///     different sub-containers) is routed between the nested nodes instead of being silently dropped.
+    /// </summary>
+    /// <param name="algorithm">The root layout algorithm.</param>
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("hierarchical")]
+    public void Apply_CrossHierarchyEdge_RootDeclaredBothEndpointsUnderOneContainer_RoutesBetweenNestedNodes(string algorithm)
+    {
+        // Arrange: P{X{x1}, Y{y1}} plus an unrelated leaf, and a root-declared edge x1 -> y1.
+        var graph = new LayoutGraph();
+        var p = AddContainer(graph, "P");
+        var x = AddContainer(p.Children, "X");
+        var x1 = AddLeaf(x.Children, "x1");
+        var y = AddContainer(p.Children, "Y");
+        var y1 = AddLeaf(y.Children, "y1");
+        AddLeaf(graph, "outside");
+        AddCrossEdge(graph, "x1-y1", x1, y1);
+
+        // Act
+        var tree = LayoutWith(algorithm, graph);
+
+        // Assert
+        var line = Assert.Single(AllLines(tree.Nodes));
+        AssertCleanRoute(tree, line, FindBox(tree.Nodes, "x1"), FindBox(tree.Nodes, "y1"));
+    }
+
+    /// <summary>
+    ///     Proves mixed leaf and container siblings: edges leaf -> nested, nested -> leaf, and
+    ///     nested -> nested at one scope are each routed between the actual endpoints without crossing
+    ///     any unrelated box.
+    /// </summary>
+    /// <param name="algorithm">The root layout algorithm.</param>
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("hierarchical")]
+    public void Apply_CrossHierarchyEdges_MixedLeafAndContainerChildren_AnchorOnActualEndpoints(string algorithm)
+    {
+        // Arrange: leaves L and M beside containers P{a} and Q{b}; three edges of the three kinds.
+        var graph = new LayoutGraph();
+        var l = AddLeaf(graph, "L");
+        var p = AddContainer(graph, "P");
+        var a = AddLeaf(p.Children, "a");
+        AddLeaf(p.Children, "a2");
+        var q = AddContainer(graph, "Q");
+        var b = AddLeaf(q.Children, "b");
+        AddLeaf(q.Children, "b2");
+        var m = AddLeaf(graph, "M");
+        AddCrossEdge(graph, "l-b", l, b);
+        AddCrossEdge(graph, "a-m", a, m);
+        AddCrossEdge(graph, "a-b", a, b);
+
+        // Act
+        var tree = LayoutWith(algorithm, graph);
+
+        // Assert
+        var lines = AllLines(tree.Nodes).ToList();
+        Assert.Equal(3, lines.Count);
+        AssertCleanRoute(tree, lines[0], FindBox(tree.Nodes, "L"), FindBox(tree.Nodes, "b"));
+        AssertCleanRoute(tree, lines[1], FindBox(tree.Nodes, "a"), FindBox(tree.Nodes, "M"));
+        AssertCleanRoute(tree, lines[2], FindBox(tree.Nodes, "a"), FindBox(tree.Nodes, "b"));
+    }
+
+    /// <summary>
+    ///     Proves an edge whose endpoint is a container itself stays anchored on that container's own
+    ///     boundary (not on one of its children), while an edge to a node nested in it anchors on the
+    ///     nested node.
+    /// </summary>
+    /// <param name="algorithm">The root layout algorithm.</param>
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("hierarchical")]
+    public void Apply_CrossHierarchyEdge_ToContainerItself_AnchorsOnContainerBoundary(string algorithm)
+    {
+        // Arrange: leaf c and container P{a, a2}: edge c -> P (the container) and edge c -> a (nested).
+        var graph = new LayoutGraph();
+        var c = AddLeaf(graph, "c");
+        var p = AddContainer(graph, "P");
+        var a = AddLeaf(p.Children, "a");
+        AddLeaf(p.Children, "a2");
+        AddCrossEdge(graph, "c-P", c, p);
+        AddCrossEdge(graph, "c-a", c, a);
+
+        // Act
+        var tree = LayoutWith(algorithm, graph);
+
+        // Assert: the edge c -> P ends on the container's own boundary (it is routed after the nested
+        // edge, which shares box c, because it is promoted into the same batch), and c -> a on a.
+        var lines = AllLines(tree.Nodes).ToList();
+        Assert.Equal(2, lines.Count);
+        var pBox = FindBox(tree.Nodes, "P");
+        var aBox = FindBox(tree.Nodes, "a");
+        var toContainer = Assert.Single(lines, l => OnBoxBoundary(l.Waypoints[^1].X, l.Waypoints[^1].Y, pBox));
+        var toNested = Assert.Single(lines, l => !ReferenceEquals(l, toContainer));
+        AssertCleanRoute(tree, toNested, FindBox(tree.Nodes, "c"), aBox);
+        Assert.False(
+            OnBoxBoundary(toContainer.Waypoints[^1].X, toContainer.Waypoints[^1].Y, aBox),
+            "The edge to the container itself must not anchor on its child.");
+    }
+
+    /// <summary>
+    ///     Proves several edges converging on one nested node receive distinct anchor points on its
+    ///     boundary instead of collapsing onto one shared point.
+    /// </summary>
+    /// <param name="algorithm">The root layout algorithm.</param>
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("hierarchical")]
+    public void Apply_CrossHierarchyEdges_ConvergingOnOneNestedNode_UseDistinctAnchors(string algorithm)
+    {
+        // Arrange: three leaves each feeding the nested node b inside container Q.
+        var graph = new LayoutGraph();
+        var q = AddContainer(graph, "Q");
+        var b = AddLeaf(q.Children, "b");
+        AddLeaf(q.Children, "b2");
+        for (var i = 0; i < 3; i++)
+        {
+            var source = AddLeaf(graph, $"s{i}");
+            AddCrossEdge(graph, $"s{i}-b", source, b);
+        }
+
+        // Act
+        var tree = LayoutWith(algorithm, graph);
+
+        // Assert: every connector ends on b, and no two end at the same point.
+        var lines = AllLines(tree.Nodes).ToList();
+        Assert.Equal(3, lines.Count);
+        var bBox = FindBox(tree.Nodes, "b");
+        foreach (var line in lines)
+        {
+            Assert.True(OnBoxBoundary(line.Waypoints[^1].X, line.Waypoints[^1].Y, bBox));
+        }
+
+        Assert.Equal(3, lines.Select(l => (l.Waypoints[^1].X, l.Waypoints[^1].Y)).Distinct().Count());
+    }
+
+    /// <summary>
+    ///     Proves the ancestor's placement accounts for a cross-hierarchy edge: with a layered root, two
+    ///     containers joined only by an edge between their nested nodes are placed in adjacent layers
+    ///     side by side, and an unrelated singleton container does not sit between them.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdge_LayeredRoot_PlacesJoinedContainersAdjacent()
+    {
+        // Arrange: P{a}, R{r}, Q{b} in that order with the only edge a -> b (P and Q joined).
+        var graph = new LayoutGraph();
+        var p = AddContainer(graph, "P");
+        var a = AddLeaf(p.Children, "a");
+        var r = AddContainer(graph, "R");
+        AddLeaf(r.Children, "r");
+        var q = AddContainer(graph, "Q");
+        var b = AddLeaf(q.Children, "b");
+        AddCrossEdge(graph, "a-b", a, b);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: Q is placed to the right of P with a layer-sized gap, and R is not between them.
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToDictionary(box => box.Label!);
+        var pBox = boxes["P"];
+        var qBox = boxes["Q"];
+        var rBox = boxes["R"];
+        Assert.True(qBox.X >= pBox.X + pBox.Width, "Q must be placed in a layer after P.");
+        Assert.True(
+            qBox.X - (pBox.X + pBox.Width) < 150.0,
+            "P and Q must be in adjacent layers (a layer-sized gap), not separated.");
+        var rBetween = rBox.X >= pBox.X + pBox.Width && rBox.X + rBox.Width <= qBox.X;
+        Assert.False(rBetween, "The unrelated container must not sit between the joined containers.");
+    }
+
+    /// <summary>
+    ///     Proves a containment root widens the gap between two side-by-side containers joined by a fan
+    ///     of parallel nested-endpoint edges relative to a single edge, so the connectors get lanes.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdges_ContainmentRoot_WidensGapForParallelEdges()
+    {
+        // Arrange / Act: tall, narrow children so the containment packer places the containers on one row.
+        static LayoutTree Run(int edgeCount)
+        {
+            var graph = new LayoutGraph();
+            graph.Set(CoreOptions.MergeParallelEdges, false);
+            var p = AddContainer(graph, "P");
+            var a = p.Children.AddNode("a", 90, 240);
+            a.Label = "a";
+            var q = AddContainer(graph, "Q");
+            var b = q.Children.AddNode("b", 90, 240);
+            b.Label = "b";
+            for (var i = 0; i < edgeCount; i++)
+            {
+                AddCrossEdge(graph, $"a-b-{i}", a, b);
+            }
+
+            return new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("containment"));
+        }
+
+        var single = Run(1);
+        var fan = Run(4);
+
+        // Assert: both place the containers side by side; the fan's gap is wider.
+        static double Gap(LayoutTree tree)
+        {
+            var boxes = tree.Nodes.OfType<LayoutBox>().OrderBy(box => box.X).ToList();
+            return boxes[1].X - (boxes[0].X + boxes[0].Width);
+        }
+
+        Assert.True(Gap(fan) > Gap(single), "A fan of parallel cross-hierarchy edges must widen the container gap.");
+        Assert.Equal(4, AllLines(fan.Nodes).Count());
+    }
+
+    /// <summary>
+    ///     Proves an edge between a container and one of its own descendants cannot be drawn between two
+    ///     distinct boxes, so it is skipped without throwing or looping, and does not disturb the
+    ///     layout of the rest of the graph.
+    /// </summary>
+    [Fact]
+    public void Apply_EdgeBetweenContainerAndItsOwnDescendant_IsSkipped()
+    {
+        // Arrange: P{a} with edges P -> a and a -> P declared on the root, plus an unrelated leaf.
+        var graph = new LayoutGraph();
+        var p = AddContainer(graph, "P");
+        var a = AddLeaf(p.Children, "a");
+        AddLeaf(graph, "other");
+        AddCrossEdge(graph, "p-a", p, a);
+        AddCrossEdge(graph, "a-p", a, p);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert: both boxes laid out, no line for the edges that cannot be drawn.
+        Assert.Empty(AllLines(tree.Nodes));
+        Assert.Equal(3, AllBoxes(tree.Nodes).Count());
+    }
+
+    /// <summary>
+    ///     Proves a named-port edge whose endpoint is nested in a container and whose other endpoint is
+    ///     in a different container still throws the existing <see cref="NotSupportedException"/>.
+    /// </summary>
+    [Fact]
+    public void Apply_NestedPortEdgeAcrossContainers_StillThrowsNotSupported()
+    {
+        // Arrange: P{a with port} and Q{b}, with a root-declared edge from the nested port to b.
+        var graph = new LayoutGraph();
+        var p = AddContainer(graph, "P");
+        var a = AddLeaf(p.Children, "a");
+        var port = a.Ports.AddPort("out");
+        var q = AddContainer(graph, "Q");
+        var b = AddLeaf(q.Children, "b");
+        graph.AddEdge("port-b", port, b);
+
+        // Act / Assert
+        Assert.Throws<NotSupportedException>(
+            () => new HierarchicalLayoutAlgorithm().ApplyCore(graph, new LayoutOptions()));
+    }
+
+    /// <summary>
+    ///     Proves a leaf algorithm outside the bundled set (one that does not understand layout-only
+    ///     edges) is never handed one: its view graph carries no proxy edge, yet the real connector is
+    ///     still routed between the nested endpoints.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdge_CustomLeafAlgorithm_ReceivesNoLayoutOnlyEdges()
+    {
+        // Arrange: a recording wrapper registered under the layered id that is not a bundled type.
+        var recording = new RecordingLayoutAlgorithm(new LayeredLayoutAlgorithm());
+        var registry = new LayoutAlgorithmRegistry().Register(recording).Register(new ContainmentLayoutAlgorithm());
+        var graph = new LayoutGraph();
+        var p = AddContainer(graph, "P");
+        var a = AddLeaf(p.Children, "a");
+        var q = AddContainer(graph, "Q");
+        var b = AddLeaf(q.Children, "b");
+        AddCrossEdge(graph, "a-b", a, b);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm(registry).ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: no view graph handed to the custom algorithm carries a layout-only edge.
+        Assert.All(
+            recording.Calls,
+            call => Assert.DoesNotContain(call.Graph.Edges, HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge));
+        var line = Assert.Single(AllLines(tree.Nodes));
+        AssertCleanRoute(tree, line, FindBox(tree.Nodes, "a"), FindBox(tree.Nodes, "b"));
+    }
+
+    /// <summary>
+    ///     Proves the combined-pass (boundary-port) path also anchors a cross-hierarchy edge on the
+    ///     nested nodes: a delegation chain whose innermost leaf is joined by a root-declared edge to a
+    ///     node nested in an unrelated container.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdge_WithBoundaryPortHierarchy_AnchorsOnNestedBoxes()
+    {
+        // Arrange: the three-level delegation chain plus container Peer{pa} and the root edge Leaf -> pa.
+        var graph = BuildDelegationChain(leafWidth: 120, leafHeight: 50);
+        var peer = AddContainer(graph, "Peer");
+        var pa = AddLeaf(peer.Children, "pa");
+        var leaf = graph.Nodes.Single(n => n.Id == "L1").Children.Nodes.Single().Children.Nodes.Single()
+            .Children.Nodes.Single();
+        AddCrossEdge(graph, "leaf-pa", leaf, pa);
+
+        // Act
+        var tree = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert: a root-level connector runs from the nested Leaf to the nested "pa".
+        var leafBox = FindBox(tree.Nodes, "Leaf");
+        var paBox = FindBox(tree.Nodes, "pa");
+        var line = Assert.Single(
+            tree.Nodes.OfType<LayoutLine>(),
+            l => OnBoxBoundary(l.Waypoints[0].X, l.Waypoints[0].Y, leafBox) &&
+                 OnBoxBoundary(l.Waypoints[^1].X, l.Waypoints[^1].Y, paBox));
+        AssertPolylineIsStrictlyOrthogonal(line.Waypoints);
+    }
+
+    /// <summary>
+    ///     Proves the engine never mutates the caller's graph when routing cross-hierarchy edges (no
+    ///     layout-only edge leaks into any scope) and is deterministic across repeated runs.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdge_DoesNotMutateInputAndIsDeterministic()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        var p = AddContainer(graph, "P");
+        var a = AddLeaf(p.Children, "a");
+        var q = AddContainer(graph, "Q");
+        var b = AddLeaf(q.Children, "b");
+        AddCrossEdge(graph, "a-b", a, b);
+        var edgeIdsBefore = graph.Edges.Select(e => e.Id).ToList();
+
+        // Act
+        var first = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
+        var second = new HierarchicalLayoutAlgorithm().ApplyCore(graph, LayoutOptions.ForAlgorithm("layered"));
+
+        // Assert
+        Assert.Equal(edgeIdsBefore, graph.Edges.Select(e => e.Id).ToList());
+        Assert.Equal(2, graph.Nodes.Count);
+        Assert.Empty(p.Children.Edges);
+        Assert.Empty(q.Children.Edges);
+        Assert.Equal(DumpTree(first), DumpTree(second));
+    }
+
+    /// <summary>
+    ///     Proves two cross-hierarchy connectors whose straight runs would otherwise coincide (one
+    ///     connector's long final approach lying on the row the other prefers) are routed in separate
+    ///     lanes: no horizontal or vertical run of one overlaps a run of the other.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdges_ConnectorsDoNotOverlapCollinearly()
+    {
+        // Arrange: Client{UI, Auth{Login, Session}} and Server{API, Storage{DB, Cache}}; Session -> API
+        // ends with a long straight run on the row of UI -> DB's natural first run.
+        var graph = new LayoutGraph();
+        var client = AddContainer(graph, "Client");
+        var ui = AddLeaf(client.Children, "UI");
+        var auth = AddContainer(client.Children, "Auth");
+        var login = AddLeaf(auth.Children, "Login");
+        var session = AddLeaf(auth.Children, "Session");
+        AddCrossEdge(auth.Children, "login-session", login, session);
+        var server = AddContainer(graph, "Server");
+        var api = AddLeaf(server.Children, "API");
+        var storage = AddContainer(server.Children, "Storage");
+        var db = AddLeaf(storage.Children, "DB");
+        var cache = AddLeaf(storage.Children, "Cache");
+        AddCrossEdge(storage.Children, "db-cache", db, cache);
+        AddCrossEdge(graph, "session-api", session, api);
+        AddCrossEdge(graph, "ui-db", ui, db);
+
+        // Act
+        var tree = LayoutWith("auto", graph);
+
+        // Assert: the two root-level connectors share no collinear run.
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(2, lines.Count);
+        AssertCleanRoute(tree, lines[0], FindBox(tree.Nodes, "Session"), FindBox(tree.Nodes, "API"));
+        AssertCleanRoute(tree, lines[1], FindBox(tree.Nodes, "UI"), FindBox(tree.Nodes, "DB"));
+        for (var i = 0; i < lines[0].Waypoints.Count - 1; i++)
+        {
+            for (var j = 0; j < lines[1].Waypoints.Count - 1; j++)
+            {
+                Assert.True(
+                    CollinearOverlap(lines[0].Waypoints[i], lines[0].Waypoints[i + 1], lines[1].Waypoints[j], lines[1].Waypoints[j + 1]) < 5.0,
+                    $"Segment {i} of the first connector overlaps segment {j} of the second.");
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Proves a cross-hierarchy connector leaving a nested node that already has an internal connector
+    ///     on the same face is anchored away from that connector's end point instead of coinciding with it.
+    /// </summary>
+    /// <param name="algorithm">The root layout algorithm.</param>
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("hierarchical")]
+    public void Apply_CrossHierarchyEdge_FromNodeWithInternalEdge_AnchorsApartFromInternalAnchor(string algorithm)
+    {
+        // Arrange: Auth{Login, Session} with an internal Login -> Session edge, and Login -> API crossing out.
+        var graph = new LayoutGraph();
+        var auth = AddContainer(graph, "Auth");
+        var login = auth.Children.AddNode("Login", 120, 50);
+        login.Label = "Login";
+        var session = AddLeaf(auth.Children, "Session");
+        AddCrossEdge(auth.Children, "login-session", login, session);
+        var server = AddContainer(graph, "Server");
+        var api = AddLeaf(server.Children, "API");
+        AddCrossEdge(graph, "login-api", login, api);
+
+        // Act
+        var tree = LayoutWith(algorithm, graph);
+
+        // Assert: both lines leave Login, from distinct points on its face. A 50px-tall face with the
+        // 12px end insets can hold two anchors at most 13px apart, so require at least that.
+        var lines = AllLines(tree.Nodes).ToList();
+        Assert.Equal(2, lines.Count);
+        var starts = lines.Select(l => l.Waypoints[0]).ToList();
+        var distance = Math.Abs(starts[0].X - starts[1].X) + Math.Abs(starts[0].Y - starts[1].Y);
+        Assert.True(distance >= 12.0, $"Login's two connectors start only {distance}px apart.");
+    }
+
+    /// <summary>Returns the length over which two axis-aligned segments lie on the same line.</summary>
+    private static double CollinearOverlap(Point2D a1, Point2D b1, Point2D a2, Point2D b2)
+    {
+        const double tolerance = 0.5;
+        if (Math.Abs(a1.Y - b1.Y) < 1e-6 && Math.Abs(a2.Y - b2.Y) < 1e-6 && Math.Abs(a1.Y - a2.Y) < tolerance)
+        {
+            return Math.Max(0.0, Math.Min(Math.Max(a1.X, b1.X), Math.Max(a2.X, b2.X)) - Math.Max(Math.Min(a1.X, b1.X), Math.Min(a2.X, b2.X)));
+        }
+
+        if (Math.Abs(a1.X - b1.X) < 1e-6 && Math.Abs(a2.X - b2.X) < 1e-6 && Math.Abs(a1.X - a2.X) < tolerance)
+        {
+            return Math.Max(0.0, Math.Min(Math.Max(a1.Y, b1.Y), Math.Max(a2.Y, b2.Y)) - Math.Max(Math.Min(a1.Y, b1.Y), Math.Min(a2.Y, b2.Y)));
+        }
+
+        return 0.0;
+    }
+
+    /// <summary>Adds a leaf node whose id and label are both <paramref name="id"/>.</summary>
+    private static LayoutGraphNode AddLeaf(LayoutGraph graph, string id)
+    {
+        var node = graph.AddNode(id, 80, 40);
+        node.Label = id;
+        return node;
+    }
+
+    /// <summary>Adds a container node (to be given children) whose id and label are both <paramref name="id"/>.</summary>
+    private static LayoutGraphNode AddContainer(LayoutGraph graph, string id)
+    {
+        var node = graph.AddNode(id, 10, 10);
+        node.Label = id;
+        return node;
+    }
+
+    /// <summary>Adds an edge with a filled arrowhead at its target end.</summary>
+    private static void AddCrossEdge(LayoutGraph graph, string id, ILayoutConnectable source, ILayoutConnectable target) =>
+        graph.AddEdge(id, source, target).TargetEnd = EndMarkerStyle.FilledArrow;
+
+    /// <summary>Lays out <paramref name="graph"/> with the named root algorithm through the layout engine.</summary>
+    private static LayoutTree LayoutWith(string algorithm, LayoutGraph graph)
+    {
+        graph.Set(CoreOptions.Algorithm, algorithm);
+        return LayoutEngine.Layout(graph);
+    }
+
+    /// <summary>Enumerates every box in the node list, recursing into box children.</summary>
+    private static IEnumerable<LayoutBox> AllBoxes(IEnumerable<LayoutNode> nodes)
+    {
+        foreach (var box in nodes.OfType<LayoutBox>())
+        {
+            yield return box;
+            foreach (var nested in AllBoxes(box.Children))
+            {
+                yield return nested;
+            }
+        }
+    }
+
+    /// <summary>Enumerates every line in the node list, recursing into box children.</summary>
+    private static IEnumerable<LayoutLine> AllLines(IEnumerable<LayoutNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            if (node is LayoutLine line)
+            {
+                yield return line;
+            }
+            else if (node is LayoutBox box)
+            {
+                foreach (var nested in AllLines(box.Children))
+                {
+                    yield return nested;
+                }
+            }
+        }
+    }
+
+    /// <summary>Finds the box with the given label at any depth, failing the test when absent.</summary>
+    private static LayoutBox FindBox(IEnumerable<LayoutNode> nodes, string label) =>
+        AllBoxes(nodes).Single(box => box.Label == label);
+
+    /// <summary>Returns true when <paramref name="outer"/> strictly encloses <paramref name="inner"/>.</summary>
+    private static bool Encloses(LayoutBox outer, LayoutBox inner) =>
+        !ReferenceEquals(outer, inner) &&
+        outer.X <= inner.X && outer.Y <= inner.Y &&
+        outer.X + outer.Width >= inner.X + inner.Width &&
+        outer.Y + outer.Height >= inner.Y + inner.Height;
+
+    /// <summary>
+    ///     Asserts a cross-hierarchy connector is clean: orthogonal, anchored on the two endpoint boxes'
+    ///     boundaries with perpendicular, outward first and last segments, ending in an arrowhead, and
+    ///     never crossing the interior of any box other than the endpoints' enclosing containers — and
+    ///     not even those containers' title bands.
+    /// </summary>
+    private static void AssertCleanRoute(LayoutTree tree, LayoutLine line, LayoutBox source, LayoutBox target)
+    {
+        var points = line.Waypoints;
+        AssertPolylineIsStrictlyOrthogonal(points);
+        Assert.True(OnBoxBoundary(points[0].X, points[0].Y, source), "Line must start on the source box boundary.");
+        Assert.True(OnBoxBoundary(points[^1].X, points[^1].Y, target), "Line must end on the target box boundary.");
+        AssertLeavesPerpendicular(points[0], points[1], source);
+        AssertLeavesPerpendicular(points[^1], points[^2], target);
+        Assert.Equal(EndMarkerStyle.FilledArrow, line.TargetEnd);
+
+        foreach (var box in AllBoxes(tree.Nodes))
+        {
+            var isEnclosing = Encloses(box, source) || Encloses(box, target);
+            var rect = new Rect(box.X, box.Y, box.Width, box.Height);
+            if (isEnclosing)
+            {
+                // Only the title text (centered in the 24px title band) is off limits.
+                var textWidth = ConnectorLabelPlacer.EstimateLabelWidth(
+                    box.Label ?? string.Empty, CoreOptions.AssumedFontSize.DefaultValue);
+                rect = new Rect(box.X + ((box.Width - textWidth) / 2.0), box.Y, textWidth, 24.0);
+            }
+            for (var i = 0; i < points.Count - 1; i++)
+            {
+                Assert.False(
+                    SegmentCrossesRect(points[i], points[i + 1], rect),
+                    $"Segment {i} crosses the {(isEnclosing ? "title band of" : "interior of")} box '{box.Label}'.");
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Asserts the segment from <paramref name="anchor"/> to <paramref name="next"/> leaves the box
+    ///     face the anchor sits on perpendicular to it and outward.
+    /// </summary>
+    private static void AssertLeavesPerpendicular(Point2D anchor, Point2D next, LayoutBox box)
+    {
+        const double tolerance = 1e-6;
+        var onLeft = Math.Abs(anchor.X - box.X) < tolerance;
+        var onRight = Math.Abs(anchor.X - (box.X + box.Width)) < tolerance;
+        var onTop = Math.Abs(anchor.Y - box.Y) < tolerance;
+        var onBottom = Math.Abs(anchor.Y - (box.Y + box.Height)) < tolerance;
+        if (onLeft || onRight)
+        {
+            Assert.True(Math.Abs(next.Y - anchor.Y) < tolerance, "Stub must be horizontal off a left/right face.");
+            Assert.True(onLeft ? next.X < anchor.X : next.X > anchor.X, "Stub must leave outward.");
+        }
+        else
+        {
+            Assert.True(onTop || onBottom, "Anchor must sit on a box face.");
+            Assert.True(Math.Abs(next.X - anchor.X) < tolerance, "Stub must be vertical off a top/bottom face.");
+            Assert.True(onTop ? next.Y < anchor.Y : next.Y > anchor.Y, "Stub must leave outward.");
+        }
+    }
+
+    /// <summary>
     ///     Returns true when two points coincide within a small tolerance.
     /// </summary>
     private static bool SamePoint(Point2D a, Point2D b)
@@ -1358,11 +2059,12 @@ public sealed class HierarchicalLayoutAlgorithmTests
 
     /// <summary>
     ///     Hard-invariant guard: a hierarchical graph that has containers but <em>zero</em> boundary
-    ///     ports must never take the new combined-pass path; its output must be byte-for-byte the leaf
-    ///     pass + cross-container routing it produced before this change. The expected layout is the
-    ///     leaf-composition oracle (containers sized bottom-up, cross-container edge routed by the
-    ///     existing router); forcing the combined path instead (breaking the <c>Collect == 0</c> gate)
-    ///     changes these coordinates and fails this assertion.
+    ///     ports must never take the new combined-pass path; its output must be exactly the leaf pass +
+    ///     cross-container routing snapshot below. The expected layout is the leaf-composition oracle
+    ///     (containers sized bottom-up, the cross-container edge routed between the nested children by
+    ///     the router); forcing the combined path instead (breaking the <c>Collect == 0</c> gate)
+    ///     changes these coordinates and fails this assertion. The snapshot was refreshed deliberately
+    ///     when cross-hierarchy edges began steering placement and anchoring on nested nodes.
     /// </summary>
     [Fact]
     public void HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange()
@@ -1833,15 +2535,18 @@ public sealed class HierarchicalLayoutAlgorithmTests
     /// <summary>
     ///     The captured leaf-path golden snapshot for <see cref="BuildNoBoundaryPortHierarchy"/>. Any
     ///     change to the boundary-port-free layout path (including forcing the combined pass) alters this.
+    ///     Refreshed deliberately for cross-hierarchy edges: the genuine cross-container edge now joins
+    ///     the two containers in the placement (so they sit side by side instead of stacked) and is routed
+    ///     between the nested children rather than between the container boxes.
     /// </summary>
     private const string NoBoundaryPortGolden =
-        "W=184 H=326\n" +
+        "W=398 H=168\n" +
         "BOX Left X=20 Y=20 W=144 H=128\n" +
         "  BOX LeftChild X=52 Y=76 W=80 H=40\n" +
-        "BOX Right X=20 Y=178 W=144 H=128\n" +
-        "  BOX RightChild X=52 Y=234 W=80 H=40\n" +
-        "LINE (32,148) (32,178)\n" +
-        "LINE (152,148) (152,178)\n";
+        "BOX Right X=234 Y=20 W=144 H=128\n" +
+        "  BOX RightChild X=266 Y=76 W=80 H=40\n" +
+        "LINE (132,96) (266,96)\n" +
+        "LINE (164,84) (234,84)\n";
 
     /// <summary>Deep-compares two layout trees for exact (bit-level) equality of every geometric field,
     ///     node kind, box attribute, and line attribute. No numeric tolerance is allowed.

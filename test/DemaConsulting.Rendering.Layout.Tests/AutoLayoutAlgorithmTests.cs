@@ -468,6 +468,248 @@ public sealed class AutoLayoutAlgorithmTests
             "proving the nested scope was reclassified by \"auto\" rather than defaulting to a fixed leaf choice");
     }
 
+    /// <summary>
+    ///     Regression for Rendering#45: an edge declared on the root whose endpoints are nested inside
+    ///     two different top-level containers must not be dropped. Previously the two containers formed
+    ///     separate components (only directly-resolvable endpoints joined components), so the edge never
+    ///     reached either component's graph and produced no line at all.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdgeBetweenNestedNodes_KeepsAndRoutesEdge()
+    {
+        // Arrange: P{a}, Q{b}, root edge a -> b.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "auto");
+        var p = graph.AddNode("P", 10, 10);
+        p.Label = "P";
+        var a = p.Children.AddNode("a", 80, 40);
+        a.Label = "a";
+        var q = graph.AddNode("Q", 10, 10);
+        q.Label = "Q";
+        var b = q.Children.AddNode("b", 80, 40);
+        b.Label = "b";
+        graph.AddEdge("a-b", a, b);
+
+        // Act
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+
+        // Assert: exactly one line, from a's boundary to b's boundary.
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        var boxA = FindBox(tree.Nodes, "a");
+        var boxB = FindBox(tree.Nodes, "b");
+        Assert.True(OnBoxBoundary(line.Waypoints[0], boxA), "Line must start on the nested source box 'a'.");
+        Assert.True(OnBoxBoundary(line.Waypoints[^1], boxB), "Line must end on the nested target box 'b'.");
+    }
+
+    /// <summary>
+    ///     Proves the #45 fix also holds on the genuine multi-group (copy and pack) path: the two
+    ///     containers joined only by a nested-endpoint edge form one group, packed alongside an unrelated
+    ///     singleton and an unrelated connected pair, and the edge is still routed between the nested nodes.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdgeWithUnrelatedGroups_KeepsAndRoutesEdge()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "auto");
+        var p = graph.AddNode("P", 10, 10);
+        p.Label = "P";
+        var a = p.Children.AddNode("a", 80, 40);
+        a.Label = "a";
+        var q = graph.AddNode("Q", 10, 10);
+        q.Label = "Q";
+        var b = q.Children.AddNode("b", 80, 40);
+        b.Label = "b";
+        graph.AddEdge("a-b", a, b);
+        var x = graph.AddNode("x", 80, 40);
+        x.Label = "x";
+        var y = graph.AddNode("y", 80, 40);
+        y.Label = "y";
+        graph.AddEdge("x-y", x, y);
+        graph.AddNode("solo", 80, 40).Label = "solo";
+
+        // Act
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+
+        // Assert: both edges survive, and the nested-endpoint edge touches the nested boxes.
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(2, lines.Count);
+        var boxA = FindBox(tree.Nodes, "a");
+        var boxB = FindBox(tree.Nodes, "b");
+        Assert.Contains(lines, l => OnBoxBoundary(l.Waypoints[0], boxA) && OnBoxBoundary(l.Waypoints[^1], boxB));
+    }
+
+    /// <summary>
+    ///     Proves an edge from a node nested in a container to a plain root-level leaf joins the leaf's
+    ///     component with the container's, instead of being dropped.
+    /// </summary>
+    [Fact]
+    public void Apply_NestedNodeToRootLeafEdge_KeepsAndRoutesEdge()
+    {
+        // Arrange: P{a}, root leaf r, root edge a -> r, plus an unrelated singleton.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "auto");
+        var p = graph.AddNode("P", 10, 10);
+        p.Label = "P";
+        var a = p.Children.AddNode("a", 80, 40);
+        a.Label = "a";
+        var r = graph.AddNode("r", 80, 40);
+        r.Label = "r";
+        graph.AddEdge("a-r", a, r);
+        graph.AddNode("solo", 80, 40).Label = "solo";
+
+        // Act
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+
+        // Assert
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        Assert.True(OnBoxBoundary(line.Waypoints[0], FindBox(tree.Nodes, "a")));
+        Assert.True(OnBoxBoundary(line.Waypoints[^1], FindBox(tree.Nodes, "r")));
+    }
+
+    /// <summary>
+    ///     Proves an endpoint nested two levels deep (a container inside a container) still joins its
+    ///     top-level ancestor's component, and the edge is anchored on the depth-2 node.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdgeThroughDepthTwoEndpoint_KeepsAndRoutesEdge()
+    {
+        // Arrange: P{Inner{a}}, Q{b}, root edge a -> b.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "auto");
+        var p = graph.AddNode("P", 10, 10);
+        p.Label = "P";
+        var inner = p.Children.AddNode("Inner", 10, 10);
+        inner.Label = "Inner";
+        var a = inner.Children.AddNode("a", 80, 40);
+        a.Label = "a";
+        var q = graph.AddNode("Q", 10, 10);
+        q.Label = "Q";
+        var b = q.Children.AddNode("b", 80, 40);
+        b.Label = "b";
+        graph.AddEdge("a-b", a, b);
+
+        // Act
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+
+        // Assert
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        Assert.True(OnBoxBoundary(line.Waypoints[0], FindBox(tree.Nodes, "a")));
+        Assert.True(OnBoxBoundary(line.Waypoints[^1], FindBox(tree.Nodes, "b")));
+    }
+
+    /// <summary>
+    ///     Regression for the box-order contract: when the graph splits into several groups, the packed
+    ///     tree's top-level boxes must still be in <em>input</em> node order (not group order), because
+    ///     <see cref="HierarchicalLayoutAlgorithm"/> attaches each container's children to the placed box
+    ///     at the container's own node index. Previously a nested "auto" scope with children
+    ///     <c>[Q(container), S, T, U]</c> and an edge T-U emitted boxes T, U, Q, S and attached Q's child
+    ///     to box T.
+    /// </summary>
+    [Fact]
+    public void Apply_MultiGroupScopeWithContainer_EmitsBoxesInInputOrder()
+    {
+        // Arrange: Q is a container, S a singleton, T-U a connected pair.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "auto");
+        var q = graph.AddNode("Q", 10, 10);
+        q.Label = "Q";
+        q.Children.AddNode("qc", 80, 40).Label = "qc";
+        graph.AddNode("S", 80, 40).Label = "S";
+        var t = graph.AddNode("T", 80, 40);
+        t.Label = "T";
+        var u = graph.AddNode("U", 80, 40);
+        u.Label = "U";
+        graph.AddEdge("t-u", t, u);
+
+        // Act
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+
+        // Assert: boxes are in input order, and Q's child is inside Q.
+        var labels = tree.Nodes.OfType<LayoutBox>().Select(box => box.Label).ToList();
+        Assert.Equal(["Q", "S", "T", "U"], labels);
+        var boxQ = tree.Nodes.OfType<LayoutBox>().First();
+        Assert.Equal("qc", Assert.Single(boxQ.Children.OfType<LayoutBox>()).Label);
+    }
+
+    /// <summary>
+    ///     Proves the box-order fix end to end through a nested scope that inherits "auto": the
+    ///     hierarchical engine must attach the container's own child to the container, not to a
+    ///     different box that a group-ordered pack would have placed at the container's index.
+    /// </summary>
+    [Fact]
+    public void Apply_NestedAutoScopeWithContainerAndPair_AttachesChildToItsOwnContainer()
+    {
+        // Arrange: outer{ Q{qc}, S, T, U } with an edge T-U, all scopes inheriting "auto".
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "auto");
+        var outer = graph.AddNode("outer", 10, 10);
+        outer.Label = "outer";
+        var q = outer.Children.AddNode("Q", 10, 10);
+        q.Label = "Q";
+        q.Children.AddNode("qc", 80, 40).Label = "qc";
+        outer.Children.AddNode("S", 80, 40).Label = "S";
+        var t = outer.Children.AddNode("T", 80, 40);
+        t.Label = "T";
+        var u = outer.Children.AddNode("U", 80, 40);
+        u.Label = "U";
+        outer.Children.AddEdge("t-u", t, u);
+
+        // Act
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+
+        // Assert: qc lives in Q and nowhere else.
+        var outerBox = Assert.Single(tree.Nodes.OfType<LayoutBox>());
+        var boxes = outerBox.Children.OfType<LayoutBox>().ToDictionary(box => box.Label!);
+        Assert.Equal("qc", Assert.Single(boxes["Q"].Children.OfType<LayoutBox>()).Label);
+        Assert.Empty(boxes["T"].Children);
+        Assert.Empty(boxes["S"].Children);
+        Assert.Empty(boxes["U"].Children);
+    }
+
+    /// <summary>Finds the box with the given label at any nesting depth.</summary>
+    /// <param name="nodes">The nodes to search.</param>
+    /// <param name="label">The label to find.</param>
+    /// <returns>The matching box.</returns>
+    private static LayoutBox FindBox(IEnumerable<LayoutNode> nodes, string label) =>
+        FindBoxOrNull(nodes, label) ?? throw new InvalidOperationException($"No box labeled '{label}'.");
+
+    /// <summary>Finds the box with the given label at any nesting depth, or <see langword="null"/>.</summary>
+    private static LayoutBox? FindBoxOrNull(IEnumerable<LayoutNode> nodes, string label)
+    {
+        foreach (var box in nodes.OfType<LayoutBox>())
+        {
+            if (box.Label == label)
+            {
+                return box;
+            }
+
+            var nested = FindBoxOrNull(box.Children, label);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Returns true when the point lies on the boundary of the box (within a small tolerance).</summary>
+    /// <param name="point">The point to test.</param>
+    /// <param name="box">The box.</param>
+    /// <returns>True when the point is on the box outline.</returns>
+    private static bool OnBoxBoundary(Point2D point, LayoutBox box)
+    {
+        const double tolerance = 1e-6;
+        var onVerticalEdge =
+            (Math.Abs(point.X - box.X) < tolerance || Math.Abs(point.X - (box.X + box.Width)) < tolerance) &&
+            point.Y >= box.Y - tolerance && point.Y <= box.Y + box.Height + tolerance;
+        var onHorizontalEdge =
+            (Math.Abs(point.Y - box.Y) < tolerance || Math.Abs(point.Y - (box.Y + box.Height)) < tolerance) &&
+            point.X >= box.X - tolerance && point.X <= box.X + box.Width + tolerance;
+        return onVerticalEdge || onHorizontalEdge;
+    }
+
     /// <summary>Counts every <see cref="LayoutBox"/> in a node list, recursing into each box's children.</summary>
     /// <param name="nodes">The nodes to count within.</param>
     /// <returns>The total number of boxes found.</returns>

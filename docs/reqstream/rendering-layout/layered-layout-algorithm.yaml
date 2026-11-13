@@ -236,3 +236,16 @@ sections:
           - Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab
           - Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone
           - Apply_RectangleChain_MatchesPreShapeAwarenessOutput
+
+      - id: Rendering-Layout-LayeredAlgorithm-LayoutOnlyEdges
+        title: >-
+          LayeredLayoutAlgorithm shall let a layout-only edge influence node placement exactly like a
+          real edge while emitting no connector, port, or anchor for it and without changing the label of
+          any real connector between the same nodes.
+        justification: |
+          The hierarchical engine needs the layered placement to account for edges that are routed
+          separately between nested nodes; honoring such an edge as a placement hint only, never drawing
+          it, lets containers joined by those edges be placed near each other without a spurious line.
+        tests:
+          - Apply_LayoutOnlyEdge_AffectsLayeringButEmitsNoLine
+          - Apply_LayoutOnlyEdgeParallelToRealEdge_KeepsRealEdgeAndItsLabel

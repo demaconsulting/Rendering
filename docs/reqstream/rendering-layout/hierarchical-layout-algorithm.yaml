@@ -69,12 +69,66 @@ sections:
       - id: Rendering-Layout-HierarchicalLayout-CrossContainerEdge
         title: >-
           HierarchicalLayoutAlgorithm shall route an edge whose endpoints live in different containers at
-          the scope that owns it, steering around any intervening container rather than through it.
+          the scope that declares it, steering around every unrelated box and container rather than
+          through it.
         justification: |
-          A cross-container edge belongs to the coordinate space of the container that owns it; routing
+          A cross-container edge belongs to the coordinate space of the graph that declares it; routing
           it around the sibling containers between its endpoints keeps the connector unambiguous.
         tests:
           - Apply_CrossContainerEdge_RoutesAroundInterveningContainer
+          - Apply_CrossContainerEdge_ToWideContainer_DoesNotCrossEndpointBoxes
+
+      - id: Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-NestedAnchors
+        title: >-
+          When an edge declared on an ancestor graph references nodes nested inside containers at any
+          depth, HierarchicalLayoutAlgorithm shall route the connector from the actual nested source node
+          to the actual nested target node, leaving and entering each node perpendicular to its face and
+          crossing only the walls of the containers that enclose its own two endpoints, for any root
+          algorithm and for mixed leaf and container siblings; an edge whose endpoint is a container
+          itself shall remain anchored on that container.
+        justification: |
+          Drawing a connector between the enclosing containers instead of the nodes the model actually
+          relates hides the real relationship; anchoring on the nested nodes, without cutting through
+          unrelated boxes or container titles, reproduces the declared relationship faithfully.
+        tests:
+          - Apply_CrossHierarchyEdge_TwoLevels_AnchorsOnNestedBoxesAndAvoidsUnrelatedBoxes
+          - Apply_CrossHierarchyEdge_DepthTwoToDepthOne_AnchorsOnNestedBoxes
+          - Apply_CrossHierarchyEdge_FourLevelNesting_AnchorsOnInnermostBoxes
+          - Apply_CrossHierarchyEdge_DeclaredInMiddleContainer_AnchorsOnNestedBoxes
+          - Apply_CrossHierarchyEdges_MixedLeafAndContainerChildren_AnchorOnActualEndpoints
+          - Apply_CrossHierarchyEdge_ToContainerItself_AnchorsOnContainerBoundary
+          - Apply_CrossHierarchyEdges_ConvergingOnOneNestedNode_UseDistinctAnchors
+          - Apply_CrossHierarchyEdge_FromNodeWithInternalEdge_AnchorsApartFromInternalAnchor
+          - Apply_CrossHierarchyEdges_ConnectorsDoNotOverlapCollinearly
+          - Apply_CrossHierarchyEdge_WithBoundaryPortHierarchy_AnchorsOnNestedBoxes
+          - Apply_CrossHierarchyEdge_CustomLeafAlgorithm_ReceivesNoLayoutOnlyEdges
+          - Apply_EdgeBetweenContainerAndItsOwnDescendant_IsSkipped
+          - Apply_NestedPortEdgeAcrossContainers_StillThrowsNotSupported
+          - Apply_CrossHierarchyEdge_DoesNotMutateInputAndIsDeterministic
+
+      - id: Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-AncestorPlacement
+        title: >-
+          HierarchicalLayoutAlgorithm shall account for an edge between nodes nested in two different
+          direct members of a scope when placing that scope, so containers joined by such an edge are
+          placed near each other, without drawing anything for the placement hint.
+        justification: |
+          If placement ignored these edges, related containers could end up far apart or separated by
+          unrelated ones, forcing long, tangled connectors; treating the edge as joining the two
+          containers during placement yields compact, readable diagrams.
+        tests:
+          - Apply_CrossHierarchyEdge_LayeredRoot_PlacesJoinedContainersAdjacent
+          - Apply_CrossHierarchyEdges_ContainmentRoot_WidensGapForParallelEdges
+
+      - id: Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-SameContainer
+        title: >-
+          HierarchicalLayoutAlgorithm shall route an edge declared on an ancestor graph whose two
+          endpoints are distinct, unrelated nodes nested under the same direct member between those
+          nested nodes instead of dropping it.
+        justification: |
+          Callers may add every non-trivial edge to the root graph without locating the lowest common
+          ancestor; an edge between two nodes inside one container must still be drawn.
+        tests:
+          - Apply_CrossHierarchyEdge_RootDeclaredBothEndpointsUnderOneContainer_RoutesBetweenNestedNodes
 
       - id: Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening
         title: >-

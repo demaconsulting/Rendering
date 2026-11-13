@@ -279,6 +279,12 @@ internal static class GalleryDiagrams
 
         Connect(graph, "source-sink", source, sink);
 
+        // The containers form a left-to-right chain, so the intervening container really sits between
+        // the two containers the nested edge joins: without these edges the engine would (correctly) just
+        // place the two joined containers next to each other and there would be nothing to route around.
+        Connect(graph, "left-middle", left, middle);
+        Connect(graph, "middle-right", middle, right);
+
         return graph;
     }
 
@@ -1051,6 +1057,82 @@ internal static class GalleryDiagrams
     }
 
     /// <summary>
+    ///     Two folder containers whose nested nodes (at different depths) are joined by edges declared
+    ///     on the root: <c>Session</c> (two levels deep) to <c>API</c>, <c>UI</c> to <c>DB</c> (two
+    ///     levels deep), and the nested <c>Auth</c> folder to the nested <c>Storage</c> folder. Drawn with
+    ///     the <c>"auto"</c> root algorithm, which keeps both folders in one component because the
+    ///     edges join them, so they are placed side by side with each connector anchored on the actual
+    ///     nested boxes.
+    /// </summary>
+    /// <returns>A compound graph with root-declared cross-hierarchy edges.</returns>
+    public static LayoutGraph CrossHierarchyEdges()
+    {
+        var graph = new LayoutGraph();
+
+        var client = AddFolder(graph, "client", "Client");
+        var ui = AddLabeled(client.Children, "ui", "UI");
+        var auth = AddFolder(client.Children, "auth", "Auth");
+        var login = AddLabeled(auth.Children, "login", "Login");
+        var session = AddLabeled(auth.Children, "session", "Session");
+        Connect(auth.Children, "login-session", login, session);
+
+        var server = AddFolder(graph, "server", "Server");
+        var api = AddLabeled(server.Children, "api", "API");
+        var storage = AddFolder(server.Children, "storage", "Storage");
+        var db = AddLabeled(storage.Children, "db", "DB");
+        var cache = AddLabeled(storage.Children, "cache", "Cache");
+        Connect(storage.Children, "db-cache", db, cache);
+
+        // Edges declared on the root (an ancestor of every endpoint) that reference nested nodes, and
+        // one that joins two nested containers.
+        Connect(graph, "session-api", session, api);
+        Connect(graph, "ui-db", ui, db);
+        Connect(graph, "auth-storage", auth, storage);
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     A downward-flowing order-handling diagram mixing leaf nodes and folder containers: the root
+    ///     declares an edge from a leaf into a container's nested node, edges between nested nodes of
+    ///     different containers, and an edge from a nested node back out to a leaf. Drawn with the
+    ///     <c>"hierarchical"</c> root algorithm and <see cref="LayoutFlowDirection.Down"/>.
+    /// </summary>
+    /// <returns>A compound graph with root-declared cross-hierarchy edges between leaves and containers.</returns>
+    public static LayoutGraph CrossHierarchyEdgesHierarchical()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+
+        var customer = AddLabeled(graph, "customer", "Customer");
+
+        var ordering = AddFolder(graph, "ordering", "Ordering");
+        var cart = AddLabeled(ordering.Children, "cart", "Cart");
+        var checkout = AddLabeled(ordering.Children, "checkout", "Checkout");
+        Connect(ordering.Children, "cart-checkout", cart, checkout);
+
+        var billing = AddFolder(graph, "billing", "Billing");
+        var invoice = AddLabeled(billing.Children, "invoice", "Invoice");
+        var payment = AddLabeled(billing.Children, "payment", "Payment");
+        Connect(billing.Children, "invoice-payment", invoice, payment);
+
+        var fulfillment = AddFolder(graph, "fulfillment", "Fulfillment");
+        var inventory = AddLabeled(fulfillment.Children, "inventory", "Inventory");
+        var shipping = AddLabeled(fulfillment.Children, "shipping", "Shipping");
+        Connect(fulfillment.Children, "inventory-shipping", inventory, shipping);
+
+        var notifier = AddLabeled(graph, "notifier", "Notifier");
+
+        Connect(graph, "customer-cart", customer, cart);
+        Connect(graph, "customer-invoice", customer, invoice);
+        Connect(graph, "checkout-inventory", checkout, inventory);
+        Connect(graph, "payment-shipping", payment, shipping);
+        Connect(graph, "shipping-notifier", shipping, notifier);
+
+        return graph;
+    }
+
+    /// <summary>
     ///     Twelve small, wide sibling boxes with no edges, suited to the containment algorithm's
     ///     column-count-based content-width candidate: without it, the area-based width estimate alone
     ///     would under-size the packing budget for this shape and pack the boxes into a single narrow
@@ -1188,6 +1270,15 @@ internal static class GalleryDiagrams
     private static double UntitledCompartmentHeight(Theme theme, LayoutCompartment compartment) =>
         (compartment.Rows.Count * (theme.LabelPadding + theme.FontSizeBody)) // data rows
         + theme.LabelPadding; // bottom gap
+
+    /// <summary>Adds a labeled folder-shaped container node (to be given children) to the given graph.</summary>
+    private static LayoutGraphNode AddFolder(LayoutGraph graph, string id, string label)
+    {
+        var node = graph.AddNode(id, 10, 10);
+        node.Label = label;
+        node.Shape = BoxShape.Folder;
+        return node;
+    }
 
     /// <summary>Adds a labeled leaf node of the standard showcase size to the given graph.</summary>
     private static LayoutGraphNode AddLabeled(LayoutGraph graph, string id, string label)

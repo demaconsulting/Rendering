@@ -14,26 +14,31 @@ namespace DemaConsulting.Rendering;
 ///     <see cref="SeparateChildren"/> is the only shipped mode and the default. Under it each
 ///     container's children are laid out in their own coordinate space by the container's selected
 ///     algorithm, and the container is then sized to fit the resulting sub-layout (plus padding and an
-///     optional title band). Cross-container edges are routed in the coordinate space of the container
-///     that owns them — the lowest common ancestor of their endpoints — rather than being folded into a
-///     single flattened layout. This keeps every container's placement independent and deterministic,
-///     mirroring how ELK lays out compound nodes when hierarchy handling is left separate.
+///     optional title band). The container <em>interiors</em> therefore stay independent and
+///     deterministic, mirroring how ELK lays out compound nodes when hierarchy handling is left separate.
 ///     </para>
 ///     <para>
-///     A future, additive <c>IncludeChildren</c> mode is planned to mirror ELK's cross-boundary
-///     (inclusion) hierarchy handling, in which a container's children take part in the same layout pass
-///     as their siblings so edges may cross container boundaries as first-class layout elements. That
-///     value is intentionally omitted until an engine implements it, so the public surface never
-///     advertises a capability the library cannot yet deliver; adding it later is a source-compatible,
-///     purely additive change.
+///     Edges are not confined to one container, though. An edge declared on an ancestor graph (the
+///     lowest common ancestor of its endpoints, or any graph above it) that references nodes nested
+///     inside containers is routed in the coordinate space of the graph that declares it, from the
+///     actual nested source node to the actual nested target node: the connector crosses only the walls
+///     of the containers enclosing its own two endpoints and steers around every other box. The
+///     declaring graph's placement also accounts for such an edge, treating it as joining the top-level
+///     containers that hold its endpoints, so related containers are placed near each other. An edge
+///     whose endpoint is a container itself still anchors on that container. This is the default
+///     behavior; it needs no separate mode.
+///     </para>
+///     <para>
+///     Placing every container's children in one shared layout pass (ELK's <c>INCLUDE_CHILDREN</c>)
+///     is not implemented and is tracked in the project roadmap.
 ///     </para>
 /// </remarks>
 public enum HierarchyHandling
 {
     /// <summary>
     /// Each container's children are laid out in their own coordinate space and the container is sized
-    /// to enclose them. This is the only shipped mode and the default; cross-container edges are routed
-    /// by the container that owns them rather than flattened across boundaries.
+    /// to enclose them. This is the only shipped mode and the default; edges declared on an ancestor
+    /// graph are routed between the actual nested endpoint nodes rather than between their containers.
     /// </summary>
     SeparateChildren = 0,
 }
