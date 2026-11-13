@@ -1,6 +1,6 @@
 ---
-title: Rendering Review Report
-subtitle: File Review Report for the Rendering
+title: Rendering Code Review Report
+subtitle: General-purpose diagram layout and rendering for .NET
 author: DEMA Consulting
 description: File Review Report for the Rendering
 lang: en-US

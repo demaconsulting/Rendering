@@ -39,6 +39,7 @@ The following OTS items are also covered:
 - **SarifMark** — SARIF report conversion tool
 - **CanvasNet** — pure managed raster graphics library (surface drawing and PNG/JPEG encoding)
 - **SonarMark** — SonarCloud quality report tool
+- **SysML2Tools** — SysML2 architecture-model linting and view-rendering tool
 - **VersionMark** — tool-version documentation tool
 - **WeasyPrint** — HTML-to-PDF conversion tool
 - **xUnit** — unit-testing framework
@@ -53,7 +54,7 @@ documentation. The following topics are explicitly excluded:
 ## Verification Approach
 
 Each software item is verified by xUnit v4 tests executed by `dotnet test` (invoked by
-`build.ps1` and CI) across the supported target frameworks (.NET 8, 9, and 10). Because the
+`build.ps1` and CI) across the supported target frameworks (.NET 8, 9, 10, and 11). Because the
 libraries are pure and deterministic, no mocking is required: tests supply controlled inputs
 (graphs, layout trees, options) and assert on returned values, produced geometry, or rendered
 output. The layered pipeline additionally carries byte-for-byte equivalence and legacy-oracle

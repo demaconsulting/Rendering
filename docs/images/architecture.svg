@@ -66,7 +66,7 @@
     <!-- Abstractions -->
     <rect x="176" y="312" width="520" height="64" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
     <text x="436" y="338" font-size="14" font-family="Consolas, monospace" font-weight="600" fill="#9a3412" text-anchor="middle">.Abstractions</text>
-    <text x="436" y="360" font-size="12" fill="#9a3412" text-anchor="middle">ILayoutAlgorithm, IRenderer, registries, Theme: the contracts your own plug-ins implement</text>
+    <text x="436" y="360" font-size="12" fill="#9a3412" text-anchor="middle">LayoutAlgorithmBase, IRenderer, registries, Theme: the contracts plug-ins implement</text>
     <line x1="431" y1="296" x2="431" y2="308" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
     <line x1="616" y1="296" x2="616" y2="308" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
 

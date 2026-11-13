@@ -13,6 +13,7 @@ needs-review:
   - "docs/design/**/*.md"         # Design documentation files
   - "docs/verification/**/*.md"   # Verification documentation files
   - "docs/user_guide/**/*.md"     # User guide documentation
+  - "docs/sysml2/**/*.sysml"      # SysML2 architecture model
   - "!**/obj/**"                  # Exclude build output
   - "!**/bin/**"                  # Exclude build output
   - "!node_modules/**"            # Exclude npm dependencies
@@ -47,8 +48,10 @@ reviews:
     title: Review that Rendering Decomposition Addresses the Stated Purpose
     paths:
       - "requirements.yaml"
+      - "docs/reqstream/quality.yaml"
       - "docs/design/introduction.md"
       - "docs/design/ots.md"
+      - "docs/sysml2/**/*.sysml"
     context:
       - "README.md"
       - "docs/user_guide/**/*.md"
@@ -742,3 +745,10 @@ reviews:
       - "docs/reqstream/ots/canvasnet.yaml"
       - "docs/design/ots/canvasnet.md"
       - "docs/verification/ots/canvasnet.md"
+
+  - id: OTS-SysML2Tools
+    title: Review that SysML2Tools Provides Required Functionality
+    paths:
+      - "docs/reqstream/ots/sysml2tools.yaml"
+      - "docs/design/ots/sysml2tools.md"
+      - "docs/verification/ots/sysml2tools.md"

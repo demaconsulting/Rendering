@@ -1,6 +1,6 @@
 ---
-title: Rendering Review Plan
-subtitle: File Review Plan for the Rendering
+title: Rendering Code Review Plan
+subtitle: General-purpose diagram layout and rendering for .NET
 author: DEMA Consulting
 description: File Review Plan for the Rendering
 lang: en-US

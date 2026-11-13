@@ -89,7 +89,7 @@ writes the bytes to the caller-owned stream.
 
 ## Design Constraints
 
-- **Target frameworks**: `net8.0`, `net9.0`, and `net10.0`. Unlike the model, abstractions,
+- **Target frameworks**: `net8.0`, `net9.0`, `net10.0`, and `net11.0`. Unlike the model, abstractions,
   layout, and SVG systems this one does not offer a `netstandard2.0` target: the CanvasNet package
   does not ship `netstandard2.0` assets.
 - **WEBP output is deliberately out of scope**: the prior SkiaSharp-based raster backend emitted

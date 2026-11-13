@@ -78,7 +78,7 @@ format. The model itself only defines and carries these values; it neither trans
 
 ## Design Constraints
 
-- **Target frameworks**: `netstandard2.0`, `net8.0`, `net9.0`, and `net10.0`. The `netstandard2.0`
+- **Target frameworks**: `netstandard2.0`, `net8.0`, `net9.0`, `net10.0`, and `net11.0`. The `netstandard2.0`
   target exists so the model can be referenced from a Roslyn analyzer or source generator, which the
   compiler loads into a `netstandard2.0` context.
 - **Determinism and immutability**: the placed types are immutable records or small mutable holders;

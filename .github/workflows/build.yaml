@@ -28,7 +28,9 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.x
+          dotnet-version: |
+            10.x
+            11.x
 
       - name: Restore Tools
         run: >
@@ -121,6 +123,7 @@ jobs:
             8.x
             9.x
             10.x
+            11.x
 
       - name: Restore Tools
         run: >
@@ -282,6 +285,7 @@ jobs:
             8.x
             9.x
             10.x
+            11.x
 
       - name: Restore Tools
         run: >
@@ -376,7 +380,7 @@ jobs:
           dotnet versionmark --capture --job-id "build-docs" \
             --output "artifacts/versionmark-build-docs.json" -- \
             dotnet git node npm pandoc weasyprint sarifmark sonarmark reqstream \
-            buildmark versionmark reviewmark fileassert textlint
+            buildmark versionmark reviewmark fileassert textlint sysml2tools canvasnet
           echo "✓ Tool versions captured"
 
       # === PREPARE DOCUMENT OUTPUT ===
@@ -634,6 +638,21 @@ jobs:
       - name: Create design output directory
         shell: bash
         run: mkdir -p docs/design/generated
+
+      - name: Run SysML2Tools self-validation
+        run: >
+          dotnet sysml2tools
+          --validate
+          --results artifacts/sysml2tools-self-validation.trx
+
+      - name: Render Software Structure diagrams with SysML2Tools
+        shell: pwsh
+        run: >
+          dotnet sysml2tools render
+          --output docs/design/generated --format svg
+          'docs/sysml2/common/**/*.sysml'
+          'docs/sysml2/model/**/*.sysml'
+          'docs/sysml2/views/design-views.sysml'
 
       - name: Generate Design HTML with Pandoc
         shell: bash

@@ -96,7 +96,7 @@ if (-not $skipNpm) {
 #   }
 
 # --- DOTNET LINTING SECTION ---
-# Runs spell checking and compliance tools: textlint, reqstream, versionmark, reviewmark.
+# Runs spell checking and compliance tools: textlint, reqstream, versionmark, reviewmark, sysml2tools.
 Write-Host "Linting: spelling and compliance tools..."
 $skipDotnetTools = $false
 dotnet tool restore > $null
@@ -106,7 +106,7 @@ if (-not $skipDotnetTools) {
     dotnet textlint
     if ($LASTEXITCODE -ne 0) { $lintError = $true }
 
-    dotnet reqstream --lint --requirements requirements.yaml
+    dotnet reqstream --lint --enforce --requirements requirements.yaml
     if ($LASTEXITCODE -ne 0) { $lintError = $true }
 
     dotnet versionmark --lint
@@ -114,6 +114,12 @@ if (-not $skipDotnetTools) {
 
     dotnet reviewmark --lint
     if ($LASTEXITCODE -ne 0) { $lintError = $true }
+
+    # [PROJECT-SPECIFIC] SysML2 architecture model validation.
+    if (Test-Path docs/sysml2) {
+        dotnet sysml2tools lint 'docs/sysml2/**/*.sysml'
+        if ($LASTEXITCODE -ne 0) { $lintError = $true }
+    }
 }
 
 # [PROJECT-SPECIFIC] Add additional dotnet tool lint checks here.

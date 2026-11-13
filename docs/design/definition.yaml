@@ -1,15 +1,47 @@
 ---
 resource-path:
   - docs/design
+  - docs/design/generated
+  - docs/images
   - docs/template
+embed-resources: true
 input-files:
   - docs/design/title.txt
   - docs/design/introduction.md
   - docs/design/rendering.md
+  - docs/design/rendering/layout-tree.md
+  - docs/design/rendering/options.md
+  - docs/design/rendering/layout-graph.md
   - docs/design/rendering-abstractions.md
+  - docs/design/rendering-abstractions/rendering-contracts.md
+  - docs/design/rendering-abstractions/registries.md
+  - docs/design/rendering-abstractions/theme.md
+  - docs/design/rendering-abstractions/notation-metrics.md
+  - docs/design/rendering-abstractions/box-metrics.md
+  - docs/design/rendering-abstractions/connector-label-placer.md
+  - docs/design/rendering-abstractions/port-label-width-estimator.md
   - docs/design/rendering-layout.md
+  - docs/design/rendering-layout/engine/engine.md
+  - docs/design/rendering-layout/engine/orthogonal-edge-router.md
+  - docs/design/rendering-layout/engine/containment-packer.md
+  - docs/design/rendering-layout/engine/interconnection-layout-engine.md
+  - docs/design/rendering-layout/engine/layered-pipeline.md
+  - docs/design/rendering-layout/engine/layout-tree-packer.md
+  - docs/design/rendering-layout/engine/edge-count-gap-widener.md
+  - docs/design/rendering-layout/layered-layout-algorithm.md
+  - docs/design/rendering-layout/containment-layout-algorithm.md
+  - docs/design/rendering-layout/hierarchical-layout-algorithm.md
+  - docs/design/rendering-layout/auto-layout-algorithm.md
+  - docs/design/rendering-layout/containment-layout.md
+  - docs/design/rendering-layout/connector-router.md
+  - docs/design/rendering-layout/edge-routing-option.md
+  - docs/design/rendering-layout/default-layout.md
   - docs/design/rendering-svg.md
+  - docs/design/rendering-svg/svg-renderer.md
   - docs/design/rendering-canvasnet.md
+  - docs/design/rendering-canvasnet/canvasnet-raster-renderer.md
+  - docs/design/rendering-canvasnet/png-renderer.md
+  - docs/design/rendering-canvasnet/jpeg-renderer.md
   - docs/design/ots.md
   - docs/design/ots/buildmark.md
   - docs/design/ots/fileassert.md
@@ -18,6 +50,7 @@ input-files:
   - docs/design/ots/reviewmark.md
   - docs/design/ots/sarifmark.md
   - docs/design/ots/sonarmark.md
+  - docs/design/ots/sysml2tools.md
   - docs/design/ots/versionmark.md
   - docs/design/ots/weasyprint.md
   - docs/design/ots/xunit.md

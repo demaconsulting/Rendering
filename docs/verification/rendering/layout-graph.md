@@ -21,7 +21,7 @@ exceptions.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Project**: `test/DemaConsulting.Rendering.Tests/LayoutGraphTests.cs` and
   `LayoutGraphPortTests.cs` (port-model scenarios).
-- **Target frameworks**: .NET 8, .NET 9, and .NET 10.
+- **Target frameworks**: .NET 8, .NET 9, .NET 10, and .NET 11.
 - **Dependencies**: no external services, files, or network access; every test uses only in-memory
   graph objects.
 

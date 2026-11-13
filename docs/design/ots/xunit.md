@@ -24,7 +24,7 @@ xUnit is referenced as a NuGet test-framework dependency (`xunit.v3`, plus the
 `Microsoft.Testing.Extensions.TrxReport` and `Microsoft.Testing.Extensions.CodeCoverage` MTP extensions)
 by each `test/DemaConsulting.Rendering*.Tests` project rather than installed as a .NET local tool. It is
 invoked by `dotnet test` from `build.ps1` and from the test job of `.github/workflows/build.yaml` across
-the supported target frameworks (.NET 8, 9, 10, and net481) using the Microsoft.Testing.Platform runner
+the supported target frameworks (.NET 8, 9, 10, 11, and net481) using the Microsoft.Testing.Platform runner
 rather than VSTest. Its inputs are the compiled test assemblies; its outputs are the TRX result files
 under `artifacts/` that ReqStream consumes as compliance evidence. xUnit is a test-time dependency only
 and is not referenced by the delivered Rendering packages.

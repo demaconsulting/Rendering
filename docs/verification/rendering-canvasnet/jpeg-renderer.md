@@ -20,7 +20,7 @@ advertises the expected media type and file extensions for registry resolution.
 ### JpegRenderer Test Environment
 
 - **Framework**: xUnit v4.
-- **Target frameworks**: `net8.0`, `net9.0`, `net10.0`.
+- **Target frameworks**: `net8.0`, `net9.0`, `net10.0`, `net11.0`.
 - **Execution**: `dotnet test` invoked by `build.ps1` and the CI pipeline (see
   *Rendering.CanvasNet Verification* for the system-level environment).
 - **External services / files**: none. Rendering is deterministic and writes to a `MemoryStream`.

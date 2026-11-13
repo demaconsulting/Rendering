@@ -40,6 +40,7 @@ needs-review:
   - "!**/obj/**"
   - "requirements.yaml"
   - "docs/reqstream/**/*.yaml"
+  - "docs/sysml2/**/*.sysml"
   - "README.md"
   - "docs/user_guide/**/*.md"
   - "docs/design/**/*.md"
@@ -64,6 +65,7 @@ reviews:
       - "docs/user_guide/**/*.md"
     paths:
       - "requirements.yaml"
+      - "docs/reqstream/quality.yaml"
       - "docs/design/introduction.md"
 ```
 
@@ -124,11 +126,14 @@ placeholders are always PascalCase (e.g., `{SystemName}`).
   promise; the structural mirror of the decomposition decision
 - **Title**: "Review that {SystemName} Decomposition Addresses the Stated Purpose"
 - **ID**: `Decomposition` (no system prefix — one per repository)
-- **Scope**: introduction.md (the decomposition narrative) and requirements.yaml
-  (the structural tree); no system-level detail
+- **Scope**: introduction.md (the decomposition narrative), the SysML2 model (the
+  authoritative structural tree), requirements.yaml, and quality.yaml (the root requirements
+  that tooling requirements trace to); no system-level detail
 - **File Path Patterns**:
   - Root requirements: `requirements.yaml`
+  - Quality requirements: `docs/reqstream/quality.yaml`
   - Design introduction: `docs/design/introduction.md`
+  - SysML2 model: `docs/sysml2/**/*.sysml`
 - **Context Files**: `README.md`, `docs/user_guide/**/*.md`
 
 ## `{SystemName}-Architecture` Review (one per system)

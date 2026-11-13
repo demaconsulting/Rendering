@@ -25,7 +25,7 @@ leaks between tests, and the `KeyNotFoundException` behavior is verified with `A
 
 ### Test Environment
 
-- **Framework**: xUnit v4 running under the .NET SDK on `net8.0`, `net9.0`, and `net10.0`.
+- **Framework**: xUnit v4 running under the .NET SDK on `net8.0`, `net9.0`, `net10.0`, and `net11.0`.
 - **Execution**: `dotnet test` invoked by `build.ps1` and by the CI pipeline.
 - **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`RegistryTests.cs`).
 - **External dependencies**: none; no network, filesystem, or external service is required.

@@ -70,7 +70,7 @@ Package dependencies form an acyclic graph: `Abstractions` and `Layout` depend o
 
 ### Use from a Roslyn analyzer or source generator
 
-Every package targets `net8.0`, `net9.0`, and `net10.0`. The model, SPI, layout, and SVG packages
+Every package targets `net8.0`, `net9.0`, `net10.0`, and `net11.0`. The model, SPI, layout, and SVG packages
 additionally target `netstandard2.0` with no external dependencies on that target, so a Roslyn
 analyzer or source generator can reference them and lay out and emit SVG diagrams at compile time.
 The raster package is deliberately excluded, because the CanvasNet package does not support
