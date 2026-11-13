@@ -55,9 +55,9 @@
   <path d="M 219.00 622.00 L 219.00 692.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <rect x="159.00" y="844.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="219.00" y="869.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Notifier</text>
-  <path d="M 171.00 70.00 L 171.00 196.00 A 4.00 4.00 0 0 1 167.00 200.00 L 164.00 200.00 A 4.00 4.00 0 0 0 160.00 204.00 L 160.00 220.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 267.00 70.00 L 267.00 86.00 A 4.00 4.00 0 0 1 263.00 90.00 L 226.00 90.00 A 4.00 4.00 0 0 0 222.00 94.00 L 222.00 196.00 A 4.00 4.00 0 0 0 226.00 200.00 L 274.00 200.00 A 4.00 4.00 0 0 1 278.00 204.00 L 278.00 220.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 160.00 390.00 L 160.00 406.00 A 4.00 4.00 0 0 1 156.00 410.00 L 119.00 410.00 A 4.00 4.00 0 0 0 115.00 414.00 L 115.00 548.00 A 4.00 4.00 0 0 0 119.00 552.00 L 167.00 552.00 A 4.00 4.00 0 0 1 171.00 556.00 L 171.00 572.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 278.00 390.00 L 278.00 406.00 A 4.00 4.00 0 0 0 282.00 410.00 L 287.00 410.00 A 4.00 4.00 0 0 1 291.00 414.00 L 291.00 668.00 A 4.00 4.00 0 0 1 287.00 672.00 L 271.00 672.00 A 4.00 4.00 0 0 0 267.00 676.00 L 267.00 692.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 189.00 70.00 L 189.00 102.00 A 4.00 4.00 0 0 1 185.00 106.00 L 166.80 106.00 A 4.00 4.00 0 0 0 162.80 110.00 L 162.80 220.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 279.00 45.00 L 369.20 45.00 A 4.00 4.00 0 0 1 373.20 49.00 L 373.20 220.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 103.00 390.00 L 103.00 593.00 A 4.00 4.00 0 0 0 107.00 597.00 L 159.00 597.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 335.00 390.00 L 335.00 713.00 A 4.00 4.00 0 0 1 331.00 717.00 L 279.00 717.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <path d="M 219.00 742.00 L 219.00 844.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
 </svg>

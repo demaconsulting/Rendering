@@ -103,6 +103,36 @@ sections:
           - Apply_CrossHierarchyEdge_WithBoundaryPortHierarchy_AnchorsOnNestedBoxes
           - Apply_CrossHierarchyEdge_CustomLeafAlgorithm_ReceivesNoLayoutOnlyEdges
           - Apply_EdgeBetweenContainerAndItsOwnDescendant_IsSkipped
+          - Apply_CrossHierarchyEdge_JogRequired_FinalApproachAtLeastArrowPlusRadius
+          - Apply_CrossHierarchyEdge_SharedNestedFace_PortsStayDistinct
+
+      - id: Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-CleanRouting
+        title: >-
+          HierarchicalLayoutAlgorithm shall route cross-hierarchy connectors so they read cleanly: a
+          straight connector wherever a lane lies inside both endpoint faces (kept the arrowhead's reach
+          from the face corners) and at least twice the clearance from every container border it runs
+          along, otherwise a clean Z or U with straight legs and interior segments of at least twice the
+          clearance off both ends and between bends (the arrowhead on a run of at least marker plus
+          radius), no run along or bend within twice the clearance of any container border — the
+          endpoints' enclosing containers and every unrelated container alike (borders are crossed at
+          right angles) — no arrowhead overhanging a box corner, no detour through a container's header
+          band, and no connector crossing another or an arrowhead.
+        justification: |
+          Valid geometry is not enough for the showcase diagrams: connectors that bend right after
+          leaving a node, hug a container frame (an unrelated container's border included), run
+          through a title band, jog a few pixels sideways, leave an arrowhead overhanging a box corner
+          or cross another connector at its arrowhead look like defects. The gallery's nested diagrams
+          are replicated as tests so these properties are enforced for the exact topologies that
+          exposed them, and the properties — not the exact waypoints — are what the tests assert.
+        tests:
+          - Apply_GalleryCrossHierarchyAuto_UiToDb_LongLegsAndNoBorderHugging
+          - Apply_GalleryCrossHierarchyAuto_SessionToApi_IsStraight
+          - Apply_GalleryCrossHierarchyAuto_ConnectorsDoNotCrossEachOther
+          - Apply_GalleryCrossHierarchyDown_CustomerEdges_CleanAndDirect
+          - Apply_GalleryCrossHierarchyDown_ToFulfillment_OneBendLongApproachClearOfBorders
+          - Apply_GalleryCrossHierarchyDown_AllConnectors_NoCrossingsAndComfortable
+          - Apply_CrossHierarchyEdge_NoCleanStraightLane_RoutesCleanZBelowObstacle
+          - Apply_CrossHierarchyEdge_CleanLaneWithinBothFaces_StaysStraight
           - Apply_NestedPortEdgeAcrossContainers_StillThrowsNotSupported
           - Apply_CrossHierarchyEdge_DoesNotMutateInputAndIsDeterministic
 

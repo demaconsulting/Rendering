@@ -96,6 +96,17 @@ public sealed record ConnectorRouteOptions(
 /// the connector can cross those containers' walls without crossing any unrelated box.
 /// </para>
 /// <para>
+/// A first route is computed from those anchors exactly as above. When it is defective (a jogged route
+/// between two facing faces; in the cross-hierarchy profile also a detour, a short leg, a wall-hugging
+/// run or a crossing of another connector's end zone) the connection is searched again with the ports
+/// left to the router: each port may slide along its face (never into a corner, never onto a part of
+/// the face the shape forbids, and never crowding or hopping over another connector's port on that face)
+/// so a lane that fits both faces becomes one straight connector, and a jog that cannot be avoided keeps
+/// a first leg of at least the connector stub and a final leg of at least the end marker plus the bend
+/// radius. The cross-hierarchy profile additionally keeps container walls clear, tries the adjacent faces
+/// and keeps clear of the other connectors' end zones. Connectors that need no search are unchanged.
+/// </para>
+/// <para>
 /// Today the only supported style is <see cref="Rendering.EdgeRouting.Orthogonal"/>, realized by the
 /// library's internal orthogonal edge router. The dispatch is a single-arm switch structured so new
 /// routing styles slot in additively without changing this contract.
@@ -210,18 +221,11 @@ public static class ConnectorRouter
         ArgumentNullException.ThrowIfNull(connection.From);
         ArgumentNullException.ThrowIfNull(connection.To);
 
-        // Pick anchors on the faces the two boxes actually present to each other, based on their
-        // relative placement. Using the direction to the other box's centre misfires for wide boxes
-        // (whose centre can sit far past the near endpoint), forcing the connector to wrap back across a
-        // box; deriving the facing sides from the box rectangles avoids that.
-        var (sourceAlong, sourceSide, targetAlong, targetSide) = FacingAnchors(connection.From, connection.To, options.Clearance);
-
-        return RouteWithAnchors(
-            boxes,
-            connection,
-            options,
-            new FaceAnchors(sourceAlong, sourceSide, targetAlong, targetSide),
-            []);
+        // A single connection is routed as a one-element batch so it shares the batch's anchor choice,
+        // port sliding and end-leg stages exactly: with nothing else to share a face with, the batch
+        // path degenerates to the facing anchors of this one pair of boxes, so the result is the same as
+        // routing the connection independently.
+        return RouteBatch([connection], options, _ => boxes)[0];
     }
 
     /// <summary>
@@ -250,13 +254,19 @@ public static class ConnectorRouter
     /// obstacles for the connectors routed after it, so connectors with nested endpoints do not run
     /// collinearly along one another's final approach.
     /// </param>
+    /// <param name="profile">
+    /// Optional cross-hierarchy routing profile (container wall keep-out strips). When supplied, a
+    /// connector whose first route is defective also has its faces re-chosen, keeps comfort legs at both
+    /// ends, avoids the end zones of the other connectors, and prefers not to cross them.
+    /// </param>
     /// <returns>One routed <see cref="LayoutLine"/> per connection, in input order.</returns>
     internal static IReadOnlyList<LayoutLine> RouteBatch(
         IReadOnlyList<Connection> connections,
         ConnectorRouteOptions options,
         Func<int, IReadOnlyList<LayoutBox>> obstaclesFor,
         IReadOnlyList<FixedAnchor>? fixedAnchors = null,
-        bool penalizeLongEndSegments = false)
+        bool penalizeLongEndSegments = false,
+        RoutingProfile? profile = null)
     {
         ArgumentNullException.ThrowIfNull(connections);
         ArgumentNullException.ThrowIfNull(options);
@@ -274,7 +284,20 @@ public static class ConnectorRouter
             anchors[i] = new FaceAnchors(sourceAlong, sourceSide, targetAlong, targetSide);
         }
 
-        DistributeSharedFaceAnchors(connections, anchors, options.Clearance, fixedAnchors ?? []);
+        var occupied = fixedAnchors ?? [];
+        DistributeSharedFaceAnchors(connections, anchors, options.Clearance, occupied);
+
+        // The end zones of every connector (the stretch just outside each end's face) are reserved
+        // against the other connectors in the cross-hierarchy profile, so no connector crosses another's
+        // arrowhead approach or first leg.
+        var endZones = new Rect[connections.Count][];
+        if (profile is not null)
+        {
+            for (var i = 0; i < connections.Count; i++)
+            {
+                endZones[i] = EndZones(connections[i], anchors[i], options);
+            }
+        }
 
         // Route one connector at a time, growing a soft-obstacle set with each already-routed line (as
         // a thin rectangle per segment) so later connectors prefer a free lane over one already used by
@@ -284,10 +307,10 @@ public static class ConnectorRouter
         // (see AddLineObstacles remarks).
         var lines = new List<LayoutLine>(connections.Count);
         var routedLineObstacles = new List<Rect>();
-        foreach (var t in anchors)
+        for (var index = 0; index < connections.Count; index++)
         {
-            var index = lines.Count;
-            var line = RouteWithAnchors(obstaclesFor(index), connections[index], options, t, routedLineObstacles);
+            var line = RouteConnection(
+                index, connections, options, obstaclesFor(index), anchors, occupied, routedLineObstacles, profile, endZones);
             lines.Add(line);
             AddLineObstacles(line.Waypoints, routedLineObstacles, penalizeLongEndSegments ? options.Clearance : 0.0);
         }
@@ -296,12 +319,60 @@ public static class ConnectorRouter
     }
 
     /// <summary>
+    /// Routes the connection at <paramref name="index"/> between its chosen anchors and, when that first
+    /// route is defective (a jog that sliding the ports along their faces would remove, or — in the
+    /// cross-hierarchy profile — a short leg, a wall-hugging run, a detour, or a crossing of another
+    /// connector's end zone), searches for a better one by letting the router choose the ports itself and
+    /// try alternative faces. The accepted ports are written back to <paramref name="anchors"/> so the
+    /// connectors routed after this one see the occupied faces.
+    /// </summary>
+    private static LayoutLine RouteConnection(
+        int index,
+        IReadOnlyList<Connection> connections,
+        ConnectorRouteOptions options,
+        IReadOnlyList<LayoutBox> boxes,
+        FaceAnchors[] anchors,
+        IReadOnlyList<FixedAnchor> occupied,
+        IReadOnlyList<Rect> routedLineObstacles,
+        RoutingProfile? profile,
+        Rect[][] endZones)
+    {
+        var connection = connections[index];
+        var initial = RouteWithAnchors(boxes, connection, options, anchors[index], routedLineObstacles);
+        var waypoints = initial.Waypoints;
+
+        var walls = profile?.WallsFor(index);
+        if (IsDefective(connection, anchors[index], initial, options, profile, walls, endZones, index))
+        {
+            var better = SearchBetterRoute(
+                index, connections, options, boxes, anchors, occupied, routedLineObstacles, profile, walls, endZones, initial);
+            if (better is { } accepted)
+            {
+                waypoints = accepted.Waypoints;
+                anchors[index] = accepted.Anchors;
+            }
+        }
+
+        if (profile is not null)
+        {
+            endZones[index] = EndZonesOfRoute(connection, anchors[index], waypoints, options);
+        }
+
+        return new LayoutLine(
+            Waypoints: waypoints,
+            SourceEnd: EndMarkerStyle.None,
+            TargetEnd: connection.TargetEnd,
+            LineStyle: connection.LineStyle,
+            MidpointLabel: connection.Label);
+    }
+
+    /// <summary>
     /// Builds the obstacle set for <paramref name="connection"/> — every box on the canvas, including
     /// this connection's own two endpoints, plus any already routed <paramref name="extraSoftObstacles"/>
     /// treated as soft (cost-penalized, never hard-blocking) obstacles — and routes it between the
     /// already chosen <paramref name="anchors"/>.
     /// </summary>
-    private static LayoutLine RouteWithAnchors(
+    private static RouteResult RouteWithAnchors(
         IReadOnlyList<LayoutBox> boxes,
         Connection connection,
         ConnectorRouteOptions options,
@@ -310,8 +381,8 @@ public static class ConnectorRouter
     {
         var from = connection.From;
         var to = connection.To;
-        var source = ResolveAnchorPoint(from, anchors.SourceSide, anchors.SourceAlong, options.Clearance);
-        var target = ResolveAnchorPoint(to, anchors.TargetSide, anchors.TargetAlong, options.Clearance);
+        var source = ResolveAnchorPoint(from, anchors.SourceSide, anchors.SourceAlong, options.Clearance, anchors.SourceSlid);
+        var target = ResolveAnchorPoint(to, anchors.TargetSide, anchors.TargetAlong, options.Clearance, anchors.TargetSlid);
 
         // The hard obstacle set is every box on the canvas, including this connection's own endpoints.
         // The connector still leaves and enters the boxes it joins cleanly: OrthogonalEdgeRouter steps
@@ -326,15 +397,760 @@ public static class ConnectorRouter
             obstacles.Add(new Rect(box.X, box.Y, box.Width, box.Height));
         }
 
-        var waypoints = RouteWaypoints(
+        return RouteWaypoints(
             options.EdgeRouting, source, target, obstacles, options.Clearance, anchors.SourceSide, anchors.TargetSide, extraSoftObstacles);
+    }
 
-        return new LayoutLine(
-            Waypoints: waypoints,
-            SourceEnd: EndMarkerStyle.None,
-            TargetEnd: connection.TargetEnd,
-            LineStyle: connection.LineStyle,
-            MidpointLabel: connection.Label);
+    /// <summary>
+    /// Routing profile applied to connectors whose endpoints are nested inside containers (the
+    /// hierarchical engine's cross-hierarchy connectors). It supplies each connector's container wall
+    /// keep-out strips and switches on the stricter end-leg, face-choice, end-zone and crossing rules.
+    /// </summary>
+    /// <param name="WallsFor">Returns the wall keep-out strips applying to the connection at the given index.</param>
+    internal sealed record RoutingProfile(Func<int, IReadOnlyList<RouterWall>> WallsFor);
+
+    /// <summary>
+    /// Smallest inset kept between a port that was slid along its face and the face's corner or
+    /// connectable-extent end. It is derived from the rendered marker, not chosen: the renderers draw
+    /// end markers with <c>markerUnits=strokeWidth</c>, so the widest marker (the diamond) reaches
+    /// <c>StrokeWidth × (DiamondHalfWidth + StrokeWidth / 2)</c> = 7.125 px to either side of the
+    /// line (an arrowhead: 6.375 px) once its own outline stroke is included, and the box border adds
+    /// half its stroke width (0.75 px); rounded up that is 8 px. A slid port therefore never leaves
+    /// the arrowhead overhanging a corner. Deliberately smaller than the connector clearance, which
+    /// still positions not-slid (default) anchors. (A bar or circle marker is not a connector end the
+    /// router places, so it needs no separate allowance.)
+    /// </summary>
+    private static readonly double PortCornerMargin = Math.Ceiling(
+        (Themes.Light.StrokeWidth * (Math.Max(NotationMetrics.EndMarkerHalfWidth, NotationMetrics.DiamondHalfWidth) + (Themes.Light.StrokeWidth / 2.0)))
+        + (Themes.Light.StrokeWidth / 2.0));
+
+    /// <summary>Extra cost charged against a face pair other than the natural one, to avoid gratuitous face changes.</summary>
+    private const double AlternativeFacePenalty = 5.0;
+
+    /// <summary>Cost charged for crossing an already-routed connector at right angles (cross-hierarchy profile).</summary>
+    private const double ProfileCrossingPenalty = 30.0;
+
+    /// <summary>
+    /// Minimum straight leg wanted at the source end of a connector: the theme's connector stub.
+    /// </summary>
+    private static double RequiredStartLeg => Themes.Light.ConnectorStub;
+
+    /// <summary>
+    /// Minimum straight leg wanted at the target end of a connector before its final bend: the end
+    /// marker's along-line length plus the bend radius plus a small margin, so the decoration sits on a
+    /// clean straight run.
+    /// </summary>
+    private static double RequiredEndLeg(EndMarkerStyle end) =>
+        NotationMetrics.AlongLineLength(end) + Themes.Light.LineCornerRadius + Themes.Light.CleanLegMargin;
+
+    /// <summary>Returns the quality hints for routing <paramref name="connection"/> under the given profile.</summary>
+    private static RouteHints BuildHints(
+        Connection connection,
+        ConnectorRouteOptions options,
+        RoutingProfile? profile,
+        IReadOnlyList<RouterWall>? walls)
+    {
+        var endLeg = RequiredEndLeg(connection.TargetEnd);
+        if (profile is null)
+        {
+            return new RouteHints { SourceLeg = RequiredStartLeg, TargetLeg = endLeg };
+        }
+
+        var clearance = options.Clearance;
+        return new RouteHints
+        {
+            SourceLeg = 2.0 * clearance,
+            TargetLeg = Math.Max(2.0 * clearance, endLeg),
+            SourceComfort = 3.0 * clearance,
+            TargetComfort = 3.0 * clearance,
+            Walls = walls,
+            CrossingPenalty = ProfileCrossingPenalty,
+            MinInteriorSegment = 2.0 * clearance,
+        };
+    }
+
+    /// <summary>Returns the length of the segment starting at waypoint <paramref name="i"/>.</summary>
+    private static double SegmentLength(IReadOnlyList<Point2D> waypoints, int i) =>
+        Math.Abs(waypoints[i + 1].X - waypoints[i].X) + Math.Abs(waypoints[i + 1].Y - waypoints[i].Y);
+
+    /// <summary>
+    /// Returns whether <paramref name="first"/> and <paramref name="second"/> are the two faces of
+    /// opposite, facing sides (right-to-left, left-to-right, bottom-to-top or top-to-bottom).
+    /// </summary>
+    private static bool AreOppositeFaces(PortSide first, PortSide second) =>
+        (first, second) is (PortSide.Right, PortSide.Left) or (PortSide.Left, PortSide.Right)
+            or (PortSide.Bottom, PortSide.Top) or (PortSide.Top, PortSide.Bottom);
+
+    /// <summary>
+    /// Decides whether a first route is worth searching a better port/face combination for. Outside the
+    /// cross-hierarchy profile only a jogged route between two facing, opposite faces qualifies (it may be
+    /// straightened by sliding the ports). In the profile, any route with three or more bends, a leg
+    /// shorter than the comfort minimum, a tiny interior jog, a run along a container wall, a crossing of
+    /// another connector's end zone, or an obstacle-crossing fallback qualifies.
+    /// </summary>
+    private static bool IsDefective(
+        Connection connection,
+        FaceAnchors anchors,
+        RouteResult route,
+        ConnectorRouteOptions options,
+        RoutingProfile? profile,
+        IReadOnlyList<RouterWall>? walls,
+        Rect[][] endZones,
+        int index)
+    {
+        var w = route.Waypoints;
+        var bends = w.Count - 2;
+        if (profile is null)
+        {
+            return !route.Crossed && bends >= 2 && AreOppositeFaces(anchors.SourceSide, anchors.TargetSide);
+        }
+
+        if (route.Crossed || bends >= 3)
+        {
+            return true;
+        }
+
+        var clearance = options.Clearance;
+        const double tolerance = 1e-6;
+        if (bends >= 1
+            && (SegmentLength(w, 0) < (2.0 * clearance) - tolerance
+                || SegmentLength(w, w.Count - 2) < Math.Max(2.0 * clearance, RequiredEndLeg(connection.TargetEnd)) - tolerance))
+        {
+            return true;
+        }
+
+        for (var i = 1; i <= w.Count - 3; i++)
+        {
+            if (SegmentLength(w, i) < (2.0 * clearance) - tolerance)
+            {
+                return true;
+            }
+        }
+
+        return HasWallViolation(w, walls, clearance) || CrossesPeerEndZone(w, endZones, index, clearance);
+    }
+
+    /// <summary>
+    /// Returns whether any segment of <paramref name="w"/> runs along, or bends inside, the keep-out strip
+    /// of a wall. The short step-off stubs at the two ends are exempt, so a port close to its own
+    /// container's wall is not penalized for leaving its face.
+    /// </summary>
+    private static bool HasWallViolation(IReadOnlyList<Point2D> w, IReadOnlyList<RouterWall>? walls, double clearance)
+    {
+        if (walls is null || walls.Count == 0)
+        {
+            return false;
+        }
+
+        var margin = 2.0 * clearance;
+        var stub = clearance + 8.0;
+        foreach (var wall in walls)
+        {
+            for (var i = 0; i < w.Count - 1; i++)
+            {
+                var vertical = Math.Abs(w[i].X - w[i + 1].X) < 1e-9;
+                if (vertical != wall.IsVertical)
+                {
+                    continue;
+                }
+
+                var isEndSegment = i == 0 || i == w.Count - 2;
+                if (isEndSegment && SegmentLength(w, i) <= stub + 1e-6)
+                {
+                    continue;
+                }
+
+                var coordinate = vertical ? w[i].X : w[i].Y;
+                var lo = vertical ? Math.Min(w[i].Y, w[i + 1].Y) : Math.Min(w[i].X, w[i + 1].X);
+                var hi = vertical ? Math.Max(w[i].Y, w[i + 1].Y) : Math.Max(w[i].X, w[i + 1].X);
+                if (Math.Abs(coordinate - wall.Coordinate) < margin - 1e-6 && Math.Max(lo, wall.Lo) < Math.Min(hi, wall.Hi))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns whether any segment of <paramref name="w"/> passes within <paramref name="clearance"/> of
+    /// another connector's reserved end zone.
+    /// </summary>
+    private static bool CrossesPeerEndZone(IReadOnlyList<Point2D> w, Rect[][] endZones, int index, double clearance)
+    {
+        for (var j = 0; j < endZones.Length; j++)
+        {
+            if (j == index || endZones[j] is not { } zones)
+            {
+                continue;
+            }
+
+            foreach (var zone in zones)
+            {
+                for (var i = 0; i < w.Count - 1; i++)
+                {
+                    if (SegmentWithin(w[i], w[i + 1], zone, clearance))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Returns whether an axis-aligned segment passes strictly within <paramref name="clearance"/> of a rectangle.</summary>
+    private static bool SegmentWithin(Point2D a, Point2D b, Rect r, double clearance)
+    {
+        if (Math.Abs(a.Y - b.Y) < 1e-9)
+        {
+            return r.Y - clearance < a.Y && a.Y < r.Y + r.Height + clearance
+                && Math.Max(Math.Min(a.X, b.X), r.X - clearance) < Math.Min(Math.Max(a.X, b.X), r.X + r.Width + clearance);
+        }
+
+        return r.X - clearance < a.X && a.X < r.X + r.Width + clearance
+            && Math.Max(Math.Min(a.Y, b.Y), r.Y - clearance) < Math.Min(Math.Max(a.Y, b.Y), r.Y + r.Height + clearance);
+    }
+
+    /// <summary>
+    /// Returns the rectangle reserving <paramref name="length"/> logical pixels straight out of
+    /// <paramref name="side"/> from <paramref name="point"/>: a hairline for a plain end, and a strip
+    /// <paramref name="thickness"/> wide (centered on the connector) for an end carrying an arrowhead, so
+    /// other connectors keep a little further from the arrowhead's approach.
+    /// </summary>
+    private static Rect EndZone(Point2D point, PortSide side, double length, double thickness) => side switch
+    {
+        PortSide.Right => new Rect(point.X, point.Y - (thickness / 2.0), length, thickness),
+        PortSide.Left => new Rect(point.X - length, point.Y - (thickness / 2.0), length, thickness),
+        PortSide.Top => new Rect(point.X - (thickness / 2.0), point.Y - length, thickness, length),
+        _ => new Rect(point.X - (thickness / 2.0), point.Y, thickness, length),
+    };
+
+    /// <summary>
+    /// The two reserved end zones (source, target) of a not-yet-routed connection at its planned anchors.
+    /// </summary>
+    private static Rect[] EndZones(Connection connection, FaceAnchors anchors, ConnectorRouteOptions options)
+    {
+        var source = ResolveAnchorPoint(connection.From, anchors.SourceSide, anchors.SourceAlong, options.Clearance, anchors.SourceSlid);
+        var target = ResolveAnchorPoint(connection.To, anchors.TargetSide, anchors.TargetAlong, options.Clearance, anchors.TargetSlid);
+        return ZonesAt(connection, source, anchors.SourceSide, target, anchors.TargetSide, options);
+    }
+
+    /// <summary>The reserved end zones (source, target) of a routed connection, at its actual end points.</summary>
+    private static Rect[] EndZonesOfRoute(
+        Connection connection,
+        FaceAnchors anchors,
+        IReadOnlyList<Point2D> waypoints,
+        ConnectorRouteOptions options) =>
+        ZonesAt(connection, waypoints[0], anchors.SourceSide, waypoints[^1], anchors.TargetSide, options);
+
+    /// <summary>
+    /// Builds the reserved zones for the two ends: the source end is a hairline, and the target end a
+    /// strip one clearance wide when it carries an arrowhead.
+    /// </summary>
+    private static Rect[] ZonesAt(
+        Connection connection,
+        Point2D source,
+        PortSide sourceSide,
+        Point2D target,
+        PortSide targetSide,
+        ConnectorRouteOptions options)
+    {
+        var length = 2.0 * options.Clearance;
+        var thickness = NotationMetrics.AlongLineLength(connection.TargetEnd) > 0.0 ? options.Clearance : 0.0;
+        return
+        [
+            EndZone(source, sourceSide, length, 0.0),
+            EndZone(target, targetSide, Math.Max(length, RequiredEndLeg(connection.TargetEnd)), thickness),
+        ];
+    }
+
+    /// <summary>One source-face / target-face combination to try.</summary>
+    private sealed record FacePair(PortSide SourceSide, PortSide TargetSide, bool IsNatural);
+
+    /// <summary>
+    /// Lists the face combinations worth trying for a connection: the one already chosen, and — when
+    /// <paramref name="alternatives"/> is set — the faces adjacent to each chosen face that still point
+    /// toward the other box.
+    /// </summary>
+    private static List<FacePair> CandidateFacePairs(Connection connection, FaceAnchors anchors, bool alternatives)
+    {
+        var pairs = new List<FacePair> { new(anchors.SourceSide, anchors.TargetSide, true) };
+        if (!alternatives)
+        {
+            return pairs;
+        }
+
+        var sourceFaces = TowardFaces(connection.From, connection.To, anchors.SourceSide);
+        var targetFaces = TowardFaces(connection.To, connection.From, anchors.TargetSide);
+        foreach (var source in sourceFaces)
+        {
+            foreach (var target in targetFaces)
+            {
+                if (source != anchors.SourceSide || target != anchors.TargetSide)
+                {
+                    pairs.Add(new FacePair(source, target, false));
+                }
+            }
+        }
+
+        return pairs;
+    }
+
+    /// <summary>
+    /// The usable faces of <paramref name="box"/> to consider toward <paramref name="other"/>: the current
+    /// face and the adjacent face that points most toward the other box (never the far-side faces).
+    /// </summary>
+    private static List<PortSide> TowardFaces(LayoutBox box, LayoutBox other, PortSide current)
+    {
+        var geometry = ResolveShapeGeometry(box);
+        var order = PreferredFaceOrder(box, other, current);
+        var faces = new List<PortSide>();
+        for (var i = 0; i < 2; i++)
+        {
+            if (geometry.GetConnectableExtents(order[i]).Count > 0)
+            {
+                faces.Add(order[i]);
+            }
+        }
+
+        return faces;
+    }
+
+    /// <summary>The accepted outcome of a port/face search: the route and the anchors it ended on.</summary>
+    private readonly record struct SearchedRoute(IReadOnlyList<Point2D> Waypoints, FaceAnchors Anchors);
+
+    /// <summary>
+    /// Searches for a better route than <paramref name="initial"/> by letting the router pick the ports
+    /// along each face (so a lane that fits both faces becomes one straight connector) and, in the
+    /// cross-hierarchy profile, by trying the adjacent faces too. Returns <see langword="null"/> when
+    /// nothing beats <paramref name="initial"/>.
+    /// </summary>
+    private static SearchedRoute? SearchBetterRoute(
+        int index,
+        IReadOnlyList<Connection> connections,
+        ConnectorRouteOptions options,
+        IReadOnlyList<LayoutBox> boxes,
+        FaceAnchors[] anchors,
+        IReadOnlyList<FixedAnchor> occupied,
+        IReadOnlyList<Rect> softObstacles,
+        RoutingProfile? profile,
+        IReadOnlyList<RouterWall>? walls,
+        Rect[][] endZones,
+        RouteResult initial)
+    {
+        var connection = connections[index];
+        var current = anchors[index];
+        var clearance = options.Clearance;
+
+        var obstacles = new List<Rect>(boxes.Count);
+        foreach (var box in boxes)
+        {
+            obstacles.Add(new Rect(box.X, box.Y, box.Width, box.Height));
+        }
+
+        if (profile is not null)
+        {
+            for (var j = 0; j < endZones.Length; j++)
+            {
+                if (j != index && endZones[j] is { } zones)
+                {
+                    obstacles.AddRange(zones);
+                }
+            }
+        }
+
+        var hints = BuildHints(connection, options, profile, walls);
+        var edgeRouting = options.EdgeRouting;
+        if (edgeRouting != EdgeRouting.Orthogonal)
+        {
+            return null;
+        }
+
+        FacePair? bestPair = null;
+        RouteResult? best = null;
+        var bestScore = double.PositiveInfinity;
+        foreach (var pair in CandidateFacePairs(connection, current, alternatives: profile is not null))
+        {
+            var sourceRange = BuildPortRange(connection.From, pair.SourceSide, connection.To, index, true, connections, anchors, occupied, clearance);
+            var targetRange = BuildPortRange(connection.To, pair.TargetSide, connection.From, index, false, connections, anchors, occupied, clearance);
+            if (sourceRange is null || targetRange is null)
+            {
+                continue;
+            }
+
+            (sourceRange, targetRange) = AddSharedLanes(sourceRange, targetRange);
+            var result = OrthogonalEdgeRouter.RoutePorts(sourceRange, targetRange, obstacles, clearance, null, softObstacles, hints);
+            if (result.Crossed || HasReversal(result.Waypoints) || OverlapsRoutedLine(result.Waypoints, softObstacles))
+            {
+                continue;
+            }
+
+            var score = result.Cost + (pair.IsNatural ? 0.0 : AlternativeFacePenalty);
+            var better = best is null
+                || result.ClearanceUsed > best.Value.ClearanceUsed + 1e-9
+                || (Math.Abs(result.ClearanceUsed - best.Value.ClearanceUsed) <= 1e-9 && score < bestScore);
+            if (better)
+            {
+                best = result;
+                bestPair = pair;
+                bestScore = score;
+            }
+        }
+
+        if (best is not { } chosen || bestPair is null)
+        {
+            return null;
+        }
+
+        // The first route's clearance level is the floor: a search result that only exists at a tighter
+        // clearance than the plain route found is not an improvement.
+        if (!initial.Crossed && chosen.ClearanceUsed + 1e-9 < initial.ClearanceUsed)
+        {
+            return null;
+        }
+
+        if (profile is null && !IsStraighterThanInitial(initial, chosen))
+        {
+            return null;
+        }
+
+        return new SearchedRoute(chosen.Waypoints, AnchorsOfRoute(connection, current, bestPair, chosen.Waypoints, clearance));
+    }
+
+    /// <summary>
+    /// Returns whether <paramref name="waypoints"/> doubles back on itself: two consecutive segments on
+    /// the same line running in opposite directions (a visible U-turn).
+    /// </summary>
+    private static bool HasReversal(IReadOnlyList<Point2D> waypoints)
+    {
+        for (var i = 1; i < waypoints.Count - 1; i++)
+        {
+            var a = waypoints[i - 1];
+            var b = waypoints[i];
+            var c = waypoints[i + 1];
+            var sameX = Math.Abs(a.X - b.X) < 1e-9 && Math.Abs(b.X - c.X) < 1e-9;
+            var sameY = Math.Abs(a.Y - b.Y) < 1e-9 && Math.Abs(b.Y - c.Y) < 1e-9;
+            if ((sameX && (b.Y - a.Y) * (c.Y - b.Y) < 0.0) || (sameY && (b.X - a.X) * (c.X - b.X) < 0.0))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns whether any segment of <paramref name="waypoints"/> runs along an already-routed
+    /// connector (one of the thin <paramref name="routed"/> rectangles) for more than a trivial stretch.
+    /// </summary>
+    private static bool OverlapsRoutedLine(IReadOnlyList<Point2D> waypoints, IReadOnlyList<Rect> routed)
+    {
+        const double trivialOverlap = 5.0;
+        for (var i = 0; i < waypoints.Count - 1; i++)
+        {
+            var a = waypoints[i];
+            var b = waypoints[i + 1];
+            var horizontal = Math.Abs(a.Y - b.Y) < 1e-9;
+            foreach (var r in routed)
+            {
+                if (horizontal)
+                {
+                    if (r.Width > r.Height && r.Y < a.Y && a.Y < r.Y + r.Height
+                        && Math.Min(Math.Max(a.X, b.X), r.X + r.Width) - Math.Max(Math.Min(a.X, b.X), r.X) > trivialOverlap)
+                    {
+                        return true;
+                    }
+                }
+                else if (r.Height > r.Width && r.X < a.X && a.X < r.X + r.Width
+                    && Math.Min(Math.Max(a.Y, b.Y), r.Y + r.Height) - Math.Max(Math.Min(a.Y, b.Y), r.Y) > trivialOverlap)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Outside the cross-hierarchy profile a searched route replaces the plain one only when sliding the
+    /// ports removed bends from it — the stage exists to straighten a jog, never to re-route a connector
+    /// that cannot be straightened.
+    /// </summary>
+    private static bool IsStraighterThanInitial(RouteResult initial, RouteResult searched) =>
+        searched.Waypoints.Count < initial.Waypoints.Count;
+
+    /// <summary>
+    /// Converts a searched route's end points back into the per-face anchors recorded for the batch,
+    /// flagging an end as slid when it no longer sits where the plain anchor would have put it.
+    /// </summary>
+    private static FaceAnchors AnchorsOfRoute(
+        Connection connection,
+        FaceAnchors previous,
+        FacePair pair,
+        IReadOnlyList<Point2D> waypoints,
+        double clearance)
+    {
+        var sourceAlong = ToLocalAlong(connection.From, pair.SourceSide, AlongCoordinate(pair.SourceSide, waypoints[0]));
+        var targetAlong = ToLocalAlong(connection.To, pair.TargetSide, AlongCoordinate(pair.TargetSide, waypoints[^1]));
+        var plainSource = ResolveAnchorPoint(connection.From, previous.SourceSide, previous.SourceAlong, clearance, previous.SourceSlid);
+        var plainTarget = ResolveAnchorPoint(connection.To, previous.TargetSide, previous.TargetAlong, clearance, previous.TargetSlid);
+        var sourceSlid = pair.SourceSide != previous.SourceSide || Math.Abs(AlongCoordinate(pair.SourceSide, plainSource) - AlongCoordinate(pair.SourceSide, waypoints[0])) > 1e-6;
+        var targetSlid = pair.TargetSide != previous.TargetSide || Math.Abs(AlongCoordinate(pair.TargetSide, plainTarget) - AlongCoordinate(pair.TargetSide, waypoints[^1])) > 1e-6;
+        return new FaceAnchors(
+            sourceAlong,
+            pair.SourceSide,
+            targetAlong,
+            pair.TargetSide,
+            sourceSlid || previous.SourceSlid,
+            targetSlid || previous.TargetSlid);
+    }
+
+    /// <summary>The coordinate of <paramref name="point"/> along a face on <paramref name="side"/>.</summary>
+    private static double AlongCoordinate(PortSide side, Point2D point) =>
+        side is PortSide.Left or PortSide.Right ? point.Y : point.X;
+
+    /// <summary>
+    /// Builds the permitted-port description for one end of a connection on <paramref name="side"/>:
+    /// the usable extents of the face (inset by <see cref="PortCornerMargin"/>), kept clear of the other
+    /// connectors' ports on that face (by the batch's usual separation, never closer than they already
+    /// are, and without hopping over a neighbor), plus the end's current or natural position as the
+    /// preferred port.
+    /// </summary>
+    /// <returns>The range, or <see langword="null"/> when the face has no connectable extent.</returns>
+    private static PortRange? BuildPortRange(
+        LayoutBox box,
+        PortSide side,
+        LayoutBox other,
+        int index,
+        bool isSource,
+        IReadOnlyList<Connection> connections,
+        FaceAnchors[] anchors,
+        IReadOnlyList<FixedAnchor> occupied,
+        double clearance)
+    {
+        var geometry = ResolveShapeGeometry(box);
+        var extents = geometry.GetConnectableExtents(side);
+        if (extents.Count == 0)
+        {
+            return null;
+        }
+
+        var usable = SlideExtents(extents);
+        var current = anchors[index];
+        var isCurrentFace = side == (isSource ? current.SourceSide : current.TargetSide);
+        double local;
+        var slid = false;
+        if (isCurrentFace)
+        {
+            local = isSource ? current.SourceAlong : current.TargetAlong;
+            slid = isSource ? current.SourceSlid : current.TargetSlid;
+        }
+        else
+        {
+            local = ToLocalAlong(box, side, NaiveAnchorCoordinate(box, other, side, clearance));
+        }
+
+        var preferredPoint = ResolveAnchorPoint(box, side, local, clearance, slid);
+        var preferredAbsolute = AlongCoordinate(side, preferredPoint);
+        var preferredLocal = ToLocalAlong(box, side, preferredAbsolute);
+        var face = side is PortSide.Left or PortSide.Right ? preferredPoint.X : preferredPoint.Y;
+
+        var neighbors = FaceNeighbors(box, side, index, connections, anchors, occupied, clearance);
+        var intervals = isCurrentFace
+            ? WindowBetweenNeighbors(usable, preferredLocal, neighbors)
+            : ExcludeNeighborWindows(usable, neighbors);
+        intervals.Add((preferredLocal, preferredLocal));
+
+        var offset = side is PortSide.Left or PortSide.Right ? box.Y : box.X;
+        return new PortRange
+        {
+            Side = side,
+            Face = face,
+            Preferred = preferredAbsolute,
+            Intervals = intervals.Select(i => (i.Lo + offset, i.Hi + offset)).ToList(),
+        };
+    }
+
+    /// <summary>
+    /// Insets each connectable face segment by <see cref="PortCornerMargin"/> at both ends to give the
+    /// range a port may slide over. A segment too short to keep that margin from both ends collapses to
+    /// its midpoint, so a short face keeps its centered anchor instead of letting a port crowd a corner.
+    /// </summary>
+    private static List<(double Lo, double Hi)> SlideExtents(IReadOnlyList<(double Lo, double Hi)> extents)
+    {
+        var slide = new List<(double Lo, double Hi)>(extents.Count);
+        foreach (var (lo, hi) in extents)
+        {
+            if (hi < lo)
+            {
+                continue;
+            }
+
+            if (hi - lo >= 2.0 * PortCornerMargin)
+            {
+                slide.Add((lo + PortCornerMargin, hi - PortCornerMargin));
+            }
+            else
+            {
+                var middle = (lo + hi) / 2.0;
+                slide.Add((middle, middle));
+            }
+        }
+
+        return slide;
+    }
+
+    /// <summary>
+    /// The local along-face positions of every other connector end claiming the same face of
+    /// <paramref name="box"/>: other connections in the batch (at their planned or final anchors) and any
+    /// fixed, already-occupied anchors.
+    /// </summary>
+    private static List<double> FaceNeighbors(
+        LayoutBox box,
+        PortSide side,
+        int index,
+        IReadOnlyList<Connection> connections,
+        FaceAnchors[] anchors,
+        IReadOnlyList<FixedAnchor> occupied,
+        double clearance)
+    {
+        var neighbors = new List<double>();
+        for (var j = 0; j < connections.Count; j++)
+        {
+            if (j == index)
+            {
+                continue;
+            }
+
+            var a = anchors[j];
+            if (ReferenceEquals(connections[j].From, box) && a.SourceSide == side)
+            {
+                neighbors.Add(a.SourceSlid ? a.SourceAlong : ClampToConnectableExtent(box, side, a.SourceAlong, clearance));
+            }
+
+            if (ReferenceEquals(connections[j].To, box) && a.TargetSide == side)
+            {
+                neighbors.Add(a.TargetSlid ? a.TargetAlong : ClampToConnectableExtent(box, side, a.TargetAlong, clearance));
+            }
+        }
+
+        foreach (var fixedAnchor in occupied)
+        {
+            if (ReferenceEquals(fixedAnchor.Box, box) && fixedAnchor.Side == side)
+            {
+                neighbors.Add(fixedAnchor.Along);
+            }
+        }
+
+        return neighbors;
+    }
+
+    /// <summary>
+    /// Restricts <paramref name="usable"/> to the stretch around <paramref name="position"/> that lies
+    /// between its nearest neighbors, each kept at least the smaller of the batch separation and its
+    /// current distance away — so a port may slide freely without crowding or hopping over a neighbor.
+    /// </summary>
+    private static List<(double Lo, double Hi)> WindowBetweenNeighbors(
+        IReadOnlyList<(double Lo, double Hi)> usable,
+        double position,
+        IReadOnlyList<double> neighbors)
+    {
+        var lo = double.NegativeInfinity;
+        var hi = double.PositiveInfinity;
+        foreach (var n in neighbors)
+        {
+            if (n <= position)
+            {
+                lo = Math.Max(lo, n + Math.Min(MinFixedAnchorSeparation, position - n));
+            }
+            else
+            {
+                hi = Math.Min(hi, n - Math.Min(MinFixedAnchorSeparation, n - position));
+            }
+        }
+
+        var window = new List<(double Lo, double Hi)>();
+        foreach (var (a, b) in usable)
+        {
+            var from = Math.Max(a, lo);
+            var to = Math.Min(b, hi);
+            if (to >= from)
+            {
+                window.Add((from, to));
+            }
+        }
+
+        return window;
+    }
+
+    /// <summary>
+    /// Removes from <paramref name="usable"/> the stretch within the batch separation of every neighbor,
+    /// for a face the connector is newly moving onto.
+    /// </summary>
+    private static List<(double Lo, double Hi)> ExcludeNeighborWindows(
+        IReadOnlyList<(double Lo, double Hi)> usable,
+        IReadOnlyList<double> neighbors)
+    {
+        var pieces = usable.ToList();
+        foreach (var n in neighbors)
+        {
+            var next = new List<(double Lo, double Hi)>();
+            foreach (var (a, b) in pieces)
+            {
+                if (n + MinFixedAnchorSeparation <= a || n - MinFixedAnchorSeparation >= b)
+                {
+                    next.Add((a, b));
+                    continue;
+                }
+
+                if (n - MinFixedAnchorSeparation >= a)
+                {
+                    next.Add((a, n - MinFixedAnchorSeparation));
+                }
+
+                if (n + MinFixedAnchorSeparation <= b)
+                {
+                    next.Add((n + MinFixedAnchorSeparation, b));
+                }
+            }
+
+            pieces = next;
+        }
+
+        return pieces;
+    }
+
+    /// <summary>
+    /// When both ends slide along the same axis (facing opposite faces), adds the middle of every stretch
+    /// where their permitted intervals overlap as a candidate port for both, so a straight lane through the
+    /// overlap is always available even where no obstacle edge falls inside it.
+    /// </summary>
+    private static (PortRange Source, PortRange Target) AddSharedLanes(PortRange source, PortRange target)
+    {
+        if (source.NormalIsX != target.NormalIsX)
+        {
+            return (source, target);
+        }
+
+        var shared = new List<double>();
+        foreach (var (a, b) in source.Intervals)
+        {
+            foreach (var (c, d) in target.Intervals)
+            {
+                var lo = Math.Max(a, c);
+                var hi = Math.Min(b, d);
+                if (hi - lo > 1e-6)
+                {
+                    shared.Add((lo + hi) / 2.0);
+                }
+            }
+        }
+
+        return (source with { Extra = shared }, target with { Extra = shared });
     }
 
     /// <summary>
@@ -420,7 +1236,13 @@ public static class ConnectorRouter
     /// local face coordinate system (0 at the face start, increasing toward the face end) so shared-face
     /// redistribution can work directly against shape-aware connectable extents.
     /// </summary>
-    private readonly record struct FaceAnchors(double SourceAlong, PortSide SourceSide, double TargetAlong, PortSide TargetSide);
+    private readonly record struct FaceAnchors(
+        double SourceAlong,
+        PortSide SourceSide,
+        double TargetAlong,
+        PortSide TargetSide,
+        bool SourceSlid = false,
+        bool TargetSlid = false);
 
     /// <summary>
     /// One connector's claim on a shared box face: which connection it belongs to, whether it is the
@@ -1061,13 +1883,14 @@ public static class ConnectorRouter
 
     /// <summary>
     /// Resolves the final anchor point on a box: clamp the local face coordinate into the nearest
-    /// connectable extent (respecting the requested end clearance whenever that extent is long enough),
-    /// then project it inward from the bounding box to the real drawn outline.
+    /// connectable extent (respecting the requested end clearance whenever that extent is long enough,
+    /// or the smaller <see cref="PortCornerMargin"/> for a port the router slid along its face), then
+    /// project it inward from the bounding box to the real drawn outline.
     /// </summary>
-    private static Point2D ResolveAnchorPoint(LayoutBox box, PortSide side, double alongAxisCoordinate, double clearance)
+    private static Point2D ResolveAnchorPoint(LayoutBox box, PortSide side, double alongAxisCoordinate, double clearance, bool slid = false)
     {
         var geometry = ResolveShapeGeometry(box);
-        var clamped = ClampToConnectableExtent(box, side, alongAxisCoordinate, clearance);
+        var clamped = ClampToConnectableExtent(box, side, alongAxisCoordinate, slid ? PortCornerMargin : clearance);
         var offset = Math.Max(0.0, geometry.ProjectToSurface(side, clamped));
 
         return side switch
@@ -1144,7 +1967,7 @@ public static class ConnectorRouter
     /// <summary>
     /// Dispatches to the router realizing the requested <paramref name="edgeRouting"/> style.
     /// </summary>
-    private static IReadOnlyList<Point2D> RouteWaypoints(
+    private static RouteResult RouteWaypoints(
         EdgeRouting edgeRouting,
         Point2D source,
         Point2D target,
@@ -1156,7 +1979,7 @@ public static class ConnectorRouter
         {
             EdgeRouting.Orthogonal =>
                 OrthogonalEdgeRouter.RouteWithStatus(
-                    source, target, obstacles, clearance, sourceSide, targetSide, costBands: null, softObstacles).Waypoints,
+                    source, target, obstacles, clearance, sourceSide, targetSide, costBands: null, softObstacles),
             _ => throw new NotSupportedException($"Edge routing style '{edgeRouting}' has no shipped router."),
         };
 

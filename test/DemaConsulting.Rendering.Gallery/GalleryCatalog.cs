@@ -235,8 +235,14 @@ internal static class GalleryCatalog
                     [
                         new GalleryImage(
                             OrthogonalObstacleSvg,
-                            "Orthogonal edge routed around an obstacle",
-                            "A connector routed orthogonally around an intervening container box."),
+                            "Orthogonal edge routed under an obstacle",
+                            "A connector between two nested boxes slides its ports to a free lane when a "
+                            + "straight lane exists that lies inside both faces, keeps every arrowhead clear of "
+                            + "the box corners and stays at least 24 px from the borders it runs along. Here the "
+                            + "faces hold no such lane under the intervening container box, so Source to Sink "
+                            + "takes a clean Z instead — down a corridor, along a run 24 px under the container's "
+                            + "border and back up into the Sink — rather than hugging the container or letting "
+                            + "an arrowhead overhang a corner."),
                     ]),
                 new GallerySection(
                     "Raster output",
@@ -397,14 +403,23 @@ internal static class GalleryCatalog
                             + "inside Auth inside Client) to API, UI to DB (nested inside Storage inside "
                             + "Server), and the Auth folder to the Storage folder, each anchored on the "
                             + "actual nested boxes. The two folders are placed side by side because the "
-                            + "edges join them."),
+                            + "edges join them. Storage is declared before API, so no connector has to "
+                            + "cross another; each one keeps a straight leg off both ends and runs "
+                            + "through the corridor between the folders, crossing the folder borders at "
+                            + "right angles instead of along them. Session to API is one straight line whose "
+                            + "arrowhead sits inside the API face, clear of its corners."),
                         new GalleryImage(
                             CrossHierarchyEdgesHierarchicalSvg,
                             "A downward-flowing diagram mixing leaf nodes and containers",
                             "The \"hierarchical\" root algorithm flowing downward: root-declared edges run "
                             + "from a leaf into a container's nested node, from nested node to nested "
                             + "node across containers, and from a nested node back out to a leaf. "
-                            + "Connectors enter each container through its top edge beside the title."),
+                            + "Connectors cross each container's border at right angles — through the top "
+                            + "edge beside the title or through a side edge — keep clear of the borders, "
+                            + "and approach their targets on straight legs with every arrowhead inside its "
+                            + "target face. Customer to Cart overlaps its target's face by only a few pixels, "
+                            + "so it takes a clean Z (every leg at least 24 px) rather than a straight line "
+                            + "that would crowd the Cart corner."),
                     ]),
                 new GallerySection(
                     "Boundary and delegation ports",

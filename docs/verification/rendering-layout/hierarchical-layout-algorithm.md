@@ -116,6 +116,37 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   `Apply_CrossHierarchyEdge_RootDeclaredBothEndpointsUnderOneContainer_RoutesBetweenNestedNodes`
   confirms a root-declared edge between nodes in two sub-containers of one top-level container is routed
   between those nested nodes instead of dropped.
+- **Cross-hierarchy clean routing** (`Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-CleanRouting`;
+  the nested-anchor rule's straight-lane, jog and shared-face cases are verified here too):
+  the gallery's two nested diagrams are replicated exactly (folder containers, 120 x 50 leaves, `auto`
+  and `hierarchical`/`Down` roots) and asserted against the strict criteria that exposed the original
+  defects. For the `auto` diagram (Storage declared before API): `Apply_GalleryCrossHierarchyAuto_UiToDb_LongLegsAndNoBorderHugging`
+  (first and final legs at least 24, first leg at least 36, at most two bends, no run within 24 px of a
+  Client / Server / Storage border), `Apply_GalleryCrossHierarchyAuto_SessionToApi_IsStraight` (one two-
+  waypoint segment) and `Apply_GalleryCrossHierarchyAuto_ConnectorsDoNotCrossEachOther` (zero crossings,
+  so Auth to Storage's arrowhead is not crossed). For the downward diagram:
+  `Apply_GalleryCrossHierarchyDown_CustomerEdges_CleanAndDirect` (Customer to Cart overlaps its target's
+  face by only 13 px, too narrow to draw straight without the arrowhead overhanging a corner, so it is a
+  clean Z — legs and interior segments of at least 24, at most two bends, ports clear of the corners, length
+  at most 1.25 times the Manhattan distance; Customer to Invoice at most two bends under the same limits),
+  `Apply_GalleryCrossHierarchyDown_ToFulfillment_OneBendLongApproachClearOfBorders` (Checkout to Inventory
+  and Payment to Shipping use one bend, a final leg of at least 36, and keep 24 px from Fulfillment's
+  border) and `Apply_GalleryCrossHierarchyDown_AllConnectors_NoCrossingsAndComfortable` (zero crossings;
+  every connector has legs of at least 24, no tiny jog and no border hugging). All of these fail on the
+  fixed-anchor router. The obstacle diagram (Source to Sink between outer containers past an intervening
+  container) is replicated by `Apply_CrossHierarchyEdge_NoCleanStraightLane_RoutesCleanZBelowObstacle`
+  (50 px endpoints: no lane is both 24 px under the Obstacle and 8 px from the face corners, so the
+  connector is a clean Z of at most four bends whose long run is at least 24 px under the Obstacle's
+  border, direct within 1.25) and `Apply_CrossHierarchyEdge_CleanLaneWithinBothFaces_StaysStraight` (90 px
+  endpoints: the lane 24 px under the Obstacle lies inside both faces, so Source to Sink stays one
+  straight segment); `Apply_CrossHierarchyEdge_JogRequired_FinalApproachAtLeastArrowPlusRadius` and
+  `Apply_CrossHierarchyEdge_SharedNestedFace_PortsStayDistinct` guard the unavoidable-jog final approach
+  and distinct ports on a shared nested face. `AssertComfortableConnector` and `AssertCleanRoute`, used by
+  every nested-edge test above, additionally enforce that both ports lie at least the marker reach
+  (7.125 px, computed from the theme and notation metrics) from the ends of their face — so no arrowhead
+  wing touches or overhangs a corner — and `AssertCleanRoute` a first leg of at least the connector stub
+  and a final leg of at least the end marker plus the bend radius. The tests assert these properties, not
+  exact waypoints.
 - **Layout-only marker is collision-proof**
   (`Rendering-Layout-HierarchicalLayout-LayoutOnlyMarkerIsCollisionProof`):
   `IsLayoutOnlyEdge_MarkedEdgeTrueUnmarkedFalseRegardlessOfId` confirms the marker is keyed by edge
@@ -227,6 +258,15 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   Apply_UserLeafEdgeNamedLikeProxyOfRoutedEdge_RendersBoth
 - **`Rendering-Layout-HierarchicalLayout-CrossContainerEdge`**:
   Apply_CrossContainerEdge_RoutesAroundInterveningContainer
+- **`Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-CleanRouting`**:
+  Apply_GalleryCrossHierarchyAuto_UiToDb_LongLegsAndNoBorderHugging,
+  Apply_GalleryCrossHierarchyAuto_SessionToApi_IsStraight,
+  Apply_GalleryCrossHierarchyAuto_ConnectorsDoNotCrossEachOther,
+  Apply_GalleryCrossHierarchyDown_CustomerEdges_CleanAndDirect,
+  Apply_GalleryCrossHierarchyDown_ToFulfillment_OneBendLongApproachClearOfBorders,
+  Apply_GalleryCrossHierarchyDown_AllConnectors_NoCrossingsAndComfortable,
+  Apply_CrossHierarchyEdge_NoCleanStraightLane_RoutesCleanZBelowObstacle,
+  Apply_CrossHierarchyEdge_CleanLaneWithinBothFaces_StaysStraight
 - **`Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening`**:
   Apply_SiblingContainersWithEightCrossEdges_WidensGapToCorridorWidth
 - **`Rendering-Layout-HierarchicalLayout-SiblingContainerGapWideningSingleEdgeUnaffected`**:

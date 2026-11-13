@@ -764,7 +764,8 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// its source and target (the nested nodes themselves, at any depth, or the container itself when the
     /// edge names the container) and routed around every unrelated box; only the containers that enclose
     /// its own two endpoints are opened up (title band plus children) so the connector can cross their
-    /// walls cleanly.
+    /// walls cleanly, while every other container's border keeps the same wall keep-out so a connector
+    /// does not skirt it at the bare obstacle clearance.
     /// </summary>
     /// <param name="routedEdges">The edges this scope must route, per <see cref="ClassifyEdges"/>.</param>
     /// <param name="composed">The composed top-level boxes of this scope, aligned with its nodes by index.</param>
@@ -791,6 +792,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         // shared-face anchors and steers later connectors around earlier ones.
         var connections = new List<Connection>(routedEdges.Count);
         var obstacleSets = new List<IReadOnlyList<LayoutBox>>(routedEdges.Count);
+        var wallSets = new List<IReadOnlyList<RouterWall>>(routedEdges.Count);
         var fixedAnchors = new List<ConnectorRouter.FixedAnchor>();
         foreach (var edge in routedEdges)
         {
@@ -825,15 +827,101 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 AddObstacle(box, expanded, fontSize, obstacles);
             }
 
+            // The enclosing containers' borders may be crossed but must not be run along or bent against:
+            // each becomes a keep-out strip the router honors (see OrthogonalEdgeRouter's RouterWall).
+            var walls = new List<RouterWall>(expanded.Count * 4);
+            foreach (var (container, _) in expanded)
+            {
+                AddWalls(container, walls);
+            }
+
+            // Every other container the route could pass gets the same keep-out: a connector that skirts
+            // an unrelated container's border (it never crosses it) must stay clear of it as well, instead
+            // of running a long way parallel to it at the bare obstacle clearance.
+            foreach (var box in composed)
+            {
+                AddUnrelatedWalls(box, expanded, walls);
+            }
+
             connections.Add(new Connection(from, to, edge.TargetEnd, edge.LineStyle, edge.Label));
             obstacleSets.Add(obstacles);
+            wallSets.Add(walls);
             AddOccupiedAnchors(from, fromAncestors, fixedAnchors);
             AddOccupiedAnchors(to, toAncestors, fixedAnchors);
         }
 
         return new List<LayoutLine>(
             ConnectorRouter.RouteBatch(
-                connections, routeOptions, index => obstacleSets[index], fixedAnchors, penalizeLongEndSegments: true));
+                connections,
+                routeOptions,
+                index => obstacleSets[index],
+                fixedAnchors,
+                penalizeLongEndSegments: true,
+                profile: new ConnectorRouter.RoutingProfile(index => wallSets[index])));
+    }
+
+    /// <summary>
+    /// Adds the border walls of every container that is not one of the connector's own enclosing
+    /// (expanded) containers, descending through the expanded ones to reach their children. An unrelated
+    /// container is one solid obstacle (its content is unreachable), so only its own border needs a
+    /// keep-out strip; leaf boxes keep their ordinary obstacle clearance.
+    /// </summary>
+    /// <param name="box">The box to examine.</param>
+    /// <param name="expanded">The connector's enclosing containers, which are opened up and already walled.</param>
+    /// <param name="walls">The accumulating wall list.</param>
+    private static void AddUnrelatedWalls(
+        LayoutBox box,
+        List<(LayoutBox Box, LayoutGraphNode Node)> expanded,
+        List<RouterWall> walls)
+    {
+        if (expanded.Exists(e => ReferenceEquals(e.Box, box)))
+        {
+            foreach (var child in box.Children.OfType<LayoutBox>())
+            {
+                AddUnrelatedWalls(child, expanded, walls);
+            }
+
+            return;
+        }
+
+        if (box.Children.OfType<LayoutBox>().Any())
+        {
+            AddWalls(box, walls);
+        }
+    }
+
+    /// <summary>
+    /// Adds the border walls of <paramref name="container"/> as keep-out strips. A folder's top border
+    /// follows its real outline: the tab's top edge over the tab, the body's top edge beside it.
+    /// </summary>
+    /// <param name="container">An enclosing container box of the connector's endpoints.</param>
+    /// <param name="walls">The accumulating wall list.</param>
+    private static void AddWalls(LayoutBox container, List<RouterWall> walls)
+    {
+        var top = container.Y;
+        var bottom = container.Y + container.Height;
+        var left = container.X;
+        var right = container.X + container.Width;
+        var tabWidth = 0.0;
+        var tabHeight = 0.0;
+        if (container.Shape == BoxShape.Folder)
+        {
+            tabWidth = Math.Min(container.Width, ConnectorRouter.FolderGeometry.ResolveFolderTabWidth(container));
+            tabHeight = Math.Min(container.Height, ConnectorRouter.FolderGeometry.ResolveFolderTabHeight(container));
+        }
+
+        walls.Add(new RouterWall(IsVertical: true, left, top, bottom, OutwardIsPositive: false));
+        walls.Add(new RouterWall(IsVertical: true, right, top + tabHeight, bottom, OutwardIsPositive: true));
+        walls.Add(new RouterWall(IsVertical: false, bottom, left, right, OutwardIsPositive: true));
+        if (tabWidth > 0.0 && tabHeight > 0.0)
+        {
+            walls.Add(new RouterWall(IsVertical: false, top, left, left + tabWidth, OutwardIsPositive: false));
+            walls.Add(new RouterWall(IsVertical: false, top + tabHeight, left + tabWidth, right, OutwardIsPositive: false));
+        }
+        else
+        {
+            walls.Add(new RouterWall(IsVertical: false, top, left, right, OutwardIsPositive: false));
+        }
     }
 
     /// <summary>

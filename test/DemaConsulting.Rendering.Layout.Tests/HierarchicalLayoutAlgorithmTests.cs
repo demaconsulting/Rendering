@@ -1742,6 +1742,522 @@ public sealed class HierarchicalLayoutAlgorithmTests
         outer.Y + outer.Height >= inner.Y + inner.Height;
 
     /// <summary>
+    ///     Asserts the first and last straight legs of a route (leg from the face to the first bend, and
+    ///     from the last bend to the face): at least the connector stub at the start and at least the end
+    ///     marker plus the bend radius plus a margin at the end, so the arrowhead sits on a clean run.
+    /// </summary>
+    private static void AssertEndLegs(IReadOnlyList<Point2D> points, EndMarkerStyle end)
+    {
+        if (points.Count <= 2)
+        {
+            return;
+        }
+
+        var first = SegmentLength(points, 0);
+        var last = SegmentLength(points, points.Count - 2);
+        var required = NotationMetrics.AlongLineLength(end) + Themes.Light.LineCornerRadius + Themes.Light.CleanLegMargin;
+        Assert.True(first >= Themes.Light.ConnectorStub, $"First leg {first} is shorter than the connector stub.");
+        Assert.True(last >= required, $"Final leg {last} is shorter than the marker plus radius ({required}).");
+    }
+
+    /// <summary>Returns the length of the segment starting at waypoint <paramref name="i"/>.</summary>
+    private static double SegmentLength(IReadOnlyList<Point2D> points, int i) =>
+        Math.Abs(points[i + 1].X - points[i].X) + Math.Abs(points[i + 1].Y - points[i].Y);
+
+    /// <summary>Adds a folder-shaped container node, as the gallery's nested diagrams use.</summary>
+    private static LayoutGraphNode AddFolderContainer(LayoutGraph graph, string id)
+    {
+        var node = AddContainer(graph, id);
+        node.Shape = BoxShape.Folder;
+        return node;
+    }
+
+    /// <summary>Adds a 120 x 50 labeled leaf node, the gallery's standard showcase size.</summary>
+    private static LayoutGraphNode AddWideLeaf(LayoutGraph graph, string id)
+    {
+        var node = graph.AddNode(id, 120, 50);
+        node.Label = id;
+        return node;
+    }
+
+    /// <summary>
+    ///     Builds the gallery's "cross-hierarchy edges" graph (auto algorithm): Client{UI, Auth{Login,
+    ///     Session}} and Server{Storage{DB, Cache}, API} joined by root-declared edges. Storage is declared
+    ///     before API so the two edges UI -> DB and Session -> API need not cross.
+    /// </summary>
+    private static LayoutGraph BuildGalleryCrossHierarchyAuto(out Dictionary<string, LayoutGraphNode> nodes)
+    {
+        var graph = new LayoutGraph();
+        var client = AddFolderContainer(graph, "Client");
+        var ui = AddWideLeaf(client.Children, "UI");
+        var auth = AddFolderContainer(client.Children, "Auth");
+        var login = AddWideLeaf(auth.Children, "Login");
+        var session = AddWideLeaf(auth.Children, "Session");
+        AddCrossEdge(auth.Children, "login-session", login, session);
+        var server = AddFolderContainer(graph, "Server");
+        var storage = AddFolderContainer(server.Children, "Storage");
+        var db = AddWideLeaf(storage.Children, "DB");
+        var cache = AddWideLeaf(storage.Children, "Cache");
+        AddCrossEdge(storage.Children, "db-cache", db, cache);
+        var api = AddWideLeaf(server.Children, "API");
+        AddCrossEdge(graph, "session-api", session, api);
+        AddCrossEdge(graph, "ui-db", ui, db);
+        AddCrossEdge(graph, "auth-storage", auth, storage);
+        nodes = new Dictionary<string, LayoutGraphNode> { ["UI"] = ui, ["DB"] = db, ["Session"] = session, ["API"] = api };
+        return graph;
+    }
+
+    /// <summary>
+    ///     Builds the gallery's downward "order handling" graph (hierarchical algorithm): Customer and
+    ///     Notifier leaves around Ordering{Cart, Checkout}, Billing{Invoice, Payment} and
+    ///     Fulfillment{Inventory, Shipping}, joined by four root-declared cross-hierarchy edges.
+    /// </summary>
+    private static LayoutGraph BuildGalleryCrossHierarchyDown()
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+        var customer = AddWideLeaf(graph, "Customer");
+        var ordering = AddFolderContainer(graph, "Ordering");
+        var cart = AddWideLeaf(ordering.Children, "Cart");
+        var checkout = AddWideLeaf(ordering.Children, "Checkout");
+        AddCrossEdge(ordering.Children, "cart-checkout", cart, checkout);
+        var billing = AddFolderContainer(graph, "Billing");
+        var invoice = AddWideLeaf(billing.Children, "Invoice");
+        var payment = AddWideLeaf(billing.Children, "Payment");
+        AddCrossEdge(billing.Children, "invoice-payment", invoice, payment);
+        var fulfillment = AddFolderContainer(graph, "Fulfillment");
+        var inventory = AddWideLeaf(fulfillment.Children, "Inventory");
+        var shipping = AddWideLeaf(fulfillment.Children, "Shipping");
+        AddCrossEdge(fulfillment.Children, "inventory-shipping", inventory, shipping);
+        var notifier = AddWideLeaf(graph, "Notifier");
+        AddCrossEdge(graph, "customer-cart", customer, cart);
+        AddCrossEdge(graph, "customer-invoice", customer, invoice);
+        AddCrossEdge(graph, "checkout-inventory", checkout, inventory);
+        AddCrossEdge(graph, "payment-shipping", payment, shipping);
+        AddCrossEdge(graph, "shipping-notifier", shipping, notifier);
+        return graph;
+    }
+
+    /// <summary>Returns the one line running from the face of <paramref name="from"/> to that of <paramref name="to"/>.</summary>
+    private static LayoutLine LineBetween(LayoutTree tree, string from, string to)
+    {
+        var source = FindBox(tree.Nodes, from);
+        var target = FindBox(tree.Nodes, to);
+        return AllLines(tree.Nodes).Single(l =>
+            OnBoxBoundary(l.Waypoints[0].X, l.Waypoints[0].Y, source) &&
+            OnBoxBoundary(l.Waypoints[^1].X, l.Waypoints[^1].Y, target));
+    }
+
+    /// <summary>
+    ///     Asserts a connector looks comfortable: straight legs of at least twice the clearance (24) off both
+    ///     ends and between bends, the arrowhead on a run of at least marker plus radius, and no run along
+    ///     (or bend within) 24 px of any container border — borders are only crossed at right angles.
+    /// </summary>
+    private static void AssertComfortableConnector(LayoutTree tree, LayoutLine line)
+    {
+        const double comfort = 24.0;
+        var points = line.Waypoints;
+        AssertEndLegs(points, line.TargetEnd);
+        if (points.Count > 2)
+        {
+            Assert.True(SegmentLength(points, 0) >= comfort, $"First leg {SegmentLength(points, 0)} is shorter than {comfort}.");
+            Assert.True(SegmentLength(points, points.Count - 2) >= comfort, $"Final leg {SegmentLength(points, points.Count - 2)} is shorter than {comfort}.");
+        }
+
+        for (var i = 1; i < points.Count - 2; i++)
+        {
+            Assert.True(SegmentLength(points, i) >= comfort, $"Interior segment {i} ({SegmentLength(points, i)}) is a tiny jog.");
+        }
+
+        foreach (var container in AllBoxes(tree.Nodes).Where(b => b.Children.OfType<LayoutBox>().Any()))
+        {
+            for (var i = 0; i < points.Count - 1; i++)
+            {
+                AssertSegmentKeepsClearOfWalls(points[i], points[i + 1], container, comfort);
+            }
+        }
+
+        AssertPortsClearOfCorners(tree, line);
+    }
+
+    /// <summary>
+    ///     Asserts both ports of a connector keep the arrowhead inside their face: each end lies at least
+    ///     the marker's reach (stroke-scaled half-width plus the border half-stroke, computed here from the
+    ///     theme and notation metrics rather than from the router's constant) from both ends of the face of
+    ///     the innermost box whose boundary it sits on, so no arrowhead wing touches or passes a corner.
+    /// </summary>
+    private static void AssertPortsClearOfCorners(LayoutTree tree, LayoutLine line)
+    {
+        const double tolerance = 1e-6;
+        var reach = (Themes.Light.StrokeWidth * (NotationMetrics.EndMarkerHalfWidth + (Themes.Light.StrokeWidth / 2.0))) + (Themes.Light.StrokeWidth / 2.0);
+        foreach (var end in new[] { line.Waypoints[0], line.Waypoints[^1] })
+        {
+            var owner = AllBoxes(tree.Nodes)
+                .Where(b => OnBoxBoundary(end.X, end.Y, b))
+                .OrderBy(b => b.Width * b.Height)
+                .First();
+            var onVerticalFace = Math.Abs(end.X - owner.X) < tolerance || Math.Abs(end.X - (owner.X + owner.Width)) < tolerance;
+            var lo = onVerticalFace ? owner.Y : owner.X;
+            var hi = onVerticalFace ? owner.Y + owner.Height : owner.X + owner.Width;
+            var along = onVerticalFace ? end.Y : end.X;
+            var distance = Math.Min(along - lo, hi - along);
+            Assert.True(distance >= reach - tolerance, $"The port at ({end.X}, {end.Y}) is {distance} from a corner of '{owner.Label}', nearer than the marker reach {reach}.");
+        }
+    }
+
+    /// <summary>
+    ///     Asserts the segment does not run parallel to a border of <paramref name="container"/> closer
+    ///     than <paramref name="margin"/> over more than 12 px (a perpendicular crossing is always fine).
+    /// </summary>
+    private static void AssertSegmentKeepsClearOfWalls(Point2D a, Point2D b, LayoutBox container, double margin)
+    {
+        const double tolerance = 1e-6;
+        var vertical = Math.Abs(a.X - b.X) < tolerance;
+        var coordinate = vertical ? a.X : a.Y;
+        var walls = vertical ? new[] { container.X, container.X + container.Width } : new[] { container.Y, container.Y + container.Height };
+        var lo = vertical ? Math.Min(a.Y, b.Y) : Math.Min(a.X, b.X);
+        var hi = vertical ? Math.Max(a.Y, b.Y) : Math.Max(a.X, b.X);
+        var wallLo = vertical ? container.Y : container.X;
+        var wallHi = vertical ? container.Y + container.Height : container.X + container.Width;
+        var overlap = Math.Min(hi, wallHi) - Math.Max(lo, wallLo);
+        foreach (var wall in walls)
+        {
+            Assert.False(
+                Math.Abs(coordinate - wall) < margin - tolerance && overlap > 12.0,
+                $"A run at {coordinate} hugs the {container.Label} border at {wall} (clearance {Math.Abs(coordinate - wall)}).");
+        }
+    }
+
+    /// <summary>Counts the pairs of lines that cross each other (at right angles) or overlap collinearly.</summary>
+    private static int CountCrossings(IReadOnlyList<LayoutLine> lines)
+    {
+        var count = 0;
+        for (var x = 0; x < lines.Count; x++)
+        {
+            for (var y = x + 1; y < lines.Count; y++)
+            {
+                if (LinesCross(lines[x].Waypoints, lines[y].Waypoints))
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>Returns whether two polylines cross (touching counts) or share a collinear run over 5 px.</summary>
+    private static bool LinesCross(IReadOnlyList<Point2D> first, IReadOnlyList<Point2D> second)
+    {
+        for (var i = 0; i < first.Count - 1; i++)
+        {
+            for (var j = 0; j < second.Count - 1; j++)
+            {
+                if (CollinearOverlap(first[i], first[i + 1], second[j], second[j + 1]) > 5.0)
+                {
+                    return true;
+                }
+
+                var firstVertical = Math.Abs(first[i].X - first[i + 1].X) < 1e-6;
+                var secondVertical = Math.Abs(second[j].X - second[j + 1].X) < 1e-6;
+                if (firstVertical == secondVertical)
+                {
+                    continue;
+                }
+
+                var (v1, v2, h1, h2) = firstVertical
+                    ? (first[i], first[i + 1], second[j], second[j + 1])
+                    : (second[j], second[j + 1], first[i], first[i + 1]);
+                if (v1.X >= Math.Min(h1.X, h2.X) - 1e-6 && v1.X <= Math.Max(h1.X, h2.X) + 1e-6 &&
+                    h1.Y >= Math.Min(v1.Y, v2.Y) - 1e-6 && h1.Y <= Math.Max(v1.Y, v2.Y) + 1e-6)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Gallery topology (auto): UI -> DB leaves UI on a long straight leg, runs down the corridor between
+    ///     the two containers (not along their borders) and enters DB on a long final approach; it is not the
+    ///     short stub-then-bend route that hugged the Server frame.
+    /// </summary>
+    [Fact]
+    public void Apply_GalleryCrossHierarchyAuto_UiToDb_LongLegsAndNoBorderHugging()
+    {
+        // Arrange
+        var graph = BuildGalleryCrossHierarchyAuto(out _);
+
+        // Act
+        var tree = LayoutWith("auto", graph);
+
+        // Assert
+        var line = LineBetween(tree, "UI", "DB");
+        AssertComfortableConnector(tree, line);
+        Assert.True(SegmentLength(line.Waypoints, 0) >= 36.0, "UI -> DB must leave UI on a comfortable straight leg.");
+        Assert.True(line.Waypoints.Count <= 4, "UI -> DB needs at most two bends.");
+    }
+
+    /// <summary>
+    ///     Gallery topology (auto): the aligned Session and API rows give one straight connector, not the
+    ///     six-pixel jog and wall-hugging lane of the fixed-anchor route; the straight lane keeps the
+    ///     arrowhead inside the API face (checked by <see cref="AssertComfortableConnector"/>).
+    /// </summary>
+    [Fact]
+    public void Apply_GalleryCrossHierarchyAuto_SessionToApi_IsStraight()
+    {
+        // Arrange
+        var graph = BuildGalleryCrossHierarchyAuto(out _);
+
+        // Act
+        var tree = LayoutWith("auto", graph);
+
+        // Assert
+        var line = LineBetween(tree, "Session", "API");
+        Assert.Equal(2, line.Waypoints.Count);
+        AssertComfortableConnector(tree, line);
+    }
+
+    /// <summary>
+    ///     Gallery topology (auto): the four root-level connectors do not cross or overlap one another, and
+    ///     Auth -> Storage's arrowhead (at the Storage border) is not crossed by UI -> DB.
+    /// </summary>
+    [Fact]
+    public void Apply_GalleryCrossHierarchyAuto_ConnectorsDoNotCrossEachOther()
+    {
+        // Arrange
+        var graph = BuildGalleryCrossHierarchyAuto(out _);
+
+        // Act
+        var tree = LayoutWith("auto", graph);
+
+        // Assert
+        var rootLines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(3, rootLines.Count);
+        Assert.Equal(0, CountCrossings(rootLines));
+        Assert.All(rootLines, line => AssertComfortableConnector(tree, line));
+    }
+
+    /// <summary>
+    ///     Gallery topology (down): Customer -> Cart has only a 13 px overlap between Customer's bottom face
+    ///     and Cart's top-right corner, too narrow to draw straight without the arrowhead overhanging a
+    ///     corner, so it is a clean Z (legs and interior segments of at least 24 px, ports clear of the
+    ///     corners) that is not a detour; Customer -> Invoice reaches Invoice without the convoluted
+    ///     four-bend detour through Billing's header band.
+    /// </summary>
+    [Fact]
+    public void Apply_GalleryCrossHierarchyDown_CustomerEdges_CleanAndDirect()
+    {
+        // Arrange
+        var graph = BuildGalleryCrossHierarchyDown();
+
+        // Act
+        var tree = LayoutWith("hierarchical", graph);
+
+        // Assert: both connectors comfortable (legs, jogs, corners, borders), at most two bends, direct.
+        var cart = LineBetween(tree, "Customer", "Cart");
+        AssertComfortableConnector(tree, cart);
+        Assert.True(cart.Waypoints.Count <= 4, "Customer -> Cart needs at most two bends.");
+        AssertDirect(cart.Waypoints, 1.25, "Customer -> Cart");
+        var invoice = LineBetween(tree, "Customer", "Invoice");
+        AssertComfortableConnector(tree, invoice);
+        Assert.True(invoice.Waypoints.Count <= 4, "Customer -> Invoice needs at most two bends.");
+        AssertDirect(invoice.Waypoints, 1.25, "Customer -> Invoice");
+    }
+
+    /// <summary>
+    ///     Asserts the route is not a detour: its length is at most <paramref name="ratio"/> times the
+    ///     Manhattan distance between its ends (plus half a pixel).
+    /// </summary>
+    private static void AssertDirect(IReadOnlyList<Point2D> points, double ratio, string name)
+    {
+        var length = Enumerable.Range(0, points.Count - 1).Sum(i => SegmentLength(points, i));
+        var manhattan = Math.Abs(points[^1].X - points[0].X) + Math.Abs(points[^1].Y - points[0].Y);
+        Assert.True(length <= (ratio * manhattan) + 0.5, $"{name} is a detour ({length} vs {manhattan}).");
+    }
+
+    /// <summary>
+    ///     Gallery topology (down): Checkout -> Inventory and Payment -> Shipping each enter the lower
+    ///     container through a side face with one bend and a final approach well beyond the arrowhead,
+    ///     running at least 24 px from the Fulfillment border.
+    /// </summary>
+    [Fact]
+    public void Apply_GalleryCrossHierarchyDown_ToFulfillment_OneBendLongApproachClearOfBorders()
+    {
+        // Arrange
+        var graph = BuildGalleryCrossHierarchyDown();
+
+        // Act
+        var tree = LayoutWith("hierarchical", graph);
+
+        // Assert
+        foreach (var (from, to) in new[] { ("Checkout", "Inventory"), ("Payment", "Shipping") })
+        {
+            var line = LineBetween(tree, from, to);
+            AssertComfortableConnector(tree, line);
+            Assert.True(line.Waypoints.Count <= 3, $"{from} -> {to} needs one bend, got {line.Waypoints.Count - 2}.");
+            Assert.True(SegmentLength(line.Waypoints, line.Waypoints.Count - 2) >= 36.0, $"{from} -> {to} must approach on a long final leg.");
+        }
+    }
+
+    /// <summary>
+    ///     Gallery topology (down): no connector crosses another, and every connector is comfortable (long
+    ///     legs, no tiny jogs, borders crossed only at right angles and never hugged).
+    /// </summary>
+    [Fact]
+    public void Apply_GalleryCrossHierarchyDown_AllConnectors_NoCrossingsAndComfortable()
+    {
+        // Arrange
+        var graph = BuildGalleryCrossHierarchyDown();
+
+        // Act
+        var tree = LayoutWith("hierarchical", graph);
+
+        // Assert
+        var lines = AllLines(tree.Nodes).ToList();
+        Assert.Equal(0, CountCrossings(lines.Where(l => tree.Nodes.OfType<LayoutLine>().Contains(l)).ToList()));
+        Assert.All(lines, line => AssertComfortableConnector(tree, line));
+    }
+
+    /// <summary>
+    ///     Builds the gallery's "orthogonal obstacle" graph: Left{Source}, Obstacle{Blocker}, Right{Sink}
+    ///     with left -> middle -> right and the long Source -> Sink edge, where Source and Sink are
+    ///     120 px wide and <paramref name="endpointHeight"/> tall.
+    /// </summary>
+    private static LayoutGraph BuildObstacleGraph(double endpointHeight)
+    {
+        var graph = new LayoutGraph();
+        var left = AddContainer(graph, "Left");
+        var source = left.Children.AddNode("Source", 120, endpointHeight);
+        source.Label = "Source";
+        var middle = AddContainer(graph, "Obstacle");
+        AddWideLeaf(middle.Children, "Blocker");
+        var right = AddContainer(graph, "Right");
+        var sink = right.Children.AddNode("Sink", 120, endpointHeight);
+        sink.Label = "Sink";
+        AddCrossEdge(graph, "source-sink", source, sink);
+        AddCrossEdge(graph, "left-middle", left, middle);
+        AddCrossEdge(graph, "middle-right", middle, right);
+        return graph;
+    }
+
+    /// <summary>
+    ///     Gallery topology (obstacle): the faces of Source and Sink (50 px) do not contain a lane that is
+    ///     both at least 24 px under the intervening container and 8 px or more from the faces' corners, so
+    ///     Source -> Sink is a clean Z — out of the Source face, down a corridor, under the container with
+    ///     a run at least 24 px from its border, up a corridor and into the Sink — rather than a straight
+    ///     line 12 px under the container with the arrowheads overhanging the corners.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdge_NoCleanStraightLane_RoutesCleanZBelowObstacle()
+    {
+        // Arrange
+        var graph = BuildObstacleGraph(50);
+
+        // Act
+        var tree = LayoutWith("hierarchical", graph);
+
+        // Assert: a clean, direct route with at most four bends whose long run clears the Obstacle border.
+        var line = LineBetween(tree, "Source", "Sink");
+        var sourceBox = FindBox(tree.Nodes, "Source");
+        AssertCleanRoute(tree, line, sourceBox, FindBox(tree.Nodes, "Sink"));
+        AssertComfortableConnector(tree, line);
+        Assert.True(line.Waypoints.Count is > 2 and <= 6, $"Expected a Z of at most four bends, got {line.Waypoints.Count - 2}.");
+        AssertDirect(line.Waypoints, 1.25, "Source -> Sink");
+        var obstacle = FindBox(tree.Nodes, "Obstacle");
+        var longestRun = Enumerable.Range(0, line.Waypoints.Count - 1)
+            .Where(i => Math.Abs(line.Waypoints[i].Y - line.Waypoints[i + 1].Y) < 1e-6)
+            .OrderByDescending(i => SegmentLength(line.Waypoints, i))
+            .First();
+        Assert.True(
+            line.Waypoints[longestRun].Y >= obstacle.Y + obstacle.Height + 24.0 - 1e-6,
+            $"The long run at y={line.Waypoints[longestRun].Y} is closer than 24 px to the Obstacle border at {obstacle.Y + obstacle.Height}.");
+    }
+
+    /// <summary>
+    ///     Gallery topology (obstacle): when Source and Sink are tall enough (90 px) that a lane 24 px under
+    ///     the intervening container lies inside both faces' usable spans, Source -> Sink stays one
+    ///     straight horizontal segment on that lane — straightness is kept whenever it is clean.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdge_CleanLaneWithinBothFaces_StaysStraight()
+    {
+        // Arrange
+        var graph = BuildObstacleGraph(90);
+
+        // Act
+        var tree = LayoutWith("hierarchical", graph);
+
+        // Assert: one straight segment, inside both faces' spans, at least 24 px under the container.
+        var line = LineBetween(tree, "Source", "Sink");
+        Assert.Equal(2, line.Waypoints.Count);
+        Assert.Equal(line.Waypoints[0].Y, line.Waypoints[1].Y, 6);
+        var obstacle = FindBox(tree.Nodes, "Obstacle");
+        Assert.True(line.Waypoints[0].Y >= obstacle.Y + obstacle.Height + 24.0 - 1e-6, "The lane keeps twice the clearance under the obstacle's border.");
+        AssertCleanRoute(tree, line, FindBox(tree.Nodes, "Source"), FindBox(tree.Nodes, "Sink"));
+        AssertComfortableConnector(tree, line);
+    }
+
+    /// <summary>
+    ///     A nested connector that cannot be straightened (the obstacle spans both endpoint faces) keeps a
+    ///     final approach of at least the arrowhead plus the bend radius and a first leg of at least the
+    ///     connector stub.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdge_JogRequired_FinalApproachAtLeastArrowPlusRadius()
+    {
+        // Arrange: Left{Source (tall column)}, Obstacle{tall Blocker spanning above and below}, Right{Sink}.
+        var graph = new LayoutGraph();
+        var left = AddContainer(graph, "Left");
+        var source = AddLeaf(left.Children, "Source");
+        var middle = AddContainer(graph, "Obstacle");
+        AddLeaf(middle.Children, "BlockerA");
+        AddLeaf(middle.Children, "BlockerB");
+        AddLeaf(middle.Children, "BlockerC");
+        var right = AddContainer(graph, "Right");
+        var sink = AddLeaf(right.Children, "Sink");
+        AddCrossEdge(graph, "source-sink", source, sink);
+        AddCrossEdge(graph, "left-middle", left, middle);
+        AddCrossEdge(graph, "middle-right", middle, right);
+
+        // Act
+        var tree = LayoutWith("hierarchical", graph);
+
+        // Assert
+        var line = LineBetween(tree, "Source", "Sink");
+        AssertCleanRoute(tree, line, FindBox(tree.Nodes, "Source"), FindBox(tree.Nodes, "Sink"));
+    }
+
+    /// <summary>
+    ///     Two cross-hierarchy connectors landing on the same nested face (after the slide stage) keep
+    ///     distinct ports at least 16 px apart.
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyEdge_SharedNestedFace_PortsStayDistinct()
+    {
+        // Arrange: two root edges into the same nested node B from two containers on its left.
+        var graph = new LayoutGraph();
+        var p = AddContainer(graph, "P");
+        var a1 = AddLeaf(p.Children, "a1");
+        var a2 = AddLeaf(p.Children, "a2");
+        var q = AddContainer(graph, "Q");
+        var b = AddLeaf(q.Children, "b");
+        AddCrossEdge(graph, "a1-b", a1, b);
+        AddCrossEdge(graph, "a2-b", a2, b);
+
+        // Act
+        var tree = LayoutWith("auto", graph);
+
+        // Assert
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(2, lines.Count);
+        var ends = lines.Select(l => l.Waypoints[^1]).ToList();
+        Assert.True(Math.Abs(ends[0].X - ends[1].X) + Math.Abs(ends[0].Y - ends[1].Y) >= 16.0 - 1e-6, "The two arrowheads share a port.");
+    }
+
+    /// <summary>
     ///     Asserts a cross-hierarchy connector is clean: orthogonal, anchored on the two endpoint boxes'
     ///     boundaries with perpendicular, outward first and last segments, ending in an arrowhead, and
     ///     never crossing the interior of any box other than the endpoints' enclosing containers — and
@@ -1756,6 +2272,8 @@ public sealed class HierarchicalLayoutAlgorithmTests
         AssertLeavesPerpendicular(points[0], points[1], source);
         AssertLeavesPerpendicular(points[^1], points[^2], target);
         Assert.Equal(EndMarkerStyle.FilledArrow, line.TargetEnd);
+        AssertEndLegs(points, line.TargetEnd);
+        AssertPortsClearOfCorners(tree, line);
 
         foreach (var box in AllBoxes(tree.Nodes))
         {

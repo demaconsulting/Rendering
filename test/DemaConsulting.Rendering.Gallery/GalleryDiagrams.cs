@@ -1076,12 +1076,15 @@ internal static class GalleryDiagrams
         var session = AddLabeled(auth.Children, "session", "Session");
         Connect(auth.Children, "login-session", login, session);
 
+        // Storage is declared before API on purpose: the two root edges UI -> DB and Session -> API
+        // would have to cross if API sat above Storage (UI sits above Session on the left, so the
+        // endpoints on the right must keep the same top-to-bottom order for a crossing-free drawing).
         var server = AddFolder(graph, "server", "Server");
-        var api = AddLabeled(server.Children, "api", "API");
         var storage = AddFolder(server.Children, "storage", "Storage");
         var db = AddLabeled(storage.Children, "db", "DB");
         var cache = AddLabeled(storage.Children, "cache", "Cache");
         Connect(storage.Children, "db-cache", db, cache);
+        var api = AddLabeled(server.Children, "api", "API");
 
         // Edges declared on the root (an ancestor of every endpoint) that reference nested nodes, and
         // one that joins two nested containers.

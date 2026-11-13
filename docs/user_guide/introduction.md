@@ -155,7 +155,14 @@ the container at (or above) the **lowest common ancestor** of its endpoints — 
 and pass the descendant nodes as its source and target. The connector is drawn from the actual nested
 source node to the actual nested target node (not between the enclosing containers): it leaves and
 enters those nodes perpendicular to their faces, crosses only the walls of the containers that enclose
-its own endpoints, and steers around every other box and container title. This works at any nesting
+its own endpoints, and steers around every other box and container title. The router lines the ports up
+along their faces when a free lane fits both — one straight connector rather than a jog — provided the
+lane keeps every arrowhead inside its face (no closer to a box corner than the marker's reach, 8 px) and
+stays at least 24 px from the borders of every container it runs along; when no such lane exists the
+connector is a clean Z or U instead, with legs and middle segments of at least 24 px, rather than a tiny
+jog, a run hugging a container border or an arrowhead overhanging a corner. It also keeps straight
+legs off both ends and before each arrowhead, crosses container borders at right angles instead of running
+along them, and avoids crossing other connectors where the geometry allows it. This works at any nesting
 depth, with the `auto` and `hierarchical` root algorithms alike, and the declaring graph's placement
 takes such edges into account so related containers end up next to each other. An edge whose endpoint
 is the container itself is still anchored on that container. Known limits: an edge between a container

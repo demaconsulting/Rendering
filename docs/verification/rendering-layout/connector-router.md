@@ -66,6 +66,59 @@ out-of-order batch result, or non-argument-null exception for invalid input cons
 - **Validation** (`Rendering-Layout-ConnectorRouter-Validation`): `Route_NullBoxes_Throws`,
   `Route_NullConnections_Throws`, `Route_NullOptions_Throws`, and `Route_NullConnection_Throws` confirm
   null arguments are rejected with an argument-null error.
+- **Port sliding to a straight lane** (`Rendering-Layout-ConnectorRouter-AlignsPortsToLane`):
+  `Route_LaneWithinBothFaceSpans_ProducesSingleStraightSegment` (a theory over all four facing
+  orientations) builds two 50 px faces with a blocker whose far edge plus the clearance leaves a free lane
+  inside both spans while the face centers are blocked, and expects one two-waypoint straight segment that
+  keeps the blocker's clearance. `Route_LaneWithinOnlyOneFaceSpan_UsesAtMostTwoBends` expects at most two
+  bends (it was four with fixed anchors) when the lane fits only the tall source face.
+  `Route_SlideMargin_PortKeepsDecorationInsideFace` (theory) confirms a lane at least the marker's reach
+  (8 px) from the corner is used (straight at the blocker edge + 12) while a lane 5.5 px or 2 px from the
+  corner is refused (the jog stays), and that both ports keep the reach from the corners in every case.
+  `Route_SingleOverload_MatchesBatchForSlidRoute` confirms the single and batch overloads return identical
+  waypoints. `Route_RoundedFaces_SlideStaysWithinConnectableExtent` confirms a slid port never enters a
+  rounded corner's arc zone.
+  `ConnectorRouter_Route_SmallSharedSpanOnLongFace_SlidesPortIntoSpanAndGoesStraight` and
+  `ConnectorRouter_Route_SharedSpanNearCornerOfLongFace_UsesClearanceInset` pin the two sides of the
+  clearance-inset rule: a small shared span (a 20 px face, usable span 8..12) on a long face yields one
+  straight connector inside that span with both ports clear of the corners, while a shared
+  span wide enough for a straight connector keeps the overlap-centered anchor at the clearance inset.
+  `ConnectorRouter_Route_ShortFaceForMargin_UsesFaceCenter` confirms a face too short for the inset keeps its
+  own centre, and `ConnectorRouter_Route_FaceShorterThanTwoMargins_KeepsCentre` confirms a 10 px face
+  beside a long one keeps its centered anchor (the jog is accepted rather than an overhanging arrowhead).
+- **Decoration stays inside the face** (`Rendering-Layout-ConnectorRouter-DecorationWithinFace`):
+  `Route_SlideMargin_PortKeepsDecorationInsideFace`,
+  `ConnectorRouter_Route_SmallSharedSpanOnLongFace_SlidesPortIntoSpanAndGoesStraight` and
+  `ConnectorRouter_Route_FaceShorterThanTwoMargins_KeepsCentre` assert every port is at least the marker
+  reach (`StrokeWidth × (EndMarkerHalfWidth + StrokeWidth / 2) + StrokeWidth / 2` = 7.125 px, computed in the
+  test from the theme and notation metrics independently of the router's 8 px constant) from both ends of
+  its face, and `RouteBatch_Profile_NarrowOverlapSweep_NoTinyJogsAndPortsClearOfCorners` repeats the check
+  over 230 one-pixel offsets of two facing boxes.
+- **Slide keeps ports distinct** (`Rendering-Layout-ConnectorRouter-SlidePreservesDistinctPorts`):
+  `Route_SharedFace_SlideKeepsDistinctOrderedPorts` (three connectors on one face, each straightened onto
+  its target row, ports strictly ordered and at least 16 px apart),
+  `Route_SharedFace_SlideRefusedWhenItWouldCrowdNeighbor` (a lane inside a neighbor's separation is not
+  used; the original port stays) and `Route_FiveConnectorsNarrowGap_InteriorCorridorsDoNotOverlapAlongLength`
+  (a slid connector never shares an earlier connector's lane over a non-trivial stretch).
+- **Minimum end legs** (`Rendering-Layout-ConnectorRouter-MinimumEndLegs`):
+  `Route_LaneOutsideBothFaceSpans_KeepsJogWithMinimumLegs` (theory over a filled arrow and a filled diamond)
+  confirms an unavoidable jog keeps a first leg of at least 8 and a final leg of at least 15 / 19, and no box
+  is crossed; `Route_NarrowGapJog_StillReturnsRouteAndNeverCrossesBoxes` confirms a 20 px gap still yields
+  a clean route with the legacy half-gap legs.
+- **Cross-hierarchy profile** (`Rendering-Layout-ConnectorRouter-WallsAndFaceSelection`,
+  `Rendering-Layout-ConnectorRouter-PeerEndZones`): `RouteBatch_ProfileOn_FirstAndLastLegAtLeastComfort`
+  (legs of at least 24 on a wide gap), `RouteBatch_WallsSupplied_NoRunWithinWallMargin_AndCrossesPerpendicularly`
+  (every vertical run at least 24 px from both supplied walls),
+  `RouteBatch_ShieldedTopFace_ChoosesAdjacentFaceWithOneBend` (a top face shielded by a title band and tab
+  is not approached; the adjacent face gives one bend),
+  `RouteBatch_UnrelatedWall_StraightLaneInsideKeepOutIsRefused` (a theory: a wall for an unrelated
+  container refuses a lane 12 px under its border — 90 px faces stay straight on the 24 px lane, 50 px
+  faces take a clean Z whose long run is at least 24 px from the border, ports clear of the corners, every
+  interior segment at least 24 px),
+  `RouteBatch_Profile_NarrowOverlapSweep_NoTinyJogsAndPortsClearOfCorners` (230 offsets of two facing
+  boxes: no interior segment under 24 px, no reversal, ports at least the marker reach from the corners) and
+  `RouteBatch_PeerEndZone_LaterConnectorNeverCrossesWithinZoneOfEarlierArrowhead` (any crossing of an
+  earlier connector keeps 24 px from its arrowhead tip).
 
 ### Additional Regression Coverage
 
@@ -105,6 +158,34 @@ level rather than introducing a new `ConnectorRouter`-level responsibility:
   Route_MultipleConnections_ReturnsOneLinePerConnectionInOrder
 - **`Rendering-Layout-ConnectorRouter-Validation`**:
   Route_NullBoxes_Throws, Route_NullConnections_Throws, Route_NullOptions_Throws, Route_NullConnection_Throws
+- **`Rendering-Layout-ConnectorRouter-AlignsPortsToLane`**:
+  Route_LaneWithinBothFaceSpans_ProducesSingleStraightSegment,
+  Route_LaneWithinOnlyOneFaceSpan_UsesAtMostTwoBends,
+  Route_SlideMargin_PortKeepsDecorationInsideFace,
+  Route_SingleOverload_MatchesBatchForSlidRoute,
+  Route_RoundedFaces_SlideStaysWithinConnectableExtent,
+  ConnectorRouter_Route_SmallSharedSpanOnLongFace_SlidesPortIntoSpanAndGoesStraight,
+  ConnectorRouter_Route_SharedSpanNearCornerOfLongFace_UsesClearanceInset,
+  ConnectorRouter_Route_ShortFaceForMargin_UsesFaceCenter
+- **`Rendering-Layout-ConnectorRouter-DecorationWithinFace`**:
+  Route_SlideMargin_PortKeepsDecorationInsideFace,
+  ConnectorRouter_Route_SmallSharedSpanOnLongFace_SlidesPortIntoSpanAndGoesStraight,
+  ConnectorRouter_Route_FaceShorterThanTwoMargins_KeepsCentre,
+  RouteBatch_Profile_NarrowOverlapSweep_NoTinyJogsAndPortsClearOfCorners
+- **`Rendering-Layout-ConnectorRouter-SlidePreservesDistinctPorts`**:
+  Route_SharedFace_SlideKeepsDistinctOrderedPorts, Route_SharedFace_SlideRefusedWhenItWouldCrowdNeighbor,
+  Route_FiveConnectorsNarrowGap_InteriorCorridorsDoNotOverlapAlongLength
+- **`Rendering-Layout-ConnectorRouter-MinimumEndLegs`**:
+  Route_LaneOutsideBothFaceSpans_KeepsJogWithMinimumLegs,
+  Route_NarrowGapJog_StillReturnsRouteAndNeverCrossesBoxes
+- **`Rendering-Layout-ConnectorRouter-WallsAndFaceSelection`**:
+  RouteBatch_ProfileOn_FirstAndLastLegAtLeastComfort,
+  RouteBatch_WallsSupplied_NoRunWithinWallMargin_AndCrossesPerpendicularly,
+  RouteBatch_UnrelatedWall_StraightLaneInsideKeepOutIsRefused,
+  RouteBatch_Profile_NarrowOverlapSweep_NoTinyJogsAndPortsClearOfCorners,
+  RouteBatch_ShieldedTopFace_ChoosesAdjacentFaceWithOneBend
+- **`Rendering-Layout-ConnectorRouter-PeerEndZones`**:
+  RouteBatch_PeerEndZone_LaterConnectorNeverCrossesWithinZoneOfEarlierArrowhead
 
 The internal per-connection batch entry point used by the hierarchical engine is verified without a
 dedicated requirement (the public contract is unchanged): RouteBatch_EndpointAncestorOmittedFromObstacles_RouteCrossesAncestorWall

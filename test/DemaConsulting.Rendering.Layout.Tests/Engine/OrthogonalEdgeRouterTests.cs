@@ -470,6 +470,283 @@ public sealed class OrthogonalEdgeRouterTests
     }
 
     /// <summary>
+    ///     With a target leg hint the final bend is placed at least that far from the target face; without
+    ///     it the legacy route bends right at the end of the target stub.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_TargetLeg_PlacesBendAtLeastLegFromFace()
+    {
+        // Arrange: an obstacle forces the route under it; the legacy final bend sits at the stub end (x = 380).
+        var source = new Point2D(100, 100);
+        var target = new Point2D(400, 20);
+        var obstacles = new[] { new Rect(130, -100, 200, 250) };
+        var hints = new RouteHints { TargetLeg = 40.0 };
+
+        // Act
+        var legacy = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 12, PortSide.Right, PortSide.Left);
+        var hinted = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 12, PortSide.Right, PortSide.Left, hints: hints);
+
+        // Assert
+        Assert.False(hinted.Crossed);
+        Assert.Equal(20.0, LastLeg(legacy.Waypoints), 6);
+        Assert.True(LastLeg(hinted.Waypoints) >= 40.0 - 1e-6, $"Final leg {LastLeg(hinted.Waypoints)} is shorter than the hinted leg.");
+        AssertAllSegmentsOrthogonal(hinted.Waypoints);
+        AssertNoSegmentCrossesObstacle(hinted.Waypoints, obstacles);
+    }
+
+    /// <summary>
+    ///     Zero-valued hints add no cost term and no grid line, so the route is exactly the legacy route.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_LegsZero_MatchesLegacyRoute()
+    {
+        // Arrange
+        var source = new Point2D(100, 100);
+        var target = new Point2D(400, 20);
+        var obstacles = new[] { new Rect(130, -100, 200, 250) };
+
+        // Act
+        var legacy = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 12, PortSide.Right, PortSide.Left);
+        var zero = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 12, PortSide.Right, PortSide.Left, hints: new RouteHints());
+
+        // Assert
+        Assert.Equal(legacy.Waypoints, zero.Waypoints);
+        Assert.Equal(legacy.Cost, zero.Cost, 6);
+    }
+
+    /// <summary>
+    ///     The result reports the search cost (path length for a straight run, more once the route must
+    ///     detour) and the clearance level at which the route was found (smaller when the source sits
+    ///     closer to an obstacle than the requested clearance).
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_ReportsCostAndClearanceUsed()
+    {
+        // Arrange: a free run, a run that must bend around a block, and a source tucked 2 px from a box.
+        var source = new Point2D(0, 0);
+        var target = new Point2D(200, 0);
+        var block = new[] { new Rect(80, -30, 40, 60) };
+        var tucked = new[] { new Rect(-60, -20, 60, 40) };
+
+        // Act
+        var free = OrthogonalEdgeRouter.RouteWithStatus(source, target, [], 12);
+        var detour = OrthogonalEdgeRouter.RouteWithStatus(source, target, block, 12);
+        var close = OrthogonalEdgeRouter.RouteWithStatus(new Point2D(2, 0), target, tucked, 12);
+
+        // Assert
+        Assert.Equal(200.0, free.Cost, 6);
+        Assert.Equal(12.0, free.ClearanceUsed, 6);
+        Assert.True(detour.Cost > free.Cost);
+        Assert.Equal(12.0, detour.ClearanceUsed, 6);
+        Assert.False(close.Crossed);
+        Assert.True(close.ClearanceUsed < 12.0, "Only a smaller clearance fits a source 2 px from the obstacle.");
+    }
+
+    /// <summary>
+    ///     A port range lets the router pick the ports itself: with a free lane inside both faces' spans it
+    ///     slides both ports onto the lane and returns one straight segment.
+    /// </summary>
+    [Fact]
+    public void RoutePorts_LaneWithinBothRanges_SlidesPortsToStraightLane()
+    {
+        // Arrange: faces span 0..50 across; the block's bottom (20) + clearance (12) leaves the lane at 32.
+        var obstacles = new[] { new Rect(200, -40, 100, 60) };
+        var source = new PortRange { Side = PortSide.Right, Face = 100, Preferred = 25, Intervals = [(5, 45)] };
+        var target = new PortRange { Side = PortSide.Left, Face = 400, Preferred = 25, Intervals = [(5, 45)], Extra = [32.0] };
+
+        // Act
+        var result = OrthogonalEdgeRouter.RoutePorts(source, target, obstacles, 12);
+
+        // Assert
+        Assert.False(result.Crossed);
+        Assert.Equal(2, result.Waypoints.Count);
+        Assert.Equal(32.0, result.Waypoints[0].Y, 6);
+        Assert.Equal(32.0, result.Waypoints[1].Y, 6);
+    }
+
+    /// <summary>
+    ///     A vertical wall hint blocks runs parallel to the wall inside twice the clearance, yet lets a
+    ///     horizontal run cross it: a gap beside the wall that the plain route threads is refused, and the
+    ///     route goes around the barrier instead, crossing the wall on a horizontal run with every vertical
+    ///     run kept clear of the strip.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_VerticalWall_BlocksParallelRunInsideMarginButAllowsHorizontalCrossing()
+    {
+        // Arrange: two barriers leave a gap whose lanes (x = 112 / 118) lie within 24 px of the wall at
+        // x = 100; going around the barrier's far end is the only way to keep clear of the wall.
+        var source = new Point2D(0, 0);
+        var target = new Point2D(230, 100);
+        var obstacles = new[] { new Rect(-200, 40, 300, 20), new Rect(130, 40, 300, 20) };
+        var hints = new RouteHints { Walls = [new RouterWall(IsVertical: true, 100.0, -300.0, 400.0)] };
+
+        // Act
+        var plain = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 12);
+        var walled = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 12, hints: hints);
+
+        // Assert: plain threads the gap beside the wall; the walled route keeps every vertical run 24 px
+        // from the wall yet still crosses it horizontally.
+        Assert.Contains(VerticalRunXs(plain.Waypoints), x => Math.Abs(x - 100.0) < 24.0);
+        Assert.False(walled.Crossed);
+        Assert.Equal(12.0, walled.ClearanceUsed, 6);
+        Assert.All(VerticalRunXs(walled.Waypoints), x => Assert.True(Math.Abs(x - 100.0) >= 24.0 - 1e-6, $"Run at x={x} hugs the wall."));
+        Assert.Contains(walled.Waypoints.Zip(walled.Waypoints.Skip(1)), s =>
+            Math.Abs(s.First.Y - s.Second.Y) < 1e-6 && Math.Min(s.First.X, s.Second.X) < 100.0 && Math.Max(s.First.X, s.Second.X) > 100.0);
+    }
+
+    /// <summary>
+    ///     With a crossing penalty the router prefers a detour that crosses no earlier connector over a
+    ///     straight run that crosses two of them.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_CrossingPenalty_PrefersRouteWithFewerCrossings()
+    {
+        // Arrange: two vertical soft lines (earlier connectors) between source and target.
+        var source = new Point2D(0, 0);
+        var target = new Point2D(200, 0);
+        var soft = new[] { new Rect(60, -30, 2, 60), new Rect(120, -30, 2, 60) };
+
+        // Act
+        var cheap = OrthogonalEdgeRouter.RouteWithStatus(source, target, [], 12, softObstacles: soft);
+        var avoiding = OrthogonalEdgeRouter.RouteWithStatus(
+            source, target, [], 12, softObstacles: soft, hints: new RouteHints { CrossingPenalty = 100.0 });
+
+        // Assert
+        Assert.Equal(2, cheap.Waypoints.Count);
+        Assert.True(avoiding.Waypoints.Count > 2, "The penalized route detours around the lines.");
+        Assert.DoesNotContain(
+            avoiding.Waypoints.Zip(avoiding.Waypoints.Skip(1)),
+            s => Math.Abs(s.First.Y - s.Second.Y) < 1e-6 && Math.Abs(s.First.Y) < 30.0
+                 && Math.Min(s.First.X, s.Second.X) < 61.0 && Math.Max(s.First.X, s.Second.X) > 61.0);
+    }
+
+    /// <summary>
+    ///     A comfort leg keeps the first bend at least that far from the source face; without the hint the
+    ///     legacy route bends at the stub end (here the far lane is made costly by an earlier connector).
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_ComfortLegZone_PlacesFirstBendAtLeastComfortFromFace()
+    {
+        // Arrange: a plain jog between two facing faces on a wide gap; a soft line sits on the far lane
+        // (x = 380) so the legacy route bends right after the source stub (x = 120).
+        var source = new Point2D(100, 100);
+        var target = new Point2D(400, 20);
+        var soft = new[] { new Rect(379, 0, 2, 120) };
+        var hints = new RouteHints { SourceLeg = 24.0, SourceComfort = 36.0 };
+
+        // Act
+        var legacy = OrthogonalEdgeRouter.RouteWithStatus(source, target, [], 12, PortSide.Right, PortSide.Left, softObstacles: soft);
+        var comfortable = OrthogonalEdgeRouter.RouteWithStatus(
+            source, target, [], 12, PortSide.Right, PortSide.Left, softObstacles: soft, hints: hints);
+
+        // Assert
+        Assert.Equal(20.0, FirstLeg(legacy.Waypoints), 6);
+        Assert.True(FirstLeg(comfortable.Waypoints) >= 36.0 - 1e-6, $"First leg {FirstLeg(comfortable.Waypoints)} is shorter than the comfort leg.");
+    }
+
+    /// <summary>
+    ///     A minimum interior segment hint turns a tiny sideways jog into one of at least that length: two
+    ///     facing faces whose usable spans do not overlap are joined by a Z whose middle (interior) run is
+    ///     at least the minimum, by moving the port on the wider face away from the narrow one; without
+    ///     the hint the router takes the shortest jog the ranges allow.
+    /// </summary>
+    [Fact]
+    public void RoutePorts_MinInteriorSegment_FacesOverlapNarrowly_ReturnsZWithJogAtLeastMinimum()
+    {
+        // Arrange: the source's preferred port (x = 171) and the target's (x = 162.8) are 8.2 px apart, and the
+        // faces' other usable spans (190..271 and 60..164) do not overlap, so the legacy route jogs by 8.2.
+        var source = new PortRange { Side = PortSide.Bottom, Face = 70, Preferred = 171, Intervals = [(171, 171), (190, 271)], Extra = [190.0] };
+        var target = new PortRange { Side = PortSide.Top, Face = 220, Preferred = 162.8, Intervals = [(60, 164)], Extra = [164.0] };
+
+        // Act
+        var legacy = OrthogonalEdgeRouter.RoutePorts(source, target, [], 12);
+        var hinted = OrthogonalEdgeRouter.RoutePorts(source, target, [], 12, hints: new RouteHints { MinInteriorSegment = 24.0 });
+
+        // Assert: the legacy jog is tiny, the hinted jog is at least 24 and the route is still clean.
+        Assert.True(InteriorSegments(legacy.Waypoints).Min() < 24.0, $"Without the hint the shortest jog is tiny: {string.Join(" ", legacy.Waypoints)}.");
+        Assert.False(hinted.Crossed);
+        Assert.Equal(2, hinted.Waypoints.Count - 2);
+        Assert.All(InteriorSegments(hinted.Waypoints), length => Assert.True(length >= 24.0 - 1e-6, $"Interior segment {length} is shorter than the minimum."));
+        AssertAllSegmentsOrthogonal(hinted.Waypoints);
+    }
+
+    /// <summary>
+    ///     The minimum interior segment is never met by doubling back: a run may not reverse along its own
+    ///     axis (go left 24 px and return right) to reach the required length, for any offset between the
+    ///     two faces.
+    /// </summary>
+    /// <param name="targetHi">The upper end of the narrow target face's usable span.</param>
+    [Theory]
+    [InlineData(150.0)]
+    [InlineData(160.0)]
+    [InlineData(164.0)]
+    [InlineData(176.0)]
+    public void RoutePorts_MinInteriorSegment_NoReversalToSatisfyMinimum(double targetHi)
+    {
+        // Arrange
+        var source = new PortRange { Side = PortSide.Bottom, Face = 70, Preferred = 171, Intervals = [(171, 171), (190, 271)], Extra = [190.0] };
+        var target = new PortRange { Side = PortSide.Top, Face = 220, Preferred = targetHi - 1.2, Intervals = [(targetHi - 104.0, targetHi)], Extra = [targetHi] };
+
+        // Act
+        var result = OrthogonalEdgeRouter.RoutePorts(source, target, [], 12, hints: new RouteHints { MinInteriorSegment = 24.0 });
+
+        // Assert: no two consecutive segments run along the same axis in opposite directions, and every
+        // interior segment meets the minimum.
+        var w = result.Waypoints;
+        for (var i = 0; i < w.Count - 2; i++)
+        {
+            var dot = ((w[i + 1].X - w[i].X) * (w[i + 2].X - w[i + 1].X)) + ((w[i + 1].Y - w[i].Y) * (w[i + 2].Y - w[i + 1].Y));
+            Assert.False(dot < 0.0, $"The route doubles back at waypoint {i + 1}.");
+        }
+
+        Assert.All(InteriorSegments(w), length => Assert.True(length >= 24.0 - 1e-6, $"Interior segment {length} is shorter than the minimum: {string.Join(" ", w)} crossed={result.Crossed}."));
+    }
+
+    /// <summary>
+    ///     When no route satisfies the minimum interior segment (here an unreachable length, so no grid
+    ///     line allows it), the constraint is dropped and the unconstrained route is returned, never a
+    ///     crossing fallback: the hint can only improve a route, not lose it.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_MinInteriorSegmentInfeasible_FallsBackToUnconstrainedRoute()
+    {
+        // Arrange: two facing faces offset by 10 px; the only route is a Z with a 10 px middle run.
+        var source = new Point2D(100, 100);
+        var target = new Point2D(110, 300);
+
+        // Act
+        var plain = OrthogonalEdgeRouter.RouteWithStatus(source, target, [], 12, PortSide.Bottom, PortSide.Top);
+        var impossible = OrthogonalEdgeRouter.RouteWithStatus(
+            source, target, [], 12, PortSide.Bottom, PortSide.Top, hints: new RouteHints { MinInteriorSegment = 1000.0 });
+
+        // Assert
+        Assert.False(impossible.Crossed);
+        Assert.Equal(plain.Waypoints, impossible.Waypoints);
+        AssertAllSegmentsOrthogonal(impossible.Waypoints);
+    }
+
+    /// <summary>Returns the length of every interior segment (between two bends) of the path.</summary>
+    private static IEnumerable<double> InteriorSegments(IReadOnlyList<Point2D> path)
+    {
+        for (var i = 1; i <= path.Count - 3; i++)
+        {
+            yield return Math.Abs(path[i + 1].X - path[i].X) + Math.Abs(path[i + 1].Y - path[i].Y);
+        }
+    }
+
+    /// <summary>Returns the length of the first segment of the path.</summary>
+    private static double FirstLeg(IReadOnlyList<Point2D> path) =>
+        Math.Abs(path[1].X - path[0].X) + Math.Abs(path[1].Y - path[0].Y);
+
+    /// <summary>Returns the length of the last segment of the path.</summary>
+    private static double LastLeg(IReadOnlyList<Point2D> path) =>
+        Math.Abs(path[^1].X - path[^2].X) + Math.Abs(path[^1].Y - path[^2].Y);
+
+    /// <summary>Returns the X coordinate of every vertical segment of the path.</summary>
+    private static IEnumerable<double> VerticalRunXs(IReadOnlyList<Point2D> path) =>
+        path.Zip(path.Skip(1)).Where(s => Math.Abs(s.First.X - s.Second.X) < 1e-6).Select(s => s.First.X);
+
+    /// <summary>
     ///     Asserts that the path begins at the expected source and ends at the expected target.
     /// </summary>
     private static void AssertEndpoints(IReadOnlyList<Point2D> path, Point2D source, Point2D target)

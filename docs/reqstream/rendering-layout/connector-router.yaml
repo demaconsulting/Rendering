@@ -107,3 +107,111 @@ sections:
           - Route_NullConnections_Throws
           - Route_NullOptions_Throws
           - Route_NullConnection_Throws
+
+      - id: Rendering-Layout-ConnectorRouter-AlignsPortsToLane
+        title: >-
+          When a free lane lies inside the spans of both facing faces, ConnectorRouter shall slide the
+          connector's ports along their faces onto that lane and draw one straight segment, for every
+          facing orientation, with the single-connection and batch overloads agreeing; a port shall
+          never be slid into a face corner (closer than the port-corner margin) or into a part of the
+          face that the box shape does not allow connectors to use.
+        justification: |
+          Anchors chosen before obstacle avoidance sit at the face centers, so a connector whose
+          straight line is blocked used to step off its face, jog around the obstacle and jog back
+          right before its arrowhead although a free lane existed inside both faces. Letting the router
+          pick the ports along each face removes the jog and leaves one straight connector. The slide
+          range is inset from each face end by the port-corner margin (derived from the rendered marker,
+          see the decoration requirement), so a lane that would leave the arrowhead overhanging a corner
+          is refused and that connector keeps its clean jog.
+        tests:
+          - Route_LaneWithinBothFaceSpans_ProducesSingleStraightSegment
+          - Route_LaneWithinOnlyOneFaceSpan_UsesAtMostTwoBends
+          - Route_SlideMargin_PortKeepsDecorationInsideFace
+          - Route_SingleOverload_MatchesBatchForSlidRoute
+          - Route_RoundedFaces_SlideStaysWithinConnectableExtent
+          - ConnectorRouter_Route_SmallSharedSpanOnLongFace_SlidesPortIntoSpanAndGoesStraight
+          - ConnectorRouter_Route_SharedSpanNearCornerOfLongFace_UsesClearanceInset
+          - ConnectorRouter_Route_ShortFaceForMargin_UsesFaceCenter
+
+      - id: Rendering-Layout-ConnectorRouter-DecorationWithinFace
+        title: >-
+          ConnectorRouter shall keep every port it slides along a face at least the reach of the
+          rendered end marker — the marker's half-width at the renderers' stroke scale plus the marker
+          outline stroke plus half the box border's stroke, 8 px at the default theme — from both ends
+          of that face, so no arrowhead wing touches or overhangs a box corner; a face too short to hold
+          a port that far from both ends shall keep its centered anchor.
+        justification: |
+          The renderers draw end markers at the connector stroke width scale, so an arrowhead reaches
+          about 6.4 px (a diamond about 7.1 px) to either side of the line. A port nearer than that to a
+          corner leaves the wing flush with, or past, the box border — a visible defect that the earlier
+          fixed 5 px margin (the unscaled half-width) allowed. Deriving the margin from the notation and
+          theme metrics keeps it correct if either changes, and a lane that cannot honor it is refused
+          rather than drawn with an overhanging arrowhead.
+        tests:
+          - Route_SlideMargin_PortKeepsDecorationInsideFace
+          - ConnectorRouter_Route_SmallSharedSpanOnLongFace_SlidesPortIntoSpanAndGoesStraight
+          - ConnectorRouter_Route_FaceShorterThanTwoMargins_KeepsCentre
+          - RouteBatch_Profile_NarrowOverlapSweep_NoTinyJogsAndPortsClearOfCorners
+
+      - id: Rendering-Layout-ConnectorRouter-SlidePreservesDistinctPorts
+        title: >-
+          When several connectors share a box face, a port that ConnectorRouter slides along that face
+          shall stay between its neighbors on the face, in the original order, and at least the
+          smaller of the batch separation and its current distance away from each of them; no
+          connector shall be slid onto a lane that overlaps an earlier connector's route.
+        justification: |
+          Sliding a port must not collapse the spread that keeps co-terminating connectors visually
+          distinct and individually traceable, nor merge a straightened connector into an existing
+          connector's lane.
+        tests:
+          - Route_SharedFace_SlideKeepsDistinctOrderedPorts
+          - Route_SharedFace_SlideRefusedWhenItWouldCrowdNeighbor
+          - Route_FiveConnectorsNarrowGap_InteriorCorridorsDoNotOverlapAlongLength
+
+      - id: Rendering-Layout-ConnectorRouter-MinimumEndLegs
+        title: >-
+          When a jog between the two ends is unavoidable, ConnectorRouter shall keep at least the
+          connector stub as the straight first leg and at least the end-marker length plus the bend
+          radius as the straight final leg, wherever the gap between the faces allows it, and shall
+          still return a route that crosses no box when the gap is too narrow to hold both legs.
+        justification: |
+          An arrowhead that sits directly on a bend, or a connector that bends the moment it clears its
+          face, looks cramped and can render with a clamped corner. The renderers clamp the corner
+          radius to the final leg, so the legs must be long enough for the marker plus the radius.
+        tests:
+          - Route_LaneOutsideBothFaceSpans_KeepsJogWithMinimumLegs
+          - Route_NarrowGapJog_StillReturnsRouteAndNeverCrossesBoxes
+
+      - id: Rendering-Layout-ConnectorRouter-WallsAndFaceSelection
+        title: >-
+          When given a cross-hierarchy routing profile, ConnectorRouter shall keep a connector's runs
+          and bends at least twice the clearance from the supplied container walls — those of the
+          containers enclosing its endpoints and of every other container alike — crossing a wall only
+          at right angles, shall keep a comfortable straight leg (at least twice the clearance) at both
+          ends and no interior segment shorter than twice the clearance (a Z with a 3 px jog is
+          refused in favor of one whose jog is long enough), and shall try the adjacent faces of its
+          endpoints when the natural faces force a detour, choosing the route with the fewest bends.
+        justification: |
+          A connector that runs along a container border, bends right after leaving its endpoint, jogs
+          a few pixels sideways or enters a container through a shielded face under its title band
+          looks like a defect even though it is geometrically valid. The profile lets the hierarchical
+          engine ask for the stricter, more readable routing without changing any other caller; a
+          straight lane only 12 px under an unrelated container's border is refused for the same
+          reason as a run hugging an enclosing container's border.
+        tests:
+          - RouteBatch_ProfileOn_FirstAndLastLegAtLeastComfort
+          - RouteBatch_WallsSupplied_NoRunWithinWallMargin_AndCrossesPerpendicularly
+          - RouteBatch_UnrelatedWall_StraightLaneInsideKeepOutIsRefused
+          - RouteBatch_Profile_NarrowOverlapSweep_NoTinyJogsAndPortsClearOfCorners
+          - RouteBatch_ShieldedTopFace_ChoosesAdjacentFaceWithOneBend
+
+      - id: Rendering-Layout-ConnectorRouter-PeerEndZones
+        title: >-
+          When given a cross-hierarchy routing profile, ConnectorRouter shall keep a connector from
+          crossing, or running along, the stretch just outside another connector's end faces — in
+          particular within the arrowhead approach of another connector.
+        justification: |
+          Crossing another connector's line immediately before its arrowhead obscures the arrowhead and
+          makes the target of the crossed connector ambiguous.
+        tests:
+          - RouteBatch_PeerEndZone_LaterConnectorNeverCrossesWithinZoneOfEarlierArrowhead

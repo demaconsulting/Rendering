@@ -26,6 +26,11 @@ sections:
           - Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit
           - Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap
           - Rendering-Layout-OrthogonalEdgeRouter-AvoidsConnectorCrossing
+          - Rendering-Layout-OrthogonalEdgeRouter-MinimumEndLegs
+          - Rendering-Layout-OrthogonalEdgeRouter-PortRanges
+          - Rendering-Layout-OrthogonalEdgeRouter-WallKeepOut
+          - Rendering-Layout-OrthogonalEdgeRouter-CrossingCost
+          - Rendering-Layout-OrthogonalEdgeRouter-MinimumInteriorSegment
         tests:
           - Route_NoObstacles_ProducesOrthogonalPath
           - Route_ObstacleBetween_RoutesAround

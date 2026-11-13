@@ -128,6 +128,12 @@ sections:
           - Rendering-Layout-ConnectorRouter-CarriesStyling
           - Rendering-Layout-ConnectorRouter-BatchOrder
           - Rendering-Layout-ConnectorRouter-Validation
+          - Rendering-Layout-ConnectorRouter-AlignsPortsToLane
+          - Rendering-Layout-ConnectorRouter-DecorationWithinFace
+          - Rendering-Layout-ConnectorRouter-SlidePreservesDistinctPorts
+          - Rendering-Layout-ConnectorRouter-MinimumEndLegs
+          - Rendering-Layout-ConnectorRouter-WallsAndFaceSelection
+          - Rendering-Layout-ConnectorRouter-PeerEndZones
         tests:
           - Route_TargetToTheRight_AnchorsFaceEachOther
           - Route_ObstacleBetweenEndpoints_RoutesAroundInterior
@@ -210,6 +216,7 @@ sections:
           - Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-NestedAnchors
           - Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-AncestorPlacement
           - Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-SameContainer
+          - Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-CleanRouting
           - Rendering-Layout-HierarchicalLayout-LayoutOnlyMarkerIsCollisionProof
           - Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening
           - Rendering-Layout-HierarchicalLayout-SiblingContainerGapWideningSingleEdgeUnaffected

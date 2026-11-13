@@ -43,16 +43,16 @@
   <path d="M 196.00 271.00 L 266.00 271.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <path d="M 512.00 44.00 L 512.00 20.00 L 572.00 20.00 L 572.00 44.00 L 934.00 44.00 L 934.00 352.00 L 512.00 352.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
   <text x="723.00" y="57.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Server</text>
-  <rect x="536.00" y="92.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="596.00" y="117.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">API</text>
-  <path d="M 536.00 190.00 L 536.00 166.00 L 596.00 166.00 L 596.00 190.00 L 910.00 190.00 L 910.00 328.00 L 536.00 328.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="723.00" y="203.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Storage</text>
-  <rect x="568.00" y="246.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="628.00" y="271.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">DB</text>
-  <rect x="758.00" y="246.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="818.00" y="271.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Cache</text>
-  <path d="M 688.00 271.00 L 758.00 271.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 386.00 271.00 L 402.00 271.00 A 4.00 4.00 0 0 0 406.00 267.00 L 406.00 121.00 A 4.00 4.00 0 0 1 410.00 117.00 L 536.00 117.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 164.00 117.00 L 180.00 117.00 A 4.00 4.00 0 0 1 184.00 121.00 L 184.00 150.00 A 4.00 4.00 0 0 0 188.00 154.00 L 520.00 154.00 A 4.00 4.00 0 0 1 524.00 158.00 L 524.00 267.00 A 4.00 4.00 0 0 0 528.00 271.00 L 568.00 271.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 418.00 247.00 L 536.00 247.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 536.00 116.00 L 536.00 92.00 L 596.00 92.00 L 596.00 116.00 L 910.00 116.00 L 910.00 254.00 L 536.00 254.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="723.00" y="129.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Storage</text>
+  <rect x="568.00" y="172.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="628.00" y="197.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">DB</text>
+  <rect x="758.00" y="172.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="818.00" y="197.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Cache</text>
+  <path d="M 688.00 197.00 L 758.00 197.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="536.00" y="278.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="596.00" y="303.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">API</text>
+  <path d="M 386.00 287.00 L 536.00 287.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 164.00 117.00 L 473.00 117.00 A 4.00 4.00 0 0 1 477.00 121.00 L 477.00 188.00 A 4.00 4.00 0 0 0 481.00 192.00 L 568.00 192.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 418.00 210.00 L 536.00 210.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
 </svg>

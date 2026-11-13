@@ -111,7 +111,19 @@ overrides win over the supplied options, exactly like every nested scope), and c
    fixed anchors so a new connector does not land on top of one, and the long runs of already-routed
    end segments are soft obstacles for later connectors so connectors do not run collinearly along one
    another's approach. The `EdgeRouting` style is read from this scope's own cascaded `effective`
-   snapshot. An edge whose endpoint is a container itself still anchors on that container. A genuine
+   snapshot. The router is also given a `ConnectorRouter.RoutingProfile` carrying, per connector, the
+   borders of the expanded containers *and of every other container of the scope* as wall keep-out
+   strips (a folder's top border follows the tab and the body, `AddWalls`; the unrelated containers are
+   reached by `AddUnrelatedWalls`, so a run beside an unrelated container's border keeps twice the
+   clearance as well, instead of skirting it at the bare obstacle clearance), so a connector crosses
+   those borders at right angles, keeps straight legs
+   (at least twice the clearance) off both ends and no interior segment shorter than that, slides its
+   ports along their faces — never nearer a face end than the arrowhead's reach, `PortCornerMargin` — onto
+   a free lane (a straight connector wherever a lane fits both faces and clears every border; otherwise a
+   clean Z or U), may enter a nested box through an adjacent
+   face when the natural face lies under a container's title band, keeps clear of the end faces of the
+   other connectors and avoids crossing them. See *ConnectorRouter Unit Design*. An edge whose endpoint
+   is a container itself still anchors on that container. A genuine
    cross-container edge whose endpoint is a named `LayoutGraphPort` in a shape the boundary-port
    delegation mechanism does not cover — for example a port owned by a plain (non-container) node
    with an edge straight into a different container — throws `NotSupportedException` instead of being
@@ -281,6 +293,7 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-NestedAnchors | Cross-hierarchy routing (step 6) |
 | Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-AncestorPlacement | Layout-only proxy edges (step 3) |
 | Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-SameContainer | Cross-hierarchy routing (step 6) |
+| Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-CleanRouting | Cross-hierarchy routing (step 6), profile |
 | Rendering-Layout-HierarchicalLayout-LayoutOnlyMarkerIsCollisionProof | Layout-only proxy edges (step 3) |
 | Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening | Widening pass described above |
 | Rendering-Layout-HierarchicalLayout-SiblingContainerGapWideningSingleEdgeUnaffected | Widening pass described above |
