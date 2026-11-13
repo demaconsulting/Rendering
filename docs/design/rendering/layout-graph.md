@@ -199,11 +199,12 @@ engine.
 
 ### Layout Graph Interactions
 
-A `LayoutGraph` plus a `LayoutOptions` is the input to `LayoutAlgorithmBase.Apply` (see the
-*Rendering Abstractions* design), which produces a placed `LayoutTree`. Each `LayoutGraphEdge`
+A `LayoutGraph`, configured through its own properties, is the input to the public
+`LayoutAlgorithmBase.Apply(LayoutGraph)` (see the *Rendering Abstractions* design), which produces a
+placed `LayoutTree`. Each `LayoutGraphEdge`
 carries an `EndMarkerStyle` and `LineStyle` from the Layout Tree unit's enumerations. The bundled
 `LayeredLayoutAlgorithm` (see the *Rendering Layout* design) consumes only the top-level `Nodes` and
-`Edges`; the recursive `Children` structure is intended for a future hierarchical layout engine.
+`Edges`; the recursive `Children` structure is consumed by the hierarchical layout engine.
 
 ### Requirements Traceability
 

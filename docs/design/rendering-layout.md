@@ -3,7 +3,7 @@
 ## Architecture
 
 `DemaConsulting.Rendering.Layout` is the placement system for the Rendering stack. A caller supplies a
-`LayoutGraph` plus `LayoutOptions`; the system returns a placed `LayoutTree` of boxes and orthogonally
+`LayoutGraph` configured through its own properties; the system returns a placed `LayoutTree` of boxes and orthogonally
 routed connectors that downstream renderers can draw without layout knowledge. The system exposes
 bundled algorithms for layered, containment, hierarchical, and auto (meta-algorithm) layout, built on
 reusable geometric engines.
@@ -58,9 +58,10 @@ algorithms per connected component and packs their independently-placed results 
 
 - **`LayoutAlgorithmBase` implementations** — outbound; `LayeredLayoutAlgorithm`,
   `ContainmentLayoutAlgorithm`, `HierarchicalLayoutAlgorithm`, and `AutoLayoutAlgorithm` each realize
-  the Abstractions layout contract, accepting a `LayoutGraph` plus `LayoutOptions` and returning a
-  placed `LayoutTree`. Each advertises an identifier (`layered`, `containment`, `hierarchical`,
-  `auto`) for registry resolution.
+  the Abstractions layout contract: the public `Apply(LayoutGraph)` accepts a `LayoutGraph` (configured
+  through its own properties) and returns a placed `LayoutTree`, and each overrides the protected
+  `ApplyCore(LayoutGraph, LayoutOptions)` that receives cascaded scope settings. Each advertises an
+  identifier (`layered`, `containment`, `hierarchical`, `auto`) for registry resolution.
 - **`LayoutEngine` facade / bundled registry (DefaultLayout)** — outbound entry points; resolve and run
   the requested (or default) algorithm.
 - **`EdgeRoutingOption`** — outbound `LayoutProperty` keys that select connector routing style.
@@ -85,7 +86,7 @@ architectural segregation (IEC 62304 §5.3.3).
 ## Data Flow
 
 ```text
-LayoutGraph + LayoutOptions
+LayoutGraph (+ properties)
         │
         ▼  selected LayoutAlgorithmBase (layered / containment / hierarchical / auto)
    Engine geometry (layered pipeline, packing, routing)
@@ -94,7 +95,7 @@ LayoutGraph + LayoutOptions
     LayoutTree  (placed boxes + orthogonally routed connectors)  ──►  renderer
 ```
 
-A caller passes an input graph and options; the selected algorithm drives the Engine subsystem to
+A caller passes an input graph that carries its own options; the selected algorithm drives the Engine subsystem to
 assign positions, pack containers, and route connectors, then returns a placed `LayoutTree`. Renderers
 consume only that placed tree and never call the geometric engines directly.
 

@@ -65,7 +65,7 @@ The following topics are explicitly excluded:
 The libraries separate *what a diagram contains* from *how it is placed* and *how it is drawn*:
 
 ```text
-LayoutGraph + LayoutOptions   (Rendering: unplaced input + open property configuration)
+LayoutGraph (+ properties)    (Rendering: unplaced input + open property configuration)
         │
         ▼  LayoutAlgorithmBase         (Rendering.Abstractions: the layout SPI)
    LayeredLayoutAlgorithm              (Rendering.Layout: the bundled "layered" algorithm)

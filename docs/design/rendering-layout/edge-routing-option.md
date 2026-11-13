@@ -70,8 +70,8 @@ No OTS runtime component or shared package is consumed.
   record to select the routing implementation on each `Route` call.
 - **HierarchicalLayoutAlgorithm** — reads the option from the current options scope when routing
   cross-container edges via `ConnectorRouter`.
-- **External application code** — sets `CoreOptions.EdgeRouting` on a graph, node, edge, or
-  standalone `LayoutOptions` to select the routing style per scope.
+- **External application code** — sets `CoreOptions.EdgeRouting` on a graph, node, or edge to select
+  the routing style per scope.
 
 ### EdgeRouting Option Scope Note
 

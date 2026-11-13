@@ -44,9 +44,11 @@ in the downstream Rendering.Layout, Rendering.Svg, and Rendering.CanvasNet syste
 
 ## External Interfaces
 
-- **`LayoutAlgorithmBase`** — inbound extension point implemented by layout systems; accepts a
-  `LayoutGraph` plus `LayoutOptions` and returns a placed `LayoutTree`. Each implementation advertises
-  an identifier used for registry lookup.
+- **`LayoutAlgorithmBase`** — inbound extension point implemented by layout systems. Its public
+  `Apply(LayoutGraph)` accepts a `LayoutGraph` whose own properties carry the configuration and
+  returns a placed `LayoutTree`; implementations override the protected
+  `ApplyCore(LayoutGraph, LayoutOptions)`, whose `LayoutOptions` carries the cascaded settings of an
+  enclosing scope. Each implementation advertises an identifier used for registry lookup.
 - **`IRenderer`** — inbound extension point implemented by renderer systems; accepts a `LayoutTree`,
   `RenderOptions`, and an output `Stream`, and advertises a media type and file extensions used for
   registry lookup.
@@ -73,14 +75,14 @@ architectural segregation (IEC 62304 §5.3.3).
 ## Data Flow
 
 ```text
-LayoutGraph + LayoutOptions  ──►  LayoutAlgorithmBase  ──►  LayoutTree
+LayoutGraph (+ properties)   ──►  LayoutAlgorithmBase  ──►  LayoutTree
                                                             │
                                     RenderOptions (Theme)   ▼
                                           └────────►  IRenderer  ──►  output Stream
 ```
 
-A `LayoutGraph` plus `LayoutOptions` from the *Rendering Model* system is the input consumed by a
-selected `LayoutAlgorithmBase`; the algorithm produces a placed `LayoutTree`, which a selected `IRenderer`
+A `LayoutGraph` from the *Rendering Model* system, configured through its own properties, is the input
+consumed by a selected `LayoutAlgorithmBase`; the algorithm produces a placed `LayoutTree`, which a selected `IRenderer`
 draws to a caller-supplied stream. The renderer receives `RenderOptions` (including a `Theme`) and
 reads the shared notation, box, and connector-label geometry so every output format draws the same
 decorations. This system defines the contracts and shared geometry; it moves no data itself.

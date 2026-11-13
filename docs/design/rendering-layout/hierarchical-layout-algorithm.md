@@ -211,10 +211,10 @@ it by algorithm identifier rather than by direct type reference:
 
 - **DefaultLayout** (`LayoutEngine.Layout`) — resolves this algorithm from the bundled default
   registry under the `"hierarchical"` identifier and defaults to it when no algorithm is declared on
-  the graph or options. See *DefaultLayout Unit Design*.
+  the graph. See *DefaultLayout Unit Design*.
 - **External application code** — any caller that registers `HierarchicalLayoutAlgorithm` in its own
   `LayoutAlgorithmRegistry` (or uses `LayoutAlgorithms.CreateDefaultRegistry()`) and selects it via
-  `CoreOptions.Algorithm = "hierarchical"` on the graph or standalone `LayoutOptions`.
+  `CoreOptions.Algorithm = "hierarchical"` on the graph.
 - **Renderer host code** — indirectly via `LayoutEngine.Layout` when driving nested/compound
   diagrams from graph to rendered output.
 
