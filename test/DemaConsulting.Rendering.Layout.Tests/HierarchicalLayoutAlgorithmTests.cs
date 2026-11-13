@@ -1440,6 +1440,57 @@ public sealed class HierarchicalLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves the layout-only marker is keyed by edge object identity: a marked edge is layout-only
+    ///     and an unmarked edge is not, whatever their identifiers (including the old reserved prefix).
+    /// </summary>
+    [Fact]
+    public void IsLayoutOnlyEdge_MarkedEdgeTrueUnmarkedFalseRegardlessOfId()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        var a = graph.AddNode("a", 80, 40);
+        var b = graph.AddNode("b", 80, 40);
+        var marked = graph.AddEdge("plain", a, b);
+        var unmarkedOldPrefix = graph.AddEdge("\u0001layout-only:user", a, b);
+
+        // Act
+        HierarchicalLayoutAlgorithm.MarkLayoutOnly(marked);
+
+        // Assert
+        Assert.True(HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(marked));
+        Assert.False(HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(unmarkedOldPrefix));
+    }
+
+    /// <summary>
+    ///     Proves a caller leaf edge whose identifier equals the old proxy-id naming of a routed
+    ///     cross-hierarchy edge neither collides with the proxy (no duplicate-id exception) nor goes missing: both the routed edge and the user edge render.
+    /// </summary>
+    /// <param name="algorithm">The root layout algorithm.</param>
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("hierarchical")]
+    public void Apply_UserLeafEdgeNamedLikeProxyOfRoutedEdge_RendersBoth(string algorithm)
+    {
+        // Arrange: X{a}, Y{b}, routed edge e1: a -> b, plus root leaves p, q joined by an edge whose
+        // id is the literal old reserved prefix followed by "e1".
+        var graph = new LayoutGraph();
+        var x = AddContainer(graph, "X");
+        var a = AddLeaf(x.Children, "a");
+        var y = AddContainer(graph, "Y");
+        var b = AddLeaf(y.Children, "b");
+        var p = AddLeaf(graph, "p");
+        var q = AddLeaf(graph, "q");
+        AddCrossEdge(graph, "e1", a, b);
+        AddCrossEdge(graph, "\u0001layout-only:e1", p, q);
+
+        // Act
+        var tree = LayoutWith(algorithm, graph);
+
+        // Assert
+        Assert.Equal(2, AllLines(tree.Nodes).Count());
+    }
+
+    /// <summary>
     ///     Proves a leaf algorithm outside the bundled set (one that does not understand layout-only
     ///     edges) is never handed one: its view graph carries no proxy edge, yet the real connector is
     ///     still routed between the nested endpoints.

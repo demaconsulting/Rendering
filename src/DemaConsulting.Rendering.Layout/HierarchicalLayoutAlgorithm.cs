@@ -2,6 +2,8 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using DemaConsulting.Rendering.Abstractions;
 using DemaConsulting.Rendering.Layout.Engine;
 using DemaConsulting.Rendering.Layout.Engine.Layered;
@@ -122,23 +124,38 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     internal const double ContainerPadding = 12.0;
 
     /// <summary>
-    /// Reserved edge-identifier prefix marking a <em>layout-only</em> edge: an edge that participates in
-    /// the bundled leaf algorithms' placement (layering, ordering, gap sizing) but is never emitted as a
-    /// connector, port, or anchor. This engine adds one per cross-hierarchy routed edge to the per-scope
-    /// sized view so a scope's placement accounts for edges that are really routed between nested
-    /// endpoints afterwards. The marker travels in the edge identifier because an edge's identifier
-    /// (unlike its property overrides) survives <see cref="AutoLayoutAlgorithm"/>'s component split.
+    /// Identity side table recording which edge objects are <em>layout-only</em>: edges that participate
+    /// in the bundled leaf algorithms' placement (layering, ordering, gap sizing) but are never emitted
+    /// as a connector, port, or anchor. This engine adds one per cross-hierarchy routed edge to the
+    /// per-scope sized view so a scope's placement accounts for edges that are really routed between
+    /// nested endpoints afterwards. The marker is keyed by edge object identity (never by a public
+    /// string such as the edge identifier), so no caller-chosen edge identifier can collide with it;
+    /// <see cref="AutoLayoutAlgorithm"/> carries it across its component split by re-marking each edge
+    /// copy. Entries are released together with their edge.
     /// </summary>
-    internal const string LayoutOnlyEdgeIdPrefix = "\u0001layout-only:";
+    private static readonly ConditionalWeakTable<LayoutGraphEdge, object> LayoutOnlyEdges = new();
+
+    /// <summary>
+    /// The shared value stored against every marked edge in <see cref="LayoutOnlyEdges"/>.
+    /// </summary>
+    private static readonly object LayoutOnlyMarker = new();
+
+    /// <summary>
+    /// Marks <paramref name="edge"/> as layout-only: it influences placement but is never drawn.
+    /// Marking an already-marked edge is a no-op.
+    /// </summary>
+    /// <param name="edge">The edge to mark.</param>
+    internal static void MarkLayoutOnly(LayoutGraphEdge edge) =>
+        LayoutOnlyEdges.GetValue(edge, static _ => LayoutOnlyMarker);
 
     /// <summary>
     /// Determines whether <paramref name="edge"/> is a layout-only edge (see
-    /// <see cref="LayoutOnlyEdgeIdPrefix"/>) that influences placement but is never drawn.
+    /// <see cref="MarkLayoutOnly(LayoutGraphEdge)"/>) that influences placement but is never drawn.
     /// </summary>
     /// <param name="edge">The edge to test.</param>
     /// <returns><see langword="true"/> when the edge is layout-only.</returns>
     internal static bool IsLayoutOnlyEdge(LayoutGraphEdge edge) =>
-        edge.Id.StartsWith(LayoutOnlyEdgeIdPrefix, StringComparison.Ordinal);
+        LayoutOnlyEdges.TryGetValue(edge, out _);
 
     /// <summary>
     /// Maximum number of cascading-sizing re-runs the combined pass performs before accepting the
@@ -610,6 +627,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             }
         }
 
+        var viewEdgeIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var edge in graph.Edges)
         {
             // Only edges classified for local routing are placed by the leaf algorithm here; every
@@ -624,6 +642,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 TryMapConnectable(edge.Target, viewOf, viewPortOf, out var viewTarget))
             {
                 var viewEdge = view.AddEdge(edge.Id, viewSource, viewTarget);
+                viewEdgeIds.Add(edge.Id);
                 viewEdge.TargetEnd = edge.TargetEnd;
                 viewEdge.LineStyle = edge.LineStyle;
                 viewEdge.Label = edge.Label;
@@ -631,8 +650,10 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         }
 
         // Layout-only proxy edges: one per routed edge whose endpoints live under two different direct
-        // members, joining those direct members. Ids carry the reserved prefix so they survive any
-        // component split and are recognized (and never drawn) by the bundled leaf algorithms.
+        // members, joining those direct members. Each is marked layout-only by object identity (see
+        // MarkLayoutOnly), so it is recognized (and never drawn) by the bundled leaf algorithms and
+        // cannot collide with any caller-chosen edge id; its own id is a unique, non-reserved name
+        // that never surfaces because the edge is never emitted.
         foreach (var edge in proxyEdges)
         {
             if (!descendantToDirect.TryGetValue((LayoutGraphNode)edge.Source, out var sourceDirect) ||
@@ -644,7 +665,15 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 continue;
             }
 
-            view.AddEdge(LayoutOnlyEdgeIdPrefix + edge.Id, viewSourceDirect, viewTargetDirect);
+            var proxyId = "layout-only:" + edge.Id;
+            var suffix = 0;
+            while (!viewEdgeIds.Add(proxyId))
+            {
+                suffix++;
+                proxyId = "layout-only:" + edge.Id + "#" + suffix.ToString(CultureInfo.InvariantCulture);
+            }
+
+            MarkLayoutOnly(view.AddEdge(proxyId, viewSourceDirect, viewTargetDirect));
         }
 
         return (view, viewOf, viewPortOf);

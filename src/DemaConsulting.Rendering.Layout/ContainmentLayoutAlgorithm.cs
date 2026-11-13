@@ -36,8 +36,8 @@ namespace DemaConsulting.Rendering.Layout;
 ///     top-level node of the graph are skipped, mirroring how the layered algorithm drops out-of-graph
 ///     endpoints. Every routed connector carries its edge's <see cref="LayoutGraphEdge.TargetEnd"/>,
 ///     <see cref="LayoutGraphEdge.LineStyle"/>, and <see cref="LayoutGraphEdge.Label"/>. An edge marked
-///     layout-only by the hierarchical engine (see
-///     <see cref="HierarchicalLayoutAlgorithm.LayoutOnlyEdgeIdPrefix"/>) is counted toward the gap
+///     layout-only by the hierarchical engine (an identity-keyed marker, see
+///     <c>HierarchicalLayoutAlgorithm.MarkLayoutOnly</c>) is counted toward the gap
 ///     widening between its two boxes like a real edge but is never routed or drawn.
 ///     </para>
 /// </remarks>

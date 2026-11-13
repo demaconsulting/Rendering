@@ -1531,7 +1531,7 @@ public class LayeredLayoutAlgorithmTests
             b.Label = "B";
             if (withLayoutOnlyEdge)
             {
-                graph.AddEdge(HierarchicalLayoutAlgorithm.LayoutOnlyEdgeIdPrefix + "ab", a, b);
+                HierarchicalLayoutAlgorithm.MarkLayoutOnly(graph.AddEdge("ab", a, b));
             }
 
             return graph;
@@ -1565,7 +1565,7 @@ public class LayeredLayoutAlgorithmTests
         var b = graph.AddNode("B", 80, 40);
         b.Label = "B";
         graph.AddEdge("real", a, b).Label = "owns";
-        graph.AddEdge(HierarchicalLayoutAlgorithm.LayoutOnlyEdgeIdPrefix + "ab", a, b);
+        HierarchicalLayoutAlgorithm.MarkLayoutOnly(graph.AddEdge("ab", a, b));
 
         // Act
         var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
@@ -1573,6 +1573,108 @@ public class LayeredLayoutAlgorithmTests
         // Assert
         var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
         Assert.Equal("owns", line.MidpointLabel);
+    }
+
+    /// <summary>
+    ///     Proves a layout-only edge declared FIRST never displaces a real parallel edge as the retained
+    ///     representative when parallel edges are merged: the real connector (with its own end style and
+    ///     label) is still emitted, for a real edge in either direction.
+    /// </summary>
+    /// <param name="realFromA">Whether the real edge runs A -> B (otherwise B -> A).</param>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Apply_LayoutOnlyEdgeDeclaredFirstWithMergeParallelEdges_EmitsRealConnector(bool realFromA)
+    {
+        // Arrange: a layout-only A -> B edge FIRST, then a real labeled edge on the same pair.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, true);
+        var a = graph.AddNode("A", 80, 40);
+        a.Label = "A";
+        var b = graph.AddNode("B", 80, 40);
+        b.Label = "B";
+        HierarchicalLayoutAlgorithm.MarkLayoutOnly(graph.AddEdge("hint", a, b));
+        var real = realFromA ? graph.AddEdge("real", a, b) : graph.AddEdge("real", b, a);
+        real.Label = "owns";
+        real.TargetEnd = EndMarkerStyle.FilledArrow;
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        Assert.Equal("owns", line.MidpointLabel);
+        Assert.Equal(EndMarkerStyle.FilledArrow, line.TargetEnd);
+    }
+
+    /// <summary>
+    ///     Proves a layout-only edge declared first ahead of two real parallel edges still leaves one
+    ///     merged real connector when parallel edges are merged.
+    /// </summary>
+    [Fact]
+    public void Apply_LayoutOnlyEdgeFirstThenTwoRealParallelEdgesWithMerge_EmitsOneMergedConnector()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, true);
+        var a = graph.AddNode("A", 80, 40);
+        var b = graph.AddNode("B", 80, 40);
+        HierarchicalLayoutAlgorithm.MarkLayoutOnly(graph.AddEdge("hint", a, b));
+        graph.AddEdge("r1", a, b).Label = "one";
+        graph.AddEdge("r2", a, b).Label = "two";
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        Assert.Single(tree.Nodes.OfType<LayoutLine>());
+    }
+
+    /// <summary>
+    ///     Guard: with parallel edges NOT merged, a layout-only edge declared first still emits only the
+    ///     real connector (the layout-only edge is never drawn).
+    /// </summary>
+    [Fact]
+    public void Apply_LayoutOnlyEdgeFirstWithMergeParallelEdgesFalse_EmitsRealConnectorOnly()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, false);
+        var a = graph.AddNode("A", 80, 40);
+        var b = graph.AddNode("B", 80, 40);
+        HierarchicalLayoutAlgorithm.MarkLayoutOnly(graph.AddEdge("hint", a, b));
+        graph.AddEdge("real", a, b).Label = "owns";
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        Assert.Equal("owns", line.MidpointLabel);
+    }
+
+    /// <summary>
+    ///     Proves an ordinary caller edge whose identifier starts with the OLD reserved layout-only
+    ///     prefix is a real edge and still renders (the marker is identity-keyed, never id-keyed).
+    /// </summary>
+    /// <param name="mergeParallelEdges">Whether parallel edges are merged.</param>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Apply_UserEdgeWithOldReservedPrefix_StillEmitsLine(bool mergeParallelEdges)
+    {
+        // Arrange: the literal old prefix, so this compiles whether or not the constant still exists.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.MergeParallelEdges, mergeParallelEdges);
+        var a = graph.AddNode("A", 80, 40);
+        var b = graph.AddNode("B", 80, 40);
+        graph.AddEdge("\u0001layout-only:user", a, b);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        Assert.Single(tree.Nodes.OfType<LayoutLine>());
     }
 }
 

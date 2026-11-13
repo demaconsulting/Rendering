@@ -540,6 +540,55 @@ public sealed class AutoLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves an ordinary caller edge whose identifier starts with the OLD reserved layout-only prefix
+    ///     is a real edge and still renders on the multi-component (copy and pack) path: the marker is
+    ///     keyed by edge identity, never by edge identifier.
+    /// </summary>
+    [Fact]
+    public void Apply_UserEdgeWithOldReservedPrefixAcrossComponents_StillEmitsLine()
+    {
+        // Arrange: two separate components so the component-copy path runs; the literal old prefix.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "auto");
+        var a = graph.AddNode("a", 80, 40);
+        var b = graph.AddNode("b", 80, 40);
+        graph.AddEdge("\u0001layout-only:user", a, b);
+        var c = graph.AddNode("c", 80, 40);
+        var d = graph.AddNode("d", 80, 40);
+        graph.AddEdge("c-d", c, d);
+
+        // Act
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+
+        // Assert: both edges render.
+        Assert.Equal(2, tree.Nodes.OfType<LayoutLine>().Count());
+    }
+
+    /// <summary>
+    ///     Proves an edge marked layout-only keeps its marker across the component split (the copied
+    ///     edge is re-marked): the pair stays connected as one component, yet no line is emitted for it.
+    /// </summary>
+    [Fact]
+    public void Apply_MarkedLayoutOnlyEdge_IsNotDrawnAfterComponentSplit()
+    {
+        // Arrange: a marked layout-only edge a -> b beside a separate real component c -> d.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "auto");
+        var a = graph.AddNode("a", 80, 40);
+        var b = graph.AddNode("b", 80, 40);
+        HierarchicalLayoutAlgorithm.MarkLayoutOnly(graph.AddEdge("hint", a, b));
+        var c = graph.AddNode("c", 80, 40);
+        var d = graph.AddNode("d", 80, 40);
+        graph.AddEdge("c-d", c, d);
+
+        // Act
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+
+        // Assert: only the real edge is drawn.
+        Assert.Single(tree.Nodes.OfType<LayoutLine>());
+    }
+
+    /// <summary>
     ///     Proves an edge from a node nested in a container to a plain root-level leaf joins the leaf's
     ///     component with the container's, instead of being dropped.
     /// </summary>

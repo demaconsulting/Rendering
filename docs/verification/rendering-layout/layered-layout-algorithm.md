@@ -157,3 +157,15 @@ the argument-null validation behavior constitutes a failure.
   Apply_LayoutOnlyEdge_AffectsLayeringButEmitsNoLine (two nodes with no edge share a layer; adding only a
   layout-only edge layers the target after the source yet emits no line or port, for both
   `MergeParallelEdges` settings), Apply_LayoutOnlyEdgeParallelToRealEdge_KeepsRealEdgeAndItsLabel
+- **`Rendering-Layout-LayeredAlgorithm-RealEdgeNeverHiddenByLayoutOnlyEdge`**:
+  Apply_LayoutOnlyEdgeDeclaredFirstWithMergeParallelEdges_EmitsRealConnector (a layout-only `A -> B` edge
+  declared FIRST, then a labeled real edge `A -> B` or `B -> A`, with `MergeParallelEdges = true`: exactly
+  one line is emitted and it carries the real edge's label and end marker),
+  Apply_LayoutOnlyEdgeFirstThenTwoRealParallelEdgesWithMerge_EmitsOneMergedConnector (layout-only first,
+  then two real parallel edges: one merged connector survives),
+  Apply_LayoutOnlyEdgeFirstWithMergeParallelEdgesFalse_EmitsRealConnectorOnly (guard: without merging,
+  only the real connector is emitted)
+- **`Rendering-Layout-LayeredAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly`**:
+  Apply_UserEdgeWithOldReservedPrefix_StillEmitsLine (an ordinary edge whose identifier is the literal
+  former reserved prefix `"\u0001layout-only:"` plus a suffix still emits its line, for both
+  `MergeParallelEdges` settings)

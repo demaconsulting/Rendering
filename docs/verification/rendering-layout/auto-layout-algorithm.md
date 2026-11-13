@@ -114,3 +114,9 @@ argument-null validation behavior constitutes a failure.
   edge `T-U` emit boxes `Q, S, T, U`, with `Q`'s child inside `Q`),
   Apply_NestedAutoScopeWithContainerAndPair_AttachesChildToItsOwnContainer (the same through a nested
   scope inheriting `auto`, where the container's child was previously attached to the wrong box)
+- **`Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker`**:
+  Apply_MarkedLayoutOnlyEdge_IsNotDrawnAfterComponentSplit (a marked layout-only edge `a -> b` beside a
+  separate real component `c -> d` is carried onto its component copy, so exactly one line - the real
+  one - is emitted), Apply_UserEdgeWithOldReservedPrefixAcrossComponents_StillEmitsLine (two components,
+  one joined by an edge whose identifier is the literal former reserved prefix `"\u0001layout-only:"`
+  plus a suffix: both edges are drawn)

@@ -116,6 +116,14 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   `Apply_CrossHierarchyEdge_RootDeclaredBothEndpointsUnderOneContainer_RoutesBetweenNestedNodes`
   confirms a root-declared edge between nodes in two sub-containers of one top-level container is routed
   between those nested nodes instead of dropped.
+- **Layout-only marker is collision-proof**
+  (`Rendering-Layout-HierarchicalLayout-LayoutOnlyMarkerIsCollisionProof`):
+  `IsLayoutOnlyEdge_MarkedEdgeTrueUnmarkedFalseRegardlessOfId` confirms the marker is keyed by edge
+  object identity (a marked edge reports layout-only, an unmarked edge - even one whose identifier is
+  the literal former reserved prefix - does not), and
+  `Apply_UserLeafEdgeNamedLikeProxyOfRoutedEdge_RendersBoth` (`auto` and `hierarchical` roots) confirms
+  a root leaf edge whose identifier is `"\u0001layout-only:e1"` neither collides with the proxy of the
+  routed cross-hierarchy edge `e1` (no duplicate-identifier error) nor is dropped: both lines render.
 - **Propagates direction** (`Rendering-Layout-HierarchicalLayout-CascadesOptions`):
   `Apply_ContainerWithDirectionOverride_HonorsNestedDirection` sets `CoreOptions.Direction` on a
   container's own children graph (while the top-level options select the default direction) and
@@ -214,6 +222,9 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
 - **`Rendering-Layout-HierarchicalLayout-HierarchyHandling`**:
   Apply_TwoLevelNesting_SizesContainerAndNestsChildrenAbsolutely, Apply_CompoundGraph_DoesNotMutateInputNodeSizes,
   HierarchicalLayoutAlgorithm_NoBoundaryPortHierarchy_OutputIsByteIdenticalBeforeAndAfterChange
+- **`Rendering-Layout-HierarchicalLayout-LayoutOnlyMarkerIsCollisionProof`**:
+  IsLayoutOnlyEdge_MarkedEdgeTrueUnmarkedFalseRegardlessOfId,
+  Apply_UserLeafEdgeNamedLikeProxyOfRoutedEdge_RendersBoth
 - **`Rendering-Layout-HierarchicalLayout-CrossContainerEdge`**:
   Apply_CrossContainerEdge_RoutesAroundInterveningContainer
 - **`Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening`**:

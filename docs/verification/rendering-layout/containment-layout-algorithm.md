@@ -99,3 +99,6 @@ behavior constitutes a failure.
 - **`Rendering-Layout-ContainmentAlgorithm-LayoutOnlyEdges`**:
   Apply_SameRowPeersWithLayoutOnlyEdges_WidensGapButEmitsNoLine (eight layout-only edges between
   same-row peers produce the same 132px corridor as real edges but no line)
+- **`Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly`**:
+  Apply_UserEdgeWithOldReservedPrefixOnPackedPeers_StillEmitsLine (an ordinary edge whose identifier is
+  the literal former reserved prefix `"\u0001layout-only:"` plus a suffix is routed and drawn)

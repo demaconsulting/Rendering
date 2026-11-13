@@ -43,6 +43,8 @@ sections:
           - Rendering-Layout-LayeredAlgorithm-PortLabelWidthFloor
           - Rendering-Layout-LayeredAlgorithm-ShapeAwareRouting
           - Rendering-Layout-LayeredAlgorithm-LayoutOnlyEdges
+          - Rendering-Layout-LayeredAlgorithm-RealEdgeNeverHiddenByLayoutOnlyEdge
+          - Rendering-Layout-LayeredAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly
         tests:
           - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
           - Id_IsLayered
@@ -182,6 +184,7 @@ sections:
           - Rendering-Layout-ContainmentAlgorithm-VerticalStackUnaffected
           - Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula
           - Rendering-Layout-ContainmentAlgorithm-LayoutOnlyEdges
+          - Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly
         tests:
           - Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas
           - Id_IsContainment
@@ -207,6 +210,7 @@ sections:
           - Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-NestedAnchors
           - Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-AncestorPlacement
           - Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-SameContainer
+          - Rendering-Layout-HierarchicalLayout-LayoutOnlyMarkerIsCollisionProof
           - Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening
           - Rendering-Layout-HierarchicalLayout-SiblingContainerGapWideningSingleEdgeUnaffected
           - Rendering-Layout-HierarchicalLayout-SiblingGapWideningPortPathUnaffected
@@ -284,6 +288,7 @@ sections:
           - Rendering-Layout-AutoAlgorithm-Validation
           - Rendering-Layout-AutoAlgorithm-NestedEndpointConnectivity
           - Rendering-Layout-AutoAlgorithm-PreservesInputBoxOrder
+          - Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker
         tests:
           - Id_IsAuto
           - Apply_ClusterPlusIsolatedSingletons_PacksBothGroupsWithoutOverlap

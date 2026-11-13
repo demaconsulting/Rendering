@@ -79,7 +79,10 @@ to a new parent graph. Every node in a split-off component is therefore copied f
 shape, keyword, compartments, title height, rounded-corner radius, folder-tab dimensions, its named
 ports, and (recursively) its entire nested `Children` subgraph — with edges re-added afterward once
 every node and port in the component has a copy, so both direct and cross-container edge endpoints
-resolve correctly regardless of nesting depth.
+resolve correctly regardless of nesting depth. A layout-only edge (see the hierarchical algorithm's
+design) is marked by edge object identity rather than by its identifier, so each edge copy is re-marked
+when its original was marked; every other edge copy stays an ordinary, drawn edge whatever its
+identifier.
 
 **Known, disclosed limitation.** A node's or edge's own arbitrary `PropertyHolder` option overrides
 (set with `node.Set(property, value)`, for example a per-node `CoreOptions.Algorithm` override on a
@@ -120,3 +123,4 @@ bundled algorithms and is resolved by renderers through the layout registry like
 | Rendering-Layout-AutoAlgorithm-Validation | AutoLayoutAlgorithm behavior described above |
 | Rendering-Layout-AutoAlgorithm-NestedEndpointConnectivity | Component detection (step 1) |
 | Rendering-Layout-AutoAlgorithm-PreservesInputBoxOrder | Genuine multi-group split (step 4) |
+| Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker | Sub-Graph Construction (edge copying) |

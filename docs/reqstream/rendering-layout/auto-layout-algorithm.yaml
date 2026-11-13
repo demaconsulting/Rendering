@@ -148,3 +148,16 @@ sections:
         tests:
           - Apply_MultiGroupScopeWithContainer_EmitsBoxesInInputOrder
           - Apply_NestedAutoScopeWithContainerAndPair_AttachesChildToItsOwnContainer
+
+      - id: Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker
+        title: >-
+          When AutoLayoutAlgorithm splits a graph into components, it shall keep a layout-only edge
+          layout-only in its component copy (placed but never drawn) and shall keep treating every other
+          edge, whatever its identifier, as a real edge.
+        justification: |
+          The layout-only marker is keyed by edge object identity, so the component copy must carry it
+          across explicitly; losing it would draw a spurious connector for a placement hint, and keying
+          it by identifier would hide a real edge whose identifier happened to match.
+        tests:
+          - Apply_MarkedLayoutOnlyEdge_IsNotDrawnAfterComponentSplit
+          - Apply_UserEdgeWithOldReservedPrefixAcrossComponents_StillEmitsLine

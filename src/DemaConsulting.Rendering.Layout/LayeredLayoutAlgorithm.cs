@@ -24,9 +24,10 @@ namespace DemaConsulting.Rendering.Layout;
 /// for its ports' labels, measured via the shared <see cref="PortLabelWidthEstimator"/> (in
 /// <c>Rendering.Abstractions</c>, also consumed by <c>Rendering.Svg</c>'s renderer so layout-time and
 /// render-time measurements never disagree) at <see cref="CoreOptions.AssumedFontSize"/>. An edge
-/// marked layout-only by the hierarchical engine (see
-/// <see cref="HierarchicalLayoutAlgorithm.LayoutOnlyEdgeIdPrefix"/>) takes part in layering, ordering,
-/// and spacing exactly like a real edge but emits no connector, port, or anchor reservation.
+/// marked layout-only by the hierarchical engine (an identity-keyed marker, see
+/// <c>HierarchicalLayoutAlgorithm.MarkLayoutOnly</c>) takes part in layering, ordering,
+/// and spacing exactly like a real edge but emits no connector, port, or anchor reservation, and never
+/// displaces a real parallel edge as the retained representative when parallel edges are merged.
 /// </summary>
 public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
 {
@@ -115,6 +116,11 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         var edgeSourcePorts = new List<LayoutGraphPort?>(graph.Edges.Count);
         var edgeTargetPorts = new List<LayoutGraphPort?>(graph.Edges.Count);
         var edgeByEngineIndex = new List<LayoutGraphEdge>(graph.Edges.Count);
+        // Real edges are added first and layout-only edges last (relative order preserved within each
+        // group): the cycle breaker keeps the FIRST edge of each parallel group as the retained
+        // representative, so a layout-only edge must never precede a real edge on the same node pair or
+        // it would win the de-duplication and hide the real connector when MergeParallelEdges is true.
+        var layoutOnlyEdges = new List<(LayerEdge Edge, LayoutGraphPort? SourcePort, LayoutGraphPort? TargetPort, LayoutGraphEdge Source)>();
         foreach (var edge in graph.Edges)
         {
             if (!TryResolveEndpoint(edge.Source, indexOf, portOwnerIndex, out var s, out var sourcePort) ||
@@ -123,10 +129,24 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 continue;
             }
 
+            if (HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(edge))
+            {
+                layoutOnlyEdges.Add((new LayerEdge(s, t), sourcePort, targetPort, edge));
+                continue;
+            }
+
             engineEdges.Add(new LayerEdge(s, t));
             edgeSourcePorts.Add(sourcePort);
             edgeTargetPorts.Add(targetPort);
             edgeByEngineIndex.Add(edge);
+        }
+
+        foreach (var (layoutOnlyEdge, sourcePort, targetPort, original) in layoutOnlyEdges)
+        {
+            engineEdges.Add(layoutOnlyEdge);
+            edgeSourcePorts.Add(sourcePort);
+            edgeTargetPorts.Add(targetPort);
+            edgeByEngineIndex.Add(original);
         }
 
         var direction = ToEngineDirection(ResolveDirection(graph, options));

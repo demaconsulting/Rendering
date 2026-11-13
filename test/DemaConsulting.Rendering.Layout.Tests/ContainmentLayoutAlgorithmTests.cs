@@ -346,7 +346,8 @@ public sealed class ContainmentLayoutAlgorithmTests
         right.Label = "Right";
         for (var i = 0; i < 8; i++)
         {
-            graph.AddEdge(HierarchicalLayoutAlgorithm.LayoutOnlyEdgeIdPrefix + i, left, right);
+            var layoutOnly = graph.AddEdge("ab" + i, left, right);
+            HierarchicalLayoutAlgorithm.MarkLayoutOnly(layoutOnly);
         }
 
         // Act
@@ -547,6 +548,26 @@ public sealed class ContainmentLayoutAlgorithmTests
         b.X < a.X + a.Width &&
         a.Y < b.Y + b.Height &&
         b.Y < a.Y + a.Height;
+
+    /// <summary>
+    ///     Proves an ordinary caller edge whose identifier starts with the OLD reserved layout-only prefix
+    ///     is a real edge and still renders (the marker is identity-keyed, never id-keyed).
+    /// </summary>
+    [Fact]
+    public void Apply_UserEdgeWithOldReservedPrefixOnPackedPeers_StillEmitsLine()
+    {
+        // Arrange: the literal old prefix, so this compiles whether or not the constant still exists.
+        var graph = new LayoutGraph();
+        var left = graph.AddNode("left", 100, 60);
+        var right = graph.AddNode("right", 100, 60);
+        graph.AddEdge("\u0001layout-only:user", left, right);
+
+        // Act
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        Assert.Single(tree.Nodes.OfType<LayoutLine>());
+    }
 
     /// <summary>
     ///     Returns true when the axis-aligned segment passes through the strict interior of the rect.

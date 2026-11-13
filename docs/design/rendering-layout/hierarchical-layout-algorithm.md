@@ -68,10 +68,14 @@ overrides win over the supplied options, exactly like every nested scope), and c
    caller's input graph is never mutated. In addition, when the resolved leaf algorithm is one of the
    bundled ones that understands layout-only edges (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`,
    or `AutoLayoutAlgorithm`), the view receives one *layout-only proxy edge* per routed edge (step 6)
-   whose endpoints live under two different direct members, joining those two direct members. The proxy's
-   edge identifier carries the reserved prefix `LayoutOnlyEdgeIdPrefix` (the marker travels in the
-   identifier because an identifier, unlike a property override, survives `AutoLayoutAlgorithm`'s
-   component split); the bundled leaf algorithms let such an edge drive layering, ordering, and gap
+   whose endpoints live under two different direct members, joining those two direct members. The proxy
+   edge is marked through `MarkLayoutOnly`, which records the edge object in an identity-keyed
+   side table (a `ConditionalWeakTable`) rather than encoding anything in its identifier, so no
+   caller-chosen identifier can collide with it; `AutoLayoutAlgorithm` re-marks each edge copy it
+   makes when it splits a graph into components. The proxy's own identifier is a unique, non-reserved
+   name (`layout-only:{edge id}`, with a numeric suffix if that already names a leaf edge in the
+   view) that never surfaces because the edge is never emitted. The bundled leaf algorithms let such an
+   edge drive layering, ordering, and gap
    sizing but emit no connector, port, or anchor for it. A custom leaf algorithm receives the view
    unchanged (no proxies), so it is never handed an edge it does not understand.
 4. **Placement.** The resolved leaf algorithm places the sized view against `effective`, emitting one box
@@ -277,6 +281,7 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-NestedAnchors | Cross-hierarchy routing (step 6) |
 | Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-AncestorPlacement | Layout-only proxy edges (step 3) |
 | Rendering-Layout-HierarchicalLayout-CrossHierarchyEdge-SameContainer | Cross-hierarchy routing (step 6) |
+| Rendering-Layout-HierarchicalLayout-LayoutOnlyMarkerIsCollisionProof | Layout-only proxy edges (step 3) |
 | Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening | Widening pass described above |
 | Rendering-Layout-HierarchicalLayout-SiblingContainerGapWideningSingleEdgeUnaffected | Widening pass described above |
 | Rendering-Layout-HierarchicalLayout-SiblingGapWideningPortPathUnaffected | Widening pass described above |

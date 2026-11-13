@@ -130,6 +130,19 @@ sections:
         tests:
           - Apply_CrossHierarchyEdge_RootDeclaredBothEndpointsUnderOneContainer_RoutesBetweenNestedNodes
 
+      - id: Rendering-Layout-HierarchicalLayout-LayoutOnlyMarkerIsCollisionProof
+        title: >-
+          HierarchicalLayoutAlgorithm shall identify its layout-only proxy edges by an internal marker
+          keyed by edge object identity, never by edge identifier, so that no caller-chosen edge
+          identifier can be mistaken for a proxy or collide with one.
+        justification: |
+          Identifying proxies by an identifier prefix silently dropped a real edge whose identifier began
+          with that prefix and could throw a duplicate-identifier error; an identity-keyed marker cannot
+          collide with any public value.
+        tests:
+          - IsLayoutOnlyEdge_MarkedEdgeTrueUnmarkedFalseRegardlessOfId
+          - Apply_UserLeafEdgeNamedLikeProxyOfRoutedEdge_RendersBoth
+
       - id: Rendering-Layout-HierarchicalLayout-SiblingContainerGapWidening
         title: >-
           On the no-boundary-port placement path, HierarchicalLayoutAlgorithm shall widen the horizontal
