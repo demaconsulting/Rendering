@@ -119,7 +119,7 @@ Most OTS software items are compliance, build, and documentation tooling consume
 verifying, and documenting the Rendering libraries, and are not linked into the delivered packages.
 CanvasNet is the one exception: it is a pure managed runtime library linked into the delivered
 `DemaConsulting.Rendering.CanvasNet` package, with no native binary dependency or platform-specific
-native asset packages. Their integration design is described in the OTS Integration Design section
+native asset packages. Its integration design is described in the OTS Integration Design section
 and the per-item documents under `docs/design/ots/`.
 
 Package dependencies form an acyclic graph: `Abstractions` and `Layout` depend on the
