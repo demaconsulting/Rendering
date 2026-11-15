@@ -118,9 +118,9 @@ algorithms and renderers implement the Abstractions contracts](architecture.svg)
 Most OTS software items are compliance, build, and documentation tooling consumed while building,
 verifying, and documenting the Rendering libraries, and are not linked into the delivered packages.
 CanvasNet is the one exception: it is a pure managed runtime library linked into the delivered
-`DemaConsulting.Rendering.CanvasNet` package, with no P/Invoke layer or platform-specific native
-asset packages. Their integration design is described in the OTS Integration Design section and the
-per-item documents under `docs/design/ots/`.
+`DemaConsulting.Rendering.CanvasNet` package, with no native binary dependency or platform-specific
+native asset packages. Their integration design is described in the OTS Integration Design section
+and the per-item documents under `docs/design/ots/`.
 
 Package dependencies form an acyclic graph: `Abstractions` and `Layout` depend on the
 `Rendering` model; `Svg` and `CanvasNet` depend on the model and `Abstractions`; the model
