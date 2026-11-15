@@ -9,16 +9,23 @@ the managed raster surface, drawing primitives, path geometry, typeface loading,
 that `CanvasNetRasterRenderer`, `PngRenderer`, and `JpegRenderer` use to turn a placed
 `LayoutTree` into PNG and JPEG output.
 
-CanvasNet is authored by DemaConsulting as a **pure native-managed .NET library with no P/Invoke
-layer and no native binary dependency**. Its only package dependency is
-`System.Numerics.Tensors`, which it uses as a SIMD helper.
+CanvasNet is authored by DemaConsulting as a **pure managed .NET library with no native binary
+dependency**: its drawing, text, and codec code is entirely managed, and it ships no
+platform-specific native assets. Its only P/Invoke calls are to the Windows, Linux, and macOS
+system file APIs inside its linked-file resolver (`DemaConsulting.CanvasNet.Files`), which the
+Rendering renderers never call. Its only package dependency is `System.Numerics.Tensors`,
+which it uses as a SIMD helper.
+
+**Version**: `DemaConsulting.CanvasNet` `0.2.0-beta.9`, which ships `net8.0`, `net9.0`,
+`net10.0`, and `net11.0` assets, so each target framework of the renderer package binds to a
+matching CanvasNet asset.
 
 **License**: MIT (`DemaConsulting.CanvasNet`, referenced as a NuGet package; see the `Dependencies`
 section of *Rendering.CanvasNet Design* for the same license statement at the system level).
 
 **Selection rationale**: CanvasNet was selected to replace the prior SkiaSharp-based raster backend
-specifically because it is a native-managed .NET library with no P/Invoke layer, whereas SkiaSharp
-requires a native binary per platform/architecture that was the source of cross-platform DLL
+specifically because it is a managed .NET library with no native binary dependency, whereas
+SkiaSharp requires a native binary per platform/architecture that was the source of cross-platform DLL
 compatibility problems this migration set out to resolve. CanvasNet is authored by this same
 organization (DemaConsulting), which allows the rendering libraries to depend on a raster backend
 whose roadmap and codec support can be directly influenced rather than depending on a third-party
@@ -62,6 +69,12 @@ immediately after the typeface has been created.
 **Configuration.** Each concrete renderer configures CanvasNet only through its metadata overrides
 and codec save call (`PngCodec.Save` or `JpegCodec.Save`). No CanvasNet global state is mutated;
 every render call constructs its own drawing objects over a fresh `Surface`.
+
+**Linked-file access.** CanvasNet's linked-file access policy (`FileAccessPolicy`, whose default
+became unrestricted in the 0.2 beta series) governs only the files that SVG, OpenSCAD, Vega-Lite,
+and document sources reference. The renderers draw a `LayoutTree` held in memory and use only the
+embedded font resource, so they open no files and pass no file-access policy; the policy default
+has no effect on this package, and its file-access behavior is unchanged.
 
 **Resource lifecycle and disposal.** CanvasNet's object model is predominantly ordinary managed
 objects. The only object in the renderer path that requires deterministic disposal is `Surface`,

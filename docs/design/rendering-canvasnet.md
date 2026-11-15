@@ -56,8 +56,9 @@ Unlike the build-time and documentation OTS items, this system carries a runtime
 
 - **CanvasNet** — the pure managed raster-graphics library (MIT license) that provides the
   `Surface`, drawing canvas, geometry paths, text renderer, typeface loader, and PNG/JPEG codecs
-  used for raster drawing and encoding. CanvasNet has no P/Invoke layer, no native binary
-  dependency, and no platform-specific initialization. It is documented as an OTS software item —
+  used for raster drawing and encoding. CanvasNet has no native binary dependency and no
+  platform-specific initialization, and the drawing and codec APIs used here make no P/Invoke
+  calls. It is documented as an OTS software item —
   see *CanvasNet Integration Design* under `docs/design/ots/` for its integration pattern.
 
 The system also embeds a Noto Sans font (SIL Open Font License 1.1) as a resource so text is drawn
