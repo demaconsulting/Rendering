@@ -15,7 +15,7 @@ into single HTML documents that WeasyPrint then renders to PDF.
 - **Diagram filtering** — the CanvasNet Lua filter (`docs/filters/canvasnet.lua`, listed in each
   `definition.yaml`) draws embedded Mermaid diagrams natively through the CanvasNet tool, so no
   separate Mermaid filter or npm package is needed to render them. It draws the flowchart (and graph),
-  sequence, class, state, entity-relationship, pie, gantt, mindmap, packet, and gitGraph types; any other
+  sequence, class, state, entity-relationship, pie, Gantt, mind-map, packet, and gitGraph types; any other
   type (such as journey or timeline) is left in the document as a code block with a warning, so such
   diagrams must not be used in these documents.
 - **Metadata injection** (`--metadata version=...`, `--metadata date=...`) and HTML output
