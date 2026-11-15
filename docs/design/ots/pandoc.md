@@ -13,9 +13,8 @@ into single HTML documents that WeasyPrint then renders to PDF.
   collection's Pandoc build definition (input files, resource paths, template, table of contents, and
   section numbering) and concatenates the listed Markdown files into one HTML document.
 - **Diagram filtering** — the CanvasNet Lua filter (`docs/filters/canvasnet.lua`, listed in each
-  `definition.yaml`) draws embedded Mermaid diagrams natively through the CanvasNet tool; the
-  `--filter node_modules/.bin/mermaid-filter.cmd` option still given on the command line runs after it
-  and sees only Mermaid diagram types the CanvasNet tool does not draw.
+  `definition.yaml`) draws embedded Mermaid diagrams natively through the CanvasNet tool, so no
+  separate Mermaid filter or npm package is needed to render them.
 - **Metadata injection** (`--metadata version=...`, `--metadata date=...`) and HTML output
   (`--output docs/{collection}/generated/{collection}.html`).
 

@@ -16,7 +16,7 @@ system file APIs inside its linked-file resolver (`DemaConsulting.CanvasNet.File
 Rendering renderers never call. Its only package dependency is `System.Numerics.Tensors`,
 which it uses as a SIMD helper.
 
-**Version**: `DemaConsulting.CanvasNet` `0.2.0-beta.9`, which ships `net8.0`, `net9.0`,
+**Version**: `DemaConsulting.CanvasNet` `0.2.0-beta.10`, which ships `net8.0`, `net9.0`,
 `net10.0`, and `net11.0` assets, so each target framework of the renderer package binds to a
 matching CanvasNet asset.
 
