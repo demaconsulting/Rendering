@@ -50,6 +50,8 @@ sections:
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCircledPlus
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSourceEnd
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSvgParity
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerTipOnEndpoint
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerPortEndpoint
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCrossbar
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCornerClamp
           - Rendering-CanvasNet-CanvasNetRasterRenderer-BoxOutlineStyle

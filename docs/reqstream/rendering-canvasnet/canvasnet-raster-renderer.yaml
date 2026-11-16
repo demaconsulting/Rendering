@@ -206,6 +206,35 @@ sections:
           - EndMarkerParity_TargetEnd_PngFootprintMatchesSvgGeometry
           - EndMarkerParity_SourceEnd_PngFootprintMatchesMirroredSvgGeometry
           - EndMarkerParity_ThickerStrokeTheme_FootprintsStillMatch
+          - EndMarkerParity_TipLandsOnEndpoint_InBothRenderers
+          - EndMarkerParity_PortEnd_ShortenedIdenticallyInBothRenderers
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerTipOnEndpoint
+        title: >-
+          CanvasNetRasterRenderer shall draw every end marker, at both ends of a line, so that its
+          stroked tip lands on the line endpoint (the box boundary) and puts no marker ink past the
+          endpoint or into the target box interior.
+        justification: |
+          A tip painted past the endpoint pokes into the target box (diagram-quality criterion C1: the
+          endpoint must be on the box boundary). The glyph is retracted by the shared stroke-aware tip
+          retraction, the same one the SVG renderer applies, so the bevel-joined, round or butt painted
+          tip is on the endpoint rather than 1 to 2 px beyond it.
+        tests:
+          - EndMarker_TargetEnd_PaintedTipDoesNotPassEndpoint
+          - EndMarker_SourceEnd_PaintedTipDoesNotPassStartPoint
+          - EndMarker_OnBoxFace_DoesNotInkTheBoxInterior
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerPortEndpoint
+        title: >-
+          CanvasNetRasterRenderer shall shorten a line end that carries an end marker and sits on a
+          port by the port half size along its end segment, so the painted tip lands on the port
+          square's outer edge and the arrowhead is not hidden under the port glyph.
+        justification: |
+          The port square is painted after the connector and covers the last half port size of the
+          marker. Shortening the drawn end (identically to the SVG renderer, without altering the
+          layout waypoints) puts the visible tip on the visible target.
+        tests:
+          - EndMarker_OnPort_IsNotHiddenUnderPortGlyph
 
       - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCrossbar
         title: >-

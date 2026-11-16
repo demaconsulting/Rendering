@@ -57,6 +57,8 @@ sections:
           - Rendering-Svg-SvgRenderer-HollowTriangleEndMarkers
           - Rendering-Svg-SvgRenderer-HollowTriangleEndMarkerReference
           - Rendering-Svg-SvgRenderer-TriangleEndMarkerMetrics
+          - Rendering-Svg-SvgRenderer-EndMarkerTipOnEndpoint
+          - Rendering-Svg-SvgRenderer-EndMarkerPortEndpoint
           - Rendering-Svg-SvgRenderer-DiamondEndMarkers
           - Rendering-Svg-SvgRenderer-DiamondEndMarkerReference
           - Rendering-Svg-SvgRenderer-CrossbarEndMarkers

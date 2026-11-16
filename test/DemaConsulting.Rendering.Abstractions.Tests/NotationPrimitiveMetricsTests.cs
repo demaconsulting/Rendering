@@ -176,15 +176,22 @@ public sealed class NotationPrimitiveMetricsTests
     }
 
     /// <summary>
-    ///     The rendered along-line length scales the notation length by the theme stroke width, matching
-    ///     the SVG marker-unit convention, and is zero without a marker.
+    ///     The rendered along-line length is the marker box length (the notation length, widened only when
+    ///     the tip retraction exceeds the slack behind the glyph) scaled by the theme stroke width,
+    ///     matching the SVG marker-unit convention, and is zero without a marker.
     /// </summary>
     [Fact]
     public void RenderedAlongLineLength_ScalesNotationLengthByStrokeWidth()
     {
         var theme = Themes.Light;
 
-        Assert.Equal(NotationMetrics.EndMarkerLength * theme.StrokeWidth, NotationMetrics.RenderedAlongLineLength(EndMarkerStyle.OpenChevron, theme), Tolerance);
+        // The triangle family grows by its tip retraction (the glyph is moved back so the stroked tip lands on the endpoint).
+        Assert.Equal(
+            (NotationMetrics.EndMarkerLength + NotationMetrics.TipRetraction(EndMarkerStyle.OpenChevron, theme)) * theme.StrokeWidth,
+            NotationMetrics.RenderedAlongLineLength(EndMarkerStyle.OpenChevron, theme),
+            Tolerance);
+
+        // Circled plus has slack behind its far point, so its box (and reservation) is unchanged.
         Assert.Equal(NotationMetrics.CircledPlusMarkerBox * theme.StrokeWidth, NotationMetrics.RenderedAlongLineLength(EndMarkerStyle.CircledPlus, theme), Tolerance);
         Assert.Equal(0.0, NotationMetrics.RenderedAlongLineLength(EndMarkerStyle.None, theme));
     }

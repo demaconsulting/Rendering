@@ -18,8 +18,8 @@ path. `MarkerVertex` expresses one vertex in tip-relative units.
 
 - `NotationMetrics` (static class) — the end-marker, port, folder, note, badge, label, dotted-triangle,
   crossbar, circled-plus, thick-bar, crossed-circle, and corner-icon constants plus the `AlongLineLength`,
-  `MarkerScale`, `MarkerStrokeWidth`, `RenderedAlongLineLength`, `AcrossHalfWidth`, `DotCenters`,
-  `TriangleFamilyBox`, `TriangleVertices`,
+  `MarkerScale`, `MarkerStrokeWidth`, `RenderedAlongLineLength`, `TipRetraction`, `MarkerAnchor`,
+  `AcrossHalfWidth`, `DotCenters`, `TriangleFamilyBox`, `TriangleVertices`,
   `DiamondVertices`, `CornerIconVertices`, and `RoundedRectRadius` helpers.
 - `MarkerVertex` (readonly record struct) — `Along` (distance back from the tip) and `Across`
   (perpendicular offset).
@@ -31,12 +31,12 @@ The notation-primitive constants added for the SysML v2 end markers, badges, and
   `FourDotsExtension` = `TwoDotsExtension` + `DotColumnSpacing` (9.0).
 - Dotted marker box lengths: `TwoDotsMarkerLength` = `EndMarkerLength` + `TwoDotsExtension` (15.0);
   `FourDotsMarkerLength` = `EndMarkerLength` + `FourDotsExtension` (19.0).
-- Dotted tip anchors: `TwoDotsRefX` = `EndMarkerRefX` + `TwoDotsExtension` (14.0); `FourDotsRefX` =
-  `EndMarkerRefX` + `FourDotsExtension` (18.0).
+- Dotted tip anchors: `TwoDotsRefX` = `EndMarkerRefX` + `TwoDotsExtension` (15.0); `FourDotsRefX` =
+  `EndMarkerRefX` + `FourDotsExtension` (19.0).
 - Redefinition crossbar: `CrossbarBaseGap` (3.5, base to bar), `CrossbarStrokeRoom` (1.0, room for half the bar
   stroke inside the box), `CrossbarExtension` = gap + room (4.5), `CrossbarMarkerLength` =
   `EndMarkerLength` + `CrossbarExtension` (14.5), `CrossbarRefX` = `EndMarkerRefX` + `CrossbarExtension`
-  (13.5), `CrossbarAlong` = `EndMarkerRefX` + `CrossbarBaseGap` (12.5 back from the tip), and
+  (14.5), `CrossbarAlong` = `EndMarkerRefX` + `CrossbarBaseGap` (13.5 back from the tip), and
   `CrossbarHalfLength` = `EndMarkerHalfWidth` (3.5, the bar spans the base).
 - Circled plus: `CircledPlusRadius` (5.0), `CircledPlusMarkerBox` (12.0), `CircledPlusCenter` = box / 2
   (6.0), `CircledPlusRefX` = center + radius (11.0), and `CircledPlusArmHalfLength` = radius (5.0).
@@ -49,19 +49,20 @@ The notation-primitive constants added for the SysML v2 end markers, badges, and
 Marker geometry is expressed in tip-relative units: `Along` is the distance measured back from the line
 endpoint (the tip) into the line, and `Across` is the perpendicular offset from the line. The triangle
 of every hollow-triangle-family marker is the unchanged `TriangleVertices` result (base corners at
-`Along` = `EndMarkerRefX` = 9.0, `Across` = ±3.5; apex at `Along` = -1.0). The dots sit just behind the
-triangle base, straddling the line.
+`Along` = `EndMarkerRefX` = 10.0, `Across` = ±3.5; apex at `Along` = 0.0, on the tip anchor, with no
+overshoot). The dots sit just behind the triangle base, straddling the line. The vertex values describe
+the geometric glyph; the painted tip is moved onto the endpoint by `TipRetraction` (below).
 
-| Style | Dot centers (`Along`, `Across`) | Marker box length / tip anchor (`refX`) |
+| Style | Dot centers (`Along`, `Across`) | Glyph box length / tip anchor (`refX`) |
 | --- | --- | --- |
-| `HollowTriangle` | none | 10.0 / 9.0 |
-| `HollowTriangleCrossbar` | none; bar at `Along` 12.5, `Across` -3.5 to +3.5 | 14.5 / 13.5 |
-| `HollowTriangleTwoDots` | (12.75, -2.25), (12.75, +2.25) | 15.0 / 14.0 |
-| `HollowTriangleFourDots` | (12.75, -2.25), (12.75, +2.25), (16.75, -2.25), (16.75, +2.25) | 19.0 / 18.0 |
+| `HollowTriangle` | none | 10.0 / 10.0 |
+| `HollowTriangleCrossbar` | none; bar at `Along` 13.5, `Across` -3.5 to +3.5 | 14.5 / 14.5 |
+| `HollowTriangleTwoDots` | (13.75, -2.25), (13.75, +2.25) | 15.0 / 15.0 |
+| `HollowTriangleFourDots` | (13.75, -2.25), (13.75, +2.25), (17.75, -2.25), (17.75, +2.25) | 19.0 / 19.0 |
 | `CircledPlus` | none; circle centered 6.0 from the box origin, radius 5.0 | 12.0 / 11.0 |
 
-The first dot column is at `Along` = `EndMarkerRefX` + `DotBaseGap` + `DotRadius` (9.0 + 2.5 + 1.25 =
-12.75); the second column of the four-dot marker is a further `DotColumnSpacing` (4.0) back, at 16.75.
+The first dot column is at `Along` = `EndMarkerRefX` + `DotBaseGap` + `DotRadius` (10.0 + 2.5 + 1.25 =
+13.75); the second column of the four-dot marker is a further `DotColumnSpacing` (4.0) back, at 17.75.
 Each dot has radius 1.25 and its centre is 2.25 either side of the line, so a dot spans `Across` from
 1.0 to 3.5: clear of the line stroke and exactly as wide as the triangle (`EndMarkerHalfWidth` = 3.5).
 The marker box is widened behind the base by the dot extension and the tip anchor is shifted by the
@@ -81,6 +82,25 @@ the marker box is widened behind the base (by `CrossbarExtension`) and the tip a
 same amount, so the apex lands where a plain `HollowTriangle`'s does, on the target box border. The
 earlier geometry put the bar at 0.7 of the marker length, against the apex; that fraction
 (`CrossbarFraction`, `CrossbarX`) no longer exists.
+
+#### Tip retraction: the painted tip lands on the endpoint
+
+A stroked glyph paints beyond its geometric vertices, so drawing the far vertex on the line endpoint (the
+box boundary) leaves the painted tip past it, inside the target box. Before this correction the triangle
+apex deliberately overshot the endpoint by one notation unit (1.5 px at the default scale), and the
+renderers' joins added up to a further 0.4 to 1.1 px, so every marker tip poked 1.25 to 2 px into the
+target. `TipRetraction(style, theme)` is the distance, in notation units, the whole glyph is moved back
+along the line so its STROKED tip lands exactly on the endpoint: half the marker stroke width (the theme
+stroke width, in marker units) times a tip factor. The factor is the sine of the half angle at the far
+vertex for a bevel-joined polygon corner (3.5 / sqrt(10.0² + 3.5²) = 0.330 for the triangle family and
+4 / sqrt(6² + 4²) = 0.555 for the diamond), and 1 for the circle, circled plus and bar, whose round or
+butt stroke reaches the full half stroke width. At the default theme that is 0.25, 0.42 and 0.75
+notation units (0.37, 0.62 and 1.1 px). Both renderers join polygons and polylines with a bevel so this is
+exact, and `MarkerAnchor(style, theme)` returns the resulting marker box length and tip anchor: the glyph's
+own anchor plus the retraction, with the box widened when the retracted anchor would otherwise lie
+outside it (only the triangle family needs it, so the SVG box is never clipped at the tip). The box
+boundary's own border stroke is centered on the endpoint, so a tip that lands there merges into the
+border instead of entering the interior.
 
 #### Marker scale: one size in SVG and PNG
 
@@ -113,10 +133,19 @@ both renderers draw every end marker (see "Marker scale" above).
 `double MarkerStrokeWidth(Theme theme)` — returns `theme.StrokeWidth * MarkerScale(theme)`: the drawn
 width of a marker outline, which the raster renderer uses for marker strokes.
 
-`double RenderedAlongLineLength(EndMarkerStyle style, Theme theme)` — returns `AlongLineLength(style)`
-multiplied by `MarkerScale(theme)`: the length at which both renderers draw the decoration. A layout that
-must keep a decoration clear of the corner that precedes it, and a renderer that clamps the final
-corner radius, use this length.
+`double RenderedAlongLineLength(EndMarkerStyle style, Theme theme)` — returns the marker box length from
+`MarkerAnchor(style, theme)` multiplied by `MarkerScale(theme)`: the length at which both renderers draw
+the decoration (the notation length, widened only by the tip retraction where it exceeds the slack behind
+the glyph, which is the triangle family's 0.25 notation units). A layout that must keep a decoration
+clear of the corner that precedes it, and a renderer that clamps the final corner radius, use this length.
+
+`double TipRetraction(EndMarkerStyle style, Theme theme)` — returns the distance, in notation units, the
+glyph is moved back along the line so its stroked tip lands on the endpoint (see "Tip retraction"
+above); zero for `None`; throws `ArgumentNullException` for a null theme.
+
+`(double Length, double RefX) MarkerAnchor(EndMarkerStyle style, Theme theme)` — returns the marker box
+length and tip anchor (`refX`) both renderers use: the glyph's own box and anchor plus the retraction,
+the box widened when needed; (0, 0) for `None`; throws `ArgumentNullException` for a null theme.
 
 `double AcrossHalfWidth(EndMarkerStyle style)` — returns the perpendicular half-extent of a marker
 glyph measured from the line center: `EndMarkerHalfWidth` for the triangle family (including the two
@@ -144,8 +173,8 @@ convex pentagon (0, 0), (`ShoulderX`, 0), (`CornerIconWidth`, mid), (`ShoulderX`
 and any other value return an empty list.
 
 `IReadOnlyList<MarkerVertex> TriangleVertices()` — returns the three triangle vertices in tip-relative
-units, shared by the open chevron, hollow triangle, and filled arrow markers. The apex overshoots the
-line endpoint by `EndMarkerTipOvershoot`.
+units, shared by the open chevron, hollow triangle, and filled arrow markers. The apex lies on the tip
+anchor (`Along` = 0, no overshoot); the renderers retract the glyph by `TipRetraction`.
 
 `IReadOnlyList<MarkerVertex> DiamondVertices()` — returns the four diamond vertices in tip-relative
 units, shared by the hollow and filled diamonds. The far point lands exactly on the line endpoint.
@@ -156,7 +185,8 @@ units, shared by the hollow and filled diamonds. The far point lands exactly on 
 ### Notation Metrics Error Handling
 
 The constants and static helpers on `NotationMetrics` are pure functions. `RoundedRectRadius(Theme)`,
-`MarkerScale(Theme)`, `MarkerStrokeWidth(Theme)` and `RenderedAlongLineLength(EndMarkerStyle, Theme)` validate their
+`MarkerScale(Theme)`, `MarkerStrokeWidth(Theme)`, `RenderedAlongLineLength(EndMarkerStyle, Theme)`,
+`TipRetraction(EndMarkerStyle, Theme)` and `MarkerAnchor(EndMarkerStyle, Theme)` validate their
 `theme` argument with
 `ArgumentNullException.ThrowIfNull` and propagate the resulting `ArgumentNullException` to the
 caller. `AlongLineLength(EndMarkerStyle)` returns `0.0` for
@@ -173,7 +203,8 @@ non-dotted style; none of them throw. The `TriangleVertices` and
 ### Notation Metrics Dependencies
 
 - **Theme Unit** (same system) — `RoundedRectRadius(Theme)` reads `Theme.LineCornerRadius` and
-  `MarkerScale`, `MarkerStrokeWidth` and `RenderedAlongLineLength` read `Theme.StrokeWidth`; no other helper on
+  `MarkerScale`, `MarkerStrokeWidth`, `RenderedAlongLineLength`, `TipRetraction` and `MarkerAnchor` read
+  `Theme.StrokeWidth`; no other helper on
   `NotationMetrics` depends on `Theme`.
 - **Rendering Model system (`DemaConsulting.Rendering`)** — the `EndMarkerStyle` enum is defined in
   the rendering model and is the parameter type for `AlongLineLength`, `RenderedAlongLineLength`,
@@ -201,9 +232,11 @@ non-dotted style; none of them throw. The `TriangleVertices` and
 
 ### Notation Metrics Design Constraints
 
-- The canonical marker values shall be the historical SVG marker dimensions (triangle 10x7 refX 9,
-  diamond 14x8 refX 13, circle radius 4, bar 4x12); every renderer shall derive its markers from these
-  constants so the two renderers draw the identical shape.
+- The canonical marker values shall be the historical SVG marker dimensions (triangle 10x7 with the apex on
+  the tip anchor, diamond 14x8 refX 13, circle radius 4, bar 4x12); every renderer shall derive its markers
+  from these constants so the two renderers draw the identical shape.
+- The painted (stroked) tip of every end marker shall land on the line endpoint, never past it: both
+  renderers retract the glyph by `TipRetraction` and join polygons with a bevel.
 - Each derived constant shall be documented as a derivation of a named primitive so no geometry literal
   is duplicated.
 - The `AlongLineLength` value of every pre-existing `EndMarkerStyle` other than `HollowTriangleCrossbar`
@@ -229,7 +262,8 @@ reserve a clean approach using `AlongLineLength`.
 | Requirement ID | Satisfied by |
 | --- | --- |
 | Rendering-Abstractions-NotationMetrics-TriangleDimensions | `NotationMetrics.TriangleVertices` and triangle values |
-| Rendering-Abstractions-NotationMetrics-TriangleApexOvershoot | `NotationMetrics.TriangleVertices` apex overshoot |
+| Rendering-Abstractions-NotationMetrics-TriangleApexOnEndpoint | `NotationMetrics.TriangleVertices` apex position |
+| Rendering-Abstractions-NotationMetrics-TipRetraction | `NotationMetrics.TipRetraction`, `MarkerAnchor` |
 | Rendering-Abstractions-NotationMetrics-DiamondDimensions | `NotationMetrics.DiamondVertices` and diamond constants |
 | Rendering-Abstractions-NotationMetrics-DiamondFarPointOnEndpoint | `NotationMetrics.DiamondVertices` far point |
 | Rendering-Abstractions-NotationMetrics-CircleBarGeometry | `NotationMetrics` circle and bar constants |

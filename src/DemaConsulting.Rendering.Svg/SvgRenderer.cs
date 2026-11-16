@@ -109,8 +109,10 @@ public sealed class SvgRenderer : IRenderer
         // are emitted only when a line in the tree actually uses them)
         WriteEndMarkerDefs(sb, theme, CollectLazyMarkers(lines));
 
-        // Render all top-level nodes recursively (wires are drawn without their labels here)
-        foreach (var node in layout.Nodes)
+        // Render all top-level nodes recursively (wires are drawn without their labels here). A marker end that
+        // sits on a port glyph is shortened to the glyph's outer edge first, so the arrowhead is not hidden
+        // under the (later-drawn) port square.
+        foreach (var node in ShortenPortEnds(layout.Nodes))
         {
             RenderNode(sb, node, theme, options.Scale);
         }
@@ -362,7 +364,9 @@ public sealed class SvgRenderer : IRenderer
 
     /// <summary>
     /// Describes the end variant of a marker: its box (length and height), its tip anchor, and the SVG
-    /// elements of its glyph. Every coordinate comes from <see cref="NotationMetrics"/>.
+    /// elements of its glyph. The glyph coordinates come straight from <see cref="NotationMetrics"/>; the
+    /// box length and tip anchor come from <see cref="NotationMetrics.MarkerAnchor(EndMarkerStyle, Theme)"/>,
+    /// which retracts the anchor so the STROKED tip (not the geometric vertex) lands on the line endpoint.
     /// </summary>
     /// <param name="style">The marker style.</param>
     /// <param name="theme">Theme providing stroke color, width, and background.</param>
@@ -371,12 +375,30 @@ public sealed class SvgRenderer : IRenderer
         EndMarkerStyle style,
         Theme theme)
     {
+        var (_, height, _, refY, body) = DescribeGlyph(style, theme);
+        var (length, anchor) = NotationMetrics.MarkerAnchor(style, theme);
+        return (length, height, anchor, refY, body);
+    }
+
+    /// <summary>
+    /// Describes the glyph of a marker in marker-box coordinates (the elements, the box height and the
+    /// vertical centre); the box length and tip anchor in the returned tuple are the glyph's own and are
+    /// superseded by <see cref="DescribeMarker"/>. Polygons and polylines join with a bevel so the painted
+    /// tip is the bevel corner (as in the raster renderer), not a miter spike.
+    /// </summary>
+    /// <param name="style">The marker style.</param>
+    /// <param name="theme">Theme providing stroke color, width, and background.</param>
+    /// <returns>The marker box, tip anchor and body elements.</returns>
+    private static (double Length, double Height, double RefX, double RefY, List<string> Body) DescribeGlyph(
+        EndMarkerStyle style,
+        Theme theme)
+    {
         var stroke = theme.StrokeColor;
         var sw = F(theme.StrokeWidth);
         var bg = theme.BackgroundColor;
 
         string Polygon(string points, string fill) =>
-            $"""      <polygon points="{points}" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>""";
+            $"""      <polygon points="{points}" fill="{fill}" stroke="{stroke}" stroke-width="{sw}" stroke-linejoin="bevel"/>""";
         string Line(double x1, double y1, double x2, double y2) =>
             $"""      <line x1="{M(x1)}" y1="{M(y1)}" x2="{M(x2)}" y2="{M(y2)}" stroke="{stroke}" stroke-width="{sw}"/>""";
         string Circle(double cx, double cy, double r, string fill, bool outlined) =>
@@ -435,7 +457,7 @@ public sealed class SvgRenderer : IRenderer
                 var body = new List<string>();
                 if (style == EndMarkerStyle.OpenChevron)
                 {
-                    body.Add($"""      <polyline points="{trianglePoints}" fill="none" stroke="{stroke}" stroke-width="{sw}"/>""");
+                    body.Add($"""      <polyline points="{trianglePoints}" fill="none" stroke="{stroke}" stroke-width="{sw}" stroke-linejoin="bevel"/>""");
                 }
                 else
                 {
@@ -1034,6 +1056,130 @@ public sealed class SvgRenderer : IRenderer
                     break;
             }
         }
+    }
+
+    /// <summary>Recursively collects all <see cref="LayoutPort"/> nodes from a node tree.</summary>
+    /// <param name="nodes">Top-level nodes to walk.</param>
+    /// <param name="ports">Receives every port found, including those nested inside boxes or bands.</param>
+    private static void CollectPorts(IReadOnlyList<LayoutNode> nodes, List<LayoutPort> ports)
+    {
+        foreach (var node in nodes)
+        {
+            switch (node)
+            {
+                case LayoutPort port:
+                    ports.Add(port);
+                    break;
+
+                case LayoutBox box:
+                    CollectPorts(box.Children, ports);
+                    break;
+
+                case LayoutBand band:
+                    CollectPorts(band.Children, ports);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns the node list with every line whose marker end sits on a port centre shortened by
+    /// <see cref="NotationMetrics.PortHalfSize"/> along its end segment, so the painted marker tip lands on
+    /// the port square's outer edge instead of being hidden under the glyph. The layout tree itself (and the
+    /// connector label placement computed from it) is not modified.
+    /// </summary>
+    /// <param name="nodes">The tree's top-level nodes.</param>
+    /// <returns>The original list when the tree has no ports; otherwise a rewritten copy.</returns>
+    private static IReadOnlyList<LayoutNode> ShortenPortEnds(IReadOnlyList<LayoutNode> nodes)
+    {
+        var ports = new List<LayoutPort>();
+        CollectPorts(nodes, ports);
+        return ports.Count == 0 ? nodes : RewriteForPorts(nodes, ports);
+    }
+
+    /// <summary>Rewrites the lines of a node list (recursively) for <see cref="ShortenPortEnds"/>.</summary>
+    /// <param name="nodes">The nodes to rewrite.</param>
+    /// <param name="ports">Every port in the tree.</param>
+    /// <returns>The rewritten nodes.</returns>
+    private static List<LayoutNode> RewriteForPorts(IReadOnlyList<LayoutNode> nodes, List<LayoutPort> ports)
+    {
+        var result = new List<LayoutNode>(nodes.Count);
+        foreach (var node in nodes)
+        {
+            result.Add(node switch
+            {
+                LayoutLine line => ShortenLineForPorts(line, ports),
+                LayoutBox box => box with { Children = RewriteForPorts(box.Children, ports) },
+                LayoutBand band => band with { Children = RewriteForPorts(band.Children, ports) },
+                _ => node,
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>Shortens a line's marker ends that sit on a port centre (see <see cref="ShortenPortEnds"/>).</summary>
+    /// <param name="line">The line.</param>
+    /// <param name="ports">Every port in the tree.</param>
+    /// <returns>The line, or a copy with shortened end waypoints.</returns>
+    private static LayoutLine ShortenLineForPorts(LayoutLine line, List<LayoutPort> ports)
+    {
+        var waypoints = line.Waypoints;
+        if (waypoints.Count < 2)
+        {
+            return line;
+        }
+
+        var first = line.SourceEnd == EndMarkerStyle.None ? null : RetreatFromPort(waypoints[0], waypoints[1], ports);
+        var last = line.TargetEnd == EndMarkerStyle.None ? null : RetreatFromPort(waypoints[^1], waypoints[^2], ports);
+        if (first is null && last is null)
+        {
+            return line;
+        }
+
+        var shortened = new List<Point2D>(waypoints);
+        if (first is not null)
+        {
+            shortened[0] = first;
+        }
+
+        if (last is not null)
+        {
+            shortened[^1] = last;
+        }
+
+        return line with { Waypoints = shortened };
+    }
+
+    /// <summary>
+    /// Moves <paramref name="end"/> toward <paramref name="adjacent"/> by <see cref="NotationMetrics.PortHalfSize"/>
+    /// when it coincides with a port centre and the end segment is longer than that.
+    /// </summary>
+    /// <param name="end">The line end point.</param>
+    /// <param name="adjacent">The adjacent waypoint.</param>
+    /// <param name="ports">Every port in the tree.</param>
+    /// <returns>The retreated point, or <see langword="null"/> when the end is not on a port.</returns>
+    private static Point2D? RetreatFromPort(Point2D end, Point2D adjacent, List<LayoutPort> ports)
+    {
+        const double portTolerance = 0.5;
+        if (!ports.Exists(port => Math.Abs(port.CentreX - end.X) <= portTolerance && Math.Abs(port.CentreY - end.Y) <= portTolerance))
+        {
+            return null;
+        }
+
+        var dx = adjacent.X - end.X;
+        var dy = adjacent.Y - end.Y;
+        var length = Math.Sqrt((dx * dx) + (dy * dy));
+        if (length <= NotationMetrics.PortHalfSize)
+        {
+            return null;
+        }
+
+        var fraction = NotationMetrics.PortHalfSize / length;
+        return new Point2D(end.X + (dx * fraction), end.Y + (dy * fraction));
     }
 
     /// <summary>Recursively collects all <see cref="LayoutLine"/> nodes from a node tree.</summary>

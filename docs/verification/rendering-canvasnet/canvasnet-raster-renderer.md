@@ -185,6 +185,33 @@ scale (the notation size) a 10 px marker measured 10 px against 15 px in SVG and
 
 **Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSvgParity`.
 
+Theory `EndMarkerParity_TipLandsOnEndpoint_InBothRenderers` (every style, both ends, the Light and a
+2.5-stroke theme) computes the SVG marker's painted tip from its definition (exact: segment rectangles for
+bevel joins and butt caps, clipped to the marker box) and the PNG marker's painted tip by probing pixels, and
+asserts both are on the line endpoint (the SVG exactly, the PNG within one pixel) and agree with each other. Fact
+`EndMarkerParity_PortEnd_ShortenedIdenticallyInBothRenderers` renders a marker end on a `LayoutPort` through both
+renderers and asserts the SVG path ends `PortHalfSize` short of the port centre and the PNG draws the arrow base
+at the same position behind it.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSvgParity`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerTipOnEndpoint`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerPortEndpoint`.
+
+#### End markers land on the endpoint and leave the target interior untouched
+
+Theory `EndMarker_TargetEnd_PaintedTipDoesNotPassEndpoint` renders, for every style, a horizontal line to
+(150, 50) and asserts no pixel at or past column 150 carries 25% of the stroke color's darkness while a
+column just inside the endpoint carries at least half (the tip reaches the endpoint). Theory
+`EndMarker_SourceEnd_PaintedTipDoesNotPassStartPoint` does the same mirrored at a line start. Theory
+`EndMarker_OnBoxFace_DoesNotInkTheBoxInterior` draws a box whose left face is at x = 150 with the line ending on
+it and asserts the interior column x = 151, wholly inside the 1.5 px border, carries no marker ink (before the fix
+the tips of the triangle family reached 1.5 to 2 px into the box). Fact `EndMarker_OnPort_IsNotHiddenUnderPortGlyph`
+renders a filled arrow ending on a port centre and asserts the arrow base ink at its expected column, one marker
+length behind the port square's outer edge, proving the shortened end.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerTipOnEndpoint`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerPortEndpoint`.
+
 #### Rounded corner clamps to the rendered marker length
 
 `PngLineCornerClamp_UsesRenderedMarkerLength` renders a three-point line whose final leg is two pixels longer than
@@ -307,7 +334,14 @@ clear of the box.
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSvgParity`**:
   EndMarkerParity_TargetEnd_PngFootprintMatchesSvgGeometry,
   EndMarkerParity_SourceEnd_PngFootprintMatchesMirroredSvgGeometry,
-  EndMarkerParity_ThickerStrokeTheme_FootprintsStillMatch
+  EndMarkerParity_ThickerStrokeTheme_FootprintsStillMatch,
+  EndMarkerParity_TipLandsOnEndpoint_InBothRenderers,
+  EndMarkerParity_PortEnd_ShortenedIdenticallyInBothRenderers
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerTipOnEndpoint`**:
+  EndMarker_TargetEnd_PaintedTipDoesNotPassEndpoint, EndMarker_SourceEnd_PaintedTipDoesNotPassStartPoint,
+  EndMarker_OnBoxFace_DoesNotInkTheBoxInterior
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerPortEndpoint`**:
+  EndMarker_OnPort_IsNotHiddenUnderPortGlyph
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCrossbar`**:
   PngCrossbar_BarSitsBehindBaseWithGap, PngCrossbar_AtSourceEnd_BarFollowsBaseAlongLine
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCornerClamp`**:

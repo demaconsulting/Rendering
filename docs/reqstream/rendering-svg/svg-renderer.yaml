@@ -366,12 +366,42 @@ sections:
 
       - id: Rendering-Svg-SvgRenderer-TriangleEndMarkerMetrics
         title: >-
-          SvgRenderer shall derive triangle marker dimensions from the shared notation metrics.
+          SvgRenderer shall derive triangle marker dimensions from the shared notation metrics,
+          including the stroke-aware tip anchor that places the painted tip on the line endpoint.
         justification: |
           Shared notation metrics keep SVG triangle markers geometrically consistent with raster
           renderers.
         tests:
           - TriangleMarker_DimensionsDeriveFromNotationMetrics
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkerTipOnEndpoint
+        title: >-
+          SvgRenderer shall define every end marker (at the line end and, mirrored, the line start) so
+          that the stroked glyph tip lands exactly on the marker's tip anchor, the line endpoint, is not
+          clipped by the marker box, and joins polygon and polyline corners with a bevel.
+        justification: |
+          A marker tip that is painted past the endpoint pokes into the target box (diagram-quality
+          criterion C1: the endpoint must be on the box boundary). The marker box is widened for the
+          tip retraction and corners are beveled, as in the raster renderer, so the painted tip is a
+          bevel corner on the endpoint instead of a clipped or spiking miter.
+        tests:
+          - Marker_PaintedTip_LandsOnTipAnchor_AtBothEnds
+          - Marker_PaintedTip_LandsOnTipAnchor_WithThickerStroke
+          - Marker_PolygonsAndPolylines_UseBevelJoin
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkerPortEndpoint
+        title: >-
+          SvgRenderer shall shorten a line end that carries an end marker and sits on a port by the
+          port half size along its end segment, so the painted tip lands on the port square's outer
+          edge, and shall leave other line ends unchanged.
+        justification: |
+          The port square is painted after the connector and covers the last half port size of the
+          marker, hiding the arrowhead tip. Shortening the drawn end, without altering the layout
+          waypoints or label placement, puts the visible tip on the visible target.
+        tests:
+          - LineEndingAtPort_TargetMarker_IsShortenedToPortEdge
+          - LineStartingAtPort_SourceMarker_IsShortenedToPortEdge
+          - LineEnd_WithoutMarkerOrPort_IsNotShortened
 
       - id: Rendering-Svg-SvgRenderer-DiamondEndMarkers
         title: >-

@@ -156,7 +156,7 @@ public sealed class CanvasNetNotationPrimitiveTests
         using var surface = Render(Horizontal(EndMarkerStyle.None, EndMarkerStyle.CircledPlus));
 
         var r = NotationMetrics.CircledPlusRadius * K;
-        var centreX = 150 - r;
+        var centreX = 150 - r - (NotationMetrics.TipRetraction(EndMarkerStyle.CircledPlus, Themes.Light) * K);
         Assert.True(InkNear(surface, centreX, 50 - r), "Expected ink at the top of the ring.");
         Assert.True(InkNear(surface, centreX, 50 + r), "Expected ink at the bottom of the ring.");
         Assert.True(InkNear(surface, centreX, 50 + 3), "Expected ink on the vertical plus arm.");

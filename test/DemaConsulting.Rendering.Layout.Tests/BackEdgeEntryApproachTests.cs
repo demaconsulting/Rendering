@@ -16,7 +16,7 @@ namespace DemaConsulting.Rendering.Layout.Tests;
 /// </summary>
 public sealed class BackEdgeEntryApproachTests
 {
-    private const double OpenChevronApproach = (NotationMetrics.EndMarkerLength * 1.5) + 4.0 + 1.0;
+    private static readonly double OpenChevronApproach = (NotationMetrics.MarkerAnchor(EndMarkerStyle.OpenChevron, Themes.Light).Length * 1.5) + 4.0 + 1.0;
 
     /// <summary>
     ///     Builds the six-state, seven-transition state machine used as the elevator repro: two reversed

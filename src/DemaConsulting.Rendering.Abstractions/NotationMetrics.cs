@@ -14,8 +14,8 @@ namespace DemaConsulting.Rendering.Abstractions;
 /// The coordinate frame is shared by both renderers so that the SVG marker and the PNG path describe
 /// the identical shape: <see cref="Along"/> is the distance measured back from the line endpoint (the
 /// tip) into the line, and <see cref="Across"/> is the perpendicular offset. A negative
-/// <see cref="Along"/> places the vertex ahead of the endpoint (e.g. a triangle apex that overshoots
-/// the tip by <see cref="NotationMetrics.EndMarkerTipOvershoot"/>).
+/// <see cref="Along"/> would place the vertex ahead of the tip anchor; no bundled marker does, so a
+/// glyph never reaches past the box face it is anchored on.
 /// </remarks>
 /// <param name="Along">Distance back from the tip along the line, in notation units.</param>
 /// <param name="Across">Perpendicular offset from the line, in notation units.</param>
@@ -30,8 +30,10 @@ public readonly record struct MarkerVertex(double Along, double Across);
 /// This class is the notation-geometry peer of <see cref="BoxMetrics"/>:
 /// every value is either a documented primitive notation constant or a documented derivation of those
 /// primitives, so a geometry literal never appears more than once in the rendering path. The canonical
-/// values are the historical SVG marker values (open/triangle 10x7 with refX 9, diamond 14x8 with
-/// refX 13, circle 10x10 r4, bar 4x12); the PNG renderer derives its sizes from the same constants so
+/// values are the historical SVG marker values (open/triangle 10x7 with the apex on the tip anchor, diamond
+/// 14x8 with refX 13, circle 10x10 r4, bar 4x12), shifted back by a stroke-aware
+/// <see cref="NotationMetrics.TipRetraction(EndMarkerStyle, Theme)"/> so the painted tip lands on the line
+/// endpoint; the PNG renderer derives its sizes from the same constants so
 /// the two renderers draw the identical shape.
 /// </remarks>
 public static class NotationMetrics
@@ -45,18 +47,21 @@ public static class NotationMetrics
     public const double EndMarkerWidth = 7.0;
 
     /// <summary>
-    /// Along-line position, measured from the marker box origin, of the vertex that lands on the line
-    /// endpoint (the SVG <c>refX</c>). The triangle apex sits one
-    /// <see cref="EndMarkerTipOvershoot"/> beyond it.
+    /// Along-line position, measured from the marker box origin, of the glyph's far point: the vertex
+    /// (triangle apex) that lands on the tip anchor (the SVG <c>refX</c> before the stroke-aware
+    /// <see cref="TipRetraction(EndMarkerStyle, Theme)"/> is added). Equal to
+    /// <see cref="EndMarkerLength"/>, so the apex sits exactly on the tip anchor instead of overshooting
+    /// it into the target box.
     /// </summary>
-    public const double EndMarkerRefX = 9.0;
+    public const double EndMarkerRefX = EndMarkerLength;
 
     /// <summary>Half of <see cref="EndMarkerWidth"/>: the perpendicular offset of each base corner.</summary>
     public const double EndMarkerHalfWidth = EndMarkerWidth / 2.0;
 
     /// <summary>
-    /// Distance the triangle apex overshoots the line endpoint, equal to the marker box length minus
-    /// its tip anchor (<see cref="EndMarkerLength"/> - <see cref="EndMarkerRefX"/>).
+    /// Distance the triangle apex overshoots the tip anchor, equal to the marker box length minus its
+    /// tip anchor (<see cref="EndMarkerLength"/> - <see cref="EndMarkerRefX"/>). It is zero: the apex
+    /// lands on the anchor. The constant is retained so the notation frame stays self-describing.
     /// </summary>
     public const double EndMarkerTipOvershoot = EndMarkerLength - EndMarkerRefX;
 
@@ -369,10 +374,11 @@ public static class NotationMetrics
     }
 
     /// <summary>
-    /// Returns the along-line length of an end-marker decoration as both renderers draw it: the
-    /// notation length times <see cref="MarkerScale(Theme)"/>. Layout stages use it to keep a
-    /// decoration clear of the corner that precedes it, and the renderers' final-corner clamp uses it so
-    /// a rounded bend never intrudes into the marker.
+    /// Returns the along-line length of an end-marker decoration as both renderers draw it: the marker
+    /// box length (see <see cref="MarkerAnchor(EndMarkerStyle, Theme)"/>) times
+    /// <see cref="MarkerScale(Theme)"/>. Layout stages use it to keep a decoration clear of the corner that
+    /// precedes it, and the renderers' final-corner clamp uses it so a rounded bend never intrudes into the
+    /// marker.
     /// </summary>
     /// <param name="style">The end-marker style.</param>
     /// <param name="theme">Theme providing the stroke width.</param>
@@ -381,7 +387,99 @@ public static class NotationMetrics
     public static double RenderedAlongLineLength(EndMarkerStyle style, Theme theme)
     {
         ArgumentNullException.ThrowIfNull(theme);
-        return AlongLineLength(style) * MarkerScale(theme);
+        return MarkerAnchor(style, theme).Length * MarkerScale(theme);
+    }
+
+    /// <summary>
+    /// Returns how far, in notation units, an end-marker glyph is moved BACK along the line (away from the
+    /// endpoint) so that its STROKED tip - not its geometric far vertex - lands exactly on the endpoint.
+    /// A stroked shape paints beyond its geometry: a bevel-joined polygon corner reaches half the stroke
+    /// width times the sine of the corner's half angle past the vertex (about 0.25 notation units for the
+    /// triangle family and 0.42 for the diamond at the default stroke width), and a circle, circled plus
+    /// or bar reaches the full half stroke width. Without the retraction the painted tip would end past the
+    /// endpoint, inside the target box.
+    /// </summary>
+    /// <param name="style">The end-marker style.</param>
+    /// <param name="theme">Theme providing the marker stroke width (in marker units, the theme stroke width).</param>
+    /// <returns>The retraction in notation units; zero for <see cref="EndMarkerStyle.None"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="theme"/> is <see langword="null"/>.</exception>
+    public static double TipRetraction(EndMarkerStyle style, Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(theme);
+        var halfStroke = theme.StrokeWidth / 2.0;
+        return style switch
+        {
+            EndMarkerStyle.OpenChevron or
+            EndMarkerStyle.HollowTriangle or
+            EndMarkerStyle.HollowTriangleCrossbar or
+            EndMarkerStyle.FilledArrow or
+            EndMarkerStyle.HollowTriangleTwoDots or
+            EndMarkerStyle.HollowTriangleFourDots => halfStroke * BevelTipFactor(TriangleVertices()),
+            EndMarkerStyle.HollowDiamond or
+            EndMarkerStyle.FilledDiamond => halfStroke * BevelTipFactor(DiamondVertices()),
+            EndMarkerStyle.Circle or
+            EndMarkerStyle.CircledPlus or
+            EndMarkerStyle.Bar => halfStroke,
+            _ => 0.0,
+        };
+    }
+
+    /// <summary>
+    /// Returns the marker box length and the tip anchor (the SVG <c>refX</c>) of an end-marker glyph,
+    /// both in notation units: the glyph's own anchor (<see cref="TriangleFamilyBox(EndMarkerStyle)"/>,
+    /// <see cref="DiamondRefX"/>, <see cref="CircleRefX"/>, <see cref="BarHalfAlong"/>,
+    /// <see cref="CircledPlusRefX"/>) plus <see cref="TipRetraction(EndMarkerStyle, Theme)"/>, and the
+    /// box length widened if the retracted anchor would otherwise fall outside the box (so the stroked tip
+    /// is never clipped). Both renderers derive the marker position from this single definition.
+    /// </summary>
+    /// <param name="style">The end-marker style.</param>
+    /// <param name="theme">Theme providing the marker stroke width.</param>
+    /// <returns>The marker box length and the retracted tip anchor; zero for <see cref="EndMarkerStyle.None"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="theme"/> is <see langword="null"/>.</exception>
+    public static (double Length, double RefX) MarkerAnchor(EndMarkerStyle style, Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(theme);
+        var (length, refX) = style switch
+        {
+            EndMarkerStyle.None => (0.0, 0.0),
+            EndMarkerStyle.HollowDiamond or EndMarkerStyle.FilledDiamond => (DiamondLength, DiamondRefX),
+            EndMarkerStyle.Circle => (CircleMarkerBox, CircleRefX),
+            EndMarkerStyle.Bar => (BarAlong, BarHalfAlong),
+            EndMarkerStyle.CircledPlus => (CircledPlusMarkerBox, CircledPlusRefX),
+            _ => TriangleFamilyBox(style),
+        };
+
+        var anchor = refX + TipRetraction(style, theme);
+        return (Math.Max(length, anchor), anchor);
+    }
+
+    /// <summary>
+    /// Returns the factor by which a bevel-joined corner paints beyond its vertex along the line, per unit
+    /// of half stroke width: the sine of the half angle at the glyph's far (smallest <c>Along</c>) vertex,
+    /// that is the larger across-to-length ratio of the two edges meeting there.
+    /// </summary>
+    /// <param name="vertices">The glyph's vertices in draw order (the cyclic adjacent vertices bound the edges).</param>
+    /// <returns>The bevel tip factor in the range 0 to 1.</returns>
+    private static double BevelTipFactor(IReadOnlyList<MarkerVertex> vertices)
+    {
+        var far = 0;
+        for (var index = 1; index < vertices.Count; index++)
+        {
+            if (vertices[index].Along < vertices[far].Along)
+            {
+                far = index;
+            }
+        }
+
+        var factor = 0.0;
+        foreach (var adjacent in new[] { vertices[(far + 1) % vertices.Count], vertices[(far + vertices.Count - 1) % vertices.Count] })
+        {
+            var along = adjacent.Along - vertices[far].Along;
+            var across = adjacent.Across - vertices[far].Across;
+            factor = Math.Max(factor, Math.Abs(across) / Math.Sqrt((along * along) + (across * across)));
+        }
+
+        return factor;
     }
 
     /// <summary>
@@ -497,13 +595,15 @@ public static class NotationMetrics
 
     /// <summary>
     /// Returns the triangle vertices (base corner, apex, base corner) in tip-relative notation units,
-    /// shared by the open chevron, hollow triangle, and filled arrow markers.
+    /// shared by the open chevron, hollow triangle, and filled arrow markers. The apex lands on the tip
+    /// anchor (<c>Along == 0</c>); the renderers retract the whole glyph by
+    /// <see cref="TipRetraction(EndMarkerStyle, Theme)"/> so the STROKED tip lands on the line endpoint.
     /// </summary>
     /// <returns>The three triangle vertices in draw order.</returns>
     public static IReadOnlyList<MarkerVertex> TriangleVertices() =>
     [
         new MarkerVertex(EndMarkerRefX, -EndMarkerHalfWidth),
-        new MarkerVertex(-EndMarkerTipOvershoot, 0.0),
+        new MarkerVertex(EndMarkerRefX - EndMarkerLength, 0.0),
         new MarkerVertex(EndMarkerRefX, EndMarkerHalfWidth),
     ];
 

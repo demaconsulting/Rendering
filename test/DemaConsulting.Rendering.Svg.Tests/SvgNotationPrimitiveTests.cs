@@ -68,8 +68,9 @@ public sealed class SvgNotationPrimitiveTests
         var body = MarkerBody(svg, "line-end-hollow-triangle-two-dots");
         Assert.Contains("<polygon", body, StringComparison.Ordinal);
         Assert.Equal(2, Regex.Matches(body, "<circle").Count);
+        var (twoLength, twoRefX) = NotationMetrics.MarkerAnchor(EndMarkerStyle.HollowTriangleTwoDots, Themes.Light);
         Assert.Contains(
-            $"markerWidth=\"{Num(NotationMetrics.TwoDotsMarkerLength)}\" markerHeight=\"{Num(NotationMetrics.EndMarkerWidth)}\" refX=\"{Num(NotationMetrics.TwoDotsRefX)}\" refY=\"{Num(NotationMetrics.EndMarkerHalfWidth)}\"",
+            $"markerWidth=\"{Num(twoLength)}\" markerHeight=\"{Num(NotationMetrics.EndMarkerWidth)}\" refX=\"{Num(twoRefX)}\" refY=\"{Num(NotationMetrics.EndMarkerHalfWidth)}\"",
             body,
             StringComparison.Ordinal);
         Assert.Contains("marker-end=\"url(#line-end-hollow-triangle-two-dots)\"", svg, StringComparison.Ordinal);
@@ -86,8 +87,9 @@ public sealed class SvgNotationPrimitiveTests
         var svg = Render(HorizontalLine(EndMarkerStyle.None, EndMarkerStyle.HollowTriangleCrossbar));
 
         var body = MarkerBody(svg, "line-end-hollow-triangle-crossbar");
+        var (crossLength, crossRefX) = NotationMetrics.MarkerAnchor(EndMarkerStyle.HollowTriangleCrossbar, Themes.Light);
         Assert.Contains(
-            $"markerWidth=\"{Num(NotationMetrics.CrossbarMarkerLength)}\" markerHeight=\"{Num(NotationMetrics.EndMarkerWidth)}\" refX=\"{Num(NotationMetrics.CrossbarRefX)}\" refY=\"{Num(NotationMetrics.EndMarkerHalfWidth)}\"",
+            $"markerWidth=\"{Num(crossLength)}\" markerHeight=\"{Num(NotationMetrics.EndMarkerWidth)}\" refX=\"{Num(crossRefX)}\" refY=\"{Num(NotationMetrics.EndMarkerHalfWidth)}\"",
             body,
             StringComparison.Ordinal);
 
@@ -145,7 +147,7 @@ public sealed class SvgNotationPrimitiveTests
         Assert.Equal(2, dots.Cast<Match>().Select(m => m.Groups[1].Value).Distinct().Count());
         Assert.Equal(2, dots.Cast<Match>().Select(m => m.Groups[2].Value).Distinct().Count());
         Assert.Contains(
-            $"markerWidth=\"{Num(NotationMetrics.FourDotsMarkerLength)}\"",
+            $"markerWidth=\"{Num(NotationMetrics.MarkerAnchor(EndMarkerStyle.HollowTriangleFourDots, Themes.Light).Length)}\"",
             body,
             StringComparison.Ordinal);
     }
@@ -164,8 +166,9 @@ public sealed class SvgNotationPrimitiveTests
         Assert.Equal(2, Regex.Matches(body, "<line").Count);
         Assert.Contains($"r=\"{Num(NotationMetrics.CircledPlusRadius)}\"", body, StringComparison.Ordinal);
         Assert.Contains($"fill=\"{Themes.Light.BackgroundColor}\"", body, StringComparison.Ordinal);
+        var (plusLength, plusRefX) = NotationMetrics.MarkerAnchor(EndMarkerStyle.CircledPlus, Themes.Light);
         Assert.Contains(
-            $"markerWidth=\"{Num(NotationMetrics.CircledPlusMarkerBox)}\" markerHeight=\"{Num(NotationMetrics.CircledPlusMarkerBox)}\" refX=\"{Num(NotationMetrics.CircledPlusRefX)}\" refY=\"{Num(NotationMetrics.CircledPlusCenter)}\"",
+            $"markerWidth=\"{Num(plusLength)}\" markerHeight=\"{Num(NotationMetrics.CircledPlusMarkerBox)}\" refX=\"{Num(plusRefX)}\" refY=\"{Num(NotationMetrics.CircledPlusCenter)}\"",
             body,
             StringComparison.Ordinal);
     }
@@ -212,9 +215,9 @@ public sealed class SvgNotationPrimitiveTests
 
         Assert.Contains("marker-start=\"url(#line-start-circled-plus)\"", svg, StringComparison.Ordinal);
         var body = MarkerBody(svg, "line-start-circled-plus");
-        var mirroredRefX = NotationMetrics.CircledPlusMarkerBox - NotationMetrics.CircledPlusRefX;
-        Assert.Contains($"refX=\"{Num(mirroredRefX)}\"", body, StringComparison.Ordinal);
-        Assert.Contains($"matrix(-1 0 0 1 {Num(NotationMetrics.CircledPlusMarkerBox)} 0)", body, StringComparison.Ordinal);
+        var (plusLength, plusRefX) = NotationMetrics.MarkerAnchor(EndMarkerStyle.CircledPlus, Themes.Light);
+        Assert.Contains($"refX=\"{Num(plusLength - plusRefX)}\"", body, StringComparison.Ordinal);
+        Assert.Contains($"matrix(-1 0 0 1 {Num(plusLength)} 0)", body, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -227,8 +230,8 @@ public sealed class SvgNotationPrimitiveTests
         var svg = Render(HorizontalLine(EndMarkerStyle.HollowTriangleFourDots, EndMarkerStyle.None));
 
         var body = MarkerBody(svg, "line-start-hollow-triangle-four-dots");
-        var mirroredRefX = NotationMetrics.FourDotsMarkerLength - NotationMetrics.FourDotsRefX;
-        Assert.Contains($"refX=\"{Num(mirroredRefX)}\"", body, StringComparison.Ordinal);
+        var (fourLength, fourRefX) = NotationMetrics.MarkerAnchor(EndMarkerStyle.HollowTriangleFourDots, Themes.Light);
+        Assert.Contains($"refX=\"{Num(fourLength - fourRefX)}\"", body, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"line-end-hollow-triangle-four-dots\"", svg, StringComparison.Ordinal);
     }
 
@@ -243,7 +246,8 @@ public sealed class SvgNotationPrimitiveTests
 
         Assert.Contains("marker-start=\"url(#line-start-filled-diamond)\"", svg, StringComparison.Ordinal);
         var body = MarkerBody(svg, "line-start-filled-diamond");
-        Assert.Contains($"refX=\"{Num(NotationMetrics.DiamondLength - NotationMetrics.DiamondRefX)}\"", body, StringComparison.Ordinal);
+        var (diamondLength, diamondRefX) = NotationMetrics.MarkerAnchor(EndMarkerStyle.FilledDiamond, Themes.Light);
+        Assert.Contains($"refX=\"{Num(diamondLength - diamondRefX)}\"", body, StringComparison.Ordinal);
     }
 
     /// <summary>
