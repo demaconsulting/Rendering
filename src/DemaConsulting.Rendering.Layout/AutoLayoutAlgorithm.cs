@@ -76,21 +76,16 @@ namespace DemaConsulting.Rendering.Layout;
 ///     resolve correctly regardless of nesting depth.
 ///     </para>
 ///     <para>
-///     <strong>Known, disclosed limitation.</strong> A node's or edge's own arbitrary
-///     <see cref="PropertyHolder"/> option overrides (set with <c>node.Set(property, value)</c>, for
-///     example a per-node <see cref="CoreOptions.Algorithm"/> override on a container) are
-///     <em>not</em> copied onto a split component's nodes: <see cref="PropertyHolder"/> exposes no
-///     generic API to enumerate or copy an arbitrary set of overrides onto a different instance, and
-///     adding one purely to support this rarely-hit multi-component path was judged out of scope. The
-///     graph-level overrides that matter most in practice are unaffected: the original graph's own
-///     cascaded <see cref="LayoutOptions"/> (direction, spacing, edge routing, and so on) are captured
-///     once, before splitting, via <see cref="PropertyHolder.OverlayOnto"/> and passed as the fallback
-///     options to every split component's leaf algorithm, so a graph-level override still applies to
-///     every piece exactly as it would have applied to the whole. Only a node- or edge-level override,
-///     specifically on a node that ends up copied into a split component, would be silently dropped —
-///     an edge case a caller can avoid today by preferring graph-level (or per-scope
-///     <see cref="LayoutGraphNode.Children"/>-level) overrides over per-node ones when also relying on
-///     <c>"auto"</c> routing.
+///     <strong>Option overrides survive the split.</strong> Every node's, port's, edge's and
+///     <see cref="LayoutGraphNode.Children"/> graph's own arbitrary <see cref="PropertyHolder"/>
+///     option overrides (set with <c>node.Set(property, value)</c>, for example a per-node
+///     <see cref="CoreOptions.Algorithm"/> or <see cref="CoreOptions.Direction"/> override on a
+///     container) are copied onto the corresponding copied instance, so a container's own algorithm
+///     choice and cascaded options are honored exactly as they would be without the split. The original
+///     graph's own cascaded <see cref="LayoutOptions"/> (direction, spacing, edge routing, and so on) are
+///     captured once, before splitting, via <see cref="PropertyHolder.OverlayOnto"/> and passed as the
+///     fallback options to every split component's algorithm, so a graph-level override applies to every
+///     piece exactly as it would have applied to the whole.
 ///     </para>
 /// </remarks>
 /// <example>
@@ -459,7 +454,7 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
     /// <param name="memberIndices">Top-level node indices, into <paramref name="original"/>'s
     /// <see cref="LayoutGraph.Nodes"/>, belonging to this component.</param>
     /// <returns>The newly-built sub-graph for the component.</returns>
-    private static LayoutGraph BuildComponentGraph(LayoutGraph original, List<int> memberIndices)
+    internal static LayoutGraph BuildComponentGraph(LayoutGraph original, List<int> memberIndices)
     {
         var target = new LayoutGraph();
         var nodeMap = new Dictionary<LayoutGraphNode, LayoutGraphNode>();
@@ -494,7 +489,7 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
             copy.TargetEnd = edge.TargetEnd;
             copy.LineStyle = edge.LineStyle;
             copy.Label = edge.Label;
-
+            edge.CopyOverridesTo(copy);
             // The layout-only marker is keyed by edge identity, so it must be carried onto the copy.
             if (HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(edge))
             {
@@ -529,6 +524,15 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
         copy.FolderTabWidth = source.FolderTabWidth;
         copy.FolderTabHeight = source.FolderTabHeight;
         copy.Appearance = source.Appearance;
+
+        // Carry the node's own option overrides and its children graph's overrides (for example a
+        // per-node Algorithm or Direction override), which the hierarchical engine reads per scope.
+        source.CopyOverridesTo(copy);
+        if (source.HasChildren)
+        {
+            source.Children.CopyOverridesTo(copy.Children);
+        }
+
         nodeMap[source] = copy;
 
         if (source.HasPorts)
@@ -538,6 +542,7 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
                 var portCopy = copy.Ports.AddPort(port.Id);
                 portCopy.ExternalLabel = port.ExternalLabel;
                 portCopy.InternalLabel = port.InternalLabel;
+                port.CopyOverridesTo(portCopy);
                 portMap[port] = portCopy;
             }
         }

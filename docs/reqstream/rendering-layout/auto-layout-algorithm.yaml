@@ -101,6 +101,22 @@ sections:
           - Apply_GraphLevelOptionOverride_AppliesToSplitComponents
           - Apply_GraphDeclaresAutoAlgorithmWithNestedContainerGroup_DoesNotThrow
 
+      - id: Rendering-Layout-AutoAlgorithm-PreservesNodeOptions
+        title: >-
+          When AutoLayoutAlgorithm splits a graph into groups, it shall copy every node's own option
+          overrides (for example a per-node algorithm or direction), every container's children-graph
+          overrides, and every port's and edge's overrides onto the corresponding copied instance.
+        justification: |
+          A container's own algorithm choice, direction or spacing, set on the node or on its children
+          graph, must be honored exactly as it would be without the split. Dropping node-level overrides
+          made a container's layout depend on how the root happened to be partitioned (a disconnected
+          container beside an unrelated singleton lost its override).
+        tests:
+          - Apply_PerNodeAlgorithmOverrideOnSplitContainer_IsPreserved
+          - Apply_PerNodeDirectionOverrideOnSplitContainer_IsPreserved
+          - Apply_ChildrenGraphOverrideOnSplitContainer_IsPreserved
+          - BuildComponentGraph_CopiesNodeChildrenPortAndEdgeOverrides
+
       - id: Rendering-Layout-AutoAlgorithm-EmptyGraph
         title: >-
           When given a graph with no nodes, AutoLayoutAlgorithm shall return an empty placed layout

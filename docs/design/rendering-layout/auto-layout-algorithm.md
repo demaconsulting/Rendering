@@ -85,17 +85,16 @@ design) is marked by edge object identity rather than by its identifier, so each
 when its original was marked; every other edge copy stays an ordinary, drawn edge whatever its
 identifier.
 
-**Known, disclosed limitation.** A node's or edge's own arbitrary `PropertyHolder` option overrides
-(set with `node.Set(property, value)`, for example a per-node `CoreOptions.Algorithm` override on a
-container) are not copied onto a split component's nodes: `PropertyHolder` exposes no generic API to
-enumerate or copy an arbitrary set of overrides onto a different instance, and adding one purely to
-support this rarely-hit multi-component path was judged out of scope. The graph-level overrides that
-matter most in practice are unaffected, since the original graph's own cascaded options are captured
-once, before splitting, and passed as the fallback options to every split component's leaf algorithm,
-so a graph-level override still applies to every piece exactly as it would have applied to the whole.
-Only a node- or edge-level override, specifically on a node that ends up copied into a split
-component, would be silently dropped — an edge case a caller can avoid today by preferring graph-level
-(or per-scope `Children`-level) overrides over per-node ones when also relying on `"auto"` routing.
+**Option overrides survive the split.** A node's, port's and edge's own arbitrary `PropertyHolder` option
+overrides (set with `node.Set(property, value)`, for example a per-node `CoreOptions.Algorithm` or
+`Direction` override on a container), and the overrides set on a container's `Children` graph, are copied
+onto the corresponding copied instance with the internal `PropertyHolder.CopyOverridesTo` primitive (made
+visible to this assembly with `InternalsVisibleTo`, so no new public API is needed). The hierarchical
+engine reads a node's own overrides (and its `Children` graph's) when it resolves that container's
+scope, so a container's own algorithm choice and cascaded options are honored exactly as they would be
+without the split. The original graph's own cascaded options are still captured once, before splitting, and
+passed as the fallback options to every split component's algorithm, so a graph-level override applies to
+every piece exactly as it would have applied to the whole.
 
 An empty graph yields an empty `LayoutTree` because the containment fast path handles the (vacuously
 single-group) empty case and `ContainmentLayoutAlgorithm.ApplyCore` returns an empty `LayoutTree` for
@@ -120,6 +119,7 @@ bundled algorithms and is resolved by renderers through the layout registry like
 | Rendering-Layout-AutoAlgorithm-FastPathEquivalence | AutoLayoutAlgorithm behavior described above |
 | Rendering-Layout-AutoAlgorithm-MultiGroupPacking | AutoLayoutAlgorithm behavior described above |
 | Rendering-Layout-AutoAlgorithm-CascadesOptions | AutoLayoutAlgorithm behavior described above |
+| Rendering-Layout-AutoAlgorithm-PreservesNodeOptions | Sub-Graph Construction (option overrides) |
 | Rendering-Layout-AutoAlgorithm-EmptyGraph | AutoLayoutAlgorithm behavior described above |
 | Rendering-Layout-AutoAlgorithm-Validation | AutoLayoutAlgorithm behavior described above |
 | Rendering-Layout-AutoAlgorithm-NestedEndpointConnectivity | Component detection (step 1) |

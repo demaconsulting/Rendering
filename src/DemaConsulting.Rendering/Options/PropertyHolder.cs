@@ -96,4 +96,21 @@ public class PropertyHolder : IPropertyHolder
 
         return effective;
     }
+
+    /// <summary>
+    /// Copies every explicitly-set value of this holder onto <paramref name="target"/>, overwriting
+    /// any value the target already holds for the same property and leaving the target's other values
+    /// untouched. The raw boxed values are copied by key, so this works for any current or future
+    /// property (including ones explicitly set to <see langword="null"/>) with no per-property code.
+    /// </summary>
+    /// <param name="target">The holder that receives this holder's overrides.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="target"/> is <see langword="null"/>.</exception>
+    internal void CopyOverridesTo(PropertyHolder target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        foreach (var kvp in _values)
+        {
+            target._values[kvp.Key] = kvp.Value;
+        }
+    }
 }

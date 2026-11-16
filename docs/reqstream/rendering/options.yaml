@@ -69,6 +69,22 @@ sections:
           - OverlayOnto_CustomPropertyNotInCoreOptions_IsMerged
           - OverlayOnto_NullParent_ThrowsArgumentNullException
 
+      - id: Rendering-Model-Options-CopyOverrides
+        title: >-
+          Copying one property holder's overrides onto another shall copy every explicitly-set value,
+          including values explicitly set to null, overwrite a same-keyed value on the target, keep the
+          target's other values, share no state with the source, and reject a null target with an
+          argument-null error.
+        justification: |
+          Components that rebuild a graph (for example the auto-routing algorithm splitting a graph into
+          groups) must carry every node's, port's, edge's and children-graph's own overrides onto the
+          copy without knowing which properties exist, or a per-node override silently disappears.
+        tests:
+          - CopyOverridesTo_CopiesEveryExplicitValue_IncludingNull
+          - CopyOverridesTo_SourceWinsOnConflict_KeepsUnrelatedTargetValues
+          - CopyOverridesTo_DoesNotAliasSource
+          - CopyOverridesTo_NullTarget_ThrowsArgumentNullException
+
       - id: Rendering-Model-Options-MergeParallelEdges
         title: >-
           CoreOptions.MergeParallelEdges shall default to true, exactly reproducing the layered

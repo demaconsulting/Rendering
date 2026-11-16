@@ -66,6 +66,14 @@ snapshot, so a scope with no overrides of its own inherits the nearest ancestor'
 a scope's own explicit override wins for itself and every unset descendant. Throws
 `ArgumentNullException` when `parent` is null.
 
+`void CopyOverridesTo(PropertyHolder target)` (internal, visible to `DemaConsulting.Rendering.Layout` and
+the unit's tests through `InternalsVisibleTo`) — copies every explicitly-set value of this holder onto
+`target` by raw key, overwriting a same-keyed value and leaving the target's other values alone; a value
+explicitly set to `null` is copied as such, and no state is shared with the source afterwards. It is the
+copy primitive callers that rebuild a graph use (for example `AutoLayoutAlgorithm` carrying every node's,
+port's, edge's and children-graph's overrides onto a split-off component) without knowing which
+properties exist. Throws `ArgumentNullException` when `target` is null.
+
 ### Options Error Handling
 
 `Get`, `TryGet`, `Set`, and `Contains` all reject a null `LayoutProperty<T>` by throwing
@@ -132,5 +140,6 @@ using its own self-contained `PortLabelWidthEstimator` heuristic.
 | Rendering-Model-Options-Contains | `PropertyHolder.Contains` |
 | Rendering-Model-Options-TryGet | `PropertyHolder.TryGet` |
 | Rendering-Model-Options-Cascade | `PropertyHolder.OverlayOnto` |
+| Rendering-Model-Options-CopyOverrides | `PropertyHolder.CopyOverridesTo` |
 | Rendering-Model-Options-MergeParallelEdges | `CoreOptions.MergeParallelEdges` |
 | Rendering-Model-Options-AssumedFontSize | `CoreOptions.AssumedFontSize` |

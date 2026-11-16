@@ -39,6 +39,9 @@
 
     <!-- Polyfill Configuration -->
     <PolyArgumentExceptions>true</PolyArgumentExceptions>
+    <!-- Required now that this assembly grants InternalsVisibleTo to the Layout assembly: marks the
+         generated polyfill types [Embedded] so they do not clash with Layout's own polyfill copies. -->
+    <PolyUseEmbeddedAttribute>true</PolyUseEmbeddedAttribute>
 
     <!-- SBOM Configuration -->
     <GenerateSBOM>true</GenerateSBOM>
@@ -74,6 +77,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="DemaConsulting.Rendering.Tests" />
+    <InternalsVisibleTo Include="DemaConsulting.Rendering.Layout" />
   </ItemGroup>
 
   <ItemGroup>

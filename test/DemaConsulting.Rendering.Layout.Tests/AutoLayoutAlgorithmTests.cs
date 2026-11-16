@@ -335,6 +335,148 @@ public sealed class AutoLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a per-node <see cref="CoreOptions.Algorithm"/> override on a container survives the
+    ///     <c>auto</c> split: laying the graph out with an unrelated singleton alongside (forcing the
+    ///     multi-group split path) gives the container the same child layout as laying it out alone
+    ///     (zero-copy fast path, where the override is intact), and that layout differs from the default.
+    ///     Regression test for demaconsulting/Rendering#54.
+    /// </summary>
+    [Fact]
+    public void Apply_PerNodeAlgorithmOverrideOnSplitContainer_IsPreserved()
+    {
+        // Act / Assert
+        AssertOverrideSurvivesSplit(container => container.Set(CoreOptions.Algorithm, ContainmentLayoutAlgorithm.AlgorithmId));
+    }
+
+    /// <summary>
+    ///     Proves that a per-node <see cref="CoreOptions.Direction"/> override on a container survives the
+    ///     <c>auto</c> split. Regression test for demaconsulting/Rendering#54.
+    /// </summary>
+    [Fact]
+    public void Apply_PerNodeDirectionOverrideOnSplitContainer_IsPreserved()
+    {
+        // Act / Assert
+        AssertOverrideSurvivesSplit(container => container.Set(CoreOptions.Direction, LayoutFlowDirection.Down));
+    }
+
+    /// <summary>
+    ///     Proves that an override set on a container's <see cref="LayoutGraphNode.Children"/> graph
+    ///     survives the <c>auto</c> split. Regression test for demaconsulting/Rendering#54.
+    /// </summary>
+    [Fact]
+    public void Apply_ChildrenGraphOverrideOnSplitContainer_IsPreserved()
+    {
+        // Act / Assert
+        AssertOverrideSurvivesSplit(container => container.Children.Set(CoreOptions.Direction, LayoutFlowDirection.Down));
+    }
+
+    /// <summary>
+    ///     Proves that the component copy carries node, children-graph, port and edge overrides onto the
+    ///     copied instances (the port and edge overrides are not observable through a bundled algorithm,
+    ///     so the copy primitive is checked directly). Regression test for demaconsulting/Rendering#54.
+    /// </summary>
+    [Fact]
+    public void BuildComponentGraph_CopiesNodeChildrenPortAndEdgeOverrides()
+    {
+        // Arrange: every kind of override holder carries one distinct property
+        var nodeProperty = new LayoutProperty<int>("test.node", 0);
+        var childrenProperty = new LayoutProperty<int>("test.children", 0);
+        var portProperty = new LayoutProperty<int>("test.port", 0);
+        var edgeProperty = new LayoutProperty<int>("test.edge", 0);
+        var childEdgeProperty = new LayoutProperty<int>("test.child.edge", 0);
+
+        var graph = new LayoutGraph();
+        var node = graph.AddNode("n", 10, 10);
+        node.Set(nodeProperty, 1);
+        node.Children.Set(childrenProperty, 2);
+        var a = node.Children.AddNode("a", 80, 40);
+        var b = node.Children.AddNode("b", 80, 40);
+        node.Children.AddEdge("a-b", a, b).Set(childEdgeProperty, 5);
+        var port = node.Ports.AddPort("p");
+        port.Set(portProperty, 3);
+        var other = graph.AddNode("o", 80, 40);
+        graph.AddEdge("n-o", node, other).Set(edgeProperty, 4);
+
+        // Act
+        var copy = AutoLayoutAlgorithm.BuildComponentGraph(graph, [0, 1]);
+
+        // Assert
+        var copiedNode = copy.Nodes[0];
+        Assert.Equal(1, copiedNode.Get(nodeProperty));
+        Assert.Equal(2, copiedNode.Children.Get(childrenProperty));
+        Assert.Equal(3, copiedNode.Ports.Ports[0].Get(portProperty));
+        Assert.Equal(4, copy.Edges[0].Get(edgeProperty));
+        Assert.Equal(5, copiedNode.Children.Edges[0].Get(childEdgeProperty));
+    }
+
+    /// <summary>
+    ///     Asserts that the override applied by <paramref name="configureContainer"/> is honored for a
+    ///     container laid out through the multi-group split path exactly as it is on the zero-copy fast
+    ///     path, and that the override actually changes the layout (so the comparison is meaningful).
+    /// </summary>
+    /// <param name="configureContainer">Applies the override under test to the container node.</param>
+    private static void AssertOverrideSurvivesSplit(Action<LayoutGraphNode> configureContainer)
+    {
+        // Arrange / Act
+        var splitWithOverride = ChildLayoutSignature(BuildOverrideGraph(withSingleton: true, configureContainer));
+        var aloneWithOverride = ChildLayoutSignature(BuildOverrideGraph(withSingleton: false, configureContainer));
+        var splitDefault = ChildLayoutSignature(BuildOverrideGraph(withSingleton: true, _ => { }));
+
+        // Assert
+        Assert.NotEqual(splitDefault, aloneWithOverride);
+        Assert.Equal(aloneWithOverride, splitWithOverride);
+    }
+
+    /// <summary>
+    ///     Builds a root graph holding container "C" (children A -> B) and, optionally, an unrelated
+    ///     singleton that forces the split path.
+    /// </summary>
+    private static LayoutGraph BuildOverrideGraph(bool withSingleton, Action<LayoutGraphNode> configureContainer)
+    {
+        var graph = new LayoutGraph();
+        var container = graph.AddNode("c", 10, 10);
+        container.Label = "C";
+        var a = container.Children.AddNode("a", 80, 40);
+        a.Label = "A";
+        var b = container.Children.AddNode("b", 80, 40);
+        b.Label = "B";
+        container.Children.AddEdge("a-b", a, b);
+        configureContainer(container);
+        if (withSingleton)
+        {
+            graph.AddNode("solo", 80, 40).Label = "Solo";
+        }
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Lays the graph out with <c>auto</c> and returns a signature of container "C"'s children
+    ///     (positions relative to the container plus the number of lines inside it).
+    /// </summary>
+    private static string ChildLayoutSignature(LayoutGraph graph)
+    {
+        var tree = new AutoLayoutAlgorithm().Apply(graph);
+        var container = FindBox(tree.Nodes, "C");
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        var signature = new System.Text.StringBuilder();
+        foreach (var child in container.Children)
+        {
+            switch (child)
+            {
+                case LayoutBox box:
+                    signature.AppendFormat(culture, "{0}@{1:F3},{2:F3};", box.Label, box.X - container.X, box.Y - container.Y);
+                    break;
+                case LayoutLine:
+                    signature.Append("line;");
+                    break;
+            }
+        }
+
+        return signature.ToString();
+    }
+
+    /// <summary>
     ///     Proves that when the graph itself explicitly declares <c>CoreOptions.Algorithm = "auto"</c>
     ///     (as a caller resolving the algorithm from the graph's own options, rather than passing it
     ///     directly, would do) and the multi-group split path routes one group to hierarchical, the
