@@ -6,7 +6,7 @@ package RenderingLayout {
 
         metadata info : SoftwareInfo {
             sourceFiles = ("src/DemaConsulting.Rendering.Layout/LayeredLayoutAlgorithm.cs");
-            testFiles = ("test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs");
+            testFiles = ("test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/BackEdgeEntryApproachTests.cs");
             designFiles = ("docs/design/rendering-layout/layered-layout-algorithm.md");
             verificationFiles = ("docs/verification/rendering-layout/layered-layout-algorithm.md");
             requirementFiles = ("docs/reqstream/rendering-layout/layered-layout-algorithm.yaml");

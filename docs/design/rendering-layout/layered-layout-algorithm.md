@@ -31,6 +31,14 @@ per node followed by `LayoutLine` per edge).
    package's tab is excluded from its connectable extent and the routed connector's endpoint is
    projected inward to the recessed body outline, and a `BoxShape.Note`'s folded corner is similarly
    excluded, matching `ConnectorRouter`'s existing shape-geometry rules for cross-container edges.
+   A node whose name is drawn in a folder tab (`BoxMetrics.IsNameInTab`: `Shape` is `Folder`, the node
+   has a label, and its `Appearance.FolderTitle` is `FolderTitlePlacement.Tab`) occupies no body title
+   band, so the internal `HasBodyTitle` test (a label that is not drawn in the tab) replaces the plain
+   "has a label" test everywhere a title reserve is sized: the `TitleReserveTop` handed to the pipeline
+   and the `hasTitle` argument of the content-inset resolution (steps 6 and 9). A keyword line is still
+   drawn in the body of an in-tab folder, so the `hasTitle` argument uses the internal
+   `HasBodyTitleContent` test (`HasBodyTitle` or `Keyword != null`) at both content-inset sites; the
+   `TitleReserveTop` call already counts the keyword separately.
 2. **Edge mapping.** Maps each edge to an index pair, dropping any edge that references a node
    outside this graph. A *layout-only* edge (an edge marked through
    `HierarchicalLayoutAlgorithm.MarkLayoutOnly`, added by the hierarchical engine as a placement hint
@@ -53,12 +61,15 @@ per node followed by `LayoutLine` per edge).
    resolution, and passes the resolved value to `InterconnectionLayoutEngine.Place`. The property's
    default matches the engine's original fixed constant, so an unset option reproduces the algorithm's
    prior behavior exactly.
-5. **Placement (pass 1).** Calls `InterconnectionLayoutEngine.Place` with the resolved direction and
-   node spacing to obtain the `LayerResult`. For a downward or upward flow the engine transposes the
+5. **Placement (pass 1).** Calls `InterconnectionLayoutEngine.Place` with the resolved direction,
+   node spacing, merge setting and back-edge entry approach (see the back-edge entry approach section
+   below) to obtain the `LayerResult`. For a downward or upward flow the engine transposes the
    layout so the layers progress top-to-bottom (or bottom-to-top); `Right` is the default and is
    byte-identical to the original left-to-right placement.
 6. **Box emission (provisional).** Emits one `LayoutBox` per input node, in input order, at the
-   placed rectangle, carrying the node label and its auto-computed `ContentInset*` margins (step 9
+   placed rectangle, carrying the node label, the node's `Appearance` (a reference copied unchanged,
+   `null` when the node has none, so an appearance-free node keeps the legacy look) and its
+   auto-computed `ContentInset*` margins (step 9
    below). If step 10's auto-grow floor determines any node's caller-supplied size is insufficient,
    this emission is discarded and placement/emission re-runs (pass 2) against the grown sizes.
 7. **Parallel-edge resolution and route lookup.** Resolves `CoreOptions.MergeParallelEdges` (graph
@@ -159,6 +170,38 @@ per node followed by `LayoutLine` per edge).
 An empty graph yields an empty `LayoutTree` because `InterconnectionLayoutEngine.Place` returns a
 minimal-size empty result, which produces an empty canvas.
 
+### LayeredLayoutAlgorithm Back-Edge Entry Approach
+
+`ResolveBackEdgeEntryApproach(edges)` derives the minimum straight entry approach reserved for a
+reversed (back) edge's final sub-edge from the end decorations the graph's edges actually carry. It
+starts from `LayeredLayoutMetrics.ConnectorClearance` (10 px) and, for each edge, takes the larger of
+the running value and `NotationMetrics.RenderedAlongLineLength(edge.TargetEnd, Themes.Light)` plus
+`Themes.Light.LineCornerRadius` plus `Themes.Light.CleanLegMargin`. That is the same formula the
+connector router uses for a forward edge's required end leg, applied to the *rendered* marker length
+(the along-line length times the theme stroke width, the marker scale at which both the SVG and the PNG
+renderer draw every marker). For an `OpenChevron` the result is 20 px. A graph in which every edge has `TargetEnd`
+equal to
+`EndMarkerStyle.None` keeps exactly the connector clearance, so its output is byte-identical to
+earlier releases. The algorithm passes the value to `InterconnectionLayoutEngine.Place`, which sets
+`LayeredGraph.BackEdgeEntryApproach`.
+
+**Root cause (S09, hollow triangle at back-edge arrowheads).** A reversed edge ends in a wrap-around
+corridor whose final straight approach is `LayeredGraph.BackEdgeEntryApproach`. The algorithm never
+set that property, so it stayed at the default `ConnectorClearance` of 10 px. A rendered open chevron
+is 15 px long, and the renderers clamp a rounded corner's radius to the final leg minus the marker's
+along-line length (`r = min(r, outLen - AlongLineLength)`), which here is zero. The last bend therefore
+became a sharp corner inside the marker's footprint: the horizontal run of the shaft, the vertical stub
+and the chevron wing closed a small hollow triangle. Forward edges, whose final leg is 60 px or more,
+were unaffected. A second, independent defect let a connector label's opaque background cut a node
+border, because the label placer knew nothing about boxes; the renderers now call the obstacle-aware
+`ConnectorLabelPlacer.Place(lines, fontSize, obstacles)` with the placed boxes (see the Abstractions
+design). The renderers' own corner clamps stay in place as a secondary guard.
+
+**Consumer note.** The approach is derived from `LayoutGraphEdge.TargetEnd`, so a consumer that
+decorates its connectors must set that property on the graph edges it adds (SysML2Tools'
+`LayeredPlacement.Place` does not yet do so); an edge drawn with a marker the graph does not declare
+keeps the 10 px approach and can still show the artifact.
+
 ### LayeredLayoutAlgorithm Interactions
 
 `LayeredLayoutAlgorithm` depends on the `LayoutAlgorithmBase`, `LayoutGraph`, `LayoutTree`, and related
@@ -185,3 +228,8 @@ the Engine subsystem. It is the entry point resolved by renderers through the la
 | Rendering-Layout-LayeredAlgorithm-LayoutOnlyEdges | Edge mapping (step 2) |
 | Rendering-Layout-LayeredAlgorithm-RealEdgeNeverHiddenByLayoutOnlyEdge | Edge mapping (step 2), real-first ordering |
 | Rendering-Layout-LayeredAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly | Edge mapping (step 2), identity-keyed marker |
+| Rendering-Layout-LayeredAlgorithm-AppearancePassThrough | Box emission (step 6) |
+| Rendering-Layout-LayeredAlgorithm-FolderTabTitleReserve | Content insets, `HasBodyTitle` |
+| Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproach | Back-edge entry approach, `ResolveBackEdgeEntryApproach` |
+| Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproachLegacyPreserved | Back-edge entry, undecorated default |
+| Rendering-Layout-LayeredAlgorithm-LabelsClearOfNodeBorders | Back-edge entry, second defect (box-aware labels) |

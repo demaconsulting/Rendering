@@ -92,7 +92,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         ArgumentNullException.ThrowIfNull(options);
 
         var lines = CollectLines(layout.Nodes).ToList();
-        var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody);
+        var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody, CollectBoxes(layout.Nodes), NotationMetrics.MarkerScale(options.Theme));
 
         var width = Math.Max(1, (int)Math.Ceiling(layout.Width * options.Scale));
         var height = Math.Max(1, (int)Math.Ceiling(layout.Height * options.Scale));
@@ -297,6 +297,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var fillColor = ParseColor(theme.DepthFillColors[box.Depth % theme.DepthFillColors.Count]);
 
         RenderBoxOutline(canvas, box, options, fillColor, strokeColor);
+        RenderBoxCornerIcon(canvas, box, options, strokeColor);
         RenderBoxTitle(canvas, box, options, strokeColor);
 
         if (box.Compartments.Count > 0)
@@ -328,7 +329,8 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     {
         var theme = options.Theme;
         var scale = (float)options.Scale;
-        var strokeStyle = new StrokeStyle((float)theme.StrokeWidth * scale);
+        var dashArray = DashArrayFor(box.Appearance?.OutlineStyle ?? LineStyle.Solid, scale);
+        var strokeStyle = new StrokeStyle((float)theme.StrokeWidth * scale, dashArray: dashArray);
 
         var x = (float)(box.X * scale);
         var y = (float)(box.Y * scale);
@@ -350,14 +352,89 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
             case BoxShape.RoundedRectangle when ResolveRoundedCornerRadius(box, theme) > 0:
                 var cornerRadius = (float)(ResolveRoundedCornerRadius(box, theme) * scale);
                 canvas.FillRoundRect(x, y, width, height, cornerRadius, fillColor);
-                canvas.StrokeRoundRect(x, y, width, height, cornerRadius, strokeStyle, strokeColor);
+                if (dashArray is null)
+                {
+                    canvas.StrokeRoundRect(x, y, width, height, cornerRadius, strokeStyle, strokeColor);
+                }
+                else
+                {
+                    // Dashed outlines are stroked as a path so the dash pattern is honored
+                    canvas.StrokePath(BuildRoundRectPath(x, y, width, height, cornerRadius), strokeStyle, strokeColor);
+                }
+
                 break;
 
             default:
                 canvas.FillRect(x, y, width, height, fillColor);
-                canvas.StrokeRect(x, y, width, height, strokeStyle, strokeColor);
+                if (dashArray is null)
+                {
+                    canvas.StrokeRect(x, y, width, height, strokeStyle, strokeColor);
+                }
+                else
+                {
+                    canvas.StrokePath(BuildRoundRectPath(x, y, width, height, 0f), strokeStyle, strokeColor);
+                }
+
                 break;
         }
+    }
+
+    /// <summary>
+    /// Returns the stroke dash array, in scaled pixels, for a line style: <c>6 3</c> for dashed,
+    /// <c>2 2</c> for dotted, and <see langword="null"/> (a solid stroke) otherwise.
+    /// </summary>
+    /// <param name="style">The stroke style.</param>
+    /// <param name="scale">Uniform scale factor.</param>
+    /// <returns>The dash array, or <see langword="null"/> for a solid stroke.</returns>
+    private static float[]? DashArrayFor(LineStyle style, float scale) => style switch
+    {
+        LineStyle.Dashed => [6f * scale, 3f * scale],
+        LineStyle.Dotted => [2f * scale, 2f * scale],
+        _ => null,
+    };
+
+    /// <summary>
+    /// Builds a closed rectangle path, with rounded corners when <paramref name="radius"/> is positive,
+    /// starting at the top edge so a dash pattern begins with ink along the top. Used to stroke dashed
+    /// outlines, which the dedicated rectangle strokers do not dash.
+    /// </summary>
+    /// <param name="x">Scaled left edge.</param>
+    /// <param name="y">Scaled top edge.</param>
+    /// <param name="width">Scaled width.</param>
+    /// <param name="height">Scaled height.</param>
+    /// <param name="radius">Scaled corner radius; zero or negative for square corners.</param>
+    /// <returns>The closed outline path.</returns>
+    private static GeometryPath BuildRoundRectPath(float x, float y, float width, float height, float radius)
+    {
+        var r = Math.Min(Math.Max(radius, 0f), Math.Min(width, height) / 2f);
+        var builder = new PathBuilder();
+        builder.MoveTo(new Vector2(x + r, y));
+        builder.LineTo(new Vector2(x + width - r, y));
+        if (r > 0f)
+        {
+            builder.TangentArcTo(new Vector2(x + width, y), new Vector2(x + width, y + r), r);
+        }
+
+        builder.LineTo(new Vector2(x + width, y + height - r));
+        if (r > 0f)
+        {
+            builder.TangentArcTo(new Vector2(x + width, y + height), new Vector2(x + width - r, y + height), r);
+        }
+
+        builder.LineTo(new Vector2(x + r, y + height));
+        if (r > 0f)
+        {
+            builder.TangentArcTo(new Vector2(x, y + height), new Vector2(x, y + height - r), r);
+        }
+
+        builder.LineTo(new Vector2(x, y + r));
+        if (r > 0f)
+        {
+            builder.TangentArcTo(new Vector2(x, y), new Vector2(x + r, y), r);
+        }
+
+        builder.Close();
+        return builder.Build();
     }
 
     /// <summary>
@@ -413,14 +490,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     /// <param name="theme">Theme providing fallback font and padding metrics.</param>
     /// <returns>The folder-tab width in logical pixels.</returns>
     private static double ResolveFolderTabWidth(LayoutBox box, Theme theme) =>
-        box.FolderTabWidth.HasValue
-            ? Math.Max(0.0, box.FolderTabWidth.Value)
-            : Math.Min(
-                box.Width * NotationMetrics.FolderTabMaxWidthFraction,
-                Math.Max(
-                    NotationMetrics.FolderTabMinWidth,
-                    (box.Label?.Length ?? 4) * theme.FontSizeBody * NotationMetrics.FolderLabelCharWidthFactor +
-                    (2.0 * theme.LabelPadding)));
+        BoxMetrics.ResolveFolderTabWidth(box, theme);
 
     /// <summary>
     /// Resolves the folder-tab height for a box, preferring a caller-supplied placed-box value so
@@ -431,9 +501,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     /// <param name="theme">Theme providing fallback tab metrics.</param>
     /// <returns>The folder-tab height in logical pixels.</returns>
     private static double ResolveFolderTabHeight(LayoutBox box, Theme theme) =>
-        box.FolderTabHeight.HasValue
-            ? Math.Max(0.0, box.FolderTabHeight.Value)
-            : BoxMetrics.FolderTabHeight(theme);
+        BoxMetrics.ResolveFolderTabHeight(box, theme);
 
     /// <summary>
     /// Resolves the top Y coordinate (unscaled) of the title and label area for a box. For a
@@ -493,7 +561,10 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     }
 
     /// <summary>
-    /// Draws the optional keyword line and bold name label in the title area of a box.
+    /// Draws the optional keyword line and name label in the title area of a box, using the box's
+    /// <see cref="BoxAppearance"/> text styles (the legacy italic keyword and bold name by default).
+    /// A folder whose appearance requests the name in the tab draws the name inside the tab instead
+    /// of the body.
     /// </summary>
     /// <param name="canvas">Canvas to draw on.</param>
     /// <param name="box">Box whose title is drawn.</param>
@@ -505,25 +576,82 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var scale = (float)options.Scale;
         var centerX = (float)((box.X + (box.Width / 2.0)) * scale);
         var cursorY = BoxMetrics.TitleCursorTop(box, theme);
+        var appearance = box.Appearance ?? new BoxAppearance();
 
         if (box.Keyword != null)
         {
-            var keywordFont = CreateFont(bold: false, italic: true);
+            var keywordStyle = appearance.ResolvedKeywordStyle;
+            var keywordFont = CreateFont(keywordStyle.Weight == FontWeight.Bold, keywordStyle.Style == FontStyle.Italic);
             var keywordSize = (float)theme.FontSizeBody * scale;
             var keywordY = (float)((cursorY + theme.FontSizeBody) * scale);
             canvas.DrawText("\u00AB" + box.Keyword + "\u00BB", centerX, keywordY, CanvasTextAlign.Center, keywordFont, keywordSize, strokeColor);
             cursorY += theme.FontSizeBody + theme.LabelPadding;
         }
 
+        var nameStyle = appearance.ResolvedNameStyle;
+        var labelFont = CreateFont(nameStyle.Weight == FontWeight.Bold, nameStyle.Style == FontStyle.Italic);
+
+        if (BoxMetrics.IsNameInTab(box))
+        {
+            var tabWidth = ResolveFolderTabWidth(box, theme);
+            var tabHeight = ResolveFolderTabHeight(box, theme);
+            var tabAvailable = (float)((tabWidth - (2 * theme.LabelPadding)) * scale);
+            var tabSize = FitFontSize(labelFont, box.Label!, tabAvailable, (float)theme.FontSizeBody * scale);
+            var tabBaseline = (float)((box.Y + ((tabHeight - theme.FontSizeBody) / 2.0) + theme.FontSizeBody) * scale);
+            canvas.DrawText(box.Label!, (float)((box.X + theme.LabelPadding) * scale), tabBaseline, CanvasTextAlign.Left, labelFont, tabSize, strokeColor);
+            return;
+        }
+
         if (box.Label != null)
         {
-            var labelFont = CreateFont(bold: true, italic: false);
             var maxFontSize = (float)theme.FontSizeTitle * scale;
             var availableWidth = (float)((box.Width - (2 * theme.LabelPadding)) * scale);
             var labelSize = FitFontSize(labelFont, box.Label, availableWidth, maxFontSize);
             var labelY = (float)((cursorY + theme.FontSizeTitle) * scale);
             canvas.DrawText(box.Label, centerX, labelY, CanvasTextAlign.Center, labelFont, labelSize, strokeColor);
         }
+    }
+
+    /// <summary>
+    /// Draws the send/accept corner icon of a box as a polygon in the top-left corner of its body
+    /// (below the tab for a folder), filled with the theme background and stroked in the theme stroke.
+    /// </summary>
+    /// <param name="canvas">Canvas to draw on.</param>
+    /// <param name="box">The box whose icon is drawn.</param>
+    /// <param name="options">Render options providing theme and scale.</param>
+    /// <param name="strokeColor">Outline color.</param>
+    private static void RenderBoxCornerIcon(CanvasRenderer canvas, LayoutBox box, RenderOptions options, Rgba32 strokeColor)
+    {
+        var vertices = NotationMetrics.CornerIconVertices(box.Appearance?.CornerIcon ?? BoxCornerIcon.None);
+        if (vertices.Count == 0)
+        {
+            return;
+        }
+
+        var theme = options.Theme;
+        var scale = (float)options.Scale;
+        var originX = box.X + NotationMetrics.CornerIconInset;
+        var originY = ResolveTitleAreaTop(box, theme) + NotationMetrics.CornerIconInset;
+        var builder = new PathBuilder();
+        for (var index = 0; index < vertices.Count; index++)
+        {
+            var point = new Vector2(
+                (float)((originX + vertices[index].Along) * scale),
+                (float)((originY + vertices[index].Across) * scale));
+            if (index == 0)
+            {
+                builder.MoveTo(point);
+            }
+            else
+            {
+                builder.LineTo(point);
+            }
+        }
+
+        builder.Close();
+        var path = builder.Build();
+        canvas.FillPath(path, ParseColor(theme.BackgroundColor));
+        canvas.StrokePath(path, new StrokeStyle((float)theme.StrokeWidth * scale), strokeColor);
     }
 
     /// <summary>
@@ -545,7 +673,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var scale = (float)options.Scale;
         var strokeStyle = new StrokeStyle((float)theme.StrokeWidth * scale);
 
-        var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
+        var labelAreaHeight = BoxMetrics.TitleAreaHeight(box, theme);
         var titleAreaOccupiesSpace = labelAreaHeight > 0;
         var compartmentY = ResolveTitleAreaTop(box, theme) + box.ContentInsetTop + labelAreaHeight;
 
@@ -572,11 +700,15 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
 
             if (compartment.Title != null)
             {
-                var titleFont = CreateFont(bold: true, italic: true);
+                var titleStyle = compartment.ResolvedTitleStyle;
+                var titleFont = CreateFont(titleStyle.Weight == FontWeight.Bold, titleStyle.Style == FontStyle.Italic);
                 var titleSize = (float)theme.FontSizeBody * scale;
-                var titleX = (float)((box.X + theme.LabelPadding + box.ContentInsetLeft) * scale);
+                var centered = compartment.TitleAlign == ModelTextAlign.Center;
+                var titleX = centered
+                    ? (float)((box.X + box.ContentInsetLeft + ((box.Width - box.ContentInsetLeft - box.ContentInsetRight) / 2.0)) * scale)
+                    : (float)((box.X + theme.LabelPadding + box.ContentInsetLeft) * scale);
                 var titleY = (float)((compartmentY + theme.LabelPadding + theme.FontSizeBody) * scale);
-                canvas.DrawText(compartment.Title, titleX, titleY, CanvasTextAlign.Left, titleFont, titleSize, strokeColor);
+                canvas.DrawText(compartment.Title, titleX, titleY, centered ? CanvasTextAlign.Center : CanvasTextAlign.Left, titleFont, titleSize, strokeColor);
                 compartmentY += theme.LabelPadding + theme.FontSizeBody + theme.LabelPadding;
             }
 
@@ -613,12 +745,22 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var scale = (float)options.Scale;
         var strokeColor = ParseColor(theme.StrokeColor);
 
+        // Every marker is drawn at the shared marker scale (the SVG marker-unit convention), so the
+        // corner clamp reserves the marker's rendered length and the glyph has the SVG marker's size.
+        var sourceMarkerLength = NotationMetrics.RenderedAlongLineLength(line.SourceEnd, theme);
+        var targetMarkerLength = NotationMetrics.RenderedAlongLineLength(line.TargetEnd, theme);
+        var markerPaint = new EndMarkerPaint(
+            strokeColor,
+            ParseColor(theme.BackgroundColor),
+            (float)NotationMetrics.MarkerStrokeWidth(theme) * scale,
+            (float)NotationMetrics.MarkerScale(theme) * scale);
+
         var clampCorners = (line.SourceEnd != EndMarkerStyle.None || line.TargetEnd != EndMarkerStyle.None)
             && theme.LineCornerRadius > 0
-            && NeedsEndCornerClamp(line.Waypoints, theme.LineCornerRadius, line.SourceEnd, line.TargetEnd);
+            && NeedsEndCornerClamp(line.Waypoints, theme.LineCornerRadius, sourceMarkerLength, targetMarkerLength);
 
         var path = clampCorners
-            ? BuildClampedLinePath(line.Waypoints, theme.LineCornerRadius, scale, line.SourceEnd, line.TargetEnd)
+            ? BuildClampedLinePath(line.Waypoints, theme.LineCornerRadius, scale, sourceMarkerLength, targetMarkerLength)
             : BuildSimpleLinePath(line.Waypoints, scale);
 
         if (!clampCorners && theme.LineCornerRadius > 0)
@@ -647,7 +789,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
                 (float)dx,
                 (float)dy,
                 line.SourceEnd,
-                new EndMarkerPaint(strokeColor, ParseColor(theme.BackgroundColor), (float)theme.StrokeWidth * scale, scale));
+                markerPaint);
         }
 
         if (line.TargetEnd != EndMarkerStyle.None)
@@ -663,7 +805,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
                 (float)dx,
                 (float)dy,
                 line.TargetEnd,
-                new EndMarkerPaint(strokeColor, ParseColor(theme.BackgroundColor), (float)theme.StrokeWidth * scale, scale));
+                markerPaint);
         }
     }
 
@@ -693,34 +835,34 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     /// </summary>
     /// <param name="waypoints">Ordered waypoints (unscaled).</param>
     /// <param name="cornerRadius">Unscaled line corner radius.</param>
-    /// <param name="sourceEnd">Source end-marker style.</param>
-    /// <param name="targetEnd">Target end-marker style.</param>
+    /// <param name="sourceMarkerLength">Rendered along-line length of the source end marker (zero without one).</param>
+    /// <param name="targetMarkerLength">Rendered along-line length of the target end marker (zero without one).</param>
     /// <returns><see langword="true"/> if explicit clamped corners are required; otherwise <see langword="false"/>.</returns>
     private static bool NeedsEndCornerClamp(
         IReadOnlyList<Point2D> waypoints,
         double cornerRadius,
-        EndMarkerStyle sourceEnd,
-        EndMarkerStyle targetEnd)
+        double sourceMarkerLength,
+        double targetMarkerLength)
     {
         if (waypoints.Count < 3)
         {
             return false;
         }
 
-        if (sourceEnd != EndMarkerStyle.None)
+        if (sourceMarkerLength > 0.0)
         {
             var inLength = Distance(waypoints[0], waypoints[1]);
-            if (inLength - NotationMetrics.AlongLineLength(sourceEnd) < cornerRadius)
+            if (inLength - sourceMarkerLength < cornerRadius)
             {
                 return true;
             }
         }
 
-        if (targetEnd != EndMarkerStyle.None)
+        if (targetMarkerLength > 0.0)
         {
             var count = waypoints.Count;
             var outLength = Distance(waypoints[count - 2], waypoints[count - 1]);
-            if (outLength - NotationMetrics.AlongLineLength(targetEnd) < cornerRadius)
+            if (outLength - targetMarkerLength < cornerRadius)
             {
                 return true;
             }
@@ -732,22 +874,22 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     /// <summary>
     /// Builds a scaled connector path with arc-rounded interior corners, mirroring the SVG
     /// renderer's corner-clamped geometry: the first interior corner additionally clamps its radius
-    /// to <c>inLen − AlongLineLength(sourceEnd)</c> and the last to
-    /// <c>outLen − AlongLineLength(targetEnd)</c>, so the rounded corner never intrudes into an end
+    /// to <c>inLen − RenderedAlongLineLength(sourceEnd)</c> and the last to
+    /// <c>outLen − RenderedAlongLineLength(targetEnd)</c>, so the rounded corner never intrudes into an end
     /// decoration.
     /// </summary>
     /// <param name="waypoints">Ordered waypoints (unscaled); at least two entries.</param>
     /// <param name="cornerRadius">Unscaled line corner radius.</param>
     /// <param name="scale">Uniform scale factor.</param>
-    /// <param name="sourceEnd">Source end-marker style.</param>
-    /// <param name="targetEnd">Target end-marker style.</param>
+    /// <param name="sourceMarkerLength">Rendered along-line length of the source end marker (zero without one).</param>
+    /// <param name="targetMarkerLength">Rendered along-line length of the target end marker (zero without one).</param>
     /// <returns>The corner-baked connector path.</returns>
     private static GeometryPath BuildClampedLinePath(
         IReadOnlyList<Point2D> waypoints,
         double cornerRadius,
         float scale,
-        EndMarkerStyle sourceEnd,
-        EndMarkerStyle targetEnd)
+        double sourceMarkerLength,
+        double targetMarkerLength)
     {
         var builder = new PathBuilder();
         var first = waypoints[0];
@@ -787,12 +929,12 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
             var radius = Math.Min(cornerRadius, Math.Min(inLength / 2.0, outLength / 2.0));
             if (index == 1)
             {
-                radius = Math.Min(radius, inLength - NotationMetrics.AlongLineLength(sourceEnd));
+                radius = Math.Min(radius, inLength - sourceMarkerLength);
             }
 
             if (index == waypoints.Count - 2)
             {
-                radius = Math.Min(radius, outLength - NotationMetrics.AlongLineLength(targetEnd));
+                radius = Math.Min(radius, outLength - targetMarkerLength);
             }
 
             if (radius <= 0.0)
@@ -852,6 +994,37 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     }
 
     /// <summary>
+    /// Recursively collects all <see cref="LayoutBox"/> nodes from a node tree.
+    /// </summary>
+    /// <param name="nodes">Top-level nodes to walk.</param>
+    /// <returns>Every box node, including those nested inside boxes or bands, parents before children.</returns>
+    private static IEnumerable<LayoutBox> CollectBoxes(IReadOnlyList<LayoutNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            switch (node)
+            {
+                case LayoutBox box:
+                    yield return box;
+                    foreach (var inner in CollectBoxes(box.Children))
+                    {
+                        yield return inner;
+                    }
+
+                    break;
+
+                case LayoutBand band:
+                    foreach (var inner in CollectBoxes(band.Children))
+                    {
+                        yield return inner;
+                    }
+
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
     /// Recursively collects all <see cref="LayoutLine"/> nodes from a node tree.
     /// </summary>
     /// <param name="nodes">Top-level nodes to walk.</param>
@@ -891,8 +1064,8 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     /// </summary>
     /// <param name="Color">Stroke and fill color for the end marker.</param>
     /// <param name="BackgroundColor">Background fill for hollow enclosing markers so the connector line does not show through.</param>
-    /// <param name="StrokeWidth">Stroke width applied to open (non-filled) end-marker styles.</param>
-    /// <param name="Scale">Uniform scale factor used to size the end marker relative to the diagram.</param>
+    /// <param name="StrokeWidth">Marker outline width in pixels (<see cref="NotationMetrics.MarkerStrokeWidth(Theme)"/> times the render scale).</param>
+    /// <param name="Scale">Pixels per notation unit of marker geometry (<see cref="NotationMetrics.MarkerScale(Theme)"/> times the render scale), so PNG markers have the size of the SVG markers.</param>
     private readonly record struct EndMarkerPaint(Rgba32 Color, Rgba32 BackgroundColor, float StrokeWidth, float Scale);
 
     /// <summary>
@@ -957,44 +1130,55 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var scale = paint.Scale;
         var strokeStyle = new StrokeStyle(paint.StrokeWidth);
 
+        // Polygonal markers stroke with a bevel join: their tips lie on the marker-box edge, where an SVG
+        // marker's clip blunts the miter, so a bevel gives the PNG the same blunt tip instead of a spike
+        // that would poke through the target box border.
+        var triangleStroke = new StrokeStyle(paint.StrokeWidth, LineCap.Butt, LineJoin.Bevel);
+
         switch (style)
         {
             case EndMarkerStyle.OpenChevron:
                 var chevron = TrianglePath(tipX, tipY, dx, dy, px, py, scale, close: false);
-                canvas.StrokePath(chevron, strokeStyle, paint.Color);
+                canvas.StrokePath(chevron, triangleStroke, paint.Color);
                 break;
 
             case EndMarkerStyle.HollowTriangle:
                 var hollowTriangle = TrianglePath(tipX, tipY, dx, dy, px, py, scale, close: true);
                 canvas.FillPath(hollowTriangle, paint.BackgroundColor);
-                canvas.StrokePath(hollowTriangle, strokeStyle, paint.Color);
+                canvas.StrokePath(hollowTriangle, triangleStroke, paint.Color);
                 break;
 
             case EndMarkerStyle.HollowTriangleCrossbar:
                 var crossbarTriangle = TrianglePath(tipX, tipY, dx, dy, px, py, scale, close: true);
                 canvas.FillPath(crossbarTriangle, paint.BackgroundColor);
-                canvas.StrokePath(crossbarTriangle, strokeStyle, paint.Color);
+                canvas.StrokePath(crossbarTriangle, triangleStroke, paint.Color);
 
-                var crossAlong = NotationMetrics.EndMarkerRefX - NotationMetrics.CrossbarX;
-                var crossStart = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(crossAlong, -NotationMetrics.EndMarkerHalfWidth), scale);
-                var crossEnd = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(crossAlong, NotationMetrics.EndMarkerHalfWidth), scale);
+                // The redefinition bar sits behind the triangle base, spanning the base height
+                var crossStart = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(NotationMetrics.CrossbarAlong, -NotationMetrics.CrossbarHalfLength), scale);
+                var crossEnd = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(NotationMetrics.CrossbarAlong, NotationMetrics.CrossbarHalfLength), scale);
                 StrokeLine(canvas, crossStart.X, crossStart.Y, crossEnd.X, crossEnd.Y, strokeStyle, paint.Color);
                 break;
 
             case EndMarkerStyle.FilledArrow:
                 var filledTriangle = TrianglePath(tipX, tipY, dx, dy, px, py, scale, close: true);
                 canvas.FillPath(filledTriangle, paint.Color);
+
+                // The SVG marker also outlines the filled shape in the same color, so it is a stroke wider
+                canvas.StrokePath(filledTriangle, triangleStroke, paint.Color);
                 break;
 
             case EndMarkerStyle.HollowDiamond:
                 var hollowDiamond = DiamondPath(tipX, tipY, dx, dy, px, py, scale);
                 canvas.FillPath(hollowDiamond, paint.BackgroundColor);
-                canvas.StrokePath(hollowDiamond, strokeStyle, paint.Color);
+                canvas.StrokePath(hollowDiamond, triangleStroke, paint.Color);
                 break;
 
             case EndMarkerStyle.FilledDiamond:
                 var filledDiamond = DiamondPath(tipX, tipY, dx, dy, px, py, scale);
                 canvas.FillPath(filledDiamond, paint.Color);
+
+                // The SVG marker also outlines the filled shape in the same color, so it is a stroke wider
+                canvas.StrokePath(filledDiamond, triangleStroke, paint.Color);
                 break;
 
             case EndMarkerStyle.Circle:
@@ -1008,6 +1192,35 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
                 var barStart = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(0.0, NotationMetrics.BarHalf), scale);
                 var barEnd = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(0.0, -NotationMetrics.BarHalf), scale);
                 StrokeLine(canvas, barStart.X, barStart.Y, barEnd.X, barEnd.Y, strokeStyle, paint.Color);
+                break;
+
+            case EndMarkerStyle.HollowTriangleTwoDots:
+            case EndMarkerStyle.HollowTriangleFourDots:
+                // The triangle lands exactly where a plain hollow triangle does; the dots trail its base
+                var dottedTriangle = TrianglePath(tipX, tipY, dx, dy, px, py, scale, close: true);
+                canvas.FillPath(dottedTriangle, paint.BackgroundColor);
+                canvas.StrokePath(dottedTriangle, triangleStroke, paint.Color);
+                var dotRadius = (float)NotationMetrics.DotRadius * scale;
+                foreach (var dot in NotationMetrics.DotCenters(style))
+                {
+                    var dotCentre = MarkerPoint(tipX, tipY, dx, dy, px, py, dot, scale);
+                    canvas.FillCircle(dotCentre.X, dotCentre.Y, dotRadius, paint.Color);
+                }
+
+                break;
+
+            case EndMarkerStyle.CircledPlus:
+                var plusRadius = NotationMetrics.CircledPlusRadius;
+                var plusCentre = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(plusRadius, 0.0), scale);
+                canvas.FillCircle(plusCentre.X, plusCentre.Y, (float)plusRadius * scale, paint.BackgroundColor);
+                canvas.StrokeCircle(plusCentre.X, plusCentre.Y, (float)plusRadius * scale, strokeStyle, paint.Color);
+                var armHalf = NotationMetrics.CircledPlusArmHalfLength;
+                var alongA = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(plusRadius - armHalf, 0.0), scale);
+                var alongB = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(plusRadius + armHalf, 0.0), scale);
+                StrokeLine(canvas, alongA.X, alongA.Y, alongB.X, alongB.Y, strokeStyle, paint.Color);
+                var acrossA = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(plusRadius, -armHalf), scale);
+                var acrossB = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(plusRadius, armHalf), scale);
+                StrokeLine(canvas, acrossA.X, acrossA.Y, acrossB.X, acrossB.Y, strokeStyle, paint.Color);
                 break;
         }
     }
@@ -1312,13 +1525,33 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
                     strokeStyle,
                     strokeColor);
                 break;
+            case BadgeShape.ThickHorizontalBar:
+                var hBarThickness = (float)((badge.Thickness ?? NotationMetrics.ThickBarThickness) * scale);
+                canvas.FillRect(centerX - radius, centerY - (hBarThickness / 2f), radius * 2f, hBarThickness, strokeColor);
+                break;
+
+            case BadgeShape.ThickVerticalBar:
+                var vBarThickness = (float)((badge.Thickness ?? NotationMetrics.ThickBarThickness) * scale);
+                canvas.FillRect(centerX - (vBarThickness / 2f), centerY - radius, vBarThickness, radius * 2f, strokeColor);
+                break;
+
+            case BadgeShape.CrossedCircle:
+                var arm = radius * (float)NotationMetrics.CrossedCircleArmFraction;
+                canvas.FillCircle(centerX, centerY, radius, ParseColor(theme.BackgroundColor));
+                canvas.StrokeCircle(centerX, centerY, radius, strokeStyle, strokeColor);
+                StrokeLine(canvas, centerX - arm, centerY - arm, centerX + arm, centerY + arm, strokeStyle, strokeColor);
+                StrokeLine(canvas, centerX - arm, centerY + arm, centerX + arm, centerY - arm, strokeStyle, strokeColor);
+                break;
         }
 
         if (badge.Label != null)
         {
             var font = CreateFont(bold: false, italic: false);
             var fontSize = (float)theme.FontSizeBody * scale;
-            var labelX = (float)((badge.CentreX + (badge.Size / 2.0) + theme.LabelPadding) * scale);
+            var labelHalfExtent = badge.Shape == BadgeShape.ThickVerticalBar
+                ? (badge.Thickness ?? NotationMetrics.ThickBarThickness) / 2.0
+                : badge.Size / 2.0;
+            var labelX = (float)((badge.CentreX + labelHalfExtent + theme.LabelPadding) * scale);
             var labelY = (float)((badge.CentreY + (theme.FontSizeBody / 2.0)) * scale);
             canvas.DrawText(badge.Label, labelX, labelY, CanvasTextAlign.Left, font, fontSize, strokeColor);
         }
@@ -1338,7 +1571,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var theme = options.Theme;
         var scale = (float)options.Scale;
         var strokeColor = ParseColor(theme.StrokeColor);
-        var strokeStyle = new StrokeStyle((float)theme.StrokeWidth * scale);
+        var strokeStyle = new StrokeStyle((float)theme.StrokeWidth * scale, dashArray: DashArrayFor(band.OutlineStyle, scale));
 
         var x = (float)(band.X * scale);
         var y = (float)(band.Y * scale);
@@ -1346,7 +1579,14 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var height = (float)(band.Height * scale);
 
         canvas.FillRect(x, y, width, height, ParseColor(theme.DepthFillColors[0]));
-        canvas.StrokeRect(x, y, width, height, strokeStyle, strokeColor);
+        if (band.OutlineStyle == LineStyle.Solid)
+        {
+            canvas.StrokeRect(x, y, width, height, strokeStyle, strokeColor);
+        }
+        else
+        {
+            canvas.StrokePath(BuildRoundRectPath(x, y, width, height, 0f), strokeStyle, strokeColor);
+        }
 
         if (band.Label != null)
         {
@@ -1390,21 +1630,62 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var theme = options.Theme;
         var scale = (float)options.Scale;
         var strokeColor = ParseColor(theme.StrokeColor);
-        var strokeStyle = new StrokeStyle((float)theme.StrokeWidth * scale);
 
         var headerLeft = lifeline.CentreX - (lifeline.HeaderWidth / 2.0);
         var x = (float)(headerLeft * scale);
         var y = (float)(lifeline.TopY * scale);
         var width = (float)(lifeline.HeaderWidth * scale);
         var height = (float)(lifeline.HeaderHeight * scale);
+        var appearance = lifeline.HeaderAppearance ?? new BoxAppearance();
+        var headerDash = DashArrayFor(appearance.OutlineStyle, scale);
+        var headerStroke = new StrokeStyle((float)theme.StrokeWidth * scale, dashArray: headerDash);
+        var headerRadius = 0f;
+        if (lifeline.HeaderShape == BoxShape.RoundedRectangle)
+        {
+            headerRadius = (float)((lifeline.HeaderCornerRadius.HasValue
+                ? Math.Max(0.0, lifeline.HeaderCornerRadius.Value)
+                : NotationMetrics.RoundedRectRadius(theme)) * scale);
+        }
 
-        canvas.FillRect(x, y, width, height, ParseColor(theme.DepthFillColors[0]));
-        canvas.StrokeRect(x, y, width, height, strokeStyle, strokeColor);
+        var headerFill = ParseColor(theme.DepthFillColors[0]);
+        if (headerRadius > 0f)
+        {
+            canvas.FillRoundRect(x, y, width, height, headerRadius, headerFill);
+        }
+        else
+        {
+            canvas.FillRect(x, y, width, height, headerFill);
+        }
 
-        var font = CreateFont(bold: true, italic: false);
+        if (headerDash is not null)
+        {
+            canvas.StrokePath(BuildRoundRectPath(x, y, width, height, headerRadius), headerStroke, strokeColor);
+        }
+        else if (headerRadius > 0f)
+        {
+            canvas.StrokeRoundRect(x, y, width, height, headerRadius, headerStroke, strokeColor);
+        }
+        else
+        {
+            canvas.StrokeRect(x, y, width, height, headerStroke, strokeColor);
+        }
+
+        var nameStyle = appearance.ResolvedNameStyle;
+        var font = CreateFont(nameStyle.Weight == FontWeight.Bold, nameStyle.Style == FontStyle.Italic);
         var fontSize = (float)theme.FontSizeBody * scale;
         var textX = (float)(lifeline.CentreX * scale);
         var textY = (float)((lifeline.TopY + ((lifeline.HeaderHeight + theme.FontSizeBody) / 2.0)) * scale);
+        if (lifeline.Keyword != null)
+        {
+            var blockHeight = BoxMetrics.LifelineHeaderHeight(theme, hasKeyword: true);
+            var blockTop = lifeline.TopY + Math.Max(0.0, (lifeline.HeaderHeight - blockHeight) / 2.0);
+            var keywordStyle = appearance.ResolvedKeywordStyle;
+            var keywordFont = CreateFont(keywordStyle.Weight == FontWeight.Bold, keywordStyle.Style == FontStyle.Italic);
+            var keywordY = (float)((blockTop + theme.LabelPadding + theme.FontSizeBody) * scale);
+            textY = (float)((blockTop + (2.0 * theme.LabelPadding) + (2.0 * theme.FontSizeBody)) * scale);
+            canvas.DrawText("\u00AB" + lifeline.Keyword + "\u00BB", textX, keywordY, CanvasTextAlign.Center, keywordFont, fontSize, strokeColor);
+        }
+
         canvas.DrawText(lifeline.Label, textX, textY, CanvasTextAlign.Center, font, fontSize, strokeColor);
 
         var dashedStyle = new StrokeStyle((float)theme.StrokeWidth * scale, dashArray: [6f * scale, 3f * scale]);

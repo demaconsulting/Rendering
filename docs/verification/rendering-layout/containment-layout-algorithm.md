@@ -17,7 +17,8 @@ avoidance), and validation are all observed on production code paths.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs`, with the
   shared corridor-width helper covered by
-  `test/DemaConsulting.Rendering.Layout.Tests/Engine/EdgeCountGapWidenerTests.cs`.
+  `test/DemaConsulting.Rendering.Layout.Tests/Engine/EdgeCountGapWidenerTests.cs`, and the appearance
+  pass-through covered by `test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs`.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and `LayoutOptions` instances.
 - **Isolation**: each test builds its own inputs; the algorithm is stateless between calls.
@@ -28,7 +29,8 @@ A verification run passes when every named scenario below asserts without unexpe
 the referenced tests cover each `Rendering-Layout-ContainmentAlgorithm-*` requirement. Any drift in
 the stable identifier (`"containment"`), in the one-box-per-node placement contract, in
 edge-per-input-edge routing with styling passthrough, in obstacle avoidance for intervening boxes,
-in empty-graph handling, in skipping of out-of-graph edges, or in the argument-null validation
+in empty-graph handling, in skipping of out-of-graph edges, in the node-appearance pass-through, or in
+the argument-null validation
 behavior constitutes a failure.
 
 ### Test Scenarios
@@ -70,6 +72,9 @@ behavior constitutes a failure.
   `Widen_SingleConnector`, `Widen_ZeroConnectors`, `Widen_BaseGapExceedsCorridor`) confirm the shared
   formula the algorithm feeds the packer returns the connector-corridor width and never shrinks the
   supplied base gap.
+- **Appearance pass-through** (`Rendering-Layout-ContainmentAlgorithm-AppearancePassThrough`):
+  `ContainmentLayout_NodeAppearance_ReachesPlacedBox` confirms a node's `BoxAppearance` is the very
+  instance carried by the placed box.
 
 ### Requirements Coverage
 
@@ -102,3 +107,5 @@ behavior constitutes a failure.
 - **`Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly`**:
   Apply_UserEdgeWithOldReservedPrefixOnPackedPeers_StillEmitsLine (an ordinary edge whose identifier is
   the literal former reserved prefix `"\u0001layout-only:"` plus a suffix is routed and drawn)
+- **`Rendering-Layout-ContainmentAlgorithm-AppearancePassThrough`**:
+  ContainmentLayout_NodeAppearance_ReachesPlacedBox

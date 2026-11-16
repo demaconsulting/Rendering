@@ -988,4 +988,92 @@ public sealed class GalleryShowcaseTests
             graph,
             Themes.Dark);
     }
+
+    /// <summary>
+    ///     Renders the SysML relationship end-marker sheet to SVG, proving every new end marker (hollow
+    ///     triangle with two or four dots, circled plus) draws at both a target and a source line end.
+    /// </summary>
+    [Fact]
+    public void Gallery_SysmlEndMarkers_RendersSvg()
+    {
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.SysmlEndMarkersSvg,
+            GallerySysmlNotation.EndMarkers(Themes.Light),
+            Themes.Light);
+    }
+
+    /// <summary>
+    ///     Renders the SysML relationship end-marker sheet to PNG through the raster renderer.
+    /// </summary>
+    [Fact]
+    public void Gallery_SysmlEndMarkers_RendersPng()
+    {
+        // Act / Assert
+        GalleryWriter.Png(
+            GalleryCatalog.SysmlEndMarkersPng,
+            GallerySysmlNotation.EndMarkers(Themes.Light),
+            Themes.Light);
+    }
+
+    /// <summary>
+    ///     Renders the notation-primitives sheet to SVG, proving dashed outlines, text styles, centered
+    ///     compartment titles, name-in-tab folders, thick bars, the terminate badge, corner icons,
+    ///     dashed bands and rounded lifelines all render.
+    /// </summary>
+    [Fact]
+    public void Gallery_SysmlNotationPrimitives_RendersSvg()
+    {
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.SysmlNotationPrimitivesSvg,
+            GallerySysmlNotation.NotationPrimitives(Themes.Light),
+            Themes.Light);
+    }
+
+    /// <summary>
+    ///     Renders the notation-primitives sheet to PNG through the raster renderer.
+    /// </summary>
+    [Fact]
+    public void Gallery_SysmlNotationPrimitives_RendersPng()
+    {
+        // Act / Assert
+        GalleryWriter.Png(
+            GalleryCatalog.SysmlNotationPrimitivesPng,
+            GallerySysmlNotation.NotationPrimitives(Themes.Light),
+            Themes.Light);
+    }
+
+    /// <summary>
+    ///     Renders the graph-driven box-appearance diagram to SVG, proving a node's
+    ///     <see cref="LayoutGraphNode.Appearance"/> reaches the placed boxes through the hierarchical
+    ///     algorithm and that an in-tab folder title reserves no body title band.
+    /// </summary>
+    [Fact]
+    public void Gallery_BoxAppearanceGraph_RendersSvg()
+    {
+        // Arrange
+        var graph = GallerySysmlNotation.BoxAppearanceGraph();
+        graph.Set(CoreOptions.Algorithm, "hierarchical");
+
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.BoxAppearanceGraphSvg,
+            graph,
+            Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the back-edge entry-approach state machine to SVG, proving the reversed edges end in a
+    ///     wrap-around corridor long enough for the open chevron they carry.
+    /// </summary>
+    [Fact]
+    public void Gallery_BackEdgeEntryApproach_RendersSvg()
+    {
+        // Act / Assert
+        GalleryWriter.Svg(
+            GalleryCatalog.BackEdgeEntryApproachSvg,
+            GallerySysmlNotation.BackEdgeEntryApproach(),
+            Themes.Light);
+    }
 }

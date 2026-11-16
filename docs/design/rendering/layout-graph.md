@@ -40,7 +40,9 @@ the responsibility of a hierarchical layout engine (a later delivery).
   `Id`, `Width`, `Height`, `Label`,
   `Shape` (the `BoxShape` outline, defaulting to `Rectangle`), `Keyword` (an optional italicized
   keyword line shown above the title), `Compartments` (an ordered, read-only list of
-  `LayoutCompartment` feature sections, defaulting to empty), `TitleHeight` (an optional override, in
+  `LayoutCompartment` feature sections, defaulting to empty), `Appearance` (an optional
+  `BoxAppearance?` copied onto the placed box, defaulting to `null`, the legacy look), `TitleHeight`
+  (an optional override, in
   logical pixels, of the title band a hierarchical layout engine reserves above this node's children
   when it is a labeled container), `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight`
   (optional resolved shape-geometry hints copied onto placed boxes so routing and rendering can agree
@@ -124,6 +126,14 @@ the hints unchanged onto the placed `LayoutBox`, where `ConnectorRouter`, `SvgRe
 `CanvasNetRasterRenderer` can all consume the same resolved values without the layout APIs taking a
 `Theme` dependency.
 
+`BoxAppearance? LayoutGraphNode.Appearance { get; set; }` — optional presentation attributes of the
+node's box (outline stroke style, name and keyword text style, folder title placement, and corner
+icon; see the Layout Tree design for `BoxAppearance`). `null` (the default) is the legacy look. Every
+bundled algorithm (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`,
+`HierarchicalLayoutAlgorithm`, and the `AutoLayoutAlgorithm` node clone) copies the reference unchanged
+onto the placed `LayoutBox.Appearance`. It is carried only on nodes: ports have no appearance, and
+edge end decorations ride `LayoutGraphEdge.TargetEnd`.
+
 ### Layout Graph Error Handling
 
 Invalid inputs are rejected at their entry point rather than deferred to layout time. The
@@ -170,6 +180,9 @@ the appropriate ancestor container.
 - `RoundedCornerRadius`, `FolderTabWidth`, and `FolderTabHeight` shall default to `null`, so callers
   that do not need exact shape-aware routing or rendering retain the pre-existing generic fallback
   behavior; when set, a layout algorithm shall propagate each hint unchanged onto the placed box.
+- `Appearance` shall default to `null` (the legacy look), so that a node whose appearance is not set
+  places and renders byte-identically to before the property existed; when set, a layout algorithm
+  shall copy it unchanged onto the placed box rather than substituting a default.
 - An edge shall reside in the container at or above the *lowest common ancestor* (LCA) of its two
   endpoints. An edge whose endpoints live in different descendant containers (a *cross-container*
   edge) shall therefore be added to an ancestor container (the LCA, or any graph above it such as the
@@ -222,3 +235,4 @@ carries an `EndMarkerStyle` and `LineStyle` from the Layout Tree unit's enumerat
 | Rendering-Model-LayoutGraph-ShapeGeometryHints | `LayoutGraphNode` shape-geometry hint properties |
 | Rendering-Model-LayoutGraph-Ports | `LayoutGraphNode.Ports` / `HasPorts` / `ILayoutConnectable` |
 | Rendering-Model-LayoutGraph-PortLabels | `LayoutGraphPort.ExternalLabel` / `.InternalLabel` |
+| Rendering-Model-LayoutGraph-NodeAppearance | `LayoutGraphNode.Appearance` |

@@ -273,3 +273,76 @@ sections:
           caller-chosen identifier can silently turn a real edge into a placement hint that is never drawn.
         tests:
           - Apply_UserEdgeWithOldReservedPrefix_StillEmitsLine
+
+      - id: Rendering-Layout-LayeredAlgorithm-AppearancePassThrough
+        title: >-
+          LayeredLayoutAlgorithm shall copy a node's appearance onto the placed box it produces for that
+          node, and shall leave the placed box's appearance null when the node has none.
+        justification: |
+          A node's BoxAppearance (outline style, name and keyword styling, folder title placement, corner
+          icon) is only drawn if it reaches the placed layout tree. Passing the reference through
+          unchanged lets every renderer draw the notation without the algorithm knowing what it means,
+          and keeping it null for an appearance-free node preserves the legacy look and output.
+        tests:
+          - LayeredLayout_NodeAppearance_ReachesPlacedBox
+          - LayeredLayout_NodeWithoutAppearance_StaysNull
+
+      - id: Rendering-Layout-LayeredAlgorithm-FolderTabTitleReserve
+        title: >-
+          LayeredLayoutAlgorithm shall not reserve a body title band (the title-versus-port top inset)
+          for a folder node whose appearance draws its name in the folder tab, unless the node also carries
+          a keyword, whose line is still drawn in the body and keeps the title-versus-port inset.
+        justification: |
+          A folder that draws its name in the tab has no name title in its body. Widening the top content
+          inset to keep a top port's label clear of a body title that is not drawn would waste space and
+          push the port label away from the box edge for no reason. A keyword line is still drawn in the
+          body, so a node with a keyword keeps the clearance (at both the content-inset and the
+          port-driven growth sites).
+        tests:
+          - LayeredLayout_FolderNameInTabWithTopPort_ReservesNoTitleInset
+          - LayeredLayout_FolderNameInTabWithKeywordAndTopPort_ReservesTitleInset
+          - LayeredLayout_FolderNameInTabWithKeywordAndBottomPort_ReservesTitleInset
+          - LayeredLayout_FolderNameInTabWithKeywordAndSmallHeight_GrowsLikeBodyTitled
+
+      - id: Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproach
+        title: >-
+          LayeredLayoutAlgorithm shall give the final straight leg of every connector, including a
+          reversed (back) edge that wraps around a layer, at least the rendered along-line length of the
+          edge's target end marker plus the corner radius plus the clean-leg margin, for every flow
+          direction and every end-marker style.
+        justification: |
+          A reversed edge ends in a wrap-around corridor whose final approach was only the connector
+          clearance (10 px), shorter than a rendered open chevron (15 px) plus the rounded corner before
+          it. The renderer's corner clamp then collapsed the bend into a sharp corner inside the arrowhead
+          footprint, drawing a small hollow triangle at the arrowhead. Deriving the approach from the
+          decoration the graph's edges actually carry keeps the marker on a clean straight run.
+        tests:
+          - LayeredLayout_BackEdgeWithOpenChevron_FinalLegCoversChevronAndCorner
+          - LayeredLayout_BackEdgeWithOpenChevron_AllDirectionsKeepCleanFinalLeg
+          - LayeredLayout_BackEdgeWithAnyMarker_FinalLegCoversRenderedMarker
+          - ResolveBackEdgeEntryApproach_DerivesFromWidestDecoration
+
+      - id: Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproachLegacyPreserved
+        title: >-
+          LayeredLayoutAlgorithm shall leave the final legs of forward connectors unchanged and shall keep
+          the historical connector-clearance approach for a reversed edge when no edge carries an end
+          decoration.
+        justification: |
+          The longer approach is a fix for decorated back edges only. A graph with no end decorations, and
+          the forward edges of a decorated graph, must keep exactly their existing geometry so existing
+          diagrams do not move.
+        tests:
+          - LayeredLayout_BackEdgeWithOpenChevron_ForwardLegsUnchanged
+          - LayeredLayout_UndecoratedBackEdge_KeepsLegacyApproach
+
+      - id: Rendering-Layout-LayeredAlgorithm-LabelsClearOfNodeBorders
+        title: >-
+          LayeredLayoutAlgorithm shall produce a tree of a decorated state-machine graph whose connector
+          labels, placed by the obstacle-aware connector-label placer, cross no node border.
+        justification: |
+          A connector-label background painted over a node border looks like a rendering defect. The
+          label placer is given the placed boxes as obstacles; the layout must leave the connectors
+          routed so that every label finds a position clear of every box, which the elevator state
+          machine that reproduced the defect now demonstrates.
+        tests:
+          - LayeredLayout_ElevatorLabels_DoNotCrossNodeBorders

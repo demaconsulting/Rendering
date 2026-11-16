@@ -7,7 +7,8 @@ This document describes the verification design for the connector-label-placer u
 to at least one named test scenario so a reviewer can confirm coverage without reading the test code.
 The verification strategy, test environment, and acceptance criteria are described in the
 system verification document; the test project is
-`DemaConsulting.Rendering.Abstractions.Tests` (`ConnectorLabelPlacerTests.cs`).
+`DemaConsulting.Rendering.Abstractions.Tests` (`ConnectorLabelPlacerTests.cs` and
+`ConnectorLabelPlacerObstacleTests.cs`).
 
 ### Verification Approach
 
@@ -15,13 +16,18 @@ The connector-label-placer unit is verified with in-process xUnit unit tests tha
 `ConnectorLabelPlacer.Place` directly with hand-constructed `LayoutLine` inputs. No mocking or
 stubbing is required because the class is a pure, static function of its inputs. The tests
 construct `LayoutLine` instances with explicit `MidpointLabel` values and `Waypoints` sequences to
-cover the omit-unlabelled, longest-segment-midpoint, and collision-avoidance requirements.
+cover the omit-unlabelled, longest-segment-midpoint, and collision-avoidance requirements. The
+box-aware overload is verified in `ConnectorLabelPlacerObstacleTests.cs` with hand-built horizontal
+and vertical lines and hand-built leaf and container `LayoutBox` obstacles, asserting the chosen label
+rectangle against the obstacle rectangles (overlap and containment) and against the two-argument
+overload's result.
 
 ### Test Environment
 
 - **Framework**: xUnit v4 running under the .NET SDK on `net8.0`, `net9.0`, `net10.0`, and `net11.0`.
 - **Execution**: `dotnet test` invoked by `build.ps1` and by the CI pipeline.
-- **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`ConnectorLabelPlacerTests.cs`).
+- **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`ConnectorLabelPlacerTests.cs` and
+  `ConnectorLabelPlacerObstacleTests.cs`).
 - **External dependencies**: none; the tests use only in-memory geometry inputs.
 
 ### Acceptance Criteria
@@ -61,7 +67,11 @@ Test `Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight` asserts a placed l
 and `HalfHeight` are both positive, and `Place_LongerLabel_HasLargerHalfWidth` asserts a longer
 `MidpointLabel` string yields a larger `HalfWidth` than a shorter one, confirming the extent is
 genuinely derived from the label's estimated rendered size (not a fixed placeholder), which a
-caller needs to compute the label's full bounding box for canvas-growth purposes.
+caller needs to compute the label's full bounding box for canvas-growth purposes. Test
+`Place_TwoArgOverload_ReturnsLabelPlacementWithTwoVariableDeconstruction` pins the two-argument overload's
+shipped result shape (`IReadOnlyDictionary<LayoutLine, LabelPlacement>`), asserts the exact centre and
+half-extents, and confirms `var (x, y) = result[line]` (the two-variable `LabelPlacement` deconstruction)
+yields the same centre coordinates.
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent`.
 
@@ -88,15 +98,68 @@ unlike `EstimateLabelHeight`, which is a pure function of font size alone.
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelWidth`.
 
+#### Box-aware placement avoids leaf and container borders
+
+Test `PlaceWithObstacles_NoObstacles_MatchesLegacyOverload` places three labeled lines (two with
+coincident midpoints) with no obstacles and asserts every `LabelPlacement` equals the two-argument
+overload's. Test `PlaceWithObstacles_LeafBoxOnMidpoint_SlidesLabelClear` puts a leaf box on a horizontal
+line's midpoint and asserts the chosen label rectangle does not overlap the box, stays on the line (Y
+0), and has moved off the midpoint X. Test `PlaceWithObstacles_LabelFullyInsideContainer_IsAllowed`
+asserts a label that fits wholly inside a container box stays at the segment midpoint. Test
+`PlaceWithObstacles_LabelStraddlingContainerBorder_IsRejected` puts a container border across the
+midpoint and asserts the chosen rectangle is either fully inside the container or fully outside it.
+Test `PlaceWithObstacles_EverythingBlocked_FallsBackToObstacleFreePlacement` covers the line with a leaf
+box larger than every candidate and asserts the placement equals the obstacle-free result, so the label
+is not lost. Test `PlaceWithObstacles_SameInput_IsDeterministic` places the same input twice and asserts
+identical results.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-AvoidBoxes`.
+
+#### Labels keep clear of the end decoration
+
+Test `PlaceWithObstacles_SlideAvoidsEndMarkerZone` places a label on a vertical line that ends in an
+`OpenChevron`, blocks the midpoint with a leaf box, and asserts the chosen rectangle overlaps neither the
+box nor the footprint of the end marker (its rendered along-line length back from the endpoint). Test
+`PlaceWithObstacles_SlideAvoidsEndMarkerZone_UsesSuppliedMarkerScale` repeats this with a thicker-stroke
+theme, passing its marker scale, and asserts the footprint grows with the scale (a hard-coded 1.5 would
+let the label sit inside it). Test `Place_LabelOnShortRun_StaysClearOfEndMarkerFootprint` (target and source
+end) places a long label on an 80 px run ending in a filled arrow, with no obstacle boxes, and asserts the
+label no longer sits on the arrowhead. Test `Place_LabelClearOfEndMarker_KeepsMidpoint` asserts a
+label that already clears the decoration keeps the exact midpoint. Test
+`Place_RunTooShortForLabelAndMarker_KeepsLabelOnItsLine` asserts that on a 40 px run too short for both, the
+label keeps its midpoint on the line instead of being nudged to another row.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration`.
+
+#### Box-aware overload rejects null arguments
+
+Test `PlaceWithObstacles_NullArguments_Throw` calls the overload with a `null` obstacle sequence and with
+a `null` line sequence and asserts each raises `ArgumentNullException`.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled`**: Place_LineWithoutLabel_IsOmitted
 - **`Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment`**: Place_SingleLine_UsesLongestSegmentMidpoint
 - **`Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap`**: Place_CollidingLabels_AreSeparated
 - **`Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent`**:
-  Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight, Place_LongerLabel_HasLargerHalfWidth
+  Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight, Place_LongerLabel_HasLargerHalfWidth,
+  Place_TwoArgOverload_ReturnsLabelPlacementWithTwoVariableDeconstruction
 - **`Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight`**:
   EstimateLabelHeight_MatchesPlaceHalfHeightDoubled, EstimateLabelHeight_IsMonotonicInFontSize
 - **`Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelWidth`**:
   EstimateLabelWidth_MatchesPlaceHalfWidthDoubled, EstimateLabelWidth_IsMonotonicInFontSize,
   EstimateLabelWidth_IsMonotonicInTextLength
+- **`Rendering-Abstractions-ConnectorLabelPlacer-AvoidBoxes`**:
+  PlaceWithObstacles_NoObstacles_MatchesLegacyOverload, PlaceWithObstacles_LeafBoxOnMidpoint_SlidesLabelClear,
+  PlaceWithObstacles_LabelFullyInsideContainer_IsAllowed,
+  PlaceWithObstacles_LabelStraddlingContainerBorder_IsRejected,
+  PlaceWithObstacles_EverythingBlocked_FallsBackToObstacleFreePlacement,
+  PlaceWithObstacles_SameInput_IsDeterministic
+- **`Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration`**:
+  PlaceWithObstacles_SlideAvoidsEndMarkerZone, PlaceWithObstacles_SlideAvoidsEndMarkerZone_UsesSuppliedMarkerScale,
+  Place_LabelOnShortRun_StaysClearOfEndMarkerFootprint, Place_LabelClearOfEndMarker_KeepsMidpoint,
+  Place_RunTooShortForLabelAndMarker_KeepsLabelOnItsLine
+- **`Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments`**:
+  PlaceWithObstacles_NullArguments_Throw

@@ -34,7 +34,9 @@ which returns a `LayoutTree` carrying the packed region size and a flat list of 
 `ApplyCore(graph, options)` rejects null `graph` or `options` with `ArgumentNullException`, then:
 
 1. **Leaf-box conversion.** Converts each top-level `LayoutGraphNode` into a leaf `LayoutBox` at the
-   origin (carrying the node's width, height, and label), recording each node's positional index. A
+   origin (carrying the node's width, height, label, and `Appearance` — a reference copied unchanged,
+   `null` when the node has none — so a styled node keeps its notation), recording each node's
+   positional index. A
    node's nested `Children` are treated as opaque and are not laid out at this level (that is the
    recursive hierarchical engine's responsibility, not this flat algorithm's).
 2. **Content-width heuristic.** Derives the packer's `MaxContentWidth` from the boxes via
@@ -145,3 +147,4 @@ routing, adapting their combined output to the public `LayoutAlgorithmBase` cont
 | Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula | EdgeCountGapWidener helper described above |
 | Rendering-Layout-ContainmentAlgorithm-LayoutOnlyEdges | Connection building (step 4) |
 | Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly | Connection building (step 4) |
+| Rendering-Layout-ContainmentAlgorithm-AppearancePassThrough | Leaf-box conversion (step 1) |

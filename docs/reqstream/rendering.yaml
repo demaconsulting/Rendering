@@ -53,6 +53,13 @@ sections:
           - Rendering-Model-LayoutTree-Grid
           - Rendering-Model-LayoutTree-Geometry
           - Rendering-Model-LayoutTree-ShapeGeometryHints
+          - Rendering-Model-LayoutTree-EndMarkerStyles
+          - Rendering-Model-LayoutTree-BoxAppearance
+          - Rendering-Model-LayoutTree-CompartmentTitleStyle
+          - Rendering-Model-LayoutTree-BadgeThickBar
+          - Rendering-Model-LayoutTree-BadgeCrossedCircle
+          - Rendering-Model-LayoutTree-BandOutlineStyle
+          - Rendering-Model-LayoutTree-LifelineHeaderStyle
         tests:
           - LayoutTree_Construction_StoresWidthHeightNodes
           - LayoutBox_Construction_StoresAllFields
@@ -99,6 +106,7 @@ sections:
           - Rendering-Model-LayoutGraph-Ports
           - Rendering-Model-LayoutGraph-PortLabels
           - Rendering-Model-LayoutGraph-ShapeGeometryHints
+          - Rendering-Model-LayoutGraph-NodeAppearance
         tests:
           - AddNode_AppendsNodeAndReturnsIt
           - AddEdge_AppendsEdgeWithEndpoints

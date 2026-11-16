@@ -31,8 +31,24 @@ the top-left, so a renderer can draw each element directly without resolving nes
   `ContentInsetRight`, `ContentInsetTop`, `ContentInsetBottom` (each defaulting to `0.0`) — a
   per-side reserved margin auto-computed by a layout algorithm from any port labels on that face, so
   a renderer knows where title/compartment content may start and must stop without colliding with a
-  port label.
-- `LayoutCompartment` (sealed record) — `Title` and text `Rows`.
+  port label — and an optional `Appearance` (`BoxAppearance?`, default `null`, the legacy look).
+- `BoxAppearance` (sealed record) — optional presentation attributes of a box beyond its geometry:
+  `OutlineStyle` (`LineStyle`, default `Solid`; `Dashed` and `Dotted` are honored for every
+  `BoxShape`), `NameStyle` and `KeywordStyle` (`TextStyle?`, default `null`), `FolderTitle`
+  (`FolderTitlePlacement`, default `Body`), and `CornerIcon` (`BoxCornerIcon`, default `None`). The
+  read-only `ResolvedNameStyle` returns `NameStyle` or, when `null`, `TextStyle.Bold` (the legacy bold
+  upright name); `ResolvedKeywordStyle` returns `KeywordStyle` or, when `null`, `TextStyle.Italic` (the
+  legacy regular italic keyword). A `null` `LayoutBox.Appearance` and `new BoxAppearance()` are
+  equivalent: the legacy look. `FolderTitle` is ignored for any shape other than `Folder`;
+  `CornerIcon` is drawn for any shape, in the top-left of the box body (below the tab for a folder).
+- `LayoutCompartment` (sealed record) — `Title` and text `Rows`, an optional `TitleAlign`
+  (`TextAlign`, default `Left`; `Center` centers the title between the box's left and right content insets,
+  and `Right` is drawn left-aligned), and an optional `TitleStyle` (`TextStyle?`, default `null`). The
+  read-only `ResolvedTitleStyle` returns `TitleStyle` or, when `null`, `TextStyle.BoldItalic` (the
+  legacy title look).
+- `TextStyle` (readonly record struct) — a `Weight` (`FontWeight`) and `Style` (`FontStyle`) pair with
+  the presets `Regular` (regular, upright), `Bold` (bold, upright), `Italic` (regular, italic), and
+  `BoldItalic` (bold, italic).
 - `LayoutPort` (node record) — `CentreX`, `CentreY`, attached `Side`, `ExternalLabel`,
   `InternalLabel` (defaulting to `null`), and `MaxLabelWidth` (defaulting to
   `double.PositiveInfinity`). A plain port carries only an `ExternalLabel`, rendered inward beside the
@@ -46,22 +62,46 @@ the top-left, so a renderer can draw each element directly without resolving nes
   that a renderer uses to squeeze an excessively long port label rather than let it visually overlap
   the opposite port's label region.
 - `LayoutLine` (node record) — `Waypoints`, `SourceEnd`, `TargetEnd`, `LineStyle`, and
-  `MidpointLabel`.
+  `MidpointLabel`. `EndMarkerStyle` (the type of `SourceEnd` and `TargetEnd`) has the members `None`,
+  `OpenChevron`, `HollowTriangle`, `HollowTriangleCrossbar`, `FilledArrow`, `HollowDiamond`,
+  `FilledDiamond`, `Circle`, and `Bar` (ordinals 0 to 8, unchanged), followed by the appended
+  `HollowTriangleTwoDots` (hollow triangle trailed by two dots, SysML v2 feature typing),
+  `HollowTriangleFourDots` (hollow triangle trailed by a 2x2 grid of four dots, SysML v2 reference
+  subsetting), and `CircledPlus` (circle containing a plus sign, SysML v2 owned membership). Existing
+  ordinals are never renumbered.
 - `Point2D` (sealed record) — `X` and `Y`.
 - `Rect` (readonly record struct) — `X`, `Y`, `Width`, `Height`; the shared public axis-aligned
   rectangle geometry value type in logical pixels, used alongside `Point2D` and `PortSide`.
 - `LayoutLabel` (node record) — `X`, `Y`, `MaxWidth`, `Text`, `Align`, `Weight`, `Style`, `FontSize`.
-- `LayoutBadge` (node record) — `CentreX`, `CentreY`, `Size`, `Shape`, and `Label`.
-- `LayoutBand` (node record) — `X`, `Y`, `Width`, `Height`, `Orientation`, `Label`, and `Children`.
+- `LayoutBadge` (node record) — `CentreX`, `CentreY`, `Size`, `Shape`, `Label`, and an optional
+  `Thickness` (`double?`, default `null`). `BadgeShape` has the members `FilledCircle`, `Bullseye`,
+  `Diamond`, `HorizontalBar`, and `VerticalBar` (ordinals 0 to 4, unchanged), followed by the appended
+  `ThickHorizontalBar` and `ThickVerticalBar` (filled fork/join bars) and `CrossedCircle` (a hollow
+  circle crossed by an X whose four arms end on the circle, the terminate node). For a thick bar,
+  `Size` is the full bar length along its axis and `Thickness` is the extent across it; `null` selects
+  the default notation thickness (`NotationMetrics.ThickBarThickness`). For `CrossedCircle`, `Size` is
+  the circle diameter. `Thickness` is ignored for every other shape.
+- `LayoutBand` (node record) — `X`, `Y`, `Width`, `Height`, `Orientation`, `Label`, `Children`, and an
+  `OutlineStyle` (`LineStyle`, default `Solid`; `Dashed` draws a swim lane that is not a solid
+  partition).
 - `LayoutLifeline` (node record) — `CentreX`, `TopY`, `BottomY`, `Label`, `HeaderWidth`,
-  `HeaderHeight`.
+  `HeaderHeight`, and the optional `Keyword` (`string?`, default `null`; drawn as a «keyword» line
+  above the label), `HeaderShape` (`BoxShape`, default `Rectangle`; `RoundedRectangle` is also honored
+  and any other value is drawn as a rectangle), `HeaderAppearance` (`BoxAppearance?`, default `null`;
+  only `OutlineStyle`, `NameStyle` for the label with a bold default, and `KeywordStyle` are honored)
+  and `HeaderCornerRadius` (`double?`, default `null`, the theme's rounded-rectangle radius).
+  `Label` may carry an already-formatted `name : Type` string; the model and renderers do not parse it.
+  All four optional members default to the legacy look.
 - `LayoutActivation` (node record) — `CentreX`, `TopY`, `BottomY`.
 - `LayoutGrid` (node record) — `X`, `Y`, and `Rows`.
 - `LayoutGridRow` (sealed record) — `IsHeader` and `Cells`.
 - `LayoutGridCell` (sealed record) — `Width`, `Height`, `Text`, `Align`, `ColSpan`.
 
 The unit also defines the notation enumerations `BoxShape`, `PortSide`, `EndMarkerStyle`,
-`LineStyle`, `TextAlign`, `FontWeight`, `FontStyle`, `BadgeShape`, and `BandOrientation`.
+`LineStyle`, `TextAlign`, `FontWeight`, `FontStyle`, `BadgeShape`, `BandOrientation`,
+`FolderTitlePlacement` (`Body`, the default, draws a folder's name in the box body below the tab;
+`Tab` draws it inside the tab), and `BoxCornerIcon` (`None`, `Send`, and `Accept`: a convex
+right-pointing pentagon, and the same pentagon with a triangular notch in its left edge).
 
 `Point2D` and `Rect` are the unit's shared geometry value types. They carry no behavior of their own;
 they exist so every node record and every layout algorithm expresses coordinates and bounds with one
@@ -97,6 +137,13 @@ Layout Graph unit, not this unit.
   LayoutBox(...)` call site.
 - `LayoutNode` shall remain an open discriminated union; adding a new node type shall be an additive
   change, and consumers shall skip node types they do not recognize.
+- Every notation-primitive addition (the appended `EndMarkerStyle` and `BadgeShape` members, the
+  `TextStyle` type, `BoxAppearance`, `LayoutCompartment.TitleAlign`/`TitleStyle`,
+  `LayoutBox.Appearance`, `LayoutBadge.Thickness`, `LayoutBand.OutlineStyle`, and the new
+  `LayoutLifeline` members) shall be appended after the existing members as an optional parameter or
+  enumeration member whose default reproduces the legacy appearance, so no existing enumeration
+  ordinal shifts and every pre-existing construction call site renders byte-identically. A `null`
+  `Appearance` and a default `BoxAppearance` shall mean the same legacy look.
 - All node records shall be immutable, so a placed tree can be shared and rendered repeatedly without
   defensive copying.
 
@@ -144,3 +191,10 @@ it obtains one from a layout algorithm and passes it to a renderer.
 | Rendering-Model-LayoutTree-Grid | `LayoutGrid` / `LayoutGridRow` / `LayoutGridCell` |
 | Rendering-Model-LayoutTree-Geometry | `Point2D` and `Rect` value types |
 | Rendering-Model-LayoutTree-ShapeGeometryHints | `LayoutBox` shape-geometry hint properties |
+| Rendering-Model-LayoutTree-EndMarkerStyles | `EndMarkerStyle` appended members |
+| Rendering-Model-LayoutTree-BoxAppearance | `BoxAppearance`, `TextStyle`, `LayoutBox.Appearance` |
+| Rendering-Model-LayoutTree-CompartmentTitleStyle | `LayoutCompartment.TitleAlign`, `TitleStyle` |
+| Rendering-Model-LayoutTree-BadgeThickBar | `BadgeShape` thick-bar members, `LayoutBadge.Thickness` |
+| Rendering-Model-LayoutTree-BadgeCrossedCircle | `BadgeShape.CrossedCircle` |
+| Rendering-Model-LayoutTree-BandOutlineStyle | `LayoutBand.OutlineStyle` |
+| Rendering-Model-LayoutTree-LifelineHeaderStyle | `LayoutLifeline` keyword, header shape, appearance, radius |

@@ -35,7 +35,12 @@ attribute values, well-formed XML, and geometric parity with `NotationMetrics`.
 A unit verification run passes when every named scenario listed below completes without
 unexpected exception and every assertion holds. A failure is any missing SVG root element,
 wrong renderer metadata (`MediaType`, `DefaultExtension`), wrong emitted SVG element or
-attribute, malformed XML escaping, or marker geometry that does not match `NotationMetrics`.
+attribute, malformed XML escaping, or marker geometry that does not match `NotationMetrics`. For the
+notation primitives, a failure is also an on-demand marker definition that is missing, duplicated, or
+written when unused; a source-end marker that does not reference its mirrored `line-start-…` variant; a
+missing or spurious `stroke-dasharray`; a `font-weight`/`font-style` that does not match the resolved
+style (including a default style whose markup differs from the legacy markup); or a title, tab name,
+corner icon, badge, band, lifeline, or connector label positioned differently from the documented rule.
 Requirements coverage is enforced by the mapping in the _Requirements Coverage_ section below:
 every `Rendering-Svg-SvgRenderer-*` requirement must map to at least one named scenario, and
 every mapped scenario must exist in `DemaConsulting.Rendering.Svg.Tests` and pass.
@@ -45,8 +50,11 @@ every mapped scenario must exist in `DemaConsulting.Rendering.Svg.Tests` and pas
 The named scenarios that satisfy each unit requirement are enumerated below under
 _SvgRenderer Unit Scenarios_, grouped by rendering concern (renderer contract and metadata,
 SVG document root and empty tree, box rectangle and compartments, label text and styling and
-escaping, connector path and corners and dash pattern and label, additional node kinds, and
-connector end markers). Every `Rendering-Svg-SvgRenderer-*` requirement is traced to at least
+escaping, connector path and corners and dash pattern and label, additional node kinds, connector end
+markers, and the SysML notation primitives: dotted-triangle and circled-plus markers with on-demand
+definitions and mirrored start variants, box outline and text styles, folder name in tab, corner icons,
+thick-bar and crossed-circle badges, dashed bands, lifeline headers, and obstacle-aware connector labels).
+Every `Rendering-Svg-SvgRenderer-*` requirement is traced to at least
 one named scenario in the _Requirements Coverage_ table at the end of this document.
 
 ### SvgRenderer Unit Scenarios
@@ -199,7 +207,16 @@ dimensions and points match `NotationMetrics` and that the rendered SVG contains
 `line-end-hollow-diamond` id.
 
 Test `SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker` asserts that
-the rendered SVG contains the `line-end-hollow-triangle-crossbar` id.
+the rendered SVG contains the `line-end-hollow-triangle-crossbar` id. Test
+`EndMarkerCrossbar_BarSitsBehindTriangleBase` reads the marker definition back and asserts the marker box
+and tip anchor are the widened `NotationMetrics.Crossbar*` values, that the triangle base is at box x =
+`CrossbarExtension` (apex at the box end), and that the bar is a vertical `<line>` spanning the full marker
+height whose box x is below the base's by `CrossbarBaseGap`, i.e. behind the base with a gap.
+
+Test `LineCornerClamp_UsesRenderedMarkerLength` renders a line whose final leg is 17 px before a 15 px
+rendered chevron and asserts the final corner arc radius is 2 px (leg minus the rendered marker length), not the 4 px
+that a clamp
+using the notation length would allow.
 
 Tests `SvgRenderer_Render_SingleLine_WithFilledArrow_ProducesFilledArrowMarker`,
 `SvgRenderer_Render_SingleLine_WithFilledDiamond_ProducesFilledDiamondMarker`,
@@ -208,10 +225,12 @@ Tests `SvgRenderer_Render_SingleLine_WithFilledArrow_ProducesFilledArrowMarker`,
 the marker reference for the filled-arrow, filled-diamond, circle, and bar end-marker variants.
 
 The diamond and crossbar assertions now check that the connector path element carries the marker
-reference itself — `marker-start="url(#line-end-hollow-diamond)"` for the source end and
+reference itself — `marker-start="url(#line-start-hollow-diamond)"` for the source end and
 `marker-end="url(#line-end-hollow-triangle-crossbar)"` for the target end — rather than only that the
 marker id appears somewhere in the document. This prevents a false pass if the marker is defined in
-`<defs>` but no longer referenced by the connector.
+`<defs>` but no longer referenced by the connector. The source-end references use the mirrored
+`line-start-…` variant (see _Dotted-triangle and circled-plus markers, on-demand definitions, and start
+variants_ below); the filled-diamond scenario likewise asserts `marker-start="url(#line-start-filled-diamond)"`.
 
 **Covers**: `Rendering-Svg-SvgRenderer-EndMarkers`,
 `Rendering-Svg-SvgRenderer-EndMarkersOpenChevronReference`,
@@ -221,10 +240,113 @@ marker id appears somewhere in the document. This prevents a false pass if the m
 `Rendering-Svg-SvgRenderer-DiamondEndMarkers`,
 `Rendering-Svg-SvgRenderer-DiamondEndMarkerReference`,
 `Rendering-Svg-SvgRenderer-CrossbarEndMarkers`,
+`Rendering-Svg-SvgRenderer-CornerClampRenderedMarker`,
 `Rendering-Svg-SvgRenderer-EndMarkerFilledArrow`,
 `Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond`,
 `Rendering-Svg-SvgRenderer-EndMarkerCircle`,
 `Rendering-Svg-SvgRenderer-EndMarkerBar`.
+
+#### Dotted-triangle and circled-plus markers, on-demand definitions, and start variants
+
+Tests `EndMarkerTwoDots_DefinesTriangleAndTwoDotsFromNotationMetrics` and
+`EndMarkerFourDots_HasTwoByTwoDotGrid` render a line with the two-dots and four-dots target marker. The
+first asserts the `line-end-hollow-triangle-two-dots` definition contains a `<polygon>` and exactly two
+`<circle>` elements, that its `markerWidth`/`markerHeight`/`refX`/`refY` equal the `NotationMetrics`
+values, and that the line references it with `marker-end`. The second asserts four dot circles forming two
+distinct columns and two distinct rows and the `FourDotsMarkerLength` marker width. Test
+`EndMarkerCircledPlus_DefinesCircleAndTwoPlusArms` asserts the `line-end-circled-plus` definition has one
+circle of radius `CircledPlusRadius` filled with the theme background, two `<line>` arms, and the
+`CircledPlusMarkerBox`/`CircledPlusRefX`/`CircledPlusCenter` box and anchor.
+
+Test `EndMarkerDefs_NewMarkersUnused_AreNotEmitted` renders a line that uses none of the new markers and
+asserts that no `two-dots`, `four-dots`, `circled-plus`, or `line-start-` text appears, that exactly eight
+`<marker>` elements are written, and that the `label-bg` filter is present. Test
+`EndMarkerDefs_NewMarkerUsedTwice_IsDefinedOnce` renders two lines that use the circled plus and asserts a
+single `line-end-circled-plus` definition.
+
+Tests `EndMarkerSource_CircledPlus_UsesMirroredStartVariant`,
+`EndMarkerSource_FourDots_UsesMirroredStartVariantOnly`, and
+`EndMarkerSource_LegacyDiamond_UsesMirroredStartVariant` render lines with a source-end marker and assert
+that `marker-start` references the `line-start-…` id, that the definition's `refX` is the mirrored anchor
+(marker length minus the end-variant anchor), and that the glyph is wrapped in
+`matrix(-1 0 0 1 <length> 0)`; the four-dots scenario also asserts the unused end variant is not written.
+Test `EndMarkerBothEnds_NewMarkers_ReferenceStartAndEndVariants` renders one line with the circled plus at
+the source and the two-dots marker at the target and asserts `marker-start` references
+`line-start-circled-plus` while `marker-end` references `line-end-hollow-triangle-two-dots`. These
+scenarios verify the deliberate fix of the earlier defect in which a `marker-start` marker reused the
+end-variant geometry and was drawn pointing inward.
+
+**Covers**: `Rendering-Svg-SvgRenderer-EndMarkerDottedTriangles`,
+`Rendering-Svg-SvgRenderer-EndMarkerCircledPlus`,
+`Rendering-Svg-SvgRenderer-EndMarkerDefsOnlyWhenUsed`,
+`Rendering-Svg-SvgRenderer-EndMarkerStartVariants`.
+
+#### Box outline, name, keyword, and compartment title styles
+
+Theory `BoxOutline_DashedOrDotted_EmitsDashArrayForEveryShape` renders rectangle, rounded-rectangle,
+folder, and note boxes with a dashed or dotted appearance and asserts `stroke-dasharray` of `6 3` or
+`2 2`. `BoxOutline_DashedNote_DashesBodyAndFold` asserts a dashed note carries exactly two `6 3` dash
+arrays (body and fold). `BoxOutline_SolidOrNoAppearance_EmitsNoDashArray` asserts a box with no
+appearance, and one with a default appearance, emit no dash array.
+
+`BoxName_Styles_EmitMatchingFontAttributes` asserts a regular name emits neither `font-weight` nor
+`font-style`, an italic name emits only `font-style="italic"`, and a bold-italic name emits both.
+`BoxName_DefaultAppearance_EmitsLegacyBoldMarkup` asserts a box without an appearance and one with a
+default appearance emit the identical bold, upright name element. `BoxKeyword_DefaultItalicAndRegularOverride`
+asserts the keyword is italic by default, upright with a regular keyword style, and bold with a bold
+keyword style.
+
+`CompartmentTitle_Centered_UsesMiddleAnchorAtContentCentre` renders a compartment with a centered italic
+title in a box with asymmetric content insets and asserts `text-anchor="middle"`, an `x` equal to
+`box.X + insetLeft + (box.Width - insetLeft - insetRight) / 2`, italic style, and no bold weight.
+`CompartmentTitle_Default_IsLegacyBoldItalicStart` asserts the default title is `text-anchor="start"` with
+`font-weight="bold" font-style="italic"`. `CompartmentSeparator_WithCenteredTitle_SpansFullBoxWidth` asserts
+the divider line still runs from `box.X` to `box.X + box.Width`.
+
+**Covers**: `Rendering-Svg-SvgRenderer-BoxOutlineStyle`, `Rendering-Svg-SvgRenderer-BoxNameStyle`,
+`Rendering-Svg-SvgRenderer-BoxKeywordStyle`, `Rendering-Svg-SvgRenderer-CompartmentTitleStyle`.
+
+#### Folder name in tab and corner icons
+
+`FolderNameInTab_DrawsNameInsideTab` renders a folder with the tab title placement and asserts the name
+appears exactly once, with its `x`/`y` inside the tab rectangle computed from
+`BoxMetrics.ResolveFolderTabWidth`/`ResolveFolderTabHeight`, left-aligned, and not bold for a regular name
+style. `FolderNameInTab_CompartmentsStartUnderTab` asserts the first compartment row sits higher than under
+a body-titled folder. `FolderBodyTitle_Default_DrawsNameBelowTab` asserts the default folder name is below
+the tab, centered, and bold. `FolderNameInTab_NonFolderShape_IsIgnored` asserts a rectangle with the tab
+placement still centers its name in the body.
+
+`CornerIcon_SendAndAccept_EmitPolygonsWithExpectedVertexCounts` asserts the send icon is a five-vertex
+polygon, the accept icon a six-vertex polygon, a box without an icon has no polygon outside `<defs>`, and
+the first vertex sits at the box origin plus `NotationMetrics.CornerIconInset`.
+`CornerIcon_OnFolder_StartsBelowTab` asserts the icon's first vertex is below the folder tab.
+
+**Covers**: `Rendering-Svg-SvgRenderer-FolderTitleInTab`, `Rendering-Svg-SvgRenderer-BoxCornerIcon`.
+
+#### Thick-bar and crossed-circle badges, dashed bands, lifeline headers, and label avoidance
+
+`BadgeThickHorizontalBar_EmitsFilledRectOfSizeAndDefaultThickness` renders a thick horizontal bar badge
+and asserts a filled `<rect>` whose width is the badge size and whose height is the default
+`ThickBarThickness`, centered on the badge. `BadgeThickVerticalBar_EmitsFilledRectWithCustomThickness`
+asserts a vertical bar's height is the size and its width is an explicit `Thickness`.
+`BadgeCrossedCircle_EmitsCircleAndTwoDiagonalsEndingOnCircle` asserts a background-filled circle and two
+diagonal `<line>` arms whose endpoints are offset by `r × CrossedCircleArmFraction`.
+`BandOutline_DashedAndSolid` asserts a dashed band carries `stroke-dasharray="6 3"` and a solid band
+carries none.
+
+`LifelineRoundedHeader_EmitsCornerRadiusAndKeepsDashedStem` asserts a rounded header carries `rx`/`ry`
+equal to the theme radius (or an explicit `HeaderCornerRadius`) and the stem keeps its dash array.
+`LifelineKeyword_DrawsGuillemetLineAboveLabel` asserts the keyword text is above the label and italic.
+`LifelineHeaderAppearance_DashedOutlineAndRegularLabel` asserts a dashed header appearance adds a second
+dash array (header plus stem) and a regular label has no `font-weight`. `LifelineDefault_MatchesLegacyMarkup`
+asserts a lifeline with no new properties has no `rx`, a bold label, and a single dash array (the stem).
+
+`LineLabel_MidpointOnLeafBox_IsPlacedClear` renders a horizontal labeled line whose midpoint lies on a
+leaf box and asserts the label's estimated extent lies entirely left or right of the box.
+
+**Covers**: `Rendering-Svg-SvgRenderer-BadgeThickBar`, `Rendering-Svg-SvgRenderer-BadgeCrossedCircle`,
+`Rendering-Svg-SvgRenderer-BandDashed`, `Rendering-Svg-SvgRenderer-LifelineRoundedHeader`,
+`Rendering-Svg-SvgRenderer-LabelsAvoidBoxes`.
 
 ### Requirements Coverage
 
@@ -303,7 +425,10 @@ marker id appears somewhere in the document. This prevents a false pass if the m
 - **`Rendering-Svg-SvgRenderer-DiamondEndMarkerReference`**:
   `SvgRenderer_Render_SingleLine_WithDiamondArrowhead_ProducesDiamondMarker`
 - **`Rendering-Svg-SvgRenderer-CrossbarEndMarkers`**:
-  `SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker`
+  `SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker`,
+  `EndMarkerCrossbar_BarSitsBehindTriangleBase`
+- **`Rendering-Svg-SvgRenderer-CornerClampRenderedMarker`**:
+  `LineCornerClamp_UsesRenderedMarkerLength`
 - **`Rendering-Svg-SvgRenderer-EndMarkerFilledArrow`**:
   `SvgRenderer_Render_SingleLine_WithFilledArrow_ProducesFilledArrowMarker`
 - **`Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond`**:
@@ -312,3 +437,41 @@ marker id appears somewhere in the document. This prevents a false pass if the m
   `SvgRenderer_Render_SingleLine_WithCircleEnd_ProducesCircleMarker`
 - **`Rendering-Svg-SvgRenderer-EndMarkerBar`**:
   `SvgRenderer_Render_SingleLine_WithBarEnd_ProducesBarMarker`
+- **`Rendering-Svg-SvgRenderer-EndMarkerDottedTriangles`**:
+  `EndMarkerTwoDots_DefinesTriangleAndTwoDotsFromNotationMetrics`,
+  `EndMarkerFourDots_HasTwoByTwoDotGrid`
+- **`Rendering-Svg-SvgRenderer-EndMarkerCircledPlus`**:
+  `EndMarkerCircledPlus_DefinesCircleAndTwoPlusArms`
+- **`Rendering-Svg-SvgRenderer-EndMarkerDefsOnlyWhenUsed`**:
+  `EndMarkerDefs_NewMarkersUnused_AreNotEmitted`, `EndMarkerDefs_NewMarkerUsedTwice_IsDefinedOnce`
+- **`Rendering-Svg-SvgRenderer-EndMarkerStartVariants`**:
+  `EndMarkerSource_CircledPlus_UsesMirroredStartVariant`,
+  `EndMarkerSource_FourDots_UsesMirroredStartVariantOnly`,
+  `EndMarkerSource_LegacyDiamond_UsesMirroredStartVariant`,
+  `EndMarkerBothEnds_NewMarkers_ReferenceStartAndEndVariants`
+- **`Rendering-Svg-SvgRenderer-BoxOutlineStyle`**:
+  `BoxOutline_DashedOrDotted_EmitsDashArrayForEveryShape`,
+  `BoxOutline_DashedNote_DashesBodyAndFold`, `BoxOutline_SolidOrNoAppearance_EmitsNoDashArray`
+- **`Rendering-Svg-SvgRenderer-BoxNameStyle`**: `BoxName_Styles_EmitMatchingFontAttributes`,
+  `BoxName_DefaultAppearance_EmitsLegacyBoldMarkup`
+- **`Rendering-Svg-SvgRenderer-BoxKeywordStyle`**: `BoxKeyword_DefaultItalicAndRegularOverride`
+- **`Rendering-Svg-SvgRenderer-CompartmentTitleStyle`**:
+  `CompartmentTitle_Centered_UsesMiddleAnchorAtContentCentre`,
+  `CompartmentTitle_Default_IsLegacyBoldItalicStart`,
+  `CompartmentSeparator_WithCenteredTitle_SpansFullBoxWidth`
+- **`Rendering-Svg-SvgRenderer-FolderTitleInTab`**: `FolderNameInTab_DrawsNameInsideTab`,
+  `FolderNameInTab_CompartmentsStartUnderTab`, `FolderBodyTitle_Default_DrawsNameBelowTab`,
+  `FolderNameInTab_NonFolderShape_IsIgnored`
+- **`Rendering-Svg-SvgRenderer-BoxCornerIcon`**:
+  `CornerIcon_SendAndAccept_EmitPolygonsWithExpectedVertexCounts`, `CornerIcon_OnFolder_StartsBelowTab`
+- **`Rendering-Svg-SvgRenderer-BadgeThickBar`**:
+  `BadgeThickHorizontalBar_EmitsFilledRectOfSizeAndDefaultThickness`,
+  `BadgeThickVerticalBar_EmitsFilledRectWithCustomThickness`
+- **`Rendering-Svg-SvgRenderer-BadgeCrossedCircle`**:
+  `BadgeCrossedCircle_EmitsCircleAndTwoDiagonalsEndingOnCircle`
+- **`Rendering-Svg-SvgRenderer-BandDashed`**: `BandOutline_DashedAndSolid`
+- **`Rendering-Svg-SvgRenderer-LifelineRoundedHeader`**:
+  `LifelineRoundedHeader_EmitsCornerRadiusAndKeepsDashedStem`,
+  `LifelineKeyword_DrawsGuillemetLineAboveLabel`,
+  `LifelineHeaderAppearance_DashedOutlineAndRegularLabel`, `LifelineDefault_MatchesLegacyMarkup`
+- **`Rendering-Svg-SvgRenderer-LabelsAvoidBoxes`**: `LineLabel_MidpointOnLeafBox_IsPlacedClear`

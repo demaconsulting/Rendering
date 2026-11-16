@@ -15,7 +15,9 @@ production code paths.
 
 - **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
-- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs`.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs`, plus
+  `NotationPrimitivePassThroughTests.cs` (appearance pass-through) and `BackEdgeEntryApproachTests.cs`
+  (back-edge entry approach and label clearance) in the same project.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and `LayoutOptions` instances.
 - **Isolation**: each test builds its own inputs; the algorithm is stateless between calls.
@@ -25,8 +27,13 @@ production code paths.
 A verification run passes when every named scenario below asserts without unexpected exception, and
 the referenced tests cover each `Rendering-Layout-LayeredAlgorithm-*` requirement. Any drift in the
 stable identifier (`"layered"`), in the one-box-per-node / one-line-per-edge placement contract, in
-empty-graph handling, in flow-direction honoring, in shape-aware endpoint projection/exclusion, or in
-the argument-null validation behavior constitutes a failure.
+empty-graph handling, in flow-direction honoring, in shape-aware endpoint projection/exclusion, in the
+node-appearance pass-through (a present appearance must reach the placed box, an absent one must stay
+`null`), in the back-edge final-leg length (every connector's final leg must cover the rendered end
+marker plus the corner radius plus the clean-leg margin for every direction and marker style, while an
+undecorated graph keeps exactly the connector-clearance approach and forward legs never change), in the
+connector-label clearance of node borders, or in the argument-null validation behavior constitutes a
+failure.
 
 ### Test Scenarios
 
@@ -112,6 +119,44 @@ the argument-null validation behavior constitutes a failure.
   confirms a `BoxShape.Note`'s folded-corner strip is excluded from the connector's landing zone; and
   `Apply_RectangleChain_MatchesPreShapeAwarenessOutput` pins the exact placement and routing of a
   plain-`Rectangle` chain to prove the new shape-aware code never engages for the default shape.
+- **Appearance pass-through** (`Rendering-Layout-LayeredAlgorithm-AppearancePassThrough`):
+  `LayeredLayout_NodeAppearance_ReachesPlacedBox` confirms a node's `BoxAppearance` reference is the
+  very instance carried by the placed box, and `LayeredLayout_NodeWithoutAppearance_StaysNull` confirms a
+  node with no appearance leaves the placed box's `Appearance` null (the legacy look).
+- **Folder tab title reserve** (`Rendering-Layout-LayeredAlgorithm-FolderTabTitleReserve`):
+  `LayeredLayout_FolderNameInTabWithTopPort_ReservesNoTitleInset` lays out a folder with a labeled top port
+  twice, once with the name drawn in the tab and once in the body, and confirms the in-tab folder's top
+  content inset is smaller (the body title band is not reserved for a title that is not drawn there) while
+  the body-titled folder still reserves it;
+  `LayeredLayout_FolderNameInTabWithKeywordAndTopPort_ReservesTitleInset` and
+  `LayeredLayout_FolderNameInTabWithKeywordAndBottomPort_ReservesTitleInset` add a `Keyword` to the in-tab
+  folder and confirm its top (respectively bottom) content inset equals the body-titled folder's and
+  exceeds the keyword-less in-tab folder's, because the keyword line is still drawn in the body;
+  `LayeredLayout_FolderNameInTabWithKeywordAndSmallHeight_GrowsLikeBodyTitled` confirms the port-driven
+  growth path also sees the keyword (the in-tab keyword folder's height is at least the body-titled
+  folder's).
+- **Back-edge entry approach** (`Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproach`): the tests
+  lay out a six-state, seven-transition elevator state machine (two reversed edges among forward ones,
+  `MergeParallelEdges = false`) through `LayoutEngine.Layout`.
+  `LayeredLayout_BackEdgeWithOpenChevron_FinalLegCoversChevronAndCorner` confirms every connector's final
+  leg (forward and reversed) is at least the open chevron's rendered length plus the corner radius plus the
+  clean-leg margin; `LayeredLayout_BackEdgeWithOpenChevron_AllDirectionsKeepCleanFinalLeg` repeats the
+  check for the Down, Up, Right, and Left flow directions;
+  `LayeredLayout_BackEdgeWithAnyMarker_FinalLegCoversRenderedMarker` repeats it for the filled arrow,
+  hollow triangle, hollow diamond, four-dot hollow triangle, and circled plus end markers, each sized from
+  its own rendered length; and `ResolveBackEdgeEntryApproach_DerivesFromWidestDecoration` pins the
+  derivation: the connector clearance for no edges or an undecorated edge, the open-chevron value for a
+  chevron edge, and the filled-diamond value when that is the widest decoration.
+- **Back-edge entry approach, legacy preserved**
+  (`Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproachLegacyPreserved`):
+  `LayeredLayout_BackEdgeWithOpenChevron_ForwardLegsUnchanged` confirms the forward connectors' final
+  legs are identical between the decorated and undecorated graph, and
+  `LayeredLayout_UndecoratedBackEdge_KeepsLegacyApproach` confirms the reversed edges of the undecorated
+  graph end on exactly `ConnectorClearance`.
+- **Labels clear of node borders** (`Rendering-Layout-LayeredAlgorithm-LabelsClearOfNodeBorders`):
+  `LayeredLayout_ElevatorLabels_DoNotCrossNodeBorders` lays out the decorated elevator, places its
+  connector labels with the obstacle-aware `ConnectorLabelPlacer.Place` given the placed boxes, and
+  asserts every label rectangle is disjoint from every box.
 
 ### Requirements Coverage
 
@@ -169,3 +214,20 @@ the argument-null validation behavior constitutes a failure.
   Apply_UserEdgeWithOldReservedPrefix_StillEmitsLine (an ordinary edge whose identifier is the literal
   former reserved prefix `"\u0001layout-only:"` plus a suffix still emits its line, for both
   `MergeParallelEdges` settings)
+- **`Rendering-Layout-LayeredAlgorithm-AppearancePassThrough`**:
+  LayeredLayout_NodeAppearance_ReachesPlacedBox, LayeredLayout_NodeWithoutAppearance_StaysNull
+- **`Rendering-Layout-LayeredAlgorithm-FolderTabTitleReserve`**:
+  LayeredLayout_FolderNameInTabWithTopPort_ReservesNoTitleInset,
+  LayeredLayout_FolderNameInTabWithKeywordAndTopPort_ReservesTitleInset,
+  LayeredLayout_FolderNameInTabWithKeywordAndBottomPort_ReservesTitleInset,
+  LayeredLayout_FolderNameInTabWithKeywordAndSmallHeight_GrowsLikeBodyTitled
+- **`Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproach`**:
+  LayeredLayout_BackEdgeWithOpenChevron_FinalLegCoversChevronAndCorner,
+  LayeredLayout_BackEdgeWithOpenChevron_AllDirectionsKeepCleanFinalLeg,
+  LayeredLayout_BackEdgeWithAnyMarker_FinalLegCoversRenderedMarker,
+  ResolveBackEdgeEntryApproach_DerivesFromWidestDecoration
+- **`Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproachLegacyPreserved`**:
+  LayeredLayout_BackEdgeWithOpenChevron_ForwardLegsUnchanged,
+  LayeredLayout_UndecoratedBackEdge_KeepsLegacyApproach
+- **`Rendering-Layout-LayeredAlgorithm-LabelsClearOfNodeBorders`**:
+  LayeredLayout_ElevatorLabels_DoNotCrossNodeBorders

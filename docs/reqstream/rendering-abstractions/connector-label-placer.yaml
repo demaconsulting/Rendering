@@ -53,6 +53,7 @@ sections:
         tests:
           - Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight
           - Place_LongerLabel_HasLargerHalfWidth
+          - Place_TwoArgOverload_ReturnsLabelPlacementWithTwoVariableDeconstruction
 
       - id: Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight
         title: >-
@@ -90,3 +91,52 @@ sections:
           - EstimateLabelWidth_MatchesPlaceHalfWidthDoubled
           - EstimateLabelWidth_IsMonotonicInFontSize
           - EstimateLabelWidth_IsMonotonicInTextLength
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-AvoidBoxes
+        title: >-
+          The connector-label placer shall offer an overload taking obstacle boxes that rejects a
+          candidate label overlapping a leaf box or straddling the border of a container box (a label
+          fully inside a container is allowed), tries segment midpoints, then slides along the segment,
+          then nudges perpendicular, falls back to the obstacle-free placement when nothing clears,
+          is deterministic, and places exactly as the two-argument overload when given no obstacles.
+        justification: |
+          A label's opaque background painted over a box hides the box's border and text, but labels
+          legitimately sit inside container boxes. Distinguishing leaf from container obstacles, with
+          a bounded search and a guaranteed fallback, keeps labels readable without ever losing one,
+          and the no-obstacle parity keeps every existing caller unchanged.
+        tests:
+          - PlaceWithObstacles_NoObstacles_MatchesLegacyOverload
+          - PlaceWithObstacles_LeafBoxOnMidpoint_SlidesLabelClear
+          - PlaceWithObstacles_LabelFullyInsideContainer_IsAllowed
+          - PlaceWithObstacles_LabelStraddlingContainerBorder_IsRejected
+          - PlaceWithObstacles_EverythingBlocked_FallsBackToObstacleFreePlacement
+          - PlaceWithObstacles_SameInput_IsDeterministic
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration
+        title: >-
+          The connector-label placer shall keep a label clear of the footprint of the end decorations
+          of its own line, sized by the marker scale the caller supplies (the theme stroke width), for
+          its midpoint and for every slide; and when the run is too short to clear both, it shall keep
+          the label on its own line instead of nudging it off.
+        justification: |
+          A label must not hide an arrowhead or other end decoration, which conveys the relationship
+          kind, whether it was moved off a blocking box or simply sits at the midpoint of a short run.
+          The footprint is the drawn marker size, which both renderers derive from the theme stroke
+          width, so the clearance tracks it. A label moved off its own line reads as belonging to a
+          neighboring connector, so it is better to overlap than to nudge.
+        tests:
+          - PlaceWithObstacles_SlideAvoidsEndMarkerZone
+          - PlaceWithObstacles_SlideAvoidsEndMarkerZone_UsesSuppliedMarkerScale
+          - Place_LabelOnShortRun_StaysClearOfEndMarkerFootprint
+          - Place_LabelClearOfEndMarker_KeepsMidpoint
+          - Place_RunTooShortForLabelAndMarker_KeepsLabelOnItsLine
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments
+        title: >-
+          The box-aware connector-label placer overload shall reject a null line sequence or a null
+          obstacle sequence with an ArgumentNullException.
+        justification: |
+          Failing fast with a documented exception type gives callers a clear contract at the public
+          boundary, matching the existing placer overload.
+        tests:
+          - PlaceWithObstacles_NullArguments_Throw

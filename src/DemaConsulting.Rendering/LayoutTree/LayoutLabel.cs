@@ -40,6 +40,26 @@ public enum FontStyle
 }
 
 /// <summary>
+/// A weight and style pair describing how a run of text is drawn.
+/// </summary>
+/// <param name="Weight">Font weight of the text.</param>
+/// <param name="Style">Font style of the text.</param>
+public readonly record struct TextStyle(FontWeight Weight, FontStyle Style)
+{
+    /// <summary>Gets regular weight, normal (upright) style.</summary>
+    public static TextStyle Regular => new(FontWeight.Regular, FontStyle.Normal);
+
+    /// <summary>Gets bold weight, normal (upright) style.</summary>
+    public static TextStyle Bold => new(FontWeight.Bold, FontStyle.Normal);
+
+    /// <summary>Gets regular weight, italic style.</summary>
+    public static TextStyle Italic => new(FontWeight.Regular, FontStyle.Italic);
+
+    /// <summary>Gets bold weight, italic style.</summary>
+    public static TextStyle BoldItalic => new(FontWeight.Bold, FontStyle.Italic);
+}
+
+/// <summary>
 /// A standalone text label at an absolute position. Width is capped to <see cref="MaxWidth"/>.
 /// </summary>
 /// <param name="X">Absolute X coordinate of the label origin in logical pixels.</param>

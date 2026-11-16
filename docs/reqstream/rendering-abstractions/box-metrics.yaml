@@ -42,3 +42,51 @@ sections:
         tests:
           - BoxMetrics_FolderTabHeight_NullTheme_ThrowsArgumentNullException
           - BoxMetrics_TitleAreaHeight_NullTheme_ThrowsArgumentNullException
+
+      - id: Rendering-Abstractions-BoxMetrics-FolderTabResolution
+        title: >-
+          The box metrics shall resolve a box's folder-tab height and width in one place, honoring an
+          explicit caller-supplied value (clamped to zero), sizing the tab of a folder whose name is
+          drawn in the tab to the measured name (at least the minimum tab width, at most the box
+          width), and otherwise using the historical estimate.
+        justification: |
+          Layout, connector routing, and both renderers all need the same tab rectangle. Centralizing
+          the resolution removes duplicated formulas, guarantees the in-tab name always fits its tab,
+          and leaves every folder without the tab placement exactly as before.
+        tests:
+          - ResolveFolderTabWidth_BodyTitle_MatchesLegacyFormula
+          - ResolveFolderTabWidth_ExplicitWidth_IsHonored
+          - ResolveFolderTabWidth_NameInTab_FitsMeasuredName
+          - ResolveFolderTabHeight_ExplicitAndDefault
+
+      - id: Rendering-Abstractions-BoxMetrics-TitleAreaHeightForBox
+        title: >-
+          The box metrics shall compute a box's title-area height from the box itself, equal to the
+          flag-based computation for every box except a labeled folder drawing its name in the tab,
+          which counts no name line, shall expose whether a box draws its name in the tab, shall
+          position a centered title block with that same height, and shall reject null arguments.
+        justification: |
+          When a folder's name moves into the tab, the body title band must no longer reserve a name
+          line or the space reserved by layout would differ from the space drawn by the renderers.
+          Deriving the height from the box, with one shared in-tab rule, keeps layout and both
+          renderers in agreement and leaves every other box unchanged.
+        tests:
+          - TitleAreaHeightForBox_DefaultBox_EqualsLegacyOverload
+          - TitleAreaHeightForBox_FolderNameInTab_ExcludesNameLine
+          - TitleAreaHeightForBox_NonFolderWithTabAppearance_IsUnaffected
+          - TitleAreaHeightForBox_NullArguments_Throw
+          - IsNameInTab_OnlyForLabeledFolderRequestingTab
+          - TitleCursorTop_FolderNameInTabCentered_UsesKeywordOnlyTitleHeight
+
+      - id: Rendering-Abstractions-BoxMetrics-LifelineHeaderHeight
+        title: >-
+          The box metrics shall compute the lifeline header height from the label line and, when a
+          keyword is present, one additional keyword line, each framed by label padding, and shall
+          reject a null theme with an ArgumentNullException.
+        justification: |
+          A lifeline header may carry a keyword line above its label; computing the height from the
+          lines present lets callers size the header so the text fits, using the same formula in
+          layout and in tests.
+        tests:
+          - LifelineHeaderHeight_KeywordAddsOneLine
+          - LifelineHeaderHeight_NullTheme_Throws

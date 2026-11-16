@@ -451,7 +451,7 @@ internal static class MergeRegionGraphAssembler
                 node.Label,
                 RealWidth: width,
                 RealHeight: height,
-                TitleReserveTop: LayeredLayoutMetrics.ResolveTitleReserveTop(node.Label != null, node.Keyword != null, assumedFontSize)));
+                TitleReserveTop: LayeredLayoutMetrics.ResolveTitleReserveTop(LayeredLayoutAlgorithm.HasBodyTitle(node), node.Keyword != null, assumedFontSize)));
         }
 
         var edges = new List<LayerEdge>();

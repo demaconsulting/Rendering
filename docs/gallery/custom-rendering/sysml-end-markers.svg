@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860.00" height="536.00" viewBox="0 0 860.00 536.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="14.5" markerHeight="7" refX="13.5" refY="3.5" orient="auto">
+      <polygon points="4.5 0, 14.5 3.5, 4.5 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+      <line x1="1" y1="0" x2="1" y2="7" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-two-dots" markerWidth="15" markerHeight="7" refX="14" refY="3.5" orient="auto">
+      <polygon points="5 0, 15 3.5, 5 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+      <circle cx="1.25" cy="1.25" r="1.25" fill="#1A1A2E"/>
+      <circle cx="1.25" cy="5.75" r="1.25" fill="#1A1A2E"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-four-dots" markerWidth="19" markerHeight="7" refX="18" refY="3.5" orient="auto">
+      <polygon points="9 0, 19 3.5, 9 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+      <circle cx="5.25" cy="1.25" r="1.25" fill="#1A1A2E"/>
+      <circle cx="5.25" cy="5.75" r="1.25" fill="#1A1A2E"/>
+      <circle cx="1.25" cy="1.25" r="1.25" fill="#1A1A2E"/>
+      <circle cx="1.25" cy="5.75" r="1.25" fill="#1A1A2E"/>
+    </marker>
+    <marker id="line-start-hollow-diamond" markerWidth="14" markerHeight="8" refX="1" refY="4" orient="auto">
+      <g transform="matrix(-1 0 0 1 14 0)">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+      </g>
+    </marker>
+    <marker id="line-start-filled-diamond" markerWidth="14" markerHeight="8" refX="1" refY="4" orient="auto">
+      <g transform="matrix(-1 0 0 1 14 0)">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50"/>
+      </g>
+    </marker>
+    <marker id="line-start-circle" markerWidth="10" markerHeight="10" refX="1" refY="5" orient="auto">
+      <g transform="matrix(-1 0 0 1 10 0)">
+      <circle cx="5" cy="5" r="4" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+      </g>
+    </marker>
+    <marker id="line-start-circled-plus" markerWidth="12" markerHeight="12" refX="1" refY="6" orient="auto">
+      <g transform="matrix(-1 0 0 1 12 0)">
+      <circle cx="6" cy="6" r="5" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+      <line x1="1" y1="6" x2="11" y2="6" stroke="#1A1A2E" stroke-width="1.50"/>
+      <line x1="6" y1="1" x2="6" y2="11" stroke="#1A1A2E" stroke-width="1.50"/>
+      </g>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#FFFFFF"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <text x="20.00" y="24.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">SysML v2 relationship end markers</text>
+  <rect x="20.00" y="50.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="90.00" y="66.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">definition-node</text>
+  <rect x="420.00" y="50.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="490.00" y="66.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">definition-node</text>
+  <path d="M 420.00 66.00 L 160.00 66.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle)"/>
+  <text x="590.00" y="70.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">HollowTriangle (target end)</text>
+  <rect x="20.00" y="104.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="90.00" y="120.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">definition-node</text>
+  <rect x="420.00" y="104.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="490.00" y="120.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">usage-node</text>
+  <path d="M 420.00 120.00 L 160.00 120.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)"/>
+  <text x="590.00" y="124.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">HollowTriangleTwoDots (target end)</text>
+  <rect x="20.00" y="158.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="90.00" y="174.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">usage-node</text>
+  <rect x="420.00" y="158.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="490.00" y="174.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">usage-node</text>
+  <path d="M 420.00 174.00 L 160.00 174.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle)"/>
+  <text x="590.00" y="178.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">HollowTriangle (target end)</text>
+  <rect x="20.00" y="212.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="90.00" y="228.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">usage-node</text>
+  <rect x="420.00" y="212.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="490.00" y="228.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">usage-node</text>
+  <path d="M 420.00 228.00 L 160.00 228.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-four-dots)"/>
+  <text x="590.00" y="232.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">HollowTriangleFourDots (target end)</text>
+  <rect x="20.00" y="266.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="90.00" y="282.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">usage-node</text>
+  <rect x="420.00" y="266.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="490.00" y="282.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">usage-node</text>
+  <path d="M 420.00 282.00 L 160.00 282.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-crossbar)"/>
+  <text x="590.00" y="286.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">HollowTriangleCrossbar (target end)</text>
+  <rect x="20.00" y="320.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="90.00" y="336.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">type-node</text>
+  <rect x="420.00" y="320.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="490.00" y="336.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">usage-node</text>
+  <path d="M 160.00 336.00 L 420.00 336.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-start="url(#line-start-filled-diamond)"/>
+  <text x="590.00" y="340.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">FilledDiamond (source end)</text>
+  <rect x="20.00" y="374.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="90.00" y="390.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">type-node</text>
+  <rect x="420.00" y="374.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="490.00" y="390.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">usage-node</text>
+  <path d="M 160.00 390.00 L 420.00 390.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-start="url(#line-start-hollow-diamond)"/>
+  <text x="590.00" y="394.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">HollowDiamond (source end)</text>
+  <rect x="20.00" y="428.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="90.00" y="444.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">namespace-node</text>
+  <rect x="420.00" y="428.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="490.00" y="444.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">element-node</text>
+  <path d="M 160.00 444.00 L 420.00 444.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-start="url(#line-start-circled-plus)"/>
+  <text x="590.00" y="448.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">CircledPlus (source end)</text>
+  <rect x="20.00" y="482.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="90.00" y="498.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">namespace-node</text>
+  <rect x="420.00" y="482.00" width="140.00" height="32.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="490.00" y="498.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">element-node</text>
+  <path d="M 160.00 498.00 L 420.00 498.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-start="url(#line-start-circle)"/>
+  <text x="590.00" y="502.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Circle (source end)</text>
+  <text x="290.00" y="66.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">specialization</text>
+  <text x="290.00" y="120.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">feature typing</text>
+  <text x="290.00" y="174.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">subsetting</text>
+  <text x="290.00" y="228.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">reference subsetting</text>
+  <text x="290.00" y="282.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">redefinition</text>
+  <text x="290.00" y="336.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">composite membership</text>
+  <text x="290.00" y="390.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">reference membership</text>
+  <text x="290.00" y="444.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">owned membership</text>
+  <text x="290.00" y="498.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">unowned membership</text>
+</svg>

@@ -370,3 +370,32 @@ sections:
           construction boundary.
         tests:
           - Constructor_NullRegistry_Throws
+
+      - id: Rendering-Layout-HierarchicalLayout-AppearancePassThrough
+        title: >-
+          HierarchicalLayoutAlgorithm shall carry a container node's and a nested leaf node's appearance
+          onto their placed boxes.
+        justification: |
+          The engine builds a per-scope view of each node before delegating to a leaf algorithm; the
+          appearance must survive that copy at every depth, or a styled container or leaf would silently
+          lose its notation.
+        tests:
+          - HierarchicalLayout_ContainerAndLeafAppearance_ReachPlacedBoxes
+
+      - id: Rendering-Layout-HierarchicalLayout-FolderTabTitleReserve
+        title: >-
+          HierarchicalLayoutAlgorithm shall reserve no body title band above the children of a folder
+          whose name is drawn in the tab, unless the caller sets an explicit title height or the folder
+          carries a keyword, in which case it shall keep the title reserve so the children clear the
+          keyword line.
+        justification: |
+          A folder that draws its name in the tab leaves its body free of a name title, so reserving the
+          default container title band would waste space and push the children down. An explicit title
+          height is the caller's deliberate request, for example to reserve a keyword line, and must be
+          honored. A keyword line is still drawn in the body of an in-tab folder, so the default reserve
+          is kept to keep the first child clear of it. The tab height itself is still reserved by the
+          folder geometry.
+        tests:
+          - HierarchicalLayout_FolderNameInTab_ReservesNoBodyTitleBand
+          - HierarchicalLayout_FolderNameInTabWithExplicitTitleHeight_KeepsReserve
+          - HierarchicalLayout_FolderNameInTabWithKeyword_ChildClearsKeywordLine

@@ -78,6 +78,120 @@ public static class BoxMetrics
     }
 
     /// <summary>
+    /// Computes the height of the title area of a box, honoring its appearance: identical to
+    /// <see cref="TitleAreaHeight(Theme, bool, bool)"/> for every box except a
+    /// <see cref="BoxShape.Folder"/> whose name is drawn in the tab
+    /// (<see cref="FolderTitlePlacement.Tab"/>), whose body title band then holds only the keyword
+    /// line (if any), because the name no longer occupies the body.
+    /// </summary>
+    /// <param name="box">The box whose title-area height is computed.</param>
+    /// <param name="theme">Theme providing font and padding metrics.</param>
+    /// <returns>The title-area height in logical pixels.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="box"/> or <paramref name="theme"/> is <see langword="null"/>.</exception>
+    public static double TitleAreaHeight(LayoutBox box, Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(box);
+        ArgumentNullException.ThrowIfNull(theme);
+        return TitleAreaHeight(theme, box.Label != null && !IsNameInTab(box), box.Keyword != null);
+    }
+
+    /// <summary>
+    /// Returns whether a box draws its name inside the folder tab: it is a
+    /// <see cref="BoxShape.Folder"/>, has a label, and requests <see cref="FolderTitlePlacement.Tab"/>.
+    /// </summary>
+    /// <param name="box">The box to test.</param>
+    /// <returns><see langword="true"/> when the name is drawn in the tab.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="box"/> is <see langword="null"/>.</exception>
+    public static bool IsNameInTab(LayoutBox box)
+    {
+        ArgumentNullException.ThrowIfNull(box);
+        return IsNameInTab(box.Shape, box.Label, box.Appearance);
+    }
+
+    /// <summary>
+    /// Returns whether a box with the given shape, label and appearance draws its name inside the
+    /// folder tab. Lets layout code that has not built a <see cref="LayoutBox"/> yet (it only has the
+    /// input graph node's shape, label and appearance) apply the same rule as the renderers.
+    /// </summary>
+    /// <param name="shape">The box shape.</param>
+    /// <param name="label">The box label, or <see langword="null"/>.</param>
+    /// <param name="appearance">The box appearance, or <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> when the shape is a folder with a label and a tab title placement.</returns>
+    public static bool IsNameInTab(BoxShape shape, string? label, BoxAppearance? appearance) =>
+        shape == BoxShape.Folder
+        && label != null
+        && appearance?.FolderTitle == FolderTitlePlacement.Tab;
+
+    /// <summary>
+    /// Resolves the folder-tab height for a box, preferring a caller-supplied
+    /// <see cref="LayoutBox.FolderTabHeight"/> (clamped to zero) over <see cref="FolderTabHeight(Theme)"/>.
+    /// </summary>
+    /// <param name="box">The folder-shaped box.</param>
+    /// <param name="theme">Theme providing fallback tab metrics.</param>
+    /// <returns>The tab height in logical pixels.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="box"/> or <paramref name="theme"/> is <see langword="null"/>.</exception>
+    public static double ResolveFolderTabHeight(LayoutBox box, Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(box);
+        ArgumentNullException.ThrowIfNull(theme);
+        return box.FolderTabHeight.HasValue
+            ? Math.Max(0.0, box.FolderTabHeight.Value)
+            : FolderTabHeight(theme);
+    }
+
+    /// <summary>
+    /// Resolves the folder-tab width for a box, preferring a caller-supplied
+    /// <see cref="LayoutBox.FolderTabWidth"/> (clamped to zero). Without one, a box that draws its name
+    /// in the tab (<see cref="IsNameInTab(LayoutBox)"/>) gets a tab sized to the measured name (never narrower
+    /// than <see cref="NotationMetrics.FolderTabMinWidth"/>, never wider than the box); any other
+    /// folder keeps the historical estimate (a fraction of the box width bounded by the label length).
+    /// </summary>
+    /// <param name="box">The folder-shaped box.</param>
+    /// <param name="theme">Theme providing font and padding metrics.</param>
+    /// <returns>The tab width in logical pixels.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="box"/> or <paramref name="theme"/> is <see langword="null"/>.</exception>
+    public static double ResolveFolderTabWidth(LayoutBox box, Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(box);
+        ArgumentNullException.ThrowIfNull(theme);
+
+        if (box.FolderTabWidth.HasValue)
+        {
+            return Math.Max(0.0, box.FolderTabWidth.Value);
+        }
+
+        if (IsNameInTab(box))
+        {
+            var nameWidth = PortLabelWidthEstimator.MeasureWidth(box.Label!, theme.FontSizeBody);
+            return Math.Min(
+                box.Width,
+                Math.Max(NotationMetrics.FolderTabMinWidth, nameWidth + (2.0 * theme.LabelPadding)));
+        }
+
+        return Math.Min(
+            box.Width * NotationMetrics.FolderTabMaxWidthFraction,
+            Math.Max(
+                NotationMetrics.FolderTabMinWidth,
+                ((box.Label?.Length ?? 4) * theme.FontSizeBody * NotationMetrics.FolderLabelCharWidthFactor) +
+                (2.0 * theme.LabelPadding)));
+    }
+
+    /// <summary>
+    /// Computes the height of a lifeline header box: the label line (and, with a keyword, a
+    /// «keyword» line above it), each at the body font size, framed by label padding.
+    /// </summary>
+    /// <param name="theme">Theme providing font and padding metrics.</param>
+    /// <param name="hasKeyword">Whether the header carries a keyword line above the label.</param>
+    /// <returns>The header height in logical pixels.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="theme"/> is <see langword="null"/>.</exception>
+    public static double LifelineHeaderHeight(Theme theme, bool hasKeyword)
+    {
+        ArgumentNullException.ThrowIfNull(theme);
+        var height = theme.LabelPadding + theme.FontSizeBody + theme.LabelPadding;
+        return hasKeyword ? height + theme.FontSizeBody + theme.LabelPadding : height;
+    }
+
+    /// <summary>
     /// Computes the recommended <see cref="LayoutBox.ContentInsetTop"/> for a box that has left
     /// and/or right ports and a title (name and/or keyword), so those ports never land in the
     /// same row as the title text.
@@ -103,7 +217,7 @@ public static class BoxMetrics
     /// <returns>
     /// The recommended <see cref="LayoutBox.ContentInsetTop"/>: <paramref name="existingInsetTop"/>
     /// unchanged when there are no left/right ports or no title to protect against, otherwise the
-    /// larger of <paramref name="existingInsetTop"/> and the box's <see cref="TitleAreaHeight"/>.
+    /// larger of <paramref name="existingInsetTop"/> and the box's <see cref="TitleAreaHeight(Theme, bool, bool)"/>.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="theme"/> is <see langword="null"/>.</exception>
     public static double ResolveTitleVsSidePortContentInsetTop(
@@ -151,16 +265,14 @@ public static class BoxMetrics
         ArgumentNullException.ThrowIfNull(box);
         ArgumentNullException.ThrowIfNull(theme);
 
-        var tabHeight = box.FolderTabHeight.HasValue
-            ? Math.Max(0.0, box.FolderTabHeight.Value)
-            : FolderTabHeight(theme);
+        var tabHeight = ResolveFolderTabHeight(box, theme);
         var top = box.Shape == BoxShape.Folder ? box.Y + tabHeight : box.Y;
         var availableTop = top + box.ContentInsetTop;
 
         if (box.CenterTitle)
         {
             var availableBottom = box.Y + box.Height - box.ContentInsetBottom;
-            var titleHeight = TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
+            var titleHeight = TitleAreaHeight(box, theme);
             var offset = Math.Max(0.0, (availableBottom - availableTop - titleHeight) / 2.0);
             return availableTop + offset + theme.LabelPadding;
         }

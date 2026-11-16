@@ -23,13 +23,87 @@ public enum BoxShape
 }
 
 /// <summary>
+/// Where the name of a <see cref="BoxShape.Folder"/> box is drawn.
+/// </summary>
+public enum FolderTitlePlacement
+{
+    /// <summary>The name is drawn in the box body, below the (empty) tab. This is the default.</summary>
+    Body,
+
+    /// <summary>The name is drawn inside the folder tab (SysML v2 "package with name in tab").</summary>
+    Tab,
+}
+
+/// <summary>
+/// A small pictorial icon drawn in the top-left corner of a box body (SysML v2 send/accept actions).
+/// </summary>
+public enum BoxCornerIcon
+{
+    /// <summary>No icon.</summary>
+    None,
+
+    /// <summary>Send icon: a convex pentagon pointing right.</summary>
+    Send,
+
+    /// <summary>Accept icon: a pentagon pointing right with a triangular notch cut into its left edge.</summary>
+    Accept,
+}
+
+/// <summary>
+/// Optional presentation attributes of a <see cref="LayoutBox"/> beyond its geometry. Every member
+/// defaults to the legacy appearance, so <see langword="null"/> and <c>new BoxAppearance()</c> are
+/// equivalent.
+/// </summary>
+/// <param name="OutlineStyle">
+/// Stroke style of the box outline: <see cref="LineStyle.Solid"/> (default), <see cref="LineStyle.Dashed"/>
+/// or <see cref="LineStyle.Dotted"/>. Honored for every <see cref="BoxShape"/>.
+/// </param>
+/// <param name="NameStyle">
+/// Weight/style of the name label; <see langword="null"/> means bold, upright (the legacy look).
+/// </param>
+/// <param name="KeywordStyle">
+/// Weight/style of the «keyword» line; <see langword="null"/> means regular, italic (the legacy look).
+/// </param>
+/// <param name="FolderTitle">
+/// Where the name of a <see cref="BoxShape.Folder"/> box is drawn; ignored for other shapes.
+/// </param>
+/// <param name="CornerIcon">Icon drawn in the top-left corner of the box body (below the tab for a folder).</param>
+public sealed record BoxAppearance(
+    LineStyle OutlineStyle = LineStyle.Solid,
+    TextStyle? NameStyle = null,
+    TextStyle? KeywordStyle = null,
+    FolderTitlePlacement FolderTitle = FolderTitlePlacement.Body,
+    BoxCornerIcon CornerIcon = BoxCornerIcon.None)
+{
+    /// <summary>Gets the name style with the legacy default (bold, upright) applied.</summary>
+    public TextStyle ResolvedNameStyle => NameStyle ?? TextStyle.Bold;
+
+    /// <summary>Gets the keyword style with the legacy default (regular, italic) applied.</summary>
+    public TextStyle ResolvedKeywordStyle => KeywordStyle ?? TextStyle.Italic;
+}
+
+/// <summary>
 /// A single compartment within a box (e.g., attributes section, operations section).
 /// </summary>
 /// <param name="Title">Optional compartment header text; <see langword="null"/> for untitled compartments.</param>
 /// <param name="Rows">Text rows displayed inside the compartment.</param>
+/// <param name="TitleAlign">
+/// Horizontal alignment of <paramref name="Title"/>: <see cref="TextAlign.Left"/> (default) or
+/// <see cref="TextAlign.Center"/> (SysML v2 compartment titles are centered between the separators).
+/// <see cref="TextAlign.Right"/> is drawn left-aligned.
+/// </param>
+/// <param name="TitleStyle">
+/// Weight/style of <paramref name="Title"/>; <see langword="null"/> means bold italic (the legacy look).
+/// </param>
 public sealed record LayoutCompartment(
     string? Title,
-    IReadOnlyList<string> Rows);
+    IReadOnlyList<string> Rows,
+    TextAlign TitleAlign = TextAlign.Left,
+    TextStyle? TitleStyle = null)
+{
+    /// <summary>Gets the title style with the legacy default (bold, italic) applied.</summary>
+    public TextStyle ResolvedTitleStyle => TitleStyle ?? TextStyle.BoldItalic;
+}
 
 /// <summary>
 /// A rectangular container node with optional label, depth, compartments, and nested children.
@@ -95,6 +169,11 @@ public sealed record LayoutCompartment(
 /// spans a large area with content positioned as flat siblings (rather than true nested
 /// <see cref="Children"/>) would otherwise be misidentified as a small leaf eligible for centering.
 /// </param>
+/// <param name="Appearance">
+/// Optional presentation attributes (outline stroke style, name/keyword text style, folder title
+/// placement, corner icon). <see langword="null"/> (the default) is equivalent to
+/// <c>new BoxAppearance()</c>: the legacy look.
+/// </param>
 public sealed record LayoutBox(
     double X,
     double Y,
@@ -113,4 +192,5 @@ public sealed record LayoutBox(
     double ContentInsetRight = 0.0,
     double ContentInsetTop = 0.0,
     double ContentInsetBottom = 0.0,
-    bool CenterTitle = false) : LayoutNode;
+    bool CenterTitle = false,
+    BoxAppearance? Appearance = null) : LayoutNode;

@@ -29,7 +29,15 @@ carries a `Label` (a container with no label reserves no band regardless of any 
 node's own `LayoutGraphNode.TitleHeight` — when set — replaces `DefaultContainerTitleHeight` for that
 node, resolved by the private `ResolveTitleHeight` helper; this lets a caller reserve a title band that
 matches a specific theme's actual title-area height (including a keyword line) instead of being
-limited to the generic default. The engine holds a single field, a `LayoutAlgorithmRegistry` used to
+limited to the generic default. A folder whose name is drawn in the tab
+(`BoxMetrics.IsNameInTab(shape, label, appearance)`: `Shape` is `Folder`, the node has a label, and
+`Appearance.FolderTitle` is `FolderTitlePlacement.Tab`) holds no name in its body, so
+`ResolveTitleHeight` returns `0.0` for it and no body title band is reserved above its children — unless
+the caller set an explicit `TitleHeight`, which is honored as given (for example to reserve a keyword
+line), or the node has a `Keyword`, whose line the renderers still draw in the body, so the default
+reserve is kept for the children to clear it. The folder tab height is still added by
+`ResolveContentOffsetHeight`, because the tab itself occupies the top of the folder either way.
+The engine holds a single field, a `LayoutAlgorithmRegistry` used to
 resolve the per-scope leaf algorithm by identifier. A default constructor builds a default registry
 containing the bundled `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm`; an injecting
 constructor accepts a caller-supplied registry (rejecting null). The engine treats a scope that
@@ -58,7 +66,8 @@ overrides win over the supplied options, exactly like every nested scope), and c
    `ContainerPadding` on every side plus a title band when the container is labeled.
 3. **Sized view.** The engine builds an internal, side-effect-free *view* graph with the same nodes in
    the same order (container nodes carrying their effective size, leaves their own size, labels copied,
-   and each direct member's named ports copied onto its view counterpart), only the edges whose direct-
+   each node's `Appearance` reference copied so a styled container or leaf keeps its notation through
+   every level, and each direct member's named ports copied onto its view counterpart), only the edges whose direct-
    member endpoints are both under this scope and neither nested inside a container relative to it —
    including an edge whose endpoint is a named `LayoutGraphPort` rather than the node itself, so a
    same-scope port edge is routed by the leaf algorithm exactly as it would be in a flat (container-free)
@@ -309,3 +318,5 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-ValidatesGraph | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-ValidatesOptions | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-ValidatesRegistry | HierarchicalLayoutAlgorithm behavior described above |
+| Rendering-Layout-HierarchicalLayout-AppearancePassThrough | Sized view (step 3), appearance copy |
+| Rendering-Layout-HierarchicalLayout-FolderTabTitleReserve | Data model, `ResolveTitleHeight` in-tab rule |

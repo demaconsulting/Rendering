@@ -103,6 +103,34 @@ public sealed class ConnectorLabelPlacerTests
     }
 
     /// <summary>
+    ///     The two-argument <c>Place</c> returns <c>IReadOnlyDictionary&lt;LayoutLine, LabelPlacement&gt;</c>
+    ///     (the shipped result shape) whose entries carry the exact centre and half-extents, and a
+    ///     <see cref="LabelPlacement"/> still deconstructs into just the two centre coordinates, so
+    ///     existing <c>var (x, y) = result[line]</c> callers keep compiling and behave the same.
+    /// </summary>
+    [Fact]
+    public void Place_TwoArgOverload_ReturnsLabelPlacementWithTwoVariableDeconstruction()
+    {
+        var line = new LayoutLine(
+            [new Point2D(0, 0), new Point2D(200, 0)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            MidpointLabel: "[guard]");
+
+        IReadOnlyDictionary<LayoutLine, LabelPlacement> result = ConnectorLabelPlacer.Place([line], 12.0);
+
+        var placement = Assert.Single(result).Value;
+        var (x, y) = placement;
+        Assert.Equal(100.0, x, precision: 3);
+        Assert.Equal(0.0, y, precision: 3);
+        Assert.Equal(placement.X, x);
+        Assert.Equal(placement.Y, y);
+        Assert.Equal(ConnectorLabelPlacer.EstimateLabelWidth("[guard]", 12.0) / 2.0, placement.HalfWidth, precision: 6);
+        Assert.Equal(ConnectorLabelPlacer.EstimateLabelHeight(12.0) / 2.0, placement.HalfHeight, precision: 6);
+    }
+
+    /// <summary>
     ///     A longer label produces a larger <see cref="LabelPlacement.HalfWidth"/>, confirming the
     ///     exposed size actually reflects the label's estimated text width rather than a fixed
     ///     placeholder.
@@ -130,7 +158,7 @@ public sealed class ConnectorLabelPlacerTests
 
     /// <summary>
     ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelHeight"/> returns the full (not
-    ///     half) label bounding-box height matching the formula <see cref="ConnectorLabelPlacer.Place"/>
+    ///     half) label bounding-box height matching the formula <see cref="ConnectorLabelPlacer.Place(IEnumerable{LayoutLine}, double)"/>
     ///     uses internally
     ///     for <c>halfHeight</c> (<c>fontSize * 1.3 + 2 * Gap</c>, doubled), so other layout stages can
     ///     size themselves against the exact same value this placer uses when testing for overlap.
@@ -167,7 +195,7 @@ public sealed class ConnectorLabelPlacerTests
 
     /// <summary>
     ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelWidth"/> returns the full (not
-    ///     half) label bounding-box width matching the formula <see cref="ConnectorLabelPlacer.Place"/>
+    ///     half) label bounding-box width matching the formula <see cref="ConnectorLabelPlacer.Place(IEnumerable{LayoutLine}, double)"/>
     ///     uses internally for <c>halfWidth</c> (<c>text.Length * fontSize * 0.6 + 2 * Gap</c>,
     ///     doubled), so other layout stages can size themselves against the exact same value this
     ///     placer uses when testing for overlap.

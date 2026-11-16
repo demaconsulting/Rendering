@@ -31,3 +31,35 @@ one connector's own approach stub still crosses two others' trunks here, because
 it later crosses and so cannot see them as obstacles yet — a known single-pass routing-order limitation, not a pricing
 gap, left as documented residual behavior rather than force a much wider routing-order change for this one saturated
 diagram.
+
+## SysML-style notation primitives
+
+Rendering primitives that carry no SysML knowledge but let a SysML view reproduce the standard graphical notation: the
+relationship end markers (a hollow triangle trailed by two or four dots, a circled plus, diamonds, a circle, a
+crossbar), dashed outlines, regular/italic/bold name and keyword styles, centered compartment titles, folders with the
+name in the tab, thick fork/join bars, the terminate badge, send/accept corner icons, dashed swim lanes and rounded
+lifelines. Each is an optional, backward-compatible property; the legacy appearance remains the default.
+
+![Nine labeled two-box edges, one per SysML relationship end marker](sysml-end-markers.svg)
+
+Every relationship end marker on a labeled two-box edge: specialization and subsetting (hollow triangle), feature typing
+(triangle with two dots), reference subsetting (triangle with a 2x2 grid of dots), redefinition (triangle followed by a
+bar behind its base), composite and reference membership (filled and hollow diamond), owned membership (circled plus)
+and unowned membership (circle). Triangles are target ends and the membership glyphs source ends, proving both ends of a
+line decorate identically.
+
+![The same relationship end markers rendered through the raster path](sysml-end-markers.png)
+
+The same sheet through the CanvasNet raster renderer, which draws every marker at the same size as the SVG renderer (the
+notation size scaled by the theme stroke width).
+
+![One sheet of every notation primitive next to its legacy counterpart](sysml-notation-primitives.svg)
+
+Dashed and solid rounded boxes with regular, italic and legacy bold names; compartments with centered italic titles
+beside the legacy left-aligned bold-italic ones; folders with the name in the tab (solid and dashed) and in the body;
+thick fork/join bars; the terminate badge; send and accept corner icons; a dashed swim lane; and rounded lifelines with
+a keyword line beside a legacy sharp one.
+
+![The notation-primitives sheet rendered through the raster path](sysml-notation-primitives.png)
+
+The same notation-primitives sheet through the CanvasNet raster renderer.

@@ -62,13 +62,17 @@ sections:
 
       - id: Rendering-Abstractions-NotationMetrics-Crossbar
         title: >-
-          The notation metrics shall position the redefinition crossbar at the documented fraction of
-          the end-marker length.
+          The notation metrics shall define the redefinition marker geometry: a crossbar behind the
+          triangle base, separated from it by a gap and spanning the base height, in a marker box and
+          tip anchor widened by the crossbar extension so the triangle lands where a plain hollow
+          triangle does.
         justification: |
-          The crossbar variant marks redefinition; deriving its position from a single fraction keeps
-          it aligned with the triangle it crosses in every renderer.
+          SysML v2.0 section 8.2.3.6 draws redefinition as a hollow triangle followed, on the line
+          side of the base, by a perpendicular bar. Defining the bar position, its length, the
+          widened marker box and the unchanged triangle anchor once keeps the SVG and PNG renderers
+          drawing the identical marker, with its tip on the target box border.
         tests:
-          - Crossbar_IsDerivedFraction
+          - Crossbar_SitsBehindTriangleBase
 
       - id: Rendering-Abstractions-NotationMetrics-AlongLineLength
         title: >-
@@ -78,6 +82,7 @@ sections:
           radius using this length, so both must read it from one place to stay in agreement.
         tests:
           - AlongLineLength_MatchesMarkerBox
+          - AlongLineLength_NewStyles_MatchMarkerBoxesAndLegacyUnchanged
 
       - id: Rendering-Abstractions-NotationMetrics-PortSquare
         title: >-
@@ -150,3 +155,102 @@ sections:
           same size.
         tests:
           - LabelBackground_ExtentMatchesInset
+
+      - id: Rendering-Abstractions-NotationMetrics-DottedTriangleMarkers
+        title: >-
+          The notation metrics shall define the hollow-triangle-with-two-dots and
+          hollow-triangle-with-four-dots end-marker geometry: the dot centers straddling the line
+          just behind the triangle base, and a marker box and tip anchor widened by the dot extension
+          so the triangle itself lands where a plain hollow triangle does.
+        justification: |
+          SysML v2 feature typing and reference subsetting append dots to a hollow triangle. Defining
+          the dot positions, the widened marker box, and the unchanged triangle anchor once keeps the
+          SVG and PNG renderers drawing the identical marker at the identical place on the line.
+        tests:
+          - DottedTriangles_HaveCanonicalValues
+          - DotCenters_TwoDots_StraddleLineBehindBase
+          - DotCenters_FourDots_FormTwoByTwoGrid
+          - DotCenters_NonDottedStyles_AreEmpty
+          - DotCenters_StayInsideMarkerBox
+          - TriangleFamilyBox_DottedVariants_KeepTriangleTipAnchored
+
+      - id: Rendering-Abstractions-NotationMetrics-CircledPlusMarker
+        title: >-
+          The notation metrics shall define the circled-plus end-marker geometry: a circle with the
+          far edge on the line endpoint and plus arms spanning the circle diameter.
+        justification: |
+          SysML v2 owned membership is drawn as a circle containing a plus sign. Defining its radius,
+          marker box, tip anchor, and arm length once keeps both renderers drawing the same marker.
+        tests:
+          - CircledPlus_HasCanonicalValues
+
+      - id: Rendering-Abstractions-NotationMetrics-MarkerScale
+        title: >-
+          The notation metrics shall define one marker scale, the theme stroke width, at which every
+          renderer draws every end marker, together with the marker outline width derived from it, and
+          shall reject a null theme with an argument-null error.
+        justification: |
+          The SVG renderer scales marker content by the stroke width of the referencing line (the
+          default marker units). The raster renderer applies the same factor, read from the same
+          place, so a PNG marker has exactly the size of the SVG marker instead of two thirds of it;
+          layout and label placement reserve space with the same value. A null theme must fail fast
+          at the public boundary.
+        tests:
+          - MarkerScale_IsThemeStrokeWidth_AndMarkerStrokeIsScaledStroke
+
+      - id: Rendering-Abstractions-NotationMetrics-RenderedAlongLineLength
+        title: >-
+          The notation metrics shall report the rendered along-line length of an end-marker style as
+          its notation length scaled by the marker scale, and shall reject a null theme with an
+          argument-null error.
+        justification: |
+          Both renderers draw markers at the marker scale. A layout that must keep a decoration clear
+          of the preceding corner, and a renderer that clamps the final corner radius, need the drawn
+          length from one shared place, and a null theme must fail fast at the public boundary.
+        tests:
+          - RenderedAlongLineLength_ScalesNotationLengthByStrokeWidth
+          - RenderedAlongLineLength_NullTheme_Throws
+
+      - id: Rendering-Abstractions-NotationMetrics-AcrossHalfWidth
+        title: >-
+          The notation metrics shall report the across-line half width of each end-marker style as
+          the widest point of its glyph measured from the line centre.
+        justification: |
+          Callers that reserve clearance beside a decorated line end need the perpendicular extent of
+          each marker; reading it from one place keeps layout and renderers in agreement.
+        tests:
+          - AcrossHalfWidth_EveryStyle_MatchesWidestPoint
+
+      - id: Rendering-Abstractions-NotationMetrics-ThickBarBadge
+        title: >-
+          The notation metrics shall define the default thickness of the thick fork/join bar badge.
+        justification: |
+          A thick bar badge takes its length from the caller and its thickness from a shared default;
+          defining that default once keeps both renderers drawing the same bar.
+        tests:
+          - ThickBarAndCrossedCircle_HaveCanonicalValues
+
+      - id: Rendering-Abstractions-NotationMetrics-CrossedCircleBadge
+        title: >-
+          The notation metrics shall define the crossed-circle (terminate) badge arm fraction so the
+          four arms of the X end exactly on the circle.
+        justification: |
+          The arms of the X must end on the circle at 45 degrees (the cosine of 45 degrees times the
+          radius along each axis); defining that fraction once keeps both renderers drawing the same
+          glyph.
+        tests:
+          - ThickBarAndCrossedCircle_HaveCanonicalValues
+
+      - id: Rendering-Abstractions-NotationMetrics-CornerIcon
+        title: >-
+          The notation metrics shall define the send and accept corner-icon polygons within the
+          documented icon box, the send icon as a convex right-pointing pentagon, the accept icon as
+          the same pentagon with a triangular notch in its left edge, and no polygon for no icon.
+        justification: |
+          SysML v2 send and accept actions carry a small pictorial icon in the corner of the box.
+          Defining the polygon vertices once, in icon-local units, keeps both renderers drawing the
+          same icon and makes any proportion change a single-place edit.
+        tests:
+          - CornerIconVertices_Send_IsConvexPentagonInsideIconBox
+          - CornerIconVertices_Accept_HasNotchInLeftEdge
+          - CornerIconVertices_None_IsEmpty

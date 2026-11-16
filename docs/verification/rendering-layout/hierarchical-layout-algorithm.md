@@ -18,7 +18,9 @@ hundreds of pseudo-random flat graphs to prove byte-identical behavior.
 
 - **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
-- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs`.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs`, plus
+  `NotationPrimitivePassThroughTests.cs` (appearance pass-through and in-tab folder title reserve) in the
+  same project.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and `LayoutOptions` instances. Deterministic pseudo-random graphs use
   fixed seeds so the equivalence suite is reproducible.
@@ -30,7 +32,9 @@ hundreds of pseudo-random flat graphs to prove byte-identical behavior.
 A verification run passes when every named scenario below asserts without unexpected exception, and
 the referenced tests cover each `Rendering-Layout-HierarchicalLayout-*` requirement. Any drift in
 the stable identifier (`"hierarchical"`), in the flat-graph byte-equivalence guarantee, in
-container sizing (padding, title band), in per-scope algorithm resolution, in cross-container
+container sizing (padding, title band, including the absent body title band of a name-in-tab folder
+and the honored explicit title height), in the carrying of container and leaf appearance onto placed
+boxes, in per-scope algorithm resolution, in cross-container
 LCA edge routing, in same-scope named-port edge routing (or its ancestor-coordinate translation), in
 the boundary (delegation) port combined-pass routing behavior (one shared anchor with every converging
 edge routed orthogonally), in the narrowed boundary-crossing port
@@ -238,6 +242,20 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   `Rendering-Layout-HierarchicalLayout-ValidatesRegistry`): `Apply_NullGraph_Throws`,
   `Apply_NullOptions_Throws`, and `Constructor_NullRegistry_Throws` confirm a null graph, null options,
   and null registry are each rejected with an argument-null error.
+- **Appearance pass-through** (`Rendering-Layout-HierarchicalLayout-AppearancePassThrough`):
+  `HierarchicalLayout_ContainerAndLeafAppearance_ReachPlacedBoxes` lays out a container holding a leaf
+  and confirms each node's `BoxAppearance` is the very instance carried by its placed box, at both depths.
+- **Folder tab title reserve** (`Rendering-Layout-HierarchicalLayout-FolderTabTitleReserve`):
+  `HierarchicalLayout_FolderNameInTab_ReservesNoBodyTitleBand` lays out the same labeled folder with a
+  child twice, once with the name drawn in the tab and once in the body, and confirms the child sits
+  exactly the default container title height (24 px) higher when the name is in the tab;
+  `HierarchicalLayout_FolderNameInTabWithExplicitTitleHeight_KeepsReserve` confirms that with an explicit
+  `TitleHeight` of 30 px the in-tab folder's child sits at exactly the same offset as the body-titled
+  folder's, so the caller's reserve is honored;
+  `HierarchicalLayout_FolderNameInTabWithKeyword_ChildClearsKeywordLine` gives the in-tab folder a
+  `Keyword` and confirms the child sits at least the tab height plus the keyword band below the folder
+  top and at exactly the same offset as the body-titled keyword folder's child (the default reserve is
+  kept).
 
 ### Requirements Coverage
 
@@ -305,3 +323,9 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   Apply_NullOptions_Throws
 - **`Rendering-Layout-HierarchicalLayout-ValidatesRegistry`**:
   Constructor_NullRegistry_Throws
+- **`Rendering-Layout-HierarchicalLayout-AppearancePassThrough`**:
+  HierarchicalLayout_ContainerAndLeafAppearance_ReachPlacedBoxes
+- **`Rendering-Layout-HierarchicalLayout-FolderTabTitleReserve`**:
+  HierarchicalLayout_FolderNameInTab_ReservesNoBodyTitleBand,
+  HierarchicalLayout_FolderNameInTabWithExplicitTitleHeight_KeepsReserve,
+  HierarchicalLayout_FolderNameInTabWithKeyword_ChildClearsKeywordLine

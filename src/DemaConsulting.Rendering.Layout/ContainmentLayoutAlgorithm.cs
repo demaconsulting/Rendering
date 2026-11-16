@@ -164,7 +164,8 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
                 RoundedCornerRadius: node.RoundedCornerRadius,
                 FolderTabWidth: node.FolderTabWidth,
                 FolderTabHeight: node.FolderTabHeight,
-                CenterTitle: node.Compartments.Count == 0);
+                CenterTitle: node.Compartments.Count == 0,
+                Appearance: node.Appearance);
         }
 
         // Build the per-pair edge-count lookup the packer uses to widen the horizontal gap between two

@@ -174,6 +174,13 @@ public sealed class LayoutGraphNode : PropertyHolder, ILayoutConnectable
     public double? FolderTabHeight { get; set; }
 
     /// <summary>
+    /// Gets or sets optional presentation attributes (outline stroke style, name/keyword text style,
+    /// folder title placement, corner icon) copied onto the <see cref="LayoutBox"/> a layout algorithm
+    /// places for this node. <see langword="null"/> (the default) is the legacy look.
+    /// </summary>
+    public BoxAppearance? Appearance { get; set; }
+
+    /// <summary>
     /// Gets the child subgraph nested inside this node, turning the node into a container of nodes and
     /// contained edges.
     /// </summary>

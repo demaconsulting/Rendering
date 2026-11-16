@@ -58,13 +58,48 @@ public sealed class NotationMetricsTests
         Assert.Equal(6.0, NotationMetrics.BarHalf);
     }
 
-    /// <summary>The crossbar position is the documented fraction of the marker length (0.7 x 10 = 7).</summary>
+    /// <summary>
+    ///     The redefinition crossbar sits behind the triangle base (SysML v2.0 section 8.2.3.6): it clears
+    ///     the base by a gap, spans the base width, and lies fully inside the widened marker box whose
+    ///     tip anchor is shifted by the same extension, like the dotted variants.
+    /// </summary>
     [Fact]
-    public void Crossbar_IsDerivedFraction()
+    public void Crossbar_SitsBehindTriangleBase()
     {
-        // Assert: the crossbar sits at the documented fraction of the marker length.
-        Assert.Equal(0.7, NotationMetrics.CrossbarFraction);
-        Assert.Equal(7.0, Math.Round(NotationMetrics.CrossbarX, 6));
+        // Assert: documented canonical values.
+        Assert.Equal(3.5, NotationMetrics.CrossbarBaseGap);
+        Assert.Equal(4.5, NotationMetrics.CrossbarExtension);
+        Assert.Equal(14.5, NotationMetrics.CrossbarMarkerLength);
+        Assert.Equal(13.5, NotationMetrics.CrossbarRefX);
+
+        // Assert: the bar is behind the base (greater distance back from the tip) by the gap.
+        Assert.Equal(NotationMetrics.EndMarkerRefX + NotationMetrics.CrossbarBaseGap, NotationMetrics.CrossbarAlong, 1e-9);
+        Assert.True(NotationMetrics.CrossbarAlong > NotationMetrics.EndMarkerRefX);
+
+        // Assert: the bar and its half stroke lie inside the marker box (box x = refX - Along).
+        var boxX = NotationMetrics.CrossbarRefX - NotationMetrics.CrossbarAlong;
+        Assert.True(boxX >= NotationMetrics.CrossbarStrokeRoom - 1e-9);
+        Assert.Equal(NotationMetrics.EndMarkerHalfWidth, NotationMetrics.CrossbarHalfLength);
+
+        // Assert: the tip anchor shifts by the extension so the triangle apex lands as a plain triangle's does.
+        Assert.Equal(NotationMetrics.EndMarkerRefX + NotationMetrics.CrossbarExtension, NotationMetrics.CrossbarRefX, 1e-9);
+        Assert.Equal((NotationMetrics.CrossbarMarkerLength, NotationMetrics.CrossbarRefX), NotationMetrics.TriangleFamilyBox(EndMarkerStyle.HollowTriangleCrossbar));
+    }
+
+    /// <summary>The marker scale is the theme stroke width and the marker stroke is that width in marker units.</summary>
+    [Fact]
+    public void MarkerScale_IsThemeStrokeWidth_AndMarkerStrokeIsScaledStroke()
+    {
+        // Arrange: a theme with a non-default stroke width.
+        var theme = Themes.Light with { StrokeWidth = 2.0 };
+
+        // Assert: one shared scale for both renderers.
+        Assert.Equal(2.0, NotationMetrics.MarkerScale(theme));
+        Assert.Equal(4.0, NotationMetrics.MarkerStrokeWidth(theme));
+        Assert.Equal(1.5, NotationMetrics.MarkerScale(Themes.Light));
+        Assert.Equal(2.25, NotationMetrics.MarkerStrokeWidth(Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => NotationMetrics.MarkerScale(null!));
+        Assert.Throws<ArgumentNullException>(() => NotationMetrics.MarkerStrokeWidth(null!));
     }
 
     /// <summary>
@@ -129,7 +164,7 @@ public sealed class NotationMetricsTests
     [InlineData(EndMarkerStyle.None, 0.0)]
     [InlineData(EndMarkerStyle.OpenChevron, 10.0)]
     [InlineData(EndMarkerStyle.HollowTriangle, 10.0)]
-    [InlineData(EndMarkerStyle.HollowTriangleCrossbar, 10.0)]
+    [InlineData(EndMarkerStyle.HollowTriangleCrossbar, 14.5)]
     [InlineData(EndMarkerStyle.FilledArrow, 10.0)]
     [InlineData(EndMarkerStyle.HollowDiamond, 14.0)]
     [InlineData(EndMarkerStyle.FilledDiamond, 14.0)]

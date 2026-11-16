@@ -23,14 +23,22 @@ with `ConnectorWaypoints`.
 
 #### InterconnectionLayoutEngine Methods
 
-`Place(nodes, edges, direction, nodeSpacing)` builds a `LayeredGraph` from the inputs, wraps the
+`Place(nodes, edges, direction, nodeSpacing, mergeParallelEdges, backEdgeEntryApproach)` builds a
+`LayeredGraph` from the inputs, wraps the
 default stage sequence with `Engine.Layered.ComponentPacker.WithDefaultStages(nodeSpacing)` for the
 requested `direction` (defaulting to Right), and runs it — so a disconnected input is automatically
 split into its connected components, each laid out independently, and packed without overlap, with no
 special action required by the caller (see the Layered Pipeline Unit Design document's `ComponentPacker`
 section). The optional `nodeSpacing` argument (defaulting to the engine's original fixed constant)
 is stored on the `LayeredGraph` and consumed by the Brandes-Köpf placement stage as the minimum gap
-between same-layer nodes; omitting it reproduces the engine's original geometry exactly. It then reads
+between same-layer nodes; omitting it reproduces the engine's original geometry exactly. The optional
+`backEdgeEntryApproach` argument (defaulting to `LayeredLayoutMetrics.ConnectorClearance`, so omitting it
+is byte-identical to the original engine) is stored on the `LayeredGraph` as
+`LayeredGraph.BackEdgeEntryApproach`: the minimum straight run the orthogonal-routing stage reserves for a
+reversed (back) edge's final sub-edge, which ends where the consumer draws the end marker. A caller whose
+edges carry a long end decoration raises it so the rounded corner before the decoration never intrudes
+into it; `LayeredLayoutAlgorithm` derives the value from the decorations its edges carry (see its design
+and the Layered Pipeline Unit Design document's back-edge entry approach section). It then reads
 the placed coordinates, column extents, layer assignments, and waypoints from the graph state and
 assembles the `LayerResult`. Because the pipeline drops self-loops, de-duplicates identical directed
 pairs, and reverses back edges, `ConnectorWaypoints` holds one polyline per acyclic edge; consumers key
@@ -86,3 +94,4 @@ strategy to obtain a placement result.
 | Rendering-Layout-InterconnectionEngine-Direction-DefaultsToRight | See above |
 | Rendering-Layout-InterconnectionEngine-NodeSpacing | See above |
 | Rendering-Layout-InterconnectionEngine-Deterministic | InterconnectionLayoutEngine behavior described above |
+| Rendering-Layout-InterconnectionEngine-BackEdgeEntryApproachParameter | See above (`backEdgeEntryApproach`) |

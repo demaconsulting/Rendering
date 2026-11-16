@@ -158,13 +158,21 @@ internal static class InterconnectionLayoutEngine
     /// <see langword="true"/>, which is byte-identical to the original engine's unconditional
     /// deduplication.
     /// </param>
+    /// <param name="backEdgeEntryApproach">
+    /// The minimum straight entry approach reserved for a reversed (back) edge's final sub-edge, which
+    /// ends where the consumer draws the end marker (see <see cref="LayeredGraph.BackEdgeEntryApproach"/>).
+    /// Defaults to <see cref="Layered.LayeredLayoutMetrics.ConnectorClearance"/>, which is byte-identical
+    /// to the original engine; a caller whose edges carry a longer end decoration raises it so the
+    /// rounded corner never intrudes into the decoration.
+    /// </param>
     /// <returns>Placement result with rects, layer assignments, and connector waypoints.</returns>
     public static LayerResult Place(
         IReadOnlyList<LayerNode> nodes,
         IReadOnlyList<LayerEdge> edges,
         LayoutDirection direction = LayoutDirection.Right,
         double nodeSpacing = Layered.LayeredLayoutMetrics.NodeSpacing,
-        bool mergeParallelEdges = true)
+        bool mergeParallelEdges = true,
+        double backEdgeEntryApproach = Layered.LayeredLayoutMetrics.ConnectorClearance)
     {
         ArgumentNullException.ThrowIfNull(nodes);
         ArgumentNullException.ThrowIfNull(edges);
@@ -175,7 +183,12 @@ internal static class InterconnectionLayoutEngine
             return new LayerResult([], 2.0 * Padding, 2.0 * Padding, [], []);
         }
 
-        var graph = new LayeredGraph(nodes, edges, direction) { NodeSpacing = nodeSpacing, MergeParallelEdges = mergeParallelEdges };
+        var graph = new LayeredGraph(nodes, edges, direction)
+        {
+            NodeSpacing = nodeSpacing,
+            MergeParallelEdges = mergeParallelEdges,
+            BackEdgeEntryApproach = backEdgeEntryApproach,
+        };
         ComponentPacker.WithDefaultStages(nodeSpacing).Apply(graph);
 
         var augX = graph.AugX;

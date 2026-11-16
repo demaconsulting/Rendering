@@ -48,10 +48,12 @@ sections:
       - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkers
         title: >-
           CanvasNetRasterRenderer shall draw connector end markers whose geometry derives from the
-          shared notation metrics, so raster markers match the SVG markers.
+          shared notation metrics and is drawn at the shared marker scale (the theme stroke width),
+          so raster markers have the geometry and the size of the SVG markers.
         justification: |
-          End markers express relationship direction and kind; sharing the notation metrics with the
-          SVG renderer keeps the two output formats visually identical.
+          End markers express relationship direction and kind; sharing the notation metrics and the
+          marker scale with the SVG renderer keeps the two output formats visually identical. Drawing
+          at the notation size would leave a PNG marker two thirds the size of the SVG marker.
         tests:
           - FilledArrow_AlongLength_MatchesNotationMetrics
           - FilledArrow_BaseWidth_MatchesNotationMetrics
@@ -164,3 +166,195 @@ sections:
           duplicate independently loaded copy of the font resources.
         tests:
           - CanvasNetTypefaces_Resolve_ReturnsStableDistinctTypefacesPerVariant
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerDottedTriangles
+        title: >-
+          CanvasNetRasterRenderer shall draw the hollow-triangle-two-dots and hollow-triangle-four-dots
+          end markers as the hollow triangle followed by two dots and by a two-by-two grid of four dots
+          at the dot centers given by the shared notation metrics.
+        justification: |
+          The SysML feature-typing and reference-subsetting relationships are drawn with a hollow
+          triangle trailed by dots. Taking the dot centers and radius from NotationMetrics, the same
+          source the SVG renderer uses, keeps the raster glyph identical to the vector glyph, and the
+          triangle lands exactly where a plain hollow triangle does.
+        tests:
+          - PngTwoDots_InkAtBothDotCenters_TriangleTipUnchanged
+          - PngFourDots_InkAtAllFourDotCenters
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCircledPlus
+        title: >-
+          CanvasNetRasterRenderer shall draw the circled-plus end marker as a background-filled ring
+          crossed by two plus arms, with the geometry derived from the shared notation metrics.
+        justification: |
+          The SysML owned-membership relationship ends in a circled plus. The background fill keeps
+          the connector from showing through the ring, and sharing NotationMetrics with the SVG
+          renderer keeps the two glyphs identical.
+        tests:
+          - PngCircledPlus_RingAndArmsHaveInkAndInteriorIsEmpty
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSvgParity
+        title: >-
+          CanvasNetRasterRenderer shall draw every end-marker style, at both ends of a line and for
+          any theme stroke width, with the same extents along and across the line as the SVG renderer's
+          marker, so a PNG and an SVG of one tree show markers of one size.
+        justification: |
+          The SVG renderer is the reference for marker size: its markers scale by the line stroke
+          width. A raster marker that drew at the notation size was two thirds of that, which made the
+          dots and the circled plus barely legible. Comparing the pixel footprint of each PNG marker
+          with the SVG marker geometry converted to pixels guards the parity for every style.
+        tests:
+          - EndMarkerParity_TargetEnd_PngFootprintMatchesSvgGeometry
+          - EndMarkerParity_SourceEnd_PngFootprintMatchesMirroredSvgGeometry
+          - EndMarkerParity_ThickerStrokeTheme_FootprintsStillMatch
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCrossbar
+        title: >-
+          CanvasNetRasterRenderer shall draw the redefinition marker as a hollow triangle followed, on
+          the line side of its base and separated from it by a clear gap, by a perpendicular bar
+          spanning the base height, at either end of a line.
+        justification: |
+          SysML v2.0 section 8.2.3.6 draws redefinition with the bar behind the triangle base, not
+          against its apex. Taking the bar position and length from NotationMetrics keeps the raster
+          glyph identical to the SVG glyph, with the triangle tip on the target box border.
+        tests:
+          - PngCrossbar_BarSitsBehindBaseWithGap
+          - PngCrossbar_AtSourceEnd_BarFollowsBaseAlongLine
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCornerClamp
+        title: >-
+          CanvasNetRasterRenderer shall clamp the radius of the rounded corner before a decorated line
+          end so that it leaves at least the end marker's rendered along-line length of straight
+          approach.
+        justification: |
+          A bend that begins inside the marker would collapse into a sharp corner under the
+          arrowhead. The clamp uses the length at which the marker is drawn (notation length times the
+          marker scale), the same length the SVG renderer and the layout reserve.
+        tests:
+          - PngLineCornerClamp_UsesRenderedMarkerLength
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSourceEnd
+        title: >-
+          CanvasNetRasterRenderer shall draw the circled-plus and dotted-triangle markers at a line's
+          source end on the line side of the start point, with the dots following the triangle base
+          along the line.
+        justification: |
+          The marker anchor is the line endpoint and the glyph body extends back along the line, for
+          either end of the line. This is the behavior the SVG renderer reproduces with its mirrored
+          line-start marker variants, so both formats place source-end glyphs identically.
+        tests:
+          - PngCircledPlus_AtSourceEnd_SitsOnLineSideOfStartPoint
+          - PngTwoDots_AtSourceEnd_DotsFollowTriangleBaseAlongLine
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-BoxOutlineStyle
+        title: >-
+          CanvasNetRasterRenderer shall stroke a dashed or dotted BoxAppearance outline with a dash
+          pattern of 6 and 3 pixels or 2 and 2 pixels, scaled by the render scale, on every box shape,
+          and shall stroke a solid outline without gaps.
+        justification: |
+          SysML draws some elements with a dashed outline. The rectangle strokers of the drawing
+          library do not dash, so dashed outlines are stroked as paths; the dash lengths match the
+          SVG stroke-dasharray values so both formats look the same.
+        tests:
+          - PngBoxOutline_Dashed_HasGapsAlongTopEdgeAndSolidHasNone
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-BoxNameStyle
+        title: >-
+          CanvasNetRasterRenderer shall draw a box name in the font selected by the BoxAppearance
+          resolved name style, bold by default.
+        justification: |
+          Notations differ in how a name is typeset. Resolving the style from the appearance lets a
+          caller choose it, while the bold default keeps boxes without an appearance unchanged.
+        tests:
+          - PngBoxName_RegularHasLessInkThanBold_DefaultIsBold
+          - PngBoxName_Italic_SlantsRelativeToRegular
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-CompartmentTitleStyle
+        title: >-
+          CanvasNetRasterRenderer shall draw a compartment title with the compartment's resolved title
+          style and, when the title alignment is Center, centered on the box content area between the
+          left and right content insets.
+        justification: |
+          SysML compartment titles are centered and italic, whereas the legacy title is bold italic
+          and left-aligned. Centering on the content area keeps the title clear of reserved
+          port-label margins and matches the SVG renderer.
+        tests:
+          - PngCompartmentTitle_Centered_InkCenteredInContentArea
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-FolderTitleInTab
+        title: >-
+          CanvasNetRasterRenderer shall draw a folder box's name inside the folder tab, with no name
+          in the body band, when the box appearance places the folder title in the tab.
+        justification: |
+          The SysML package notation puts the package name in the tab. Sizing the tab through the
+          shared BoxMetrics helpers keeps it wide enough for the name and identical to the SVG
+          renderer's tab.
+        tests:
+          - PngFolderNameInTab_InkInTabAndNoneInBodyBand
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-BoxCornerIcon
+        title: >-
+          CanvasNetRasterRenderer shall draw the send and accept corner icons as a filled and stroked
+          polygon in the top-left corner of the box body, using the vertices from the shared notation
+          metrics, with a notch in the left edge of the accept icon.
+        justification: |
+          SysML send and accept action nodes carry a small pentagon icon in the top-left corner; the
+          accept icon has a notched left edge. Using the shared vertex helper keeps the raster icon
+          identical to the vector icon.
+        tests:
+          - PngCornerIcon_SendHasLeftEdgeAcceptHasNotch
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-BadgeThickBar
+        title: >-
+          CanvasNetRasterRenderer shall render thick horizontal-bar and thick vertical-bar badge nodes
+          as filled rectangles whose length is the badge size and whose thickness is the badge
+          thickness, defaulting to the notation-metric thickness.
+        justification: |
+          SysML fork and join nodes are drawn as thick bars; a filled rectangle expresses the
+          thickness, matching the SVG renderer.
+        tests:
+          - PngBadgeThickHorizontalBar_FillsSizeByThickness
+          - PngBadgeThickVerticalBar_FillsThicknessBySize
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-BadgeCrossedCircle
+        title: >-
+          CanvasNetRasterRenderer shall render crossed-circle badge nodes as a background-filled ring
+          with two diagonal arms ending on the ring.
+        justification: |
+          The SysML terminate node is a circle crossed by an X; ending the arms on the ring matches
+          the SVG renderer.
+        tests:
+          - PngBadgeCrossedCircle_RingAndDiagonalArmsHaveInk
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-BandDashed
+        title: >-
+          CanvasNetRasterRenderer shall stroke a band's outline with a dash pattern for a dashed or
+          dotted band outline style and without gaps for a solid band.
+        justification: |
+          SysML swim lanes are drawn with dashed borders; the dash pattern matches the SVG renderer.
+        tests:
+          - PngBand_Dashed_HasGapsAlongTopEdge
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-LifelineRoundedHeader
+        title: >-
+          CanvasNetRasterRenderer shall draw a lifeline header with a cut corner when the header shape
+          is a rounded rectangle, with a keyword text row above the label when a keyword is present,
+          and with a dashed outline when the header appearance requests one.
+        justification: |
+          SysML lifeline headers are rounded and may carry a keyword line. Honoring the header shape,
+          keyword, and appearance lets one lifeline node express the notation, matching the SVG
+          renderer.
+        tests:
+          - PngLifeline_RoundedHeader_CutsCornerAndSharpDoesNot
+          - PngLifeline_Keyword_AddsTextRowAboveLabel
+          - PngLifeline_DashedHeaderAppearance_HasGapsAlongTopEdge
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes
+        title: >-
+          CanvasNetRasterRenderer shall place connector midpoint labels with the obstacle-aware label
+          placer so a label whose line midpoint lies on a leaf box does not erase that box's border.
+        justification: |
+          A connector label is painted over an opaque backplate; at a midpoint on a leaf box it would
+          erase the box border and text. Passing every box to ConnectorLabelPlacer as an obstacle
+          moves the label to a clear position on the line.
+        tests:
+          - PngLineLabel_MidpointOnLeafBox_DoesNotEraseBoxBorder

@@ -149,8 +149,15 @@ internal static class GalleryCatalog
     public const string ThemeLightPng = "appearance-and-themes/theme-light.png";
     public const string ThemeDarkPng = "appearance-and-themes/theme-dark.png";
     public const string ThemePrintPng = "appearance-and-themes/theme-print.png";
+    public const string BoxAppearanceGraphSvg = "appearance-and-themes/box-appearance-graph.svg";
 
     public const string IsolatedNodeLayerGapSvg = "layout-regressions/isolated-node-layer-gap.svg";
+    public const string BackEdgeEntryApproachSvg = "layout-regressions/back-edge-entry-approach.svg";
+
+    public const string SysmlEndMarkersSvg = "custom-rendering/sysml-end-markers.svg";
+    public const string SysmlEndMarkersPng = "custom-rendering/sysml-end-markers.png";
+    public const string SysmlNotationPrimitivesSvg = "custom-rendering/sysml-notation-primitives.svg";
+    public const string SysmlNotationPrimitivesPng = "custom-rendering/sysml-notation-primitives.png";
 
     /// <summary>Shared "Layout algorithms" section intro, reused by every topology-based group.</summary>
     private const string LayoutAlgorithmsIntro =
@@ -628,6 +635,20 @@ internal static class GalleryCatalog
                             IsTopIndexHighlight: true),
                     ]),
                 new GallerySection(
+                    "Box appearance via the input graph",
+                    "A node's Appearance property carries presentation attributes — outline stroke "
+                    + "style, name and keyword text style, and where a folder draws its name — through "
+                    + "the input graph model, so the hierarchical and layered algorithms place boxes "
+                    + "that render with them and reserve space for an in-tab folder title.",
+                    [
+                        new GalleryImage(
+                            BoxAppearanceGraphSvg,
+                            "Package folder with name in tab, dashed and italic boxes, beside an imported folder",
+                            "Graph-driven appearance: a package whose name is drawn in the tab (no title "
+                            + "band is reserved in its body), a dashed rounded box with a regular name "
+                            + "and keyword, an italic (abstract) name, and a dashed imported folder."),
+                    ]),
+                new GallerySection(
                     "Themes",
                     "One representative diagram rendered with each of the three built-in themes, "
                     + "showing how the theme controls colors, stroke, and corner style without "
@@ -669,6 +690,22 @@ internal static class GalleryCatalog
                             + "order, and coordinate assignment squeezes any resulting gap down to the "
                             + "standard node spacing, instead of inheriting the dummy's unrelated "
                             + "port-alignment floor as an inflated gap."),
+                    ]),
+                new GallerySection(
+                    "Back-edge entry approach",
+                    "A state machine whose reversed (back) edges end in a wrap-around corridor and whose "
+                    + "edges all end in an open chevron. The final straight approach of a back edge is "
+                    + "sized from the decoration it carries, so the rounded corner never collapses into "
+                    + "the arrowhead, and connector labels are kept clear of node borders.",
+                    [
+                        new GalleryImage(
+                            BackEdgeEntryApproachSvg,
+                            "A six-state state machine with two back edges ending in open chevrons",
+                            "Regression coverage for the back-edge entry approach: the two back edges "
+                            + "(timeout and idleTimeout) end in a wrap-around corridor whose final leg is "
+                            + "at least the rendered chevron plus the corner radius, so the chevron sits "
+                            + "on a clean straight run with no collapsed corner inside it, and no "
+                            + "connector label's background cuts a node border."),
                     ]),
             ]),
         new GalleryGroup(
@@ -716,6 +753,48 @@ internal static class GalleryCatalog
                             + "limitation, not a pricing gap, left as documented residual behavior "
                             + "rather than force a much wider routing-order change for this one "
                             + "saturated diagram."),
+                    ]),
+                new GallerySection(
+                    "SysML-style notation primitives",
+                    "Rendering primitives that carry no SysML knowledge but let a SysML view reproduce the "
+                    + "standard graphical notation: the relationship end markers (a hollow triangle "
+                    + "trailed by two or four dots, a circled plus, diamonds, a circle, a crossbar), "
+                    + "dashed outlines, regular/italic/bold name and keyword styles, centered "
+                    + "compartment titles, folders with the name in the tab, thick fork/join bars, the "
+                    + "terminate badge, send/accept corner icons, dashed swim lanes and rounded "
+                    + "lifelines. Each is an optional, backward-compatible property; the legacy "
+                    + "appearance remains the default.",
+                    [
+                        new GalleryImage(
+                            SysmlEndMarkersSvg,
+                            "Nine labeled two-box edges, one per SysML relationship end marker",
+                            "Every relationship end marker on a labeled two-box edge: specialization and "
+                            + "subsetting (hollow triangle), feature typing (triangle with two dots), "
+                            + "reference subsetting (triangle with a 2x2 grid of dots), redefinition "
+                            + "(triangle followed by a bar behind its base), composite and reference "
+                            + "membership (filled and "
+                            + "hollow diamond), owned membership (circled plus) and unowned membership "
+                            + "(circle). Triangles are target ends and the membership glyphs source ends, "
+                            + "proving both ends of a line decorate identically."),
+                        new GalleryImage(
+                            SysmlEndMarkersPng,
+                            "The same relationship end markers rendered through the raster path",
+                            "The same sheet through the CanvasNet raster renderer, which draws every "
+                            + "marker at the same size as the SVG renderer (the notation size scaled by "
+                            + "the theme stroke width)."),
+                        new GalleryImage(
+                            SysmlNotationPrimitivesSvg,
+                            "One sheet of every notation primitive next to its legacy counterpart",
+                            "Dashed and solid rounded boxes with regular, italic and legacy bold names; "
+                            + "compartments with centered italic titles beside the legacy left-aligned "
+                            + "bold-italic ones; folders with the name in the tab (solid and dashed) and "
+                            + "in the body; thick fork/join bars; the terminate badge; send and accept "
+                            + "corner icons; a dashed swim lane; and rounded lifelines with a keyword "
+                            + "line beside a legacy sharp one."),
+                        new GalleryImage(
+                            SysmlNotationPrimitivesPng,
+                            "The notation-primitives sheet rendered through the raster path",
+                            "The same notation-primitives sheet through the CanvasNet raster renderer."),
                     ]),
             ]),
     ];

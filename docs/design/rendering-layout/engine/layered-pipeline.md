@@ -149,6 +149,30 @@ runs directly — adding `ComponentPacker` only inside the hierarchical recursio
 disconnected flat graph. Wiring `ComponentPacker` into `InterconnectionLayoutEngine.Place` itself keeps
 both call paths consistent without special-casing the hierarchical recursion.
 
+#### Layered Pipeline Back-Edge Entry Approach
+
+A reversed (back) edge is stored flipped, so the consumer draws the end marker at the first sub-edge's
+source face (the real node, not a long-edge dummy). `LayeredCorridorRouter` places that sub-edge's
+wrap-around corridor at `max(slotX, columnX + maxColumnWidth + BackEdgeEntryApproach)`, which is the final
+straight approach into the true target. The router is direction-agnostic: it works in abstract
+left-to-right coordinates and `AxisTransform` maps the result to every flow direction. At the default
+`BackEdgeEntryApproach` (`ConnectorClearance`, 10 px) the clamp is a no-op, so forward and undecorated
+geometry is unchanged; `LayeredGraph.CreateChild` copies the value into each component's graph.
+
+**Root cause of the S09 artifact.** `LayeredLayoutAlgorithm` never set `BackEdgeEntryApproach`, so every
+reversed edge kept the 10 px default no matter which end marker the consumer drew. A rendered open chevron
+is 15 px long (the marker's along-line length times the 1.5 stroke width, the marker scale at which both
+the SVG and the PNG renderer draw it), so the 10 px approach was shorter than the marker plus the rounded corner
+before it. The renderers' corner clamp (`r = min(r, outLen - RenderedAlongLineLength)`) then reduced the radius to
+zero and the last bend became a sharp corner inside the marker's footprint, closing a small hollow
+triangle with the chevron wing. Forward edges end on a 60 px or longer leg and were unaffected. The
+engine's contract is unchanged: it honors whatever `BackEdgeEntryApproach` it is given. The fix lives in
+the caller: `InterconnectionLayoutEngine.Place` accepts the value as an optional parameter and
+`LayeredLayoutAlgorithm.ResolveBackEdgeEntryApproach` derives it from the end decorations the graph's
+edges carry (the rendered marker length plus the corner radius plus the clean-leg margin, 20 px for an
+open chevron; see the `LayeredLayoutAlgorithm` design). A consumer must set `LayoutGraphEdge.TargetEnd`
+on the edges it decorates for the derivation to see them.
+
 #### Layered Pipeline Boundary Ports
 
 Several internal helpers in `Engine/Layered` implement the hierarchical algorithm's boundary

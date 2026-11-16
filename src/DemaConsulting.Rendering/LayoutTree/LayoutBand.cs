@@ -26,6 +26,10 @@ public enum BandOrientation
 /// <param name="Orientation">Whether the band runs horizontally or vertically.</param>
 /// <param name="Label">Optional header text displayed at the band edge; <see langword="null"/> for unlabelled bands.</param>
 /// <param name="Children">Layout nodes nested inside this band.</param>
+/// <param name="OutlineStyle">
+/// Stroke style of the band outline (<see cref="LineStyle.Solid"/> by default; dashed for a swim lane
+/// that is not a solid partition).
+/// </param>
 public sealed record LayoutBand(
     double X,
     double Y,
@@ -33,4 +37,5 @@ public sealed record LayoutBand(
     double Height,
     BandOrientation Orientation,
     string? Label,
-    IReadOnlyList<LayoutNode> Children) : LayoutNode;
+    IReadOnlyList<LayoutNode> Children,
+    LineStyle OutlineStyle = LineStyle.Solid) : LayoutNode;

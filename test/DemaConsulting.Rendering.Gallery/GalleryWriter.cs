@@ -105,6 +105,29 @@ internal static class GalleryWriter
     }
 
     /// <summary>
+    ///     Renders a pre-built <paramref name="tree"/> directly to <paramref name="fileName"/> as PNG,
+    ///     bypassing <see cref="LayoutEngine.Layout(LayoutGraph)"/> entirely, and asserts the result
+    ///     decodes as a valid raster image. Like the matching <see cref="Svg(string, LayoutTree, Theme)"/>
+    ///     overload, it must be used only by diagrams belonging to the <c>custom-rendering</c> gallery
+    ///     group.
+    /// </summary>
+    /// <param name="fileName">Stable output filename (for example <c>custom-rendering/my-diagram.png</c>).</param>
+    /// <param name="tree">The already-laid-out tree to render.</param>
+    /// <param name="theme">The theme to render with.</param>
+    public static void Png(string fileName, LayoutTree tree, Theme theme)
+    {
+        var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+        using (var stream = File.Create(path))
+        {
+            PngRenderer.Render(tree, new RenderOptions(theme), stream);
+        }
+
+        AssertValidPng(path);
+    }
+
+    /// <summary>
     ///     Lays out <paramref name="graph"/> with whatever algorithm and options it declares (see
     ///     <see cref="LayoutEngine"/>), renders it to <paramref name="fileName"/> as JPEG, and asserts
     ///     the result is a valid raster image.

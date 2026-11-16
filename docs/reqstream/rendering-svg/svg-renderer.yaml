@@ -385,21 +385,40 @@ sections:
       - id: Rendering-Svg-SvgRenderer-DiamondEndMarkerReference
         title: >-
           SvgRenderer shall include the hollow-diamond marker id when rendering a hollow-diamond line
-          end.
+          end, referencing the mirrored line-start-hollow-diamond variant from marker-start when the
+          diamond is at the source end.
         justification: |
           The hollow-diamond marker id identifies the connector-end decoration used for diamond line
-          ends.
+          ends. A source-end marker is referenced through marker-start, whose x axis points into the
+          line, so it must use the mirrored start variant to sit on the line side of the start point.
         tests:
           - SvgRenderer_Render_SingleLine_WithDiamondArrowhead_ProducesDiamondMarker
 
       - id: Rendering-Svg-SvgRenderer-CrossbarEndMarkers
         title: >-
           SvgRenderer shall include the hollow-triangle-crossbar marker id when rendering a crossbar
-          line end.
+          line end, drawing its bar behind the triangle base, separated from it by a clear gap, in a
+          marker box and tip anchor widened by the crossbar extension.
         justification: |
           The crossbar marker id identifies the connector-end decoration used for crossbar line ends.
+          SysML v2.0 section 8.2.3.6 draws redefinition with the bar behind the triangle base, so the
+          marker box is widened (like the dotted variants) and the anchor shifted by the same amount,
+          keeping the triangle tip on the target box border.
         tests:
           - SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker
+          - EndMarkerCrossbar_BarSitsBehindTriangleBase
+
+      - id: Rendering-Svg-SvgRenderer-CornerClampRenderedMarker
+        title: >-
+          SvgRenderer shall clamp the radius of the rounded corner before a decorated line end so that
+          it leaves at least the end marker's rendered along-line length of straight approach.
+        justification: |
+          SVG markers scale by the line stroke width, so a marker is longer than its notation length.
+          A clamp that used the notation length let the bend begin inside the marker; the clamp uses
+          the rendered length (notation length times the marker scale), the same length the PNG
+          renderer and the layout reserve.
+        tests:
+          - LineCornerClamp_UsesRenderedMarkerLength
 
       - id: Rendering-Svg-SvgRenderer-EndMarkerFilledArrow
         title: >-
@@ -414,10 +433,12 @@ sections:
       - id: Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond
         title: >-
           SvgRenderer shall reference the filled-diamond connector end marker for filled-diamond
-          line ends.
+          line ends, using the mirrored line-start-filled-diamond variant from marker-start for a
+          source-end diamond.
         justification: |
           Filled-diamond markers express a distinct connector-end vocabulary and must remain attached
-          to the rendered line.
+          to the rendered line. A diamond is drawn at the source end of a line, where marker-start
+          requires the mirrored start variant to point out of the line start.
         tests:
           - SvgRenderer_Render_SingleLine_WithFilledDiamond_ProducesFilledDiamondMarker
 
@@ -438,3 +459,202 @@ sections:
           rendered line.
         tests:
           - SvgRenderer_Render_SingleLine_WithBarEnd_ProducesBarMarker
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkerDottedTriangles
+        title: >-
+          SvgRenderer shall define the hollow-triangle-two-dots and hollow-triangle-four-dots end
+          markers as the hollow triangle followed by two dots and by a two-by-two grid of four dots,
+          with every coordinate derived from the shared notation metrics.
+        justification: |
+          The SysML feature-typing and reference-subsetting relationships are drawn with a hollow
+          triangle trailed by dots. Deriving the triangle, dot radius, dot positions, and marker box
+          from NotationMetrics keeps the SVG glyph geometrically identical to the raster glyph and
+          leaves the triangle exactly where a plain hollow triangle lands.
+        tests:
+          - EndMarkerTwoDots_DefinesTriangleAndTwoDotsFromNotationMetrics
+          - EndMarkerFourDots_HasTwoByTwoDotGrid
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkerCircledPlus
+        title: >-
+          SvgRenderer shall define the circled-plus end marker as a background-filled circle crossed
+          by two plus arms, with every coordinate derived from the shared notation metrics.
+        justification: |
+          The SysML owned-membership relationship ends in a circled plus. Deriving the circle radius,
+          marker box, anchor, and arm length from NotationMetrics keeps the SVG glyph identical to the
+          raster glyph, and the background fill keeps the connector from showing through the circle.
+        tests:
+          - EndMarkerCircledPlus_DefinesCircleAndTwoPlusArms
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkerDefsOnlyWhenUsed
+        title: >-
+          SvgRenderer shall write the hollow-triangle-two-dots, hollow-triangle-four-dots, and
+          circled-plus marker definitions only when a line in the tree uses them, and shall write
+          each used definition exactly once.
+        justification: |
+          The eight historical end-marker definitions are always written, so a document that uses
+          none of the new markers carries exactly those definitions (the redefinition crossbar
+          definition has the geometry of the current notation). Writing each new definition once, on
+          demand, also avoids duplicate ids no matter how many lines share a marker.
+        tests:
+          - EndMarkerDefs_NewMarkersUnused_AreNotEmitted
+          - EndMarkerDefs_NewMarkerUsedTwice_IsDefinedOnce
+
+      - id: Rendering-Svg-SvgRenderer-EndMarkerStartVariants
+        title: >-
+          SvgRenderer shall reference a mirrored line-start variant of an end marker from the
+          marker-start attribute of a line's source end, defining that variant on demand, and shall
+          continue to reference the line-end variant from marker-end.
+        justification: |
+          An SVG marker-start marker's x axis points into the line, so the end-marker geometry used
+          at a line start drew the glyph pointing inward, outside the line start. Earlier versions
+          of the renderer had this defect for every source-end marker. A mirrored variant (glyph
+          wrapped in a mirror transform with a mirrored anchor) points out of the line start exactly
+          as the end variant points out of the line end, so source-end markers now sit on the line.
+        tests:
+          - EndMarkerSource_CircledPlus_UsesMirroredStartVariant
+          - EndMarkerSource_FourDots_UsesMirroredStartVariantOnly
+          - EndMarkerSource_LegacyDiamond_UsesMirroredStartVariant
+          - EndMarkerBothEnds_NewMarkers_ReferenceStartAndEndVariants
+
+      - id: Rendering-Svg-SvgRenderer-BoxOutlineStyle
+        title: >-
+          SvgRenderer shall draw a box outline with stroke-dasharray "6 3" for a dashed and "2 2" for
+          a dotted BoxAppearance outline style on every box shape, including both paths of a note,
+          and shall emit no dash array for a solid outline or a box without an appearance.
+        justification: |
+          SysML draws some elements (for example, usages and referenced definitions) with a dashed
+          outline. Dashing every shape consistently, including the note body and its fold, makes the
+          appearance independent of the shape, while omitting the attribute for solid outlines keeps
+          existing markup unchanged.
+        tests:
+          - BoxOutline_DashedOrDotted_EmitsDashArrayForEveryShape
+          - BoxOutline_DashedNote_DashesBodyAndFold
+          - BoxOutline_SolidOrNoAppearance_EmitsNoDashArray
+
+      - id: Rendering-Svg-SvgRenderer-BoxNameStyle
+        title: >-
+          SvgRenderer shall emit a box name's font-weight and font-style attributes from the
+          BoxAppearance resolved name style, producing the legacy bold markup when no name style is
+          specified.
+        justification: |
+          Notations differ in how a name is typeset (bold, regular, or italic). Resolving the style
+          from the appearance lets a caller choose it, while the bold default keeps documents that
+          carry no appearance byte-identical to earlier output.
+        tests:
+          - BoxName_Styles_EmitMatchingFontAttributes
+          - BoxName_DefaultAppearance_EmitsLegacyBoldMarkup
+
+      - id: Rendering-Svg-SvgRenderer-BoxKeywordStyle
+        title: >-
+          SvgRenderer shall emit a box keyword line's font-weight and font-style attributes from the
+          BoxAppearance resolved keyword style, producing the legacy italic markup when no keyword
+          style is specified.
+        justification: |
+          A keyword line such as the SysML metaclass name is typeset differently by different
+          notations. Resolving the style from the appearance lets a caller choose it, while the
+          italic default keeps existing output unchanged.
+        tests:
+          - BoxKeyword_DefaultItalicAndRegularOverride
+
+      - id: Rendering-Svg-SvgRenderer-CompartmentTitleStyle
+        title: >-
+          SvgRenderer shall draw a compartment title with the compartment's resolved title style and
+          alignment, centering the title with text-anchor middle on the box content area when the
+          title alignment is Center, and otherwise as the legacy left-aligned bold italic title.
+        justification: |
+          SysML compartment titles are centered and italic, whereas the legacy rendering is a bold
+          italic left-aligned title. Centering on the content area between the left and right
+          content insets keeps the title clear of reserved port-label margins, and the separator line
+          still spans the full box width.
+        tests:
+          - CompartmentTitle_Centered_UsesMiddleAnchorAtContentCentre
+          - CompartmentTitle_Default_IsLegacyBoldItalicStart
+          - CompartmentSeparator_WithCenteredTitle_SpansFullBoxWidth
+
+      - id: Rendering-Svg-SvgRenderer-FolderTitleInTab
+        title: >-
+          SvgRenderer shall draw a folder box's name left-aligned inside the folder tab, with no name
+          in the body and compartments starting directly under the tab, when the box appearance
+          places the folder title in the tab; shall keep the name below the tab by default; and shall
+          ignore the setting for non-folder shapes.
+        justification: |
+          The SysML package notation puts the package name in the tab. Moving the name keeps the body
+          free for compartments, and sharing the tab-sizing rules with the layout through BoxMetrics
+          guarantees the tab is wide enough for the name it holds.
+        tests:
+          - FolderNameInTab_DrawsNameInsideTab
+          - FolderNameInTab_CompartmentsStartUnderTab
+          - FolderBodyTitle_Default_DrawsNameBelowTab
+          - FolderNameInTab_NonFolderShape_IsIgnored
+
+      - id: Rendering-Svg-SvgRenderer-BoxCornerIcon
+        title: >-
+          SvgRenderer shall draw the send and accept corner icons as a polygon in the top-left corner
+          of the box body, below the tab for a folder, using the vertices from the shared notation
+          metrics.
+        justification: |
+          SysML send and accept action nodes carry a small pentagon icon (a pointed or notched
+          rectangle) in the top-left corner. Using the shared vertex helper keeps the vector icon
+          identical to the raster icon, and placing it below the folder tab keeps it inside the body.
+        tests:
+          - CornerIcon_SendAndAccept_EmitPolygonsWithExpectedVertexCounts
+          - CornerIcon_OnFolder_StartsBelowTab
+
+      - id: Rendering-Svg-SvgRenderer-BadgeThickBar
+        title: >-
+          SvgRenderer shall render thick horizontal-bar and thick vertical-bar badge nodes as filled
+          rect elements whose length is the badge size and whose thickness is the badge thickness,
+          defaulting to the notation-metric thickness.
+        justification: |
+          SysML fork and join nodes are drawn as thick bars. A filled rectangle gives the bar its
+          thickness, which the stroked line used by the thin bar badges cannot express.
+        tests:
+          - BadgeThickHorizontalBar_EmitsFilledRectOfSizeAndDefaultThickness
+          - BadgeThickVerticalBar_EmitsFilledRectWithCustomThickness
+
+      - id: Rendering-Svg-SvgRenderer-BadgeCrossedCircle
+        title: >-
+          SvgRenderer shall render crossed-circle badge nodes as a background-filled circle with two
+          diagonal line elements whose endpoints lie on the circle.
+        justification: |
+          The SysML terminate node is a circle crossed by an X. Ending the arms on the circle rather
+          than at the bounding box keeps the glyph tidy at every size.
+        tests:
+          - BadgeCrossedCircle_EmitsCircleAndTwoDiagonalsEndingOnCircle
+
+      - id: Rendering-Svg-SvgRenderer-BandDashed
+        title: >-
+          SvgRenderer shall draw a band's rect with a stroke-dasharray for a dashed or dotted band
+          outline style and without one for a solid band.
+        justification: |
+          SysML swim lanes are drawn with dashed borders. Omitting the attribute for solid bands
+          keeps existing band markup unchanged.
+        tests:
+          - BandOutline_DashedAndSolid
+
+      - id: Rendering-Svg-SvgRenderer-LifelineRoundedHeader
+        title: >-
+          SvgRenderer shall draw a lifeline header with rounded corners when the header shape is a
+          rounded rectangle, with an optional keyword line above the label, and with the header
+          appearance's outline and text styles, while a lifeline without these properties keeps its
+          legacy markup.
+        justification: |
+          SysML lifeline headers are rounded and may carry a keyword line. Honoring the header shape,
+          keyword, and appearance lets one lifeline node express the notation, while leaving the
+          defaults untouched keeps existing sequence diagrams byte-identical.
+        tests:
+          - LifelineRoundedHeader_EmitsCornerRadiusAndKeepsDashedStem
+          - LifelineKeyword_DrawsGuillemetLineAboveLabel
+          - LifelineHeaderAppearance_DashedOutlineAndRegularLabel
+          - LifelineDefault_MatchesLegacyMarkup
+
+      - id: Rendering-Svg-SvgRenderer-LabelsAvoidBoxes
+        title: >-
+          SvgRenderer shall place connector midpoint labels with the obstacle-aware label placer so a
+          label whose line midpoint lies on a leaf box is placed clear of that box.
+        justification: |
+          A connector label is painted over an opaque background; at a midpoint on a leaf box it
+          would erase the box border and text. Passing every box to ConnectorLabelPlacer as an
+          obstacle moves the label to a clear position on the line.
+        tests:
+          - LineLabel_MidpointOnLeafBox_IsPlacedClear

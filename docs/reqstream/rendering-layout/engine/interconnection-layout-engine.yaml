@@ -123,3 +123,17 @@ sections:
           boxes or change connector routes.
         tests:
           - Place_RepeatedInvocation_ProducesIdenticalGeometry
+
+      - id: Rendering-Layout-InterconnectionEngine-BackEdgeEntryApproachParameter
+        title: >-
+          InterconnectionLayoutEngine shall accept an optional back-edge entry approach controlling the
+          minimum straight run of a reversed edge's final sub-edge, defaulting to the connector clearance
+          so existing callers see identical geometry when the argument is omitted, and lengthening that
+          run when a larger value is supplied.
+        justification: |
+          The public LayeredLayoutAlgorithm derives the approach from the end decorations its edges carry
+          and must thread it through this facade to the routing stage; the default must preserve prior
+          behavior for every caller that predates this parameter.
+        tests:
+          - InterconnectionLayoutEngine_DefaultApproach_EqualsExplicitConnectorClearance
+          - InterconnectionLayoutEngine_LargerApproach_LengthensBackEdgeFinalRun

@@ -19,7 +19,8 @@ insertion order, and that the depth-not-color and absolute-coordinate invariants
 ### Layout Tree Unit Test Environment
 
 - **Framework**: xUnit v4, run through the standard `dotnet test` runner.
-- **Test project**: `DemaConsulting.Rendering.Tests`, source file `LayoutTests.cs`.
+- **Test project**: `DemaConsulting.Rendering.Tests`, source files `LayoutTests.cs` and
+  `NotationPrimitiveModelTests.cs`.
 - **Runtime**: any target framework built by the solution (`net8.0`, `net9.0`, `net10.0`, or `net11.0`).
 - **Dependencies**: none beyond the standard test runner; no external services, network, filesystem,
   or configuration is required.
@@ -168,6 +169,65 @@ children, so downstream routing and rendering stages can observe the resolved sh
 
 **Covers**: `Rendering-Model-LayoutTree-ShapeGeometryHints`.
 
+#### End-marker styles are appended
+
+Test `EndMarkerStyle_LegacyOrdinals_ArePinnedAndNewMembersAppended` asserts the integer ordinal of every
+pre-existing `EndMarkerStyle` member (`None` 0 through `Bar` 8) is unchanged and that
+`HollowTriangleTwoDots`, `HollowTriangleFourDots`, and `CircledPlus` are 9, 10, and 11.
+
+**Covers**: `Rendering-Model-LayoutTree-EndMarkerStyles`.
+
+#### Box appearance defaults to the legacy look
+
+Tests `TextStyle_Presets_PairNamedWeightAndStyle`, `BoxAppearance_Defaults_ResolveLegacyLook`,
+`BoxAppearance_ExplicitStyles_OverrideLegacyDefaults`, and `LayoutBox_Appearance_DefaultsToNull` assert
+that each `TextStyle` preset pairs the weight and style it is named for; that `new BoxAppearance()` has
+a solid outline, a bold upright resolved name style, a regular italic resolved keyword style, a body
+folder title, and no corner icon; that explicit `NameStyle` and `KeywordStyle` values override those
+resolved defaults; and that a `LayoutBox` built without an appearance has a `null` `Appearance`.
+
+**Covers**: `Rendering-Model-LayoutTree-BoxAppearance`.
+
+#### Compartment title style defaults to the legacy title
+
+Tests `LayoutCompartment_Defaults_KeepLegacyTitle` and
+`LayoutCompartment_ExplicitTitleAlignAndStyle_AreCarried` assert that a compartment built with only a
+title and rows is left-aligned with a `null` `TitleStyle` whose resolved style is bold italic, and that
+an explicit center alignment and italic style are stored and resolved as supplied.
+
+**Covers**: `Rendering-Model-LayoutTree-CompartmentTitleStyle`.
+
+#### Thick-bar badges are appended with an optional thickness
+
+Test `BadgeShape_LegacyOrdinals_ArePinnedAndNewMembersAppended` asserts the ordinals of the existing
+`BadgeShape` members (`FilledCircle` 0 through `VerticalBar` 4) are unchanged and that
+`ThickHorizontalBar` and `ThickVerticalBar` are 5 and 6; test `LayoutBadge_Thickness_DefaultsToNull`
+asserts a badge built without a thickness has a `null` `Thickness`.
+
+**Covers**: `Rendering-Model-LayoutTree-BadgeThickBar`.
+
+#### Crossed-circle badge is appended
+
+Test `BadgeShape_LegacyOrdinals_ArePinnedAndNewMembersAppended` also asserts `CrossedCircle` has
+ordinal 7, after every existing member.
+
+**Covers**: `Rendering-Model-LayoutTree-BadgeCrossedCircle`.
+
+#### Band outline defaults to solid
+
+Test `LayoutBand_OutlineStyle_DefaultsToSolid` constructs a band without an outline style and asserts
+its `OutlineStyle` is `LineStyle.Solid`.
+
+**Covers**: `Rendering-Model-LayoutTree-BandOutlineStyle`.
+
+#### Lifeline header members default to the legacy look
+
+Test `LayoutLifeline_NewMembers_DefaultToLegacyLook` constructs a lifeline with only its legacy members
+and asserts `Keyword`, `HeaderAppearance`, and `HeaderCornerRadius` are `null` and `HeaderShape` is
+`BoxShape.Rectangle`.
+
+**Covers**: `Rendering-Model-LayoutTree-LifelineHeaderStyle`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-LayoutTree-Canvas`**: LayoutTree_Construction_StoresWidthHeightNodes
@@ -191,3 +251,16 @@ children, so downstream routing and rendering stages can observe the resolved sh
   Rect_Construction_StoresAllFields
 - **`Rendering-Model-LayoutTree-ShapeGeometryHints`**:
   LayoutBox_Construction_StoresAllFields
+- **`Rendering-Model-LayoutTree-EndMarkerStyles`**:
+  EndMarkerStyle_LegacyOrdinals_ArePinnedAndNewMembersAppended
+- **`Rendering-Model-LayoutTree-BoxAppearance`**: TextStyle_Presets_PairNamedWeightAndStyle,
+  BoxAppearance_Defaults_ResolveLegacyLook, BoxAppearance_ExplicitStyles_OverrideLegacyDefaults,
+  LayoutBox_Appearance_DefaultsToNull
+- **`Rendering-Model-LayoutTree-CompartmentTitleStyle`**: LayoutCompartment_Defaults_KeepLegacyTitle,
+  LayoutCompartment_ExplicitTitleAlignAndStyle_AreCarried
+- **`Rendering-Model-LayoutTree-BadgeThickBar`**:
+  BadgeShape_LegacyOrdinals_ArePinnedAndNewMembersAppended, LayoutBadge_Thickness_DefaultsToNull
+- **`Rendering-Model-LayoutTree-BadgeCrossedCircle`**:
+  BadgeShape_LegacyOrdinals_ArePinnedAndNewMembersAppended
+- **`Rendering-Model-LayoutTree-BandOutlineStyle`**: LayoutBand_OutlineStyle_DefaultsToSolid
+- **`Rendering-Model-LayoutTree-LifelineHeaderStyle`**: LayoutLifeline_NewMembers_DefaultToLegacyLook
