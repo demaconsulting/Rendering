@@ -171,13 +171,15 @@ sections:
       - id: Rendering-Layout-ConnectorRouter-MinimumEndLegs
         title: >-
           When a jog between the two ends is unavoidable, ConnectorRouter shall keep at least the
-          connector stub as the straight first leg and at least the end-marker length plus the bend
-          radius as the straight final leg, wherever the gap between the faces allows it, and shall
+          connector stub as the straight first leg and at least the rendered end-marker length (the
+          notation length times the marker scale both renderers draw it at) plus the bend radius as
+          the straight final leg, wherever the gap between the faces allows it, and shall
           still return a route that crosses no box when the gap is too narrow to hold both legs.
         justification: |
           An arrowhead that sits directly on a bend, or a connector that bends the moment it clears its
           face, looks cramped and can render with a clamped corner. The renderers clamp the corner
-          radius to the final leg, so the legs must be long enough for the marker plus the radius.
+          radius to the final leg, so the legs must be long enough for the marker, as it is drawn,
+          plus the radius.
         tests:
           - Route_LaneOutsideBothFaceSpans_KeepsJogWithMinimumLegs
           - Route_NarrowGapJog_StillReturnsRouteAndNeverCrossesBoxes
@@ -241,12 +243,13 @@ sections:
 
       - id: Rendering-Layout-ConnectorRouter-NewEndMarkerClearance
         title: >-
-          ConnectorRouter shall keep a straight final leg of at least the along-line length of a
-          dotted-triangle (feature typing or reference subsetting) or circled-plus end marker plus the
-          bend radius, as it does for every other end-marker style.
+          ConnectorRouter shall keep a straight final leg of at least the rendered along-line length of
+          a redefinition (crossbar), dotted-triangle (feature typing or reference subsetting) or
+          circled-plus end marker plus the bend radius, as it does for every other end-marker style.
         justification: |
-          The new notation end markers are longer than the legacy arrowheads; because the required end
-          leg and end zone derive from the marker's along-line length, a marker sits on a clean straight
-          run without a corner clamped inside its footprint.
+          The notation end markers are longer than the legacy arrowheads; because the required end
+          leg and end zone derive from the marker's rendered along-line length (notation length times
+          the shared marker scale), a marker sits on a clean straight run without a corner clamped
+          inside its footprint, in SVG and PNG alike.
         tests:
           - ConnectorRouter_NewEndMarker_ReservesCleanEndLeg

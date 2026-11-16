@@ -49,6 +49,9 @@ sections:
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerDottedTriangles
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCircledPlus
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSourceEnd
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSvgParity
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCrossbar
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCornerClamp
           - Rendering-CanvasNet-CanvasNetRasterRenderer-BoxOutlineStyle
           - Rendering-CanvasNet-CanvasNetRasterRenderer-BoxNameStyle
           - Rendering-CanvasNet-CanvasNetRasterRenderer-CompartmentTitleStyle

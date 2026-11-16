@@ -60,6 +60,7 @@ sections:
           - Rendering-Svg-SvgRenderer-DiamondEndMarkers
           - Rendering-Svg-SvgRenderer-DiamondEndMarkerReference
           - Rendering-Svg-SvgRenderer-CrossbarEndMarkers
+          - Rendering-Svg-SvgRenderer-CornerClampRenderedMarker
           - Rendering-Svg-SvgRenderer-EndMarkerFilledArrow
           - Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond
           - Rendering-Svg-SvgRenderer-EndMarkerCircle

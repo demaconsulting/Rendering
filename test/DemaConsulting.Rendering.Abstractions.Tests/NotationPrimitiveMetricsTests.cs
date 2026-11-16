@@ -120,7 +120,7 @@ public sealed class NotationPrimitiveMetricsTests
         Assert.Equal(0.0, NotationMetrics.AlongLineLength(EndMarkerStyle.None));
         Assert.Equal(NotationMetrics.EndMarkerLength, NotationMetrics.AlongLineLength(EndMarkerStyle.OpenChevron));
         Assert.Equal(NotationMetrics.EndMarkerLength, NotationMetrics.AlongLineLength(EndMarkerStyle.HollowTriangle));
-        Assert.Equal(NotationMetrics.EndMarkerLength, NotationMetrics.AlongLineLength(EndMarkerStyle.HollowTriangleCrossbar));
+        Assert.Equal(NotationMetrics.CrossbarMarkerLength, NotationMetrics.AlongLineLength(EndMarkerStyle.HollowTriangleCrossbar));
         Assert.Equal(NotationMetrics.EndMarkerLength, NotationMetrics.AlongLineLength(EndMarkerStyle.FilledArrow));
         Assert.Equal(NotationMetrics.DiamondLength, NotationMetrics.AlongLineLength(EndMarkerStyle.HollowDiamond));
         Assert.Equal(NotationMetrics.DiamondLength, NotationMetrics.AlongLineLength(EndMarkerStyle.FilledDiamond));

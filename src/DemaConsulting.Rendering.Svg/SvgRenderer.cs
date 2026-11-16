@@ -87,7 +87,7 @@ public sealed class SvgRenderer : IRenderer
         // label nudged to avoid colliding with another can land outside the box/routing geometry's
         // extent, so the canvas must be sized only after label placement is known, not before.
         var lines = CollectLines(layout.Nodes).ToList();
-        var labelPositions = ConnectorLabelPlacer.Place(lines, theme.FontSizeBody, CollectBoxes(layout.Nodes));
+        var labelPositions = ConnectorLabelPlacer.Place(lines, theme.FontSizeBody, CollectBoxes(layout.Nodes), NotationMetrics.MarkerScale(theme));
 
         // Compute canvas dimensions, ensuring a minimum 1×1 canvas, then grow to fully include every
         // placed label's bounding box (a label can be nudged beyond the box/routing geometry's
@@ -151,9 +151,10 @@ public sealed class SvgRenderer : IRenderer
     /// the start of a line (an SVG <c>marker-start</c> marker's x axis points into the line, so the
     /// end-marker geometry would otherwise sit outside the line start, pointing inward). Every
     /// coordinate is derived from <see cref="NotationMetrics"/>, so a geometry literal never appears
-    /// twice and the PNG renderer draws the identical shapes from the same source constants. Note
-    /// that SVG markers scale by the stroke width (<c>markerUnits="strokeWidth"</c>, the SVG default)
-    /// whereas the PNG renderer draws them at the notation size.
+    /// twice and the PNG renderer draws the identical shapes from the same source constants. Every
+    /// marker is drawn at <see cref="NotationMetrics.MarkerScale(Theme)"/> (the stroke width, via the SVG
+    /// default <c>markerUnits="strokeWidth"</c>), and the PNG renderer applies the same scale so the two
+    /// formats draw each marker at the identical size.
     /// </remarks>
     /// <param name="sb">String builder receiving the SVG markup.</param>
     /// <param name="theme">Theme providing stroke color and width.</param>
@@ -443,7 +444,10 @@ public sealed class SvgRenderer : IRenderer
 
                 if (style == EndMarkerStyle.HollowTriangleCrossbar)
                 {
-                    body.Add(Line(NotationMetrics.CrossbarX, 0, NotationMetrics.CrossbarX, NotationMetrics.EndMarkerWidth));
+                    // The redefinition bar sits behind the triangle base, spanning the base height
+                    var barX = tipAnchor - NotationMetrics.CrossbarAlong;
+                    var barTop = NotationMetrics.EndMarkerHalfWidth - NotationMetrics.CrossbarHalfLength;
+                    body.Add(Line(barX, barTop, barX, barTop + (2.0 * NotationMetrics.CrossbarHalfLength)));
                 }
 
                 foreach (var dot in NotationMetrics.DotCenters(style))
@@ -951,7 +955,11 @@ public sealed class SvgRenderer : IRenderer
         // end is clamped so the rounded arc completes at least the marker's along-line length before
         // the endpoint, keeping the decoration on a clean straight approach.
         var pathData = BuildLinePath(
-            line.Waypoints, theme.LineCornerRadius, scale, line.SourceEnd, line.TargetEnd);
+            line.Waypoints,
+            theme.LineCornerRadius,
+            scale,
+            NotationMetrics.RenderedAlongLineLength(line.SourceEnd, theme),
+            NotationMetrics.RenderedAlongLineLength(line.TargetEnd, theme));
 
         // Resolve line-end marker attribute strings (a start marker is a mirrored line-start-… variant)
         var markerStart = MarkerAttribute(line.SourceEnd, isStart: true);
@@ -1079,15 +1087,21 @@ public sealed class SvgRenderer : IRenderer
     /// <param name="waypoints">Ordered waypoints; must contain at least 2 entries.</param>
     /// <param name="cornerRadius">Corner rounding radius in logical pixels; 0 disables arcs.</param>
     /// <param name="scale">Uniform scale factor.</param>
-    /// <param name="sourceEnd">End-marker style at the first waypoint (source endpoint).</param>
-    /// <param name="targetEnd">End-marker style at the last waypoint (target endpoint).</param>
+    /// <param name="sourceMarkerLength">
+    /// Rendered along-line length of the end marker at the first waypoint (source endpoint), in logical
+    /// pixels (<see cref="NotationMetrics.RenderedAlongLineLength"/>); zero without a marker.
+    /// </param>
+    /// <param name="targetMarkerLength">
+    /// Rendered along-line length of the end marker at the last waypoint (target endpoint), in logical
+    /// pixels; zero without a marker.
+    /// </param>
     /// <returns>SVG path data string starting with <c>M</c>.</returns>
     private static string BuildLinePath(
         IReadOnlyList<Point2D> waypoints,
         double cornerRadius,
         double scale,
-        EndMarkerStyle sourceEnd,
-        EndMarkerStyle targetEnd)
+        double sourceMarkerLength,
+        double targetMarkerLength)
     {
         var sb = new StringBuilder();
         var first = waypoints[0];
@@ -1178,12 +1192,12 @@ public sealed class SvgRenderer : IRenderer
             // target endpoint. For forward edges (whose approaches are already long) this is a no-op.
             if (i == 1)
             {
-                r = Math.Min(r, inLen - NotationMetrics.AlongLineLength(sourceEnd));
+                r = Math.Min(r, inLen - sourceMarkerLength);
             }
 
             if (i == waypoints.Count - 2)
             {
-                r = Math.Min(r, outLen - NotationMetrics.AlongLineLength(targetEnd));
+                r = Math.Min(r, outLen - targetMarkerLength);
             }
 
             if (r <= 0.0)

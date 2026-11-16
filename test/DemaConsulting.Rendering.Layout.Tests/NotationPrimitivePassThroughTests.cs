@@ -272,10 +272,15 @@ public sealed class NotationPrimitivePassThroughTests
     }
 
     /// <summary>
-    ///     The router reserves a final straight leg at least as long as a new marker plus the bend radius,
-    ///     so the decoration sits on a clean run.
+    ///     The router reserves a final straight leg at least as long as the marker as it is RENDERED (the
+    ///     notation length times the theme stroke width, the same size both renderers draw) plus the bend
+    ///     radius, so the decoration sits on a clean run in SVG and PNG alike.
     /// </summary>
     [Theory]
+    [InlineData(EndMarkerStyle.OpenChevron)]
+    [InlineData(EndMarkerStyle.HollowTriangle)]
+    [InlineData(EndMarkerStyle.HollowTriangleCrossbar)]
+    [InlineData(EndMarkerStyle.HollowDiamond)]
     [InlineData(EndMarkerStyle.HollowTriangleTwoDots)]
     [InlineData(EndMarkerStyle.HollowTriangleFourDots)]
     [InlineData(EndMarkerStyle.CircledPlus)]
@@ -289,8 +294,9 @@ public sealed class NotationPrimitivePassThroughTests
         var last = line.Waypoints[^1];
         var previous = line.Waypoints[^2];
         var finalLeg = Math.Abs(last.X - previous.X) + Math.Abs(last.Y - previous.Y);
+        var rendered = NotationMetrics.RenderedAlongLineLength(style, Themes.Light);
         Assert.True(
-            finalLeg >= NotationMetrics.AlongLineLength(style) + Themes.Light.LineCornerRadius - 1e-6,
-            $"Final leg {finalLeg} shorter than marker {NotationMetrics.AlongLineLength(style)} plus corner radius.");
+            finalLeg >= rendered + Themes.Light.LineCornerRadius - 1e-6,
+            $"Final leg {finalLeg} shorter than rendered marker {rendered} plus corner radius.");
     }
 }

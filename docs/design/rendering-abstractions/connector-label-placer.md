@@ -39,7 +39,8 @@ clipped; a renderer must instead finalize its canvas size only after calling `Pl
 `IReadOnlyDictionary<LayoutLine, LabelPlacement> Place(IEnumerable<LayoutLine> lines, double fontSize,
 IEnumerable<LayoutBox> obstacles)` — the box-aware overload, which additionally keeps each label clear
 of the supplied obstacle boxes (a renderer passes every box in the tree). The two-argument overload
-delegates to it with an empty obstacle set, so with no obstacles the results are identical. An obstacle
+delegates to it with an empty obstacle set, so with no obstacles the results are identical for lines
+without an end decoration (a decorated line's own end-decoration footprints always apply, see below). An obstacle
 is classified once as a *leaf* box (its children, if any, are only ports) or a *container* box (it has
 nested nodes other than ports). A candidate label rectangle (the estimated label box, including the
 `Gap` clearance) is rejected when it overlaps an already-placed label, or when it:
@@ -48,17 +49,34 @@ nested nodes other than ports). A candidate label rectangle (the estimated label
 - overlaps a container box without lying fully inside it (straddles its border), because a label
   legitimately sits inside a container. A label fully inside a container is allowed.
 
-When obstacles are present, candidates are tried in this order, and the first clear one is taken:
+`Place(lines, fontSize, obstacles, markerScale)` is the overload both renderers call, passing
+`NotationMetrics.MarkerScale(theme)`; the three-argument overload uses the marker scale of the default light
+theme. The `markerScale` sizes the end-decoration footprints (below), so the clearance tracks the size at
+which both renderers actually draw every marker instead of a hard-coded stroke width.
+
+Each end decoration of the line being placed has a *footprint*: the box from the line endpoint back along
+the first (source) or last (target) segment by the decoration's rendered along-line length
+(`NotationMetrics.AlongLineLength` times `markerScale`), widened across the line by the decoration's
+rendered half width (`NotationMetrics.AcrossHalfWidth` times `markerScale`). A footprint is a leaf-box
+obstacle for the midpoint and slide candidates of its own line only: a label is never placed over its own
+line's arrowhead, even at the midpoint of a short run. (Another line's arrowhead is not avoided.)
+
+When obstacles or decoration footprints are present, candidates are tried in this order, and the first
+clear one is taken:
 
 1. The segment midpoints, longest segment first.
 2. Sliding along each segment (longest first) in steps of the label's half-height, alternating either
    side of the midpoint (toward the end of the segment first at each step distance). The slide keeps
-   the whole label inside the segment and keeps
-   it clear of the footprint of any end decoration at either end of the line: the along-line length of the
-   line's `SourceEnd` or `TargetEnd` (`NotationMetrics.AlongLineLength`) times 1.5, the conservative
-   stroke-width scale of the SVG renderer. The reserve applies only to the first segment (start) and last
-   segment (end) of the line.
-3. Perpendicular nudges of the longest segment, up to four steps either side.
+   the whole label inside the segment and keeps it clear of the footprint of any end decoration at either
+   end of the line (the same rendered along-line length as above). The reserve applies only to the first
+   segment (start) and last segment (end) of the line. When the half-label steps all miss a narrow clear
+   window (a short run barely long enough for the label and the decoration), the exact offset nearest the
+   midpoint that keeps the whole label inside that window is tried as well.
+3. Perpendicular nudges of the longest segment, up to four steps either side, which consider only the
+   boxes and labels. When the midpoint was blocked only by a decoration footprint (the label there is
+   clear of every box and label) no nudge is attempted: a label moved off its own line reads as belonging
+   to a neighboring connector, so on a run too short for both the label and its arrowhead the placer
+   falls back to the obstacle-free midpoint instead.
 
 If no candidate clears every obstacle, the obstacle-free placement of the two-argument overload is used
 unchanged, so a label is never lost and the no-overlap guarantee between labels is preserved. The search
@@ -103,7 +121,8 @@ and performs no logging.
   `Waypoints`, `SourceEnd`, and `TargetEnd`, and (box-aware overload) `LayoutBox` bounds and children
   from the layout tree types.
 - **Notation Metrics Unit** (same system) — the box-aware overload calls
-  `NotationMetrics.AlongLineLength` to size the end-decoration reserve.
+  `NotationMetrics.AlongLineLength`, `NotationMetrics.AcrossHalfWidth` and `NotationMetrics.MarkerScale` to
+  size the end-decoration footprints.
 - **.NET base class library** — `System.Collections.Generic.IEnumerable<T>`,
   `IReadOnlyDictionary<TKey, TValue>`, and standard geometry arithmetic. No third-party runtime
   packages are consumed.
@@ -111,7 +130,8 @@ and performs no logging.
 ### Connector Label Placer Callers
 
 - **Rendering.Svg `SvgRenderer` unit** — calls the box-aware `Place` once per render pass, passing
-  every box in the tree, to compute the label positions for the connector labels it writes as `<text>`
+  every box in the tree and `NotationMetrics.MarkerScale(theme)`, to compute the label positions for the connector
+  labels it writes as `<text>`
   elements.
 - **Rendering.CanvasNet raster renderers (`CanvasNetRasterRenderer`, `PngRenderer`,
   `JpegRenderer`)** — call the box-aware `Place` for the same purpose so that the SVG and raster outputs
@@ -133,6 +153,10 @@ and performs no logging.
 - A label shall never be placed overlapping a leaf box; it may lie fully inside a container box but
   shall not straddle a container's border (unless no candidate clears and the fallback applies).
 - A label slid along a segment shall stay inside the segment and clear of the end-decoration footprint.
+- A label's midpoint and slides shall stay clear of its own line's end-decoration footprints, sized by the
+  marker scale the caller supplies; no marker scale is hard-coded in the placer beyond the default-theme
+  value used by the overloads that take none.
+- A label that cannot clear a decoration on a run too short for both stays on its own line.
 
 ### Connector Label Placer Interactions
 
@@ -150,5 +174,5 @@ is called by the renderers (SVG and PNG systems) before drawing connector labels
 | Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight | `ConnectorLabelPlacer.EstimateLabelHeight` |
 | Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelWidth | `ConnectorLabelPlacer.EstimateLabelWidth` |
 | Rendering-Abstractions-ConnectorLabelPlacer-AvoidBoxes | Box-aware `Place` leaf/container rule and fallback |
-| Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration | Box-aware `Place` slide end reserve |
+| Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration | Box-aware `Place` footprints |
 | Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments | Box-aware `Place` guards |

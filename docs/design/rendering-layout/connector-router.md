@@ -101,8 +101,9 @@ obstacle-crossing fallback. Only a defective connection is searched again, with 
 router: each end becomes a _port range_ (`PortRange`) — the face, the face outline coordinate, the
 permitted along-face intervals and a preferred position. The permitted intervals are the face's
 connectable extents inset by `PortCornerMargin`, and a face too short for that inset (under twice the
-margin) keeps its centre. The margin is derived, not chosen: the renderers draw end markers with
-`markerUnits=strokeWidth`, so a marker reaches `StrokeWidth × (half-width + StrokeWidth / 2)` to either
+margin) keeps its centre. The margin is derived, not chosen: both renderers draw end markers at the shared marker
+scale (the stroke width,
+`NotationMetrics.MarkerScale`), so a marker reaches `StrokeWidth × (half-width + StrokeWidth / 2)` to either
 side of the line once its own outline stroke is included (6.375 px for an arrowhead, 7.125 px for a
 diamond at the 1.5 stroke), and the box border adds half its stroke (0.75 px); rounded up that is 8 px.
 A slid port therefore keeps the arrowhead's wings inside the face instead of overhanging a corner (the
@@ -129,14 +130,17 @@ accepted ports are written back to the batch's anchors (flagged _slid_, so later
 position and the clearance clamp no longer pulls them back inward) before the next connector is routed.
 
 **Minimum end legs.** The search passes `RouteHints` so the first leg is at least the connector stub
-(`Themes.Light.ConnectorStub`) and the final leg at least the end marker's along-line length plus the bend
-radius plus the clean-leg margin (15 for an arrow, 19 for a diamond), wherever the gap between the faces
-allows it. The legs are soft costs, never hard blocks, so a gap too narrow for both still yields a route
+(`Themes.Light.ConnectorStub`) and the final leg at least the end marker's RENDERED along-line length (the
+notation length times the shared marker scale, `NotationMetrics.RenderedAlongLineLength`, the size at which
+both renderers draw it) plus the bend radius plus the clean-leg margin (20 for an arrow, 26 for a diamond at
+the 1.5 stroke), wherever the gap between the faces allows it. The legs are soft costs, never hard blocks, so a gap
+too narrow for both still yields a route
 that crosses no box (the legacy half-gap stub); the renderers' corner clamp keeps the decoration clean.
-The required end leg and the peer end zone are both derived from `NotationMetrics.AlongLineLength` of the
-connection's `TargetEnd`, so the `HollowTriangleTwoDots`, `HollowTriangleFourDots` and `CircledPlus` end
-markers automatically receive a clean straight final leg of at least their own along-line length plus the
-bend radius, with no extra router code.
+The required end leg is derived from `NotationMetrics.RenderedAlongLineLength` of the connection's
+`TargetEnd` (and the peer end zone from its `AlongLineLength`), so the `HollowTriangleCrossbar`,
+`HollowTriangleTwoDots`, `HollowTriangleFourDots` and `CircledPlus` end markers automatically receive a clean
+straight final leg of at least their own rendered along-line length plus the bend radius, with no extra
+router code.
 
 **Folder tab resolution.** `FolderGeometry.ResolveFolderTabWidth` and `ResolveFolderTabHeight`, which
 size the folder's non-connectable tab strip, delegate to `BoxMetrics.ResolveFolderTabWidth(box,
@@ -215,7 +219,7 @@ this is unreachable today because `Orthogonal` is the only enum value, but guard
 - **`Themes`** — `Themes.Light`'s `FontSizeBody` and `LabelPadding` feed the shared folder-tab width
   resolution (through `BoxMetrics`) when a box does not supply its own `FolderTabWidth` hint, approximating the
   tab width a themed folder label would need; its `ConnectorStub`, `LineCornerRadius` and `CleanLegMargin`
-  set the minimum first and final legs (with `NotationMetrics.AlongLineLength` for the end marker).
+  set the minimum first and final legs (with `NotationMetrics.RenderedAlongLineLength` for the end marker).
 - **`BoxMetrics`** — `BoxMetrics.ResolveFolderTabWidth` and `BoxMetrics.ResolveFolderTabHeight` (with
   `Themes.Light`) are what `FolderGeometry` delegates to for the folder-tab dimensions, so the routing
   cutout stays consistent with the renderers' own folder-tab geometry, including a tab sized to an in-tab

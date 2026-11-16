@@ -76,6 +76,61 @@ public sealed class SvgNotationPrimitiveTests
     }
 
     /// <summary>
+    ///     The redefinition marker is a hollow triangle plus one crossbar BEHIND the triangle base (the
+    ///     bar is on the line side of the base, with a gap), in a marker box widened by
+    ///     <see cref="NotationMetrics.CrossbarExtension"/> whose tip anchor shifts by the same amount.
+    /// </summary>
+    [Fact]
+    public void EndMarkerCrossbar_BarSitsBehindTriangleBase()
+    {
+        var svg = Render(HorizontalLine(EndMarkerStyle.None, EndMarkerStyle.HollowTriangleCrossbar));
+
+        var body = MarkerBody(svg, "line-end-hollow-triangle-crossbar");
+        Assert.Contains(
+            $"markerWidth=\"{Num(NotationMetrics.CrossbarMarkerLength)}\" markerHeight=\"{Num(NotationMetrics.EndMarkerWidth)}\" refX=\"{Num(NotationMetrics.CrossbarRefX)}\" refY=\"{Num(NotationMetrics.EndMarkerHalfWidth)}\"",
+            body,
+            StringComparison.Ordinal);
+
+        // The triangle base is at box x = CrossbarExtension (apex at box x = CrossbarMarkerLength).
+        Assert.Contains(
+            $"points=\"{Num(NotationMetrics.CrossbarExtension)} 0, {Num(NotationMetrics.CrossbarMarkerLength)} {Num(NotationMetrics.EndMarkerHalfWidth)}, {Num(NotationMetrics.CrossbarExtension)} {Num(NotationMetrics.EndMarkerWidth)}\"",
+            body,
+            StringComparison.Ordinal);
+
+        // The bar is a vertical line behind the base: its box x is below the base's box x by the gap.
+        var bar = Regex.Match(body, "<line x1=\"([^\"]+)\" y1=\"([^\"]+)\" x2=\"([^\"]+)\" y2=\"([^\"]+)\"");
+        Assert.True(bar.Success, "Expected a crossbar <line>.");
+        var barX = double.Parse(bar.Groups[1].Value, CultureInfo.InvariantCulture);
+        Assert.Equal(barX, double.Parse(bar.Groups[3].Value, CultureInfo.InvariantCulture), 6);
+        Assert.Equal(NotationMetrics.CrossbarExtension - NotationMetrics.CrossbarBaseGap, barX, 6);
+        Assert.Equal(0.0, double.Parse(bar.Groups[2].Value, CultureInfo.InvariantCulture), 6);
+        Assert.Equal(NotationMetrics.EndMarkerWidth, double.Parse(bar.Groups[4].Value, CultureInfo.InvariantCulture), 6);
+        Assert.True(barX < NotationMetrics.CrossbarExtension, "The bar must lie behind the triangle base.");
+    }
+
+    /// <summary>
+    ///     The final-corner clamp keeps the rounded corner out of the end marker as it is RENDERED (the
+    ///     notation length times the stroke width), not the notation length: a 17 px final approach
+    ///     before a 15 px rendered chevron leaves only 2 px for the bend radius.
+    /// </summary>
+    [Fact]
+    public void LineCornerClamp_UsesRenderedMarkerLength()
+    {
+        var line = new LayoutLine(
+            [new Point2D(10, 10), new Point2D(60, 10), new Point2D(60, 27)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.OpenChevron,
+            LineStyle.Solid,
+            null);
+
+        var svg = Render(line);
+
+        var rendered = NotationMetrics.RenderedAlongLineLength(EndMarkerStyle.OpenChevron, Themes.Light);
+        var radius = 17.0 - rendered;
+        Assert.Contains($" A {F(radius)} {F(radius)} 0 0 1 ", svg, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     ///     The four-dots marker has four dot circles forming a 2x2 grid: two distinct columns and two
     ///     distinct rows.
     /// </summary>

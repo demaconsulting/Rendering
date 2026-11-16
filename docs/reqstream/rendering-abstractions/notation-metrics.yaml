@@ -62,13 +62,17 @@ sections:
 
       - id: Rendering-Abstractions-NotationMetrics-Crossbar
         title: >-
-          The notation metrics shall position the redefinition crossbar at the documented fraction of
-          the end-marker length.
+          The notation metrics shall define the redefinition marker geometry: a crossbar behind the
+          triangle base, separated from it by a gap and spanning the base height, in a marker box and
+          tip anchor widened by the crossbar extension so the triangle lands where a plain hollow
+          triangle does.
         justification: |
-          The crossbar variant marks redefinition; deriving its position from a single fraction keeps
-          it aligned with the triangle it crosses in every renderer.
+          SysML v2.0 section 8.2.3.6 draws redefinition as a hollow triangle followed, on the line
+          side of the base, by a perpendicular bar. Defining the bar position, its length, the
+          widened marker box and the unchanged triangle anchor once keeps the SVG and PNG renderers
+          drawing the identical marker, with its tip on the target box border.
         tests:
-          - Crossbar_IsDerivedFraction
+          - Crossbar_SitsBehindTriangleBase
 
       - id: Rendering-Abstractions-NotationMetrics-AlongLineLength
         title: >-
@@ -180,16 +184,29 @@ sections:
         tests:
           - CircledPlus_HasCanonicalValues
 
+      - id: Rendering-Abstractions-NotationMetrics-MarkerScale
+        title: >-
+          The notation metrics shall define one marker scale, the theme stroke width, at which every
+          renderer draws every end marker, together with the marker outline width derived from it, and
+          shall reject a null theme with an argument-null error.
+        justification: |
+          The SVG renderer scales marker content by the stroke width of the referencing line (the
+          default marker units). The raster renderer applies the same factor, read from the same
+          place, so a PNG marker has exactly the size of the SVG marker instead of two thirds of it;
+          layout and label placement reserve space with the same value. A null theme must fail fast
+          at the public boundary.
+        tests:
+          - MarkerScale_IsThemeStrokeWidth_AndMarkerStrokeIsScaledStroke
+
       - id: Rendering-Abstractions-NotationMetrics-RenderedAlongLineLength
         title: >-
           The notation metrics shall report the rendered along-line length of an end-marker style as
-          its notation length scaled by the theme stroke width, and shall reject a null theme with an
+          its notation length scaled by the marker scale, and shall reject a null theme with an
           argument-null error.
         justification: |
-          The SVG renderer scales marker content by the stroke width whereas the raster renderers draw
-          at the notation size. A layout that must keep a decoration clear of the preceding corner
-          needs the conservative (SVG) length from one shared place, and a null theme must fail fast
-          at the public boundary.
+          Both renderers draw markers at the marker scale. A layout that must keep a decoration clear
+          of the preceding corner, and a renderer that clamps the final corner radius, need the drawn
+          length from one shared place, and a null theme must fail fast at the public boundary.
         tests:
           - RenderedAlongLineLength_ScalesNotationLengthByStrokeWidth
           - RenderedAlongLineLength_NullTheme_Throws

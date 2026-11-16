@@ -134,9 +134,10 @@ end marker plus the bend radius, or non-argument-null exception for invalid inpu
   filled arrow, hollow and filled diamond, circle, bar) and both dotted-triangle styles, and exactly 10
   for the circled plus.
 - **New end-marker clearance** (`Rendering-Layout-ConnectorRouter-NewEndMarkerClearance`):
-  `ConnectorRouter_NewEndMarker_ReservesCleanEndLeg` (theory over the two-dot hollow triangle, the
-  four-dot hollow triangle, and the circled plus) routes a connector needing a jog between two boxes and
-  confirms the final leg is at least the style's along-line length plus the corner radius.
+  `ConnectorRouter_NewEndMarker_ReservesCleanEndLeg` (theory over the open chevron, hollow triangle,
+  crossbar triangle, hollow diamond, the two-dot and four-dot hollow triangles, and the circled plus) routes a
+  connector needing a jog between two boxes and confirms the final leg is at least the style's RENDERED
+  along-line length (notation length times the shared marker scale) plus the corner radius.
 
 ### Additional Regression Coverage
 

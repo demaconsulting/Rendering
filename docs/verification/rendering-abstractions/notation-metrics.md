@@ -75,10 +75,13 @@ bar (4x12, half-along 2, half 6) constants match the historical markers.
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-CircleBarGeometry`.
 
-#### Crossbar is a derived fraction
+#### Crossbar sits behind the triangle base
 
-Test `Crossbar_IsDerivedFraction` asserts the crossbar fraction is 0.7 and the derived position is 7.0
-(0.7 x the marker length).
+Test `Crossbar_SitsBehindTriangleBase` asserts the crossbar constants (gap 3.5, extension 4.5, box
+length 14.5, tip anchor 13.5), that the bar's distance back from the tip exceeds the triangle base's by
+the gap (so it is on the line side of the base), that the bar and its half stroke lie inside the widened
+marker box, that its half length equals the base half width, that the tip anchor shifts by the same
+extension as the box grows, and that `TriangleFamilyBox` returns (14.5, 13.5) for the style.
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-Crossbar`.
 
@@ -86,9 +89,11 @@ Test `Crossbar_IsDerivedFraction` asserts the crossbar fraction is 0.7 and the d
 
 Test `AlongLineLength_MatchesMarkerBox` reads `AlongLineLength` for each `EndMarkerStyle` and asserts
 each reports its documented length (0 for None, 10 for the triangle family and circle, 14 for
-diamonds, 4 for bar). Test `AlongLineLength_NewStyles_MatchMarkerBoxesAndLegacyUnchanged` asserts the
-three appended styles report `TwoDotsMarkerLength` (14), `FourDotsMarkerLength` (17.5), and
-`CircledPlusMarkerBox` (12), and that every legacy style still reports its historical value.
+diamonds, 4 for bar, 14.5 for the crossbar triangle). Test
+`AlongLineLength_NewStyles_MatchMarkerBoxesAndLegacyUnchanged` asserts the
+three appended styles report `TwoDotsMarkerLength` (15), `FourDotsMarkerLength` (19), and
+`CircledPlusMarkerBox` (12), and that every other legacy style still reports its historical value (the
+crossbar triangle reports `CrossbarMarkerLength`).
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-AlongLineLength`.
 
@@ -160,10 +165,18 @@ center plus the radius and lies within the box, and the plus-arm half length equ
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-CircledPlusMarker`.
 
-#### Rendered along-line length scales by stroke width
+#### Marker scale is the theme stroke width
+
+Test `MarkerScale_IsThemeStrokeWidth_AndMarkerStrokeIsScaledStroke` asserts `MarkerScale` returns the theme
+stroke width (2.0 for a custom theme, 1.5 for Light), that `MarkerStrokeWidth` is the stroke width times the
+scale (4.0, 2.25), and that both reject a `null` theme with `ArgumentNullException`.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-MarkerScale`.
+
+#### Rendered along-line length scales by the marker scale
 
 Test `RenderedAlongLineLength_ScalesNotationLengthByStrokeWidth` asserts the result is
-`AlongLineLength` x the Light theme's `StrokeWidth` for `OpenChevron` and `CircledPlus`, and zero for
+`AlongLineLength` x the Light theme's marker scale for `OpenChevron` and `CircledPlus`, and zero for
 `None`. Test `RenderedAlongLineLength_NullTheme_Throws` asserts a `null` theme raises
 `ArgumentNullException`.
 
@@ -211,7 +224,7 @@ no vertices.
   DiamondVertices_ReproduceSvgBoxPoints
 - **`Rendering-Abstractions-NotationMetrics-DiamondFarPointOnEndpoint`**: DiamondVertices_FarPoint_LandsOnEndpoint
 - **`Rendering-Abstractions-NotationMetrics-CircleBarGeometry`**: CircleAndBar_HaveCanonicalValues
-- **`Rendering-Abstractions-NotationMetrics-Crossbar`**: Crossbar_IsDerivedFraction
+- **`Rendering-Abstractions-NotationMetrics-Crossbar`**: Crossbar_SitsBehindTriangleBase
 - **`Rendering-Abstractions-NotationMetrics-AlongLineLength`**: AlongLineLength_MatchesMarkerBox,
   AlongLineLength_NewStyles_MatchMarkerBoxesAndLegacyUnchanged
 - **`Rendering-Abstractions-NotationMetrics-PortSquare`**: Port_SizeIsTwiceHalfSize
@@ -226,6 +239,8 @@ no vertices.
   DotCenters_NonDottedStyles_AreEmpty, DotCenters_StayInsideMarkerBox,
   TriangleFamilyBox_DottedVariants_KeepTriangleTipAnchored
 - **`Rendering-Abstractions-NotationMetrics-CircledPlusMarker`**: CircledPlus_HasCanonicalValues
+- **`Rendering-Abstractions-NotationMetrics-MarkerScale`**:
+  MarkerScale_IsThemeStrokeWidth_AndMarkerStrokeIsScaledStroke
 - **`Rendering-Abstractions-NotationMetrics-RenderedAlongLineLength`**:
   RenderedAlongLineLength_ScalesNotationLengthByStrokeWidth, RenderedAlongLineLength_NullTheme_Throws
 - **`Rendering-Abstractions-NotationMetrics-AcrossHalfWidth`**:

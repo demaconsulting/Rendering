@@ -487,7 +487,7 @@ selects one of these glyphs:
 | `EndMarkerStyle` | Glyph | Typical SysML v2 meaning |
 | --- | --- | --- |
 | `HollowTriangle` | Hollow closed triangle | Specialization, subsetting |
-| `HollowTriangleCrossbar` | Hollow triangle with a crossbar | Redefinition |
+| `HollowTriangleCrossbar` | Hollow triangle followed by a bar behind its base | Redefinition |
 | `HollowTriangleTwoDots` | Hollow triangle plus two dots behind its base | Feature typing |
 | `HollowTriangleFourDots` | Hollow triangle plus a 2x2 grid of dots | Reference subsetting |
 | `CircledPlus` | Circle containing a plus sign | Owned membership |
@@ -498,8 +498,10 @@ selects one of these glyphs:
 
 The meanings are conventions of the consuming notation; the renderers draw only the glyph. The
 dotted and circled glyphs were added after the original set, so the older markers keep their
-ordinal values and their SVG definitions are written unchanged; the new definitions are written
-only when a line uses them. An SVG marker at the *start* of a line (`SourceEnd`) now uses a mirrored
+ordinal values; the new SVG definitions are written only when a line uses them. The redefinition
+glyph now follows the SysML v2 notation, with the bar on the line side of the triangle base and a
+small gap between them (it used to sit against the triangle apex), so its marker is longer than a
+plain triangle's. An SVG marker at the *start* of a line (`SourceEnd`) now uses a mirrored
 definition so that the glyph points outward from the line start, matching `TargetEnd`; earlier
 versions drew a source-end glyph pointing into the line, which was a defect and is corrected.
 
@@ -523,10 +525,12 @@ Other primitives follow the same pattern of optional, default-preserving members
 | `LayoutBand` | `OutlineStyle` | `Dashed` or `Dotted` swim-lane outline instead of solid |
 
 Size a lifeline header that carries a keyword with `BoxMetrics.LifelineHeaderHeight(theme,
-hasKeyword: true)`, which adds one text line. The SVG renderer scales end markers by the stroke
-width, whereas the raster renderer draws them at the notation size; use
-`NotationMetrics.RenderedAlongLineLength` when you need the length an SVG marker actually
-occupies.
+hasKeyword: true)`, which adds one text line. Both renderers draw every end marker at the same
+size: the notation size times the theme stroke width (`NotationMetrics.MarkerScale`, 1.5 for the
+built-in light and dark themes), so a PNG marker is exactly as large as its SVG counterpart. Use
+`NotationMetrics.RenderedAlongLineLength` when you need the length a marker actually occupies, for
+example to reserve a straight final approach before it. Raster output made with an earlier version
+drew markers at two thirds of this size, so rasterized diagrams with arrowheads look slightly different.
 
 ## Packing boxes into a container
 

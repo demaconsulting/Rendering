@@ -113,13 +113,22 @@ sections:
 
       - id: Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration
         title: >-
-          When avoiding obstacle boxes, the connector-label placer shall keep a label that it slides
-          along a segment clear of the footprint of the end decoration at the ends of the line.
+          The connector-label placer shall keep a label clear of the footprint of the end decorations
+          of its own line, sized by the marker scale the caller supplies (the theme stroke width), for
+          its midpoint and for every slide; and when the run is too short to clear both, it shall keep
+          the label on its own line instead of nudging it off.
         justification: |
-          Sliding a label off a blocking box must not move it onto an arrowhead or other end
-          decoration, which would hide the relationship kind the decoration conveys.
+          A label must not hide an arrowhead or other end decoration, which conveys the relationship
+          kind, whether it was moved off a blocking box or simply sits at the midpoint of a short run.
+          The footprint is the drawn marker size, which both renderers derive from the theme stroke
+          width, so the clearance tracks it. A label moved off its own line reads as belonging to a
+          neighboring connector, so it is better to overlap than to nudge.
         tests:
           - PlaceWithObstacles_SlideAvoidsEndMarkerZone
+          - PlaceWithObstacles_SlideAvoidsEndMarkerZone_UsesSuppliedMarkerScale
+          - Place_LabelOnShortRun_StaysClearOfEndMarkerFootprint
+          - Place_LabelClearOfEndMarker_KeepsMidpoint
+          - Place_RunTooShortForLabelAndMarker_KeepsLabelOnItsLine
 
       - id: Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments
         title: >-

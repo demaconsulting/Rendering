@@ -86,8 +86,20 @@ formats agree. Each rule below is the raster counterpart of the SVG rule of the 
   body therefore extends back along the line and lies on the line side of the start point. No separate
   mirrored variant is needed; the SVG renderer reaches the same placement with its mirrored
   `line-start-…` marker definitions.
-- **Marker units** — the PNG renderer draws markers at their notation size, while SVG markers scale by the
-  stroke width (`markerUnits="strokeWidth"`). This pre-existing difference is documented, not unified.
+- **Marker scale** — the PNG renderer draws every marker at the SVG marker's size: the marker geometry is
+  scaled by `NotationMetrics.MarkerScale(theme)` (the theme stroke width, which SVG applies through the
+  default `markerUnits="strokeWidth"`) times the render scale, and outlines are drawn
+  `NotationMetrics.MarkerStrokeWidth(theme)` wide, as SVG strokes the marker content in marker units. The
+  filled arrow and filled diamond are also outlined in their own color, as in SVG. Polygonal markers use a
+  bevel join: an SVG marker is clipped to its box, which blunts a sharp apex lying on the box edge, and a
+  mitered apex would instead poke through the target box border. The final-corner clamp
+  (`NeedsEndCornerClamp`, `BuildClampedLinePath`) reserves `NotationMetrics.RenderedAlongLineLength`, and
+  the connector-label placer receives `MarkerScale(theme)`, so layout, labels and both formats agree. A
+  parity test asserts, for every style at both ends, that the pixel footprint of the PNG marker equals the
+  SVG marker geometry converted to pixels.
+- **Redefinition crossbar** — `HollowTriangleCrossbar` draws the hollow triangle, then a bar at
+  `NotationMetrics.CrossbarAlong` back from the endpoint spanning `±CrossbarHalfLength` across the line:
+  behind the triangle base with a clear gap (SysML v2.0 section 8.2.3.6), like the SVG marker.
 - **Dashed and dotted outlines** — `DashArrayFor` maps a `LineStyle` to a dash array scaled by the render
   scale: `6 3` for dashed and `2 2` for dotted; solid has no dash array. A box takes its style from
   `box.Appearance.OutlineStyle`, a band from `band.OutlineStyle`, and a lifeline header from

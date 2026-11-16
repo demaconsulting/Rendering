@@ -124,7 +124,8 @@ Writes the SVG `<defs>` block containing the named line-end marker elements. The
 end markers — `line-end-open-chevron`, `line-end-hollow-triangle`, `line-end-filled-arrow`,
 `line-end-hollow-triangle-crossbar`, `line-end-hollow-diamond`, `line-end-filled-diamond`,
 `line-end-circle`, and `line-end-bar` — are always written, in that fixed order, so a document that
-uses none of the newer markers is byte-identical to earlier output. After them come, in a stable order
+uses none of the newer markers carries exactly these definitions (the crossbar definition has the
+geometry of the current redefinition notation, see below). After them come, in a stable order
 (end variants before start variants, then by style), only the on-demand definitions that a line in the
 tree uses: the three newer end markers `line-end-hollow-triangle-two-dots`,
 `line-end-hollow-triangle-four-dots`, and `line-end-circled-plus`, and the mirrored `line-start-…`
@@ -149,6 +150,12 @@ The newer glyphs are:
   triangle lands exactly where a plain hollow triangle does) followed by filled dots of radius
   `DotRadius` at the centers returned by `NotationMetrics.DotCenters`: two dots on the line axis, or a
   two-by-two grid of four dots. Each dot is a filled `<circle>` with no stroke.
+- **Redefinition crossbar** — `line-end-hollow-triangle-crossbar` draws the hollow triangle (its box and tip
+  anchor from `NotationMetrics.TriangleFamilyBox`: 14.5 long, anchor 13.5, so the triangle lands exactly
+  where a plain hollow triangle does) followed by a `<line>` bar at box x = `CrossbarExtension` -
+  `CrossbarBaseGap` (1.0), spanning the full box height (the base height). The bar is therefore on the
+  line side of the triangle base with a clear gap, as SysML v2.0 section 8.2.3.6 draws redefinition; the
+  earlier markup put the bar at 0.7 of the marker length, against the apex.
 - **Circled plus** — `line-end-circled-plus` draws a `<circle>` of radius `CircledPlusRadius` filled with
   the theme background and stroked, crossed by two `<line>` arms of half-length
   `CircledPlusArmHalfLength`, in a `CircledPlusMarkerBox` square with its anchor at `CircledPlusRefX`.
@@ -167,13 +174,20 @@ line end, so the source-end marker sits on the line side of the start point. Tar
 (`marker-end`) are unchanged and keep using the always-defined `line-end-…` markers (or the on-demand
 newer ones).
 
-#### Marker units: SVG versus PNG
+#### Marker scale: one size in SVG and PNG
 
 SVG markers use the default `markerUnits="strokeWidth"`, so a marker's box is scaled by the line's stroke
 width and its rendered along-line size is `NotationMetrics.AlongLineLength × theme.StrokeWidth`
-(`NotationMetrics.RenderedAlongLineLength`). The PNG renderer draws markers at their notation size and
-does not scale them by the stroke width. This difference is pre-existing and is documented rather than
-unified; the two formats coincide only for a theme whose stroke width is one logical pixel.
+(`NotationMetrics.RenderedAlongLineLength`); the marker's own outline (written as `theme.StrokeWidth` in
+marker units) is scaled the same way. This scale, `NotationMetrics.MarkerScale(Theme)`, is the one size at
+which both renderers draw every marker: the PNG renderer applies the same scale and the same outline width
+(`NotationMetrics.MarkerStrokeWidth(Theme)`), so a PNG marker has the size and geometry of the SVG marker
+(the SVG renderer is the reference; a parity test compares the pixel footprint of every PNG marker with the
+SVG marker geometry converted to pixels). Both renderers also use `RenderedAlongLineLength` to clamp the
+final corner radius, so a rounded bend never begins inside a marker, and pass `MarkerScale` to
+`ConnectorLabelPlacer` so a label keeps clear of the marker as it is drawn. An SVG marker is clipped to its
+box, which blunts a sharp apex at the box edge; the PNG renderer reproduces that blunt tip with a bevel join
+on polygonal markers.
 
 **`RenderNode(StringBuilder sb, LayoutNode node, Theme theme, double scale)`**
 

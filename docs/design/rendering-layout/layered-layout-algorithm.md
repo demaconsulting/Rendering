@@ -175,8 +175,9 @@ starts from `LayeredLayoutMetrics.ConnectorClearance` (10 px) and, for each edge
 the running value and `NotationMetrics.RenderedAlongLineLength(edge.TargetEnd, Themes.Light)` plus
 `Themes.Light.LineCornerRadius` plus `Themes.Light.CleanLegMargin`. That is the same formula the
 connector router uses for a forward edge's required end leg, applied to the *rendered* marker length
-(the along-line length times the theme stroke width, because the SVG markers are sized in stroke-width
-units). For an `OpenChevron` the result is 20 px. A graph in which every edge has `TargetEnd` equal to
+(the along-line length times the theme stroke width, the marker scale at which both the SVG and the PNG
+renderer draw every marker). For an `OpenChevron` the result is 20 px. A graph in which every edge has `TargetEnd`
+equal to
 `EndMarkerStyle.None` keeps exactly the connector clearance, so its output is byte-identical to
 earlier releases. The algorithm passes the value to `InterconnectionLayoutEngine.Place`, which sets
 `LayeredGraph.BackEdgeEntryApproach`.

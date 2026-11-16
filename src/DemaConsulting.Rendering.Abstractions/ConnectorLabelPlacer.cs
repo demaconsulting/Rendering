@@ -51,13 +51,6 @@ public static class ConnectorLabelPlacer
     /// <summary>Label box height as a multiple of the font size (cap height plus padding).</summary>
     private const double HeightFactor = 1.3;
 
-    /// <summary>
-    /// Factor applied to an end decoration's notation along-line length to approximate its drawn
-    /// length: the SVG renderer scales markers by the stroke width (1.5 for the built-in light and dark
-    /// themes), the conservative of the two renderers.
-    /// </summary>
-    private const double EndMarkerScale = 1.5;
-
     /// <summary>Extra clearance, in logical pixels, added around each label box when testing overlap.</summary>
     private const double Gap = 2.0;
 
@@ -102,7 +95,36 @@ public static class ConnectorLabelPlacer
     public static IReadOnlyDictionary<LayoutLine, LabelPlacement> Place(
         IEnumerable<LayoutLine> lines,
         double fontSize,
-        IEnumerable<LayoutBox> obstacles)
+        IEnumerable<LayoutBox> obstacles) =>
+        Place(lines, fontSize, obstacles, NotationMetrics.MarkerScale(Themes.Light));
+
+    /// <summary>
+    /// Computes a label position for every line that has a <see cref="LayoutLine.MidpointLabel"/>,
+    /// keeping each label clear of the supplied obstacle boxes and of the end decorations it could
+    /// otherwise hide, sizing each decoration with the supplied marker scale.
+    /// </summary>
+    /// <remarks>
+    /// Behaves exactly like <see cref="Place(IEnumerable{LayoutLine}, double, IEnumerable{LayoutBox})"/>,
+    /// which uses the marker scale of the default light theme. Renderers pass
+    /// <see cref="NotationMetrics.MarkerScale(Theme)"/> of the theme they draw with, so the clearance
+    /// tracks the size both renderers actually draw each marker at.
+    /// </remarks>
+    /// <param name="lines">The lines to place labels for, in render order.</param>
+    /// <param name="fontSize">Body font size, in logical pixels, used to estimate label box sizes.</param>
+    /// <param name="obstacles">The boxes labels should avoid; an empty sequence disables avoidance.</param>
+    /// <param name="markerScale">
+    /// Pixels per notation unit of end-marker geometry (<see cref="NotationMetrics.MarkerScale(Theme)"/>).
+    /// </param>
+    /// <returns>
+    /// A dictionary mapping each labeled line to its chosen <see cref="LabelPlacement"/>. Lines without
+    /// a label are omitted.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="lines"/> or <paramref name="obstacles"/> is <see langword="null"/>.</exception>
+    public static IReadOnlyDictionary<LayoutLine, LabelPlacement> Place(
+        IEnumerable<LayoutLine> lines,
+        double fontSize,
+        IEnumerable<LayoutBox> obstacles,
+        double markerScale)
     {
         ArgumentNullException.ThrowIfNull(lines);
         ArgumentNullException.ThrowIfNull(obstacles);
@@ -121,18 +143,77 @@ public static class ConnectorLabelPlacer
             var halfWidth = (EstimateTextWidth(line.MidpointLabel, fontSize) / 2.0) + Gap;
             var halfHeight = (fontSize * HeightFactor / 2.0) + Gap;
 
+            // The line's own end decorations are kept clear too, so a label is never placed over an
+            // arrowhead (a short run's midpoint can fall inside the decoration's footprint).
             var position = ChoosePosition(
                 line.Waypoints,
                 halfWidth,
                 halfHeight,
                 placed,
                 blocking,
-                (NotationMetrics.AlongLineLength(line.SourceEnd) * EndMarkerScale, NotationMetrics.AlongLineLength(line.TargetEnd) * EndMarkerScale));
+                DecorationZones(line, markerScale),
+                (NotationMetrics.AlongLineLength(line.SourceEnd) * markerScale, NotationMetrics.AlongLineLength(line.TargetEnd) * markerScale));
             placed.Add(new Bounds(position.X - halfWidth, position.Y - halfHeight, position.X + halfWidth, position.Y + halfHeight));
             result[line] = new LabelPlacement(position.X, position.Y, halfWidth, halfHeight);
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Returns the footprint of each end decoration of a line as a leaf obstacle: the box spanned from
+    /// the line endpoint back along its first or last segment by the decoration's rendered along-line
+    /// length, widened across the line by the decoration's rendered half width.
+    /// </summary>
+    /// <param name="line">The line whose end decorations are measured.</param>
+    /// <param name="markerScale">Pixels per notation unit of end-marker geometry.</param>
+    /// <returns>The decoration footprints; empty when the line has no decoration.</returns>
+    private static List<Obstacle> DecorationZones(LayoutLine line, double markerScale)
+    {
+        var zones = new List<Obstacle>();
+        if (line.Waypoints.Count < 2)
+        {
+            return zones;
+        }
+
+        AddZone(zones, line.Waypoints[0], line.Waypoints[1], line.SourceEnd, markerScale);
+        var last = line.Waypoints.Count - 1;
+        AddZone(zones, line.Waypoints[last], line.Waypoints[last - 1], line.TargetEnd, markerScale);
+        return zones;
+    }
+
+    /// <summary>Adds the footprint of one end decoration, anchored at <paramref name="end"/>, to <paramref name="zones"/>.</summary>
+    /// <param name="zones">The list receiving the footprint.</param>
+    /// <param name="end">The line endpoint carrying the decoration.</param>
+    /// <param name="inward">The adjacent waypoint, which gives the direction back along the line.</param>
+    /// <param name="style">The decoration style; <see cref="EndMarkerStyle.None"/> adds nothing.</param>
+    /// <param name="markerScale">Pixels per notation unit of end-marker geometry.</param>
+    private static void AddZone(List<Obstacle> zones, Point2D end, Point2D inward, EndMarkerStyle style, double markerScale)
+    {
+        if (style == EndMarkerStyle.None)
+        {
+            return;
+        }
+
+        var dx = inward.X - end.X;
+        var dy = inward.Y - end.Y;
+        var length = Math.Sqrt((dx * dx) + (dy * dy));
+        var dirX = length > 1e-9 ? dx / length : 0.0;
+        var dirY = length > 1e-9 ? dy / length : 0.0;
+        var along = NotationMetrics.AlongLineLength(style) * markerScale;
+        var across = NotationMetrics.AcrossHalfWidth(style) * markerScale;
+
+        // Bounding box of the oriented footprint rectangle
+        var tipX = end.X + (dirX * along);
+        var tipY = end.Y + (dirY * along);
+        var perpX = Math.Abs(dirY) * across;
+        var perpY = Math.Abs(dirX) * across;
+        zones.Add(new Obstacle(
+            Math.Min(end.X, tipX) - perpX,
+            Math.Min(end.Y, tipY) - perpY,
+            Math.Max(end.X, tipX) + perpX,
+            Math.Max(end.Y, tipY) + perpY,
+            IsContainer: false));
     }
 
     /// <summary>Converts a layout box to an obstacle rectangle, classifying it as leaf or container.</summary>
@@ -185,6 +266,11 @@ public static class ConnectorLabelPlacer
     /// <param name="halfHeight">Half the label box height (including gap).</param>
     /// <param name="placed">Boxes of labels already placed.</param>
     /// <param name="obstacles">Boxes the label must stay clear of; empty disables avoidance.</param>
+    /// <param name="zones">
+    /// The footprints of the line's own end decorations. A midpoint or slide never lands in one, but
+    /// they never trigger a perpendicular nudge (a label moved off its line is worse than one that
+    /// cannot fully clear a decoration on a run too short for both).
+    /// </param>
     /// <param name="endClearances">
     /// The along-line space, in logical pixels, the line's source and target end decorations occupy at
     /// the first and last waypoint; an obstacle-avoiding slide never moves a label into it.
@@ -196,6 +282,7 @@ public static class ConnectorLabelPlacer
         double halfHeight,
         List<Bounds> placed,
         List<Obstacle> obstacles,
+        List<Obstacle> zones,
         (double Source, double Target) endClearances)
     {
         if (waypoints.Count == 1)
@@ -234,7 +321,15 @@ public static class ConnectorLabelPlacer
         // obstacle-free pass below would take whenever that midpoint is itself clear of every box.
         if (obstacles.Count > 0)
         {
-            var avoided = ChooseObstacleClearPosition(segments, halfWidth, halfHeight, placed, obstacles);
+            var avoided = ChooseObstacleClearPosition(segments, halfWidth, halfHeight, placed, obstacles, zones);
+            if (avoided is not null)
+            {
+                return avoided.Value;
+            }
+        }
+        else if (zones.Count > 0)
+        {
+            var avoided = ChooseZoneClearPosition(segments, halfWidth, halfHeight, placed, zones);
             if (avoided is not null)
             {
                 return avoided.Value;
@@ -287,15 +382,21 @@ public static class ConnectorLabelPlacer
     /// <param name="halfWidth">Half the label box width (including gap).</param>
     /// <param name="halfHeight">Half the label box height (including gap).</param>
     /// <param name="placed">Boxes of labels already placed.</param>
-    /// <param name="obstacles">Boxes the label must stay clear of.</param>
+    /// <param name="boxes">Boxes the label must stay clear of.</param>
+    /// <param name="zones">End-decoration footprints the midpoint and slides must stay clear of.</param>
     /// <returns>The clear position, or <see langword="null"/> when no candidate clears every obstacle.</returns>
     private static (double X, double Y)? ChooseObstacleClearPosition(
         List<(double Length, double X, double Y, double DirX, double DirY, double StartReserve, double EndReserve)> segments,
         double halfWidth,
         double halfHeight,
         List<Bounds> placed,
-        List<Obstacle> obstacles)
+        List<Obstacle> boxes,
+        List<Obstacle> zones)
     {
+        // Midpoints and slides must clear the boxes and the decoration footprints; the perpendicular
+        // nudges below only the boxes.
+        List<Obstacle> obstacles = zones.Count == 0 ? boxes : [.. boxes, .. zones];
+
         // Segment midpoints, longest first.
         foreach (var seg in segments)
         {
@@ -310,46 +411,157 @@ public static class ConnectorLabelPlacer
         // ends up hiding an arrowhead or running into the box the segment attaches to.
         foreach (var seg in segments)
         {
-            var labelExtent = (Math.Abs(seg.DirX) * halfWidth) + (Math.Abs(seg.DirY) * halfHeight);
-            var towardEnd = (seg.Length / 2.0) - labelExtent - seg.EndReserve;
-            var towardStart = (seg.Length / 2.0) - labelExtent - seg.StartReserve;
-            for (var k = 1; (k * halfHeight) <= Math.Max(towardEnd, towardStart); k++)
+            var slid = SlideAlongSegment(seg, halfWidth, halfHeight, placed, obstacles);
+            if (slid is not null)
             {
-                var offset = k * halfHeight;
-                if (offset <= towardEnd
-                    && !Collides(seg.X + (seg.DirX * offset), seg.Y + (seg.DirY * offset), halfWidth, halfHeight, placed, obstacles))
-                {
-                    return (seg.X + (seg.DirX * offset), seg.Y + (seg.DirY * offset));
-                }
-
-                if (offset <= towardStart
-                    && !Collides(seg.X - (seg.DirX * offset), seg.Y - (seg.DirY * offset), halfWidth, halfHeight, placed, obstacles))
-                {
-                    return (seg.X - (seg.DirX * offset), seg.Y - (seg.DirY * offset));
-                }
+                return slid;
             }
         }
 
-        // Perpendicular nudges of the longest segment.
+        // When only a decoration footprint blocked the midpoint (the label is clear of every box and
+        // label there), a perpendicular nudge would drop the label off its own line, so give up and let
+        // the caller keep the midpoint.
         var best = segments[0];
+        if (zones.Count > 0 && !Collides(best.X, best.Y, halfWidth, halfHeight, placed, boxes))
+        {
+            return null;
+        }
+
+        // Perpendicular nudges of the longest segment.
         var perpX = -best.DirY;
         var perpY = best.DirX;
         var step = (halfHeight * 2.0) + Gap;
         for (var k = 1; k <= 4; k++)
         {
             var offset = step * k;
-            if (!Collides(best.X + (perpX * offset), best.Y + (perpY * offset), halfWidth, halfHeight, placed, obstacles))
+            if (!Collides(best.X + (perpX * offset), best.Y + (perpY * offset), halfWidth, halfHeight, placed, boxes))
             {
                 return (best.X + (perpX * offset), best.Y + (perpY * offset));
             }
 
-            if (!Collides(best.X - (perpX * offset), best.Y - (perpY * offset), halfWidth, halfHeight, placed, obstacles))
+            if (!Collides(best.X - (perpX * offset), best.Y - (perpY * offset), halfWidth, halfHeight, placed, boxes))
             {
                 return (best.X - (perpX * offset), best.Y - (perpY * offset));
             }
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Slides a label along one segment, alternating either side of its midpoint in half-label steps
+    /// and then trying the exact position nearest the midpoint, and returns the first position that
+    /// clears every obstacle, or <see langword="null"/>. A slide keeps the whole label inside the
+    /// segment and clear of any end decoration at either end.
+    /// </summary>
+    /// <param name="seg">The segment, with its reserved start and end lengths.</param>
+    /// <param name="halfWidth">Half the label box width (including gap).</param>
+    /// <param name="halfHeight">Half the label box height (including gap).</param>
+    /// <param name="placed">Boxes of labels already placed.</param>
+    /// <param name="obstacles">The obstacles the position must clear.</param>
+    /// <returns>The clear position, or <see langword="null"/> when no slide clears every obstacle.</returns>
+    private static (double X, double Y)? SlideAlongSegment(
+        (double Length, double X, double Y, double DirX, double DirY, double StartReserve, double EndReserve) seg,
+        double halfWidth,
+        double halfHeight,
+        List<Bounds> placed,
+        List<Obstacle> obstacles)
+    {
+        var labelExtent = (Math.Abs(seg.DirX) * halfWidth) + (Math.Abs(seg.DirY) * halfHeight);
+        var towardEnd = (seg.Length / 2.0) - labelExtent - seg.EndReserve;
+        var towardStart = (seg.Length / 2.0) - labelExtent - seg.StartReserve;
+        for (var k = 1; (k * halfHeight) <= Math.Max(towardEnd, towardStart); k++)
+        {
+            var offset = k * halfHeight;
+            if (offset <= towardEnd
+                && !Collides(seg.X + (seg.DirX * offset), seg.Y + (seg.DirY * offset), halfWidth, halfHeight, placed, obstacles))
+            {
+                return (seg.X + (seg.DirX * offset), seg.Y + (seg.DirY * offset));
+            }
+
+            if (offset <= towardStart
+                && !Collides(seg.X - (seg.DirX * offset), seg.Y - (seg.DirY * offset), halfWidth, halfHeight, placed, obstacles))
+            {
+                return (seg.X - (seg.DirX * offset), seg.Y - (seg.DirY * offset));
+            }
+        }
+
+        // The half-label steps can all miss a narrow clear window (a short run just long enough for
+        // the label and the decoration), so also try the exact position nearest the midpoint that
+        // keeps the whole label clear of the reserved ends.
+        var exact = NearestFeasibleOffset(towardStart, towardEnd);
+        if (exact is not null
+            && !Collides(seg.X + (seg.DirX * exact.Value), seg.Y + (seg.DirY * exact.Value), halfWidth, halfHeight, placed, obstacles))
+        {
+            return (seg.X + (seg.DirX * exact.Value), seg.Y + (seg.DirY * exact.Value));
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The pass used when a line has end decorations but there are no obstacle boxes: it only moves a
+    /// label that would sit on its own line's decoration, and leaves label-versus-label collisions to
+    /// the original placement (so decorated lines keep exactly the positions they had unless a label
+    /// would cover an arrowhead).
+    /// </summary>
+    /// <param name="segments">Segments ordered by descending length.</param>
+    /// <param name="halfWidth">Half the label box width (including gap).</param>
+    /// <param name="halfHeight">Half the label box height (including gap).</param>
+    /// <param name="placed">Boxes of labels already placed.</param>
+    /// <param name="zones">The line's end-decoration footprints.</param>
+    /// <returns>The position, or <see langword="null"/> to fall back to the original placement.</returns>
+    private static (double X, double Y)? ChooseZoneClearPosition(
+        List<(double Length, double X, double Y, double DirX, double DirY, double StartReserve, double EndReserve)> segments,
+        double halfWidth,
+        double halfHeight,
+        List<Bounds> placed,
+        List<Obstacle> zones)
+    {
+        foreach (var seg in segments)
+        {
+            // A midpoint that collides with a placed label is the original placement's business
+            if (Collides(seg.X, seg.Y, halfWidth, halfHeight, placed))
+            {
+                continue;
+            }
+
+            if (!Collides(seg.X, seg.Y, halfWidth, halfHeight, placed, zones))
+            {
+                return (seg.X, seg.Y);
+            }
+
+            var slid = SlideAlongSegment(seg, halfWidth, halfHeight, placed, zones);
+            if (slid is not null)
+            {
+                return slid;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Returns the slide offset nearest the segment midpoint (along the segment direction) that keeps
+    /// the whole label inside the room left by the reserved ends, or <see langword="null"/> when the
+    /// midpoint is already feasible (nothing to slide) or no offset is feasible.
+    /// </summary>
+    /// <param name="towardStart">The largest feasible slide toward the segment start (negative when none).</param>
+    /// <param name="towardEnd">The largest feasible slide toward the segment end (negative when none).</param>
+    /// <returns>The signed offset along the segment direction, or <see langword="null"/>.</returns>
+    private static double? NearestFeasibleOffset(double towardStart, double towardEnd)
+    {
+        const double Epsilon = 1e-6;
+        var high = towardEnd - Epsilon;
+        var low = -(towardStart - Epsilon);
+        if (low > high)
+        {
+            return null;
+        }
+
+        // Clamp the midpoint (offset zero) into the feasible window
+        var offset = Math.Clamp(0.0, low, high);
+        return Math.Abs(offset) < Epsilon ? null : offset;
     }
 
     /// <summary>Tests whether a candidate label box overlaps any already-placed box.</summary>

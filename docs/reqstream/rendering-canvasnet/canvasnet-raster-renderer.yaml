@@ -48,10 +48,12 @@ sections:
       - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkers
         title: >-
           CanvasNetRasterRenderer shall draw connector end markers whose geometry derives from the
-          shared notation metrics, so raster markers match the SVG markers.
+          shared notation metrics and is drawn at the shared marker scale (the theme stroke width),
+          so raster markers have the geometry and the size of the SVG markers.
         justification: |
-          End markers express relationship direction and kind; sharing the notation metrics with the
-          SVG renderer keeps the two output formats visually identical.
+          End markers express relationship direction and kind; sharing the notation metrics and the
+          marker scale with the SVG renderer keeps the two output formats visually identical. Drawing
+          at the notation size would leave a PNG marker two thirds the size of the SVG marker.
         tests:
           - FilledArrow_AlongLength_MatchesNotationMetrics
           - FilledArrow_BaseWidth_MatchesNotationMetrics
@@ -189,6 +191,46 @@ sections:
           renderer keeps the two glyphs identical.
         tests:
           - PngCircledPlus_RingAndArmsHaveInkAndInteriorIsEmpty
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSvgParity
+        title: >-
+          CanvasNetRasterRenderer shall draw every end-marker style, at both ends of a line and for
+          any theme stroke width, with the same extents along and across the line as the SVG renderer's
+          marker, so a PNG and an SVG of one tree show markers of one size.
+        justification: |
+          The SVG renderer is the reference for marker size: its markers scale by the line stroke
+          width. A raster marker that drew at the notation size was two thirds of that, which made the
+          dots and the circled plus barely legible. Comparing the pixel footprint of each PNG marker
+          with the SVG marker geometry converted to pixels guards the parity for every style.
+        tests:
+          - EndMarkerParity_TargetEnd_PngFootprintMatchesSvgGeometry
+          - EndMarkerParity_SourceEnd_PngFootprintMatchesMirroredSvgGeometry
+          - EndMarkerParity_ThickerStrokeTheme_FootprintsStillMatch
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCrossbar
+        title: >-
+          CanvasNetRasterRenderer shall draw the redefinition marker as a hollow triangle followed, on
+          the line side of its base and separated from it by a clear gap, by a perpendicular bar
+          spanning the base height, at either end of a line.
+        justification: |
+          SysML v2.0 section 8.2.3.6 draws redefinition with the bar behind the triangle base, not
+          against its apex. Taking the bar position and length from NotationMetrics keeps the raster
+          glyph identical to the SVG glyph, with the triangle tip on the target box border.
+        tests:
+          - PngCrossbar_BarSitsBehindBaseWithGap
+          - PngCrossbar_AtSourceEnd_BarFollowsBaseAlongLine
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCornerClamp
+        title: >-
+          CanvasNetRasterRenderer shall clamp the radius of the rounded corner before a decorated line
+          end so that it leaves at least the end marker's rendered along-line length of straight
+          approach.
+        justification: |
+          A bend that begins inside the marker would collapse into a sharp corner under the
+          arrowhead. The clamp uses the length at which the marker is drawn (notation length times the
+          marker scale), the same length the SVG renderer and the layout reserve.
+        tests:
+          - PngLineCornerClamp_UsesRenderedMarkerLength
 
       - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSourceEnd
         title: >-

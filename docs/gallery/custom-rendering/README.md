@@ -43,15 +43,15 @@ lifelines. Each is an optional, backward-compatible property; the legacy appeara
 ![Nine labeled two-box edges, one per SysML relationship end marker](sysml-end-markers.svg)
 
 Every relationship end marker on a labeled two-box edge: specialization and subsetting (hollow triangle), feature typing
-(triangle with two dots), reference subsetting (triangle with a 2x2 grid of dots), redefinition (triangle with
-crossbar), composite and reference membership (filled and hollow diamond), owned membership (circled plus) and unowned
-membership (circle). Triangles are target ends and the membership glyphs source ends, proving both ends of a line
-decorate identically.
+(triangle with two dots), reference subsetting (triangle with a 2x2 grid of dots), redefinition (triangle followed by a
+bar behind its base), composite and reference membership (filled and hollow diamond), owned membership (circled plus)
+and unowned membership (circle). Triangles are target ends and the membership glyphs source ends, proving both ends of a
+line decorate identically.
 
 ![The same relationship end markers rendered through the raster path](sysml-end-markers.png)
 
-The same sheet through the CanvasNet raster renderer, which draws the markers at the notation size (the SVG renderer
-scales them by the stroke width).
+The same sheet through the CanvasNet raster renderer, which draws every marker at the same size as the SVG renderer (the
+notation size scaled by the theme stroke width).
 
 ![One sheet of every notation primitive next to its legacy counterpart](sysml-notation-primitives.svg)
 

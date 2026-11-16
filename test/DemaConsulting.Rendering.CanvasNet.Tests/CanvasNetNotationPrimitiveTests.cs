@@ -14,13 +14,17 @@ namespace DemaConsulting.Rendering.CanvasNet.Tests;
 ///     dotted-triangle and circled-plus end markers at both line ends, dashed outlines, name and
 ///     compartment-title text styles, folder name-in-tab, corner icons, thick-bar and crossed-circle
 ///     badges, dashed bands, rounded lifelines, and connector labels that avoid boxes. The raster renderer
-///     draws markers at the notation size, so geometry is asserted against <see cref="NotationMetrics"/>
-///     directly (the SVG renderer scales markers by the stroke width).
+///     draws markers at the same size as the SVG renderer (notation size times the theme stroke width,
+///     <see cref="NotationMetrics.MarkerScale(Theme)"/>), so geometry is asserted against
+///     <see cref="NotationMetrics"/> scaled by <c>K</c>.
 /// </summary>
 public sealed class CanvasNetNotationPrimitiveTests
 {
     private static Surface Render(params LayoutNode[] nodes) =>
         PngRenderer.RenderToSurface(new LayoutTree(300, 200, nodes), new RenderOptions(Themes.Light));
+
+    /// <summary>Notation-to-pixel marker scale of the default (light) theme at scale 1.</summary>
+    private static readonly double K = NotationMetrics.MarkerScale(Themes.Light);
 
     private static bool IsInk(Rgba32 color) => color.A > 32 && (color.R + color.G + color.B) < 600;
 
@@ -119,8 +123,8 @@ public sealed class CanvasNetNotationPrimitiveTests
 
         foreach (var dot in NotationMetrics.DotCenters(EndMarkerStyle.HollowTriangleTwoDots))
         {
-            Assert.True(InkAt(dotted, 150 - dot.Along, 50 + dot.Across), $"Expected ink at dot ({dot.Along}, {dot.Across}).");
-            Assert.False(InkAt(plain, 150 - dot.Along, 50 + dot.Across), "The plain triangle must have no ink at the dot centre.");
+            Assert.True(InkAt(dotted, 150 - (dot.Along * K), 50 + (dot.Across * K)), $"Expected ink at dot ({dot.Along}, {dot.Across}).");
+            Assert.False(InkAt(plain, 150 - (dot.Along * K), 50 + (dot.Across * K)), "The plain triangle must have no ink at the dot centre.");
         }
 
         Assert.Equal(RightmostInkColumn(plain), RightmostInkColumn(dotted));
@@ -138,7 +142,7 @@ public sealed class CanvasNetNotationPrimitiveTests
         Assert.Equal(4, dots.Count);
         foreach (var dot in dots)
         {
-            Assert.True(InkAt(surface, 150 - dot.Along, 50 + dot.Across), $"Expected ink at dot ({dot.Along}, {dot.Across}).");
+            Assert.True(InkAt(surface, 150 - (dot.Along * K), 50 + (dot.Across * K)), $"Expected ink at dot ({dot.Along}, {dot.Across}).");
         }
     }
 
@@ -151,11 +155,11 @@ public sealed class CanvasNetNotationPrimitiveTests
     {
         using var surface = Render(Horizontal(EndMarkerStyle.None, EndMarkerStyle.CircledPlus));
 
-        var r = NotationMetrics.CircledPlusRadius;
+        var r = NotationMetrics.CircledPlusRadius * K;
         var centreX = 150 - r;
         Assert.True(InkNear(surface, centreX, 50 - r), "Expected ink at the top of the ring.");
         Assert.True(InkNear(surface, centreX, 50 + r), "Expected ink at the bottom of the ring.");
-        Assert.True(InkNear(surface, centreX, 50 + 2), "Expected ink on the vertical plus arm.");
+        Assert.True(InkNear(surface, centreX, 50 + 3), "Expected ink on the vertical plus arm.");
         Assert.True(InkNear(surface, 150 - 1, 50), "Expected ink where the circle's far edge meets the endpoint.");
         Assert.False(InkAt(surface, centreX - 2, 50 - 2), "The circle interior off the arms must be background.");
         Assert.False(InkAt(surface, centreX + 2, 50 + 2), "The circle interior off the arms must be background.");
@@ -170,7 +174,7 @@ public sealed class CanvasNetNotationPrimitiveTests
     {
         using var surface = Render(Horizontal(EndMarkerStyle.CircledPlus, EndMarkerStyle.None, 50, 190));
 
-        var r = NotationMetrics.CircledPlusRadius;
+        var r = NotationMetrics.CircledPlusRadius * K;
         Assert.True(InkNear(surface, 50 + r, 50 - r), "Expected ink at the top of the ring.");
         Assert.True(InkNear(surface, 50 + r, 50 + r), "Expected ink at the bottom of the ring.");
         Assert.Equal(0, CountInk(surface, 0, 30, 47, 70));
@@ -187,8 +191,81 @@ public sealed class CanvasNetNotationPrimitiveTests
 
         foreach (var dot in NotationMetrics.DotCenters(EndMarkerStyle.HollowTriangleTwoDots))
         {
-            Assert.True(InkAt(surface, 50 + dot.Along, 50 + dot.Across), $"Expected ink at mirrored dot ({dot.Along}, {dot.Across}).");
+            Assert.True(InkAt(surface, 50 + (dot.Along * K), 50 + (dot.Across * K)), $"Expected ink at mirrored dot ({dot.Along}, {dot.Across}).");
         }
+    }
+
+    /// <summary>
+    ///     The redefinition crossbar is drawn BEHIND the triangle base: there is a clear gap between the
+    ///     base and the bar, the bar spans the base height, and nothing sits at the bar position of the
+    ///     old geometry (against the apex).
+    /// </summary>
+    [Fact]
+    public void PngCrossbar_BarSitsBehindBaseWithGap()
+    {
+        using var surface = Render(Horizontal(EndMarkerStyle.None, EndMarkerStyle.HollowTriangleCrossbar));
+
+        var baseX = 150 - (NotationMetrics.EndMarkerRefX * K);
+        var barX = 150 - (NotationMetrics.CrossbarAlong * K);
+        var halfSpan = NotationMetrics.CrossbarHalfLength * K;
+
+        // The bar has ink above and below the line, at its full half span.
+        Assert.True(InkNear(surface, barX, 50 - halfSpan + 1), "Expected ink at the top of the bar.");
+        Assert.True(InkNear(surface, barX, 50 + halfSpan - 1), "Expected ink at the bottom of the bar.");
+
+        // Between the base and the bar (above the line) there is a clear gap.
+        var gapX = (baseX + barX) / 2.0;
+        Assert.False(InkAt(surface, gapX, 50 - 4), "Expected a clear gap between the triangle base and the bar.");
+        Assert.False(InkAt(surface, gapX, 50 + 4), "Expected a clear gap between the triangle base and the bar.");
+
+        // Nothing is drawn behind the bar except the line itself.
+        Assert.Equal(0, CountInk(surface, 0, 40, (int)Math.Floor(barX - (NotationMetrics.CrossbarStrokeRoom * K) - 2), 46));
+    }
+
+    /// <summary>
+    ///     A crossbar marker at the source end sits on the line side of the start point with the bar
+    ///     following the triangle base along the line.
+    /// </summary>
+    [Fact]
+    public void PngCrossbar_AtSourceEnd_BarFollowsBaseAlongLine()
+    {
+        using var surface = Render(Horizontal(EndMarkerStyle.HollowTriangleCrossbar, EndMarkerStyle.None, 50, 190));
+
+        var barX = 50 + (NotationMetrics.CrossbarAlong * K);
+        var halfSpan = NotationMetrics.CrossbarHalfLength * K;
+        Assert.True(InkNear(surface, barX, 50 - halfSpan + 1), "Expected ink at the top of the bar.");
+        Assert.True(InkNear(surface, barX, 50 + halfSpan - 1), "Expected ink at the bottom of the bar.");
+
+        // Nothing is drawn beyond the start point except the triangle apex and its stroke miter.
+        Assert.Equal(0, CountInk(surface, 0, 30, 40, 70));
+    }
+
+    /// <summary>
+    ///     A rounded corner next to a target end marker is clamped to the marker's rendered along-line
+    ///     length: with a large corner radius and a final leg only two pixels longer than the rendered
+    ///     chevron, the bend stays nearly sharp at the original corner, whereas the same path without
+    ///     markers is rounded with the full available radius and leaves no ink at the corner.
+    /// </summary>
+    [Fact]
+    public void PngLineCornerClamp_UsesRenderedMarkerLength()
+    {
+        var theme = Themes.Light with { LineCornerRadius = 12.0 };
+        var rendered = NotationMetrics.RenderedAlongLineLength(EndMarkerStyle.OpenChevron, theme);
+        var leg = rendered + 2.0;
+        Point2D[] waypoints = [new(10, 10), new(100, 10), new(100, 10 + leg)];
+
+        using var clamped = PngRenderer.RenderToSurface(
+            new LayoutTree(300, 200, [new LayoutLine(waypoints, EndMarkerStyle.None, EndMarkerStyle.OpenChevron, LineStyle.Solid, null)]),
+            new RenderOptions(theme));
+        using var unmarked = PngRenderer.RenderToSurface(
+            new LayoutTree(300, 200, [new LayoutLine(waypoints, EndMarkerStyle.None, EndMarkerStyle.None, LineStyle.Solid, null)]),
+            new RenderOptions(theme));
+
+        // Clamped radius is 2: the bend hugs the original corner.
+        Assert.True(InkNear(clamped, 100, 10), "Expected ink at the original corner when the radius is clamped.");
+
+        // Control: without a marker the radius is leg / 2 = 8.5, so the corner is cut well away from the bend.
+        Assert.False(InkNear(unmarked, 100, 10), "Expected no ink at the original corner when the full radius applies.");
     }
 
     private static int RightmostInkColumn(Surface surface)

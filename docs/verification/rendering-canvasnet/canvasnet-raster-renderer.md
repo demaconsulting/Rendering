@@ -88,8 +88,10 @@ pixels equal the theme depth-palette color selected by nesting depth.
 Tests `FilledArrow_AlongLength_MatchesNotationMetrics`,
 `FilledArrow_BaseWidth_MatchesNotationMetrics`, `OpenChevron_HasFewerInkPixelsThanClosedTriangle`,
 and `PngRenderer_Render_DrawArrowhead_OpenWithCrossbar_ProducesNonEmptyOutput` assert that
-rendered end-marker geometry derives from the shared notation metrics and that distinct marker
-styles produce distinguishable output.
+rendered end-marker geometry derives from the shared notation metrics, drawn at the shared marker scale
+(`NotationMetrics.MarkerScale`, 1.5 at the default theme: the filled arrow measures about 15 px along and
+10.5 px across), and that distinct marker styles produce distinguishable output. The dotted-triangle and
+circled-plus tests below place their expected ink at the notation positions scaled by the same factor.
 
 **Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkers`.
 
@@ -166,6 +168,42 @@ that the SVG renderer reaches with its mirrored start variants.
 **Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerDottedTriangles`,
 `Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCircledPlus`,
 `Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSourceEnd`.
+
+#### End markers have the SVG marker's size
+
+Theory `EndMarkerParity_TargetEnd_PngFootprintMatchesSvgGeometry` and theory
+`EndMarkerParity_SourceEnd_PngFootprintMatchesMirroredSvgGeometry` (in the gallery test project, the only one
+that references both renderers) render, for every `EndMarkerStyle` other than `None`, a horizontal line with the
+marker at its target end and at its source end through both renderers. The SVG marker definition is read back
+from the rendered document and its geometry (points, circles and bars, including half the marker stroke,
+clipped to the marker box as a browser does) is converted to pixels with the line stroke width; the PNG
+footprint is the bounding box of the pixels that differ from the same line without a marker. The test asserts
+that the along-line and across-line extents agree within 1.75 px (anti-aliasing plus the clip). Fact
+`EndMarkerParity_ThickerStrokeTheme_FootprintsStillMatch` repeats this for the two-dots marker under a theme
+with stroke width 2.5, so a renderer that ignored the theme stroke width would fail. At the previous raster
+scale (the notation size) a 10 px marker measured 10 px against 15 px in SVG and the test fails by 5 px.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSvgParity`.
+
+#### Rounded corner clamps to the rendered marker length
+
+`PngLineCornerClamp_UsesRenderedMarkerLength` renders a three-point line whose final leg is two pixels longer than
+the rendered along-line length of an open-chevron target marker, under a theme with corner radius 12. The corner
+radius is clamped to 2, so the test asserts ink at the original bend. The same waypoints without markers are
+rounded with the full available radius (half the leg), and the test asserts no ink at the bend, which shows that
+the clamp rather than the geometry produces the sharper corner. Disabling the clamp makes the test fail.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCornerClamp`.
+
+#### Redefinition crossbar sits behind the triangle base
+
+`PngCrossbar_BarSitsBehindBaseWithGap` renders the redefinition marker at a target end and asserts ink at the
+top and bottom of the bar at `NotationMetrics.CrossbarAlong` back from the endpoint (scaled by the marker scale),
+a clear gap between the triangle base and the bar above and below the line, and no ink behind the bar except
+the line itself. `PngCrossbar_AtSourceEnd_BarFollowsBaseAlongLine` asserts the same placement mirrored at a source
+end, with nothing beyond the start point but the triangle apex.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCrossbar`.
 
 #### Box and band outlines and box text styles
 
@@ -266,6 +304,14 @@ clear of the box.
   PngFourDots_InkAtAllFourDotCenters
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCircledPlus`**:
   PngCircledPlus_RingAndArmsHaveInkAndInteriorIsEmpty
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSvgParity`**:
+  EndMarkerParity_TargetEnd_PngFootprintMatchesSvgGeometry,
+  EndMarkerParity_SourceEnd_PngFootprintMatchesMirroredSvgGeometry,
+  EndMarkerParity_ThickerStrokeTheme_FootprintsStillMatch
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCrossbar`**:
+  PngCrossbar_BarSitsBehindBaseWithGap, PngCrossbar_AtSourceEnd_BarFollowsBaseAlongLine
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCornerClamp`**:
+  PngLineCornerClamp_UsesRenderedMarkerLength
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSourceEnd`**:
   PngCircledPlus_AtSourceEnd_SitsOnLineSideOfStartPoint,
   PngTwoDots_AtSourceEnd_DotsFollowTriangleBaseAlongLine

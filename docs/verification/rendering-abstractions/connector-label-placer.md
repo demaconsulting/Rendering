@@ -111,11 +111,19 @@ identical results.
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-AvoidBoxes`.
 
-#### Sliding keeps clear of the end decoration
+#### Labels keep clear of the end decoration
 
 Test `PlaceWithObstacles_SlideAvoidsEndMarkerZone` places a label on a vertical line that ends in an
 `OpenChevron`, blocks the midpoint with a leaf box, and asserts the chosen rectangle overlaps neither the
-box nor the footprint of the end marker (1.5 x the marker's along-line length back from the endpoint).
+box nor the footprint of the end marker (its rendered along-line length back from the endpoint). Test
+`PlaceWithObstacles_SlideAvoidsEndMarkerZone_UsesSuppliedMarkerScale` repeats this with a thicker-stroke
+theme, passing its marker scale, and asserts the footprint grows with the scale (a hard-coded 1.5 would
+let the label sit inside it). Test `Place_LabelOnShortRun_StaysClearOfEndMarkerFootprint` (target and source
+end) places a long label on an 80 px run ending in a filled arrow, with no obstacle boxes, and asserts the
+label no longer sits on the arrowhead. Test `Place_LabelClearOfEndMarker_KeepsMidpoint` asserts a
+label that already clears the decoration keeps the exact midpoint. Test
+`Place_RunTooShortForLabelAndMarker_KeepsLabelOnItsLine` asserts that on a 40 px run too short for both, the
+label keeps its midpoint on the line instead of being nudged to another row.
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration`.
 
@@ -145,6 +153,8 @@ a `null` line sequence and asserts each raises `ArgumentNullException`.
   PlaceWithObstacles_EverythingBlocked_FallsBackToObstacleFreePlacement,
   PlaceWithObstacles_SameInput_IsDeterministic
 - **`Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration`**:
-  PlaceWithObstacles_SlideAvoidsEndMarkerZone
+  PlaceWithObstacles_SlideAvoidsEndMarkerZone, PlaceWithObstacles_SlideAvoidsEndMarkerZone_UsesSuppliedMarkerScale,
+  Place_LabelOnShortRun_StaysClearOfEndMarkerFootprint, Place_LabelClearOfEndMarker_KeepsMidpoint,
+  Place_RunTooShortForLabelAndMarker_KeepsLabelOnItsLine
 - **`Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments`**:
   PlaceWithObstacles_NullArguments_Throw

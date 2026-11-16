@@ -120,16 +120,48 @@ public static class NotationMetrics
     /// <summary>Half of <see cref="BarAcross"/>: the bar's perpendicular half-length.</summary>
     public const double BarHalf = BarAcross / 2.0;
 
-    // ── Crossbar (hollow triangle with crossbar) ───────────────────────────────────────────────
+    // ── Crossbar (redefinition: hollow triangle with a bar behind the base) ────────────────────
 
     /// <summary>
-    /// Fraction of <see cref="EndMarkerLength"/> from the base at which the redefinition crossbar
-    /// crosses the triangle shaft.
+    /// Distance, along the line, from the triangle base to the redefinition crossbar. Per SysML v2.0
+    /// section 8.2.3.6 the bar is perpendicular to the line BEHIND the triangle base (on the line side),
+    /// separated from it by a small clear gap, like the dots of the typing marker.
     /// </summary>
-    public const double CrossbarFraction = 0.7;
+    public const double CrossbarBaseGap = 3.5;
 
-    /// <summary>Along-line position of the crossbar from the marker box origin (<see cref="CrossbarFraction"/> x <see cref="EndMarkerLength"/>).</summary>
-    public const double CrossbarX = CrossbarFraction * EndMarkerLength;
+    /// <summary>
+    /// Room reserved behind the crossbar, inside the widened marker box, for half of its stroke width
+    /// (a marker is clipped to its box, so the bar must not sit on the box edge).
+    /// </summary>
+    public const double CrossbarStrokeRoom = 1.0;
+
+    /// <summary>
+    /// Along-line extension the crossbar adds behind the triangle base
+    /// (<see cref="CrossbarBaseGap"/> + <see cref="CrossbarStrokeRoom"/>).
+    /// </summary>
+    public const double CrossbarExtension = CrossbarBaseGap + CrossbarStrokeRoom;
+
+    /// <summary>Along-line length of the redefinition (hollow-triangle-with-crossbar) marker box.</summary>
+    public const double CrossbarMarkerLength = EndMarkerLength + CrossbarExtension;
+
+    /// <summary>
+    /// Along-line tip anchor of the redefinition marker box: the triangle anchor
+    /// (<see cref="EndMarkerRefX"/>) shifted by <see cref="CrossbarExtension"/> so the triangle lands
+    /// exactly where a plain hollow triangle would and its tip stays on the target box border.
+    /// </summary>
+    public const double CrossbarRefX = EndMarkerRefX + CrossbarExtension;
+
+    /// <summary>
+    /// Distance back from the line endpoint (the tip) to the crossbar
+    /// (<see cref="EndMarkerRefX"/> + <see cref="CrossbarBaseGap"/>).
+    /// </summary>
+    public const double CrossbarAlong = EndMarkerRefX + CrossbarBaseGap;
+
+    /// <summary>
+    /// Half the crossbar length, perpendicular to the line: the bar spans the triangle base
+    /// (<see cref="EndMarkerHalfWidth"/>).
+    /// </summary>
+    public const double CrossbarHalfLength = EndMarkerHalfWidth;
 
     // ── Port square ────────────────────────────────────────────────────────────────────────────
 
@@ -294,7 +326,7 @@ public static class NotationMetrics
     {
         EndMarkerStyle.OpenChevron => EndMarkerLength,
         EndMarkerStyle.HollowTriangle => EndMarkerLength,
-        EndMarkerStyle.HollowTriangleCrossbar => EndMarkerLength,
+        EndMarkerStyle.HollowTriangleCrossbar => CrossbarMarkerLength,
         EndMarkerStyle.FilledArrow => EndMarkerLength,
         EndMarkerStyle.HollowDiamond => DiamondLength,
         EndMarkerStyle.FilledDiamond => DiamondLength,
@@ -307,11 +339,40 @@ public static class NotationMetrics
     };
 
     /// <summary>
-    /// Returns the along-line length of an end-marker decoration as it is drawn by the SVG renderer,
-    /// whose <c>&lt;marker&gt;</c> elements scale their content by the theme stroke width (the SVG
-    /// default <c>markerUnits="strokeWidth"</c>), whereas the raster renderers draw at the notation
-    /// size. It is therefore the conservative length for a layout that must keep a decoration clear
-    /// of the corner that precedes it.
+    /// Returns the uniform scale, in pixels per notation unit, at which BOTH renderers draw every end
+    /// marker: the theme stroke width. This is the SVG convention (a <c>&lt;marker&gt;</c> scales its
+    /// content by the stroke width of the line that references it, the default
+    /// <c>markerUnits="strokeWidth"</c>); the raster renderers apply the same factor so a PNG marker has
+    /// exactly the size of the SVG marker. Layout stages reserve space with the same value.
+    /// </summary>
+    /// <param name="theme">Theme providing the stroke width.</param>
+    /// <returns>The marker scale in pixels per notation unit.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="theme"/> is <see langword="null"/>.</exception>
+    public static double MarkerScale(Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(theme);
+        return theme.StrokeWidth;
+    }
+
+    /// <summary>
+    /// Returns the stroke width, in pixels, of a marker outline: the SVG marker content strokes at the
+    /// theme stroke width in marker units, so the drawn width is the stroke width times
+    /// <see cref="MarkerScale(Theme)"/>. The raster renderers use this width for marker outlines.
+    /// </summary>
+    /// <param name="theme">Theme providing the stroke width.</param>
+    /// <returns>The marker outline width in pixels.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="theme"/> is <see langword="null"/>.</exception>
+    public static double MarkerStrokeWidth(Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(theme);
+        return theme.StrokeWidth * MarkerScale(theme);
+    }
+
+    /// <summary>
+    /// Returns the along-line length of an end-marker decoration as both renderers draw it: the
+    /// notation length times <see cref="MarkerScale(Theme)"/>. Layout stages use it to keep a
+    /// decoration clear of the corner that precedes it, and the renderers' final-corner clamp uses it so
+    /// a rounded bend never intrudes into the marker.
     /// </summary>
     /// <param name="style">The end-marker style.</param>
     /// <param name="theme">Theme providing the stroke width.</param>
@@ -320,7 +381,7 @@ public static class NotationMetrics
     public static double RenderedAlongLineLength(EndMarkerStyle style, Theme theme)
     {
         ArgumentNullException.ThrowIfNull(theme);
-        return AlongLineLength(style) * theme.StrokeWidth;
+        return AlongLineLength(style) * MarkerScale(theme);
     }
 
     /// <summary>
@@ -390,6 +451,7 @@ public static class NotationMetrics
     {
         EndMarkerStyle.HollowTriangleTwoDots => (TwoDotsMarkerLength, TwoDotsRefX),
         EndMarkerStyle.HollowTriangleFourDots => (FourDotsMarkerLength, FourDotsRefX),
+        EndMarkerStyle.HollowTriangleCrossbar => (CrossbarMarkerLength, CrossbarRefX),
         _ => (EndMarkerLength, EndMarkerRefX),
     };
 

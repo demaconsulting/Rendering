@@ -458,11 +458,12 @@ public static class ConnectorRouter
 
     /// <summary>
     /// Minimum straight leg wanted at the target end of a connector before its final bend: the end
-    /// marker's along-line length plus the bend radius plus a small margin, so the decoration sits on a
-    /// clean straight run.
+    /// marker's RENDERED along-line length (the notation length times the shared marker scale both
+    /// renderers draw it at) plus the bend radius plus a small margin, so the decoration sits on a
+    /// clean straight run in SVG and PNG alike.
     /// </summary>
     private static double RequiredEndLeg(EndMarkerStyle end) =>
-        NotationMetrics.AlongLineLength(end) + Themes.Light.LineCornerRadius + Themes.Light.CleanLegMargin;
+        NotationMetrics.RenderedAlongLineLength(end, Themes.Light) + Themes.Light.LineCornerRadius + Themes.Light.CleanLegMargin;
 
     /// <summary>Returns the quality hints for routing <paramref name="connection"/> under the given profile.</summary>
     private static RouteHints BuildHints(

@@ -161,9 +161,9 @@ geometry is unchanged; `LayeredGraph.CreateChild` copies the value into each com
 
 **Root cause of the S09 artifact.** `LayeredLayoutAlgorithm` never set `BackEdgeEntryApproach`, so every
 reversed edge kept the 10 px default no matter which end marker the consumer drew. A rendered open chevron
-is 15 px long (the marker's along-line length times the 1.5 stroke width, because the SVG markers use
-stroke-width marker units), so the 10 px approach was shorter than the marker plus the rounded corner
-before it. The renderers' corner clamp (`r = min(r, outLen - AlongLineLength)`) then reduced the radius to
+is 15 px long (the marker's along-line length times the 1.5 stroke width, the marker scale at which both
+the SVG and the PNG renderer draw it), so the 10 px approach was shorter than the marker plus the rounded corner
+before it. The renderers' corner clamp (`r = min(r, outLen - RenderedAlongLineLength)`) then reduced the radius to
 zero and the last bend became a sharp corner inside the marker's footprint, closing a small hollow
 triangle with the chevron wing. Forward edges end on a 60 px or longer leg and were unaffected. The
 engine's contract is unchanged: it honors whatever `BackEdgeEntryApproach` it is given. The fix lives in

@@ -87,8 +87,12 @@ public sealed class PngEndMarkerTests
         using var triangle = RenderToSurface(HorizontalLineTo(EndMarkerStyle.HollowTriangle), options);
 
         // Act
-        var chevronInk = CountInk(chevron, 138, 42, 144, 58);
-        var triangleInk = CountInk(triangle, 138, 42, 144, 58);
+        // The base edge is a vertical stroke at the marker base column (the notation base position
+        // times the shared marker scale); sample it just above and below the line, clear of both the
+        // line stroke and the diagonal edges.
+        var baseColumn = (int)Math.Round(150 - (NotationMetrics.EndMarkerRefX * NotationMetrics.MarkerScale(Themes.Light)));
+        var chevronInk = CountInk(chevron, baseColumn - 1, 46, baseColumn + 1, 47) + CountInk(chevron, baseColumn - 1, 53, baseColumn + 1, 54);
+        var triangleInk = CountInk(triangle, baseColumn - 1, 46, baseColumn + 1, 47) + CountInk(triangle, baseColumn - 1, 53, baseColumn + 1, 54);
 
         // Assert
         Assert.True(
@@ -97,7 +101,7 @@ public sealed class PngEndMarkerTests
     }
 
     /// <summary>
-    ///     The PNG filled-arrow spans <see cref="NotationMetrics.EndMarkerLength"/> along the line —
+    ///     The PNG filled-arrow spans <see cref="NotationMetrics.EndMarkerLength"/> scaled by the shared marker scale along the line —
     ///     from the base (at <see cref="NotationMetrics.EndMarkerRefX"/> behind the endpoint) to the apex
     ///     (overshooting the endpoint) — matching the SVG marker box length. Measured from the widest
     ///     (base) column to the furthest ink column.
@@ -144,11 +148,12 @@ public sealed class PngEndMarkerTests
         // Assert
         Assert.True(baseX >= 0, "Expected to locate the marker base column.");
         var alongLength = tipX - baseX;
-        Assert.InRange(alongLength, NotationMetrics.EndMarkerLength - 2, NotationMetrics.EndMarkerLength + 2);
+        var expected = NotationMetrics.EndMarkerLength * NotationMetrics.MarkerScale(Themes.Light);
+        Assert.InRange(alongLength, expected - 2, expected + 2);
     }
 
     /// <summary>
-    ///     The PNG arrow base spans the shared <see cref="NotationMetrics.EndMarkerWidth"/> across the
+    ///     The PNG arrow base spans the shared <see cref="NotationMetrics.EndMarkerWidth"/> (times the marker scale) across the
     ///     line, matching the SVG marker height. Measured at the marker base column.
     /// </summary>
     [Fact]
@@ -159,7 +164,7 @@ public sealed class PngEndMarkerTests
         using var surface = RenderToSurface(HorizontalLineTo(EndMarkerStyle.FilledArrow), options);
 
         // Act
-        var baseX = (int)Math.Round(150 - NotationMetrics.EndMarkerRefX);
+        var baseX = (int)Math.Round(150 - (NotationMetrics.EndMarkerRefX * NotationMetrics.MarkerScale(Themes.Light)));
         var minY = int.MaxValue;
         var maxY = int.MinValue;
         for (var y = 40; y <= 60; y++)
@@ -174,6 +179,7 @@ public sealed class PngEndMarkerTests
         // Assert
         Assert.True(maxY >= minY, "Expected ink at the marker base column.");
         var measuredWidth = maxY - minY + 1;
-        Assert.InRange(measuredWidth, NotationMetrics.EndMarkerWidth - 2, NotationMetrics.EndMarkerWidth + 2);
+        var expectedWidth = NotationMetrics.EndMarkerWidth * NotationMetrics.MarkerScale(Themes.Light);
+        Assert.InRange(measuredWidth, expectedWidth - 2, expectedWidth + 2);
     }
 }

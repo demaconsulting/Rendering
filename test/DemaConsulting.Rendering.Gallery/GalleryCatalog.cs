@@ -771,16 +771,17 @@ internal static class GalleryCatalog
                             "Every relationship end marker on a labeled two-box edge: specialization and "
                             + "subsetting (hollow triangle), feature typing (triangle with two dots), "
                             + "reference subsetting (triangle with a 2x2 grid of dots), redefinition "
-                            + "(triangle with crossbar), composite and reference membership (filled and "
+                            + "(triangle followed by a bar behind its base), composite and reference "
+                            + "membership (filled and "
                             + "hollow diamond), owned membership (circled plus) and unowned membership "
                             + "(circle). Triangles are target ends and the membership glyphs source ends, "
                             + "proving both ends of a line decorate identically."),
                         new GalleryImage(
                             SysmlEndMarkersPng,
                             "The same relationship end markers rendered through the raster path",
-                            "The same sheet through the CanvasNet raster renderer, which draws the "
-                            + "markers at the notation size (the SVG renderer scales them by the stroke "
-                            + "width)."),
+                            "The same sheet through the CanvasNet raster renderer, which draws every "
+                            + "marker at the same size as the SVG renderer (the notation size scaled by "
+                            + "the theme stroke width)."),
                         new GalleryImage(
                             SysmlNotationPrimitivesSvg,
                             "One sheet of every notation primitive next to its legacy counterpart",

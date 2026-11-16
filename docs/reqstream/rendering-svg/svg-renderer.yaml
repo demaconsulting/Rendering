@@ -397,11 +397,28 @@ sections:
       - id: Rendering-Svg-SvgRenderer-CrossbarEndMarkers
         title: >-
           SvgRenderer shall include the hollow-triangle-crossbar marker id when rendering a crossbar
-          line end.
+          line end, drawing its bar behind the triangle base, separated from it by a clear gap, in a
+          marker box and tip anchor widened by the crossbar extension.
         justification: |
           The crossbar marker id identifies the connector-end decoration used for crossbar line ends.
+          SysML v2.0 section 8.2.3.6 draws redefinition with the bar behind the triangle base, so the
+          marker box is widened (like the dotted variants) and the anchor shifted by the same amount,
+          keeping the triangle tip on the target box border.
         tests:
           - SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker
+          - EndMarkerCrossbar_BarSitsBehindTriangleBase
+
+      - id: Rendering-Svg-SvgRenderer-CornerClampRenderedMarker
+        title: >-
+          SvgRenderer shall clamp the radius of the rounded corner before a decorated line end so that
+          it leaves at least the end marker's rendered along-line length of straight approach.
+        justification: |
+          SVG markers scale by the line stroke width, so a marker is longer than its notation length.
+          A clamp that used the notation length let the bend begin inside the marker; the clamp uses
+          the rendered length (notation length times the marker scale), the same length the PNG
+          renderer and the layout reserve.
+        tests:
+          - LineCornerClamp_UsesRenderedMarkerLength
 
       - id: Rendering-Svg-SvgRenderer-EndMarkerFilledArrow
         title: >-
@@ -475,9 +492,9 @@ sections:
           each used definition exactly once.
         justification: |
           The eight historical end-marker definitions are always written, so a document that uses
-          none of the new markers must stay byte-identical to what earlier versions produced. Writing
-          each new definition once, on demand, also avoids duplicate ids no matter how many lines
-          share a marker.
+          none of the new markers carries exactly those definitions (the redefinition crossbar
+          definition has the geometry of the current notation). Writing each new definition once, on
+          demand, also avoids duplicate ids no matter how many lines share a marker.
         tests:
           - EndMarkerDefs_NewMarkersUnused_AreNotEmitted
           - EndMarkerDefs_NewMarkerUsedTwice_IsDefinedOnce

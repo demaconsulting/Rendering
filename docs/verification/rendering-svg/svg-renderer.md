@@ -207,7 +207,16 @@ dimensions and points match `NotationMetrics` and that the rendered SVG contains
 `line-end-hollow-diamond` id.
 
 Test `SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker` asserts that
-the rendered SVG contains the `line-end-hollow-triangle-crossbar` id.
+the rendered SVG contains the `line-end-hollow-triangle-crossbar` id. Test
+`EndMarkerCrossbar_BarSitsBehindTriangleBase` reads the marker definition back and asserts the marker box
+and tip anchor are the widened `NotationMetrics.Crossbar*` values, that the triangle base is at box x =
+`CrossbarExtension` (apex at the box end), and that the bar is a vertical `<line>` spanning the full marker
+height whose box x is below the base's by `CrossbarBaseGap`, i.e. behind the base with a gap.
+
+Test `LineCornerClamp_UsesRenderedMarkerLength` renders a line whose final leg is 17 px before a 15 px
+rendered chevron and asserts the final corner arc radius is 2 px (leg minus the rendered marker length), not the 4 px
+that a clamp
+using the notation length would allow.
 
 Tests `SvgRenderer_Render_SingleLine_WithFilledArrow_ProducesFilledArrowMarker`,
 `SvgRenderer_Render_SingleLine_WithFilledDiamond_ProducesFilledDiamondMarker`,
@@ -231,6 +240,7 @@ variants_ below); the filled-diamond scenario likewise asserts `marker-start="ur
 `Rendering-Svg-SvgRenderer-DiamondEndMarkers`,
 `Rendering-Svg-SvgRenderer-DiamondEndMarkerReference`,
 `Rendering-Svg-SvgRenderer-CrossbarEndMarkers`,
+`Rendering-Svg-SvgRenderer-CornerClampRenderedMarker`,
 `Rendering-Svg-SvgRenderer-EndMarkerFilledArrow`,
 `Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond`,
 `Rendering-Svg-SvgRenderer-EndMarkerCircle`,
@@ -415,7 +425,10 @@ leaf box and asserts the label's estimated extent lies entirely left or right of
 - **`Rendering-Svg-SvgRenderer-DiamondEndMarkerReference`**:
   `SvgRenderer_Render_SingleLine_WithDiamondArrowhead_ProducesDiamondMarker`
 - **`Rendering-Svg-SvgRenderer-CrossbarEndMarkers`**:
-  `SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker`
+  `SvgRenderer_Render_SingleLine_WithOpenCrossbarArrowhead_ProducesOpenCrossbarMarker`,
+  `EndMarkerCrossbar_BarSitsBehindTriangleBase`
+- **`Rendering-Svg-SvgRenderer-CornerClampRenderedMarker`**:
+  `LineCornerClamp_UsesRenderedMarkerLength`
 - **`Rendering-Svg-SvgRenderer-EndMarkerFilledArrow`**:
   `SvgRenderer_Render_SingleLine_WithFilledArrow_ProducesFilledArrowMarker`
 - **`Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond`**:

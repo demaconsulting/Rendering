@@ -92,7 +92,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         ArgumentNullException.ThrowIfNull(options);
 
         var lines = CollectLines(layout.Nodes).ToList();
-        var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody, CollectBoxes(layout.Nodes));
+        var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody, CollectBoxes(layout.Nodes), NotationMetrics.MarkerScale(options.Theme));
 
         var width = Math.Max(1, (int)Math.Ceiling(layout.Width * options.Scale));
         var height = Math.Max(1, (int)Math.Ceiling(layout.Height * options.Scale));
@@ -745,12 +745,22 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var scale = (float)options.Scale;
         var strokeColor = ParseColor(theme.StrokeColor);
 
+        // Every marker is drawn at the shared marker scale (the SVG marker-unit convention), so the
+        // corner clamp reserves the marker's rendered length and the glyph has the SVG marker's size.
+        var sourceMarkerLength = NotationMetrics.RenderedAlongLineLength(line.SourceEnd, theme);
+        var targetMarkerLength = NotationMetrics.RenderedAlongLineLength(line.TargetEnd, theme);
+        var markerPaint = new EndMarkerPaint(
+            strokeColor,
+            ParseColor(theme.BackgroundColor),
+            (float)NotationMetrics.MarkerStrokeWidth(theme) * scale,
+            (float)NotationMetrics.MarkerScale(theme) * scale);
+
         var clampCorners = (line.SourceEnd != EndMarkerStyle.None || line.TargetEnd != EndMarkerStyle.None)
             && theme.LineCornerRadius > 0
-            && NeedsEndCornerClamp(line.Waypoints, theme.LineCornerRadius, line.SourceEnd, line.TargetEnd);
+            && NeedsEndCornerClamp(line.Waypoints, theme.LineCornerRadius, sourceMarkerLength, targetMarkerLength);
 
         var path = clampCorners
-            ? BuildClampedLinePath(line.Waypoints, theme.LineCornerRadius, scale, line.SourceEnd, line.TargetEnd)
+            ? BuildClampedLinePath(line.Waypoints, theme.LineCornerRadius, scale, sourceMarkerLength, targetMarkerLength)
             : BuildSimpleLinePath(line.Waypoints, scale);
 
         if (!clampCorners && theme.LineCornerRadius > 0)
@@ -779,7 +789,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
                 (float)dx,
                 (float)dy,
                 line.SourceEnd,
-                new EndMarkerPaint(strokeColor, ParseColor(theme.BackgroundColor), (float)theme.StrokeWidth * scale, scale));
+                markerPaint);
         }
 
         if (line.TargetEnd != EndMarkerStyle.None)
@@ -795,7 +805,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
                 (float)dx,
                 (float)dy,
                 line.TargetEnd,
-                new EndMarkerPaint(strokeColor, ParseColor(theme.BackgroundColor), (float)theme.StrokeWidth * scale, scale));
+                markerPaint);
         }
     }
 
@@ -825,34 +835,34 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     /// </summary>
     /// <param name="waypoints">Ordered waypoints (unscaled).</param>
     /// <param name="cornerRadius">Unscaled line corner radius.</param>
-    /// <param name="sourceEnd">Source end-marker style.</param>
-    /// <param name="targetEnd">Target end-marker style.</param>
+    /// <param name="sourceMarkerLength">Rendered along-line length of the source end marker (zero without one).</param>
+    /// <param name="targetMarkerLength">Rendered along-line length of the target end marker (zero without one).</param>
     /// <returns><see langword="true"/> if explicit clamped corners are required; otherwise <see langword="false"/>.</returns>
     private static bool NeedsEndCornerClamp(
         IReadOnlyList<Point2D> waypoints,
         double cornerRadius,
-        EndMarkerStyle sourceEnd,
-        EndMarkerStyle targetEnd)
+        double sourceMarkerLength,
+        double targetMarkerLength)
     {
         if (waypoints.Count < 3)
         {
             return false;
         }
 
-        if (sourceEnd != EndMarkerStyle.None)
+        if (sourceMarkerLength > 0.0)
         {
             var inLength = Distance(waypoints[0], waypoints[1]);
-            if (inLength - NotationMetrics.AlongLineLength(sourceEnd) < cornerRadius)
+            if (inLength - sourceMarkerLength < cornerRadius)
             {
                 return true;
             }
         }
 
-        if (targetEnd != EndMarkerStyle.None)
+        if (targetMarkerLength > 0.0)
         {
             var count = waypoints.Count;
             var outLength = Distance(waypoints[count - 2], waypoints[count - 1]);
-            if (outLength - NotationMetrics.AlongLineLength(targetEnd) < cornerRadius)
+            if (outLength - targetMarkerLength < cornerRadius)
             {
                 return true;
             }
@@ -864,22 +874,22 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     /// <summary>
     /// Builds a scaled connector path with arc-rounded interior corners, mirroring the SVG
     /// renderer's corner-clamped geometry: the first interior corner additionally clamps its radius
-    /// to <c>inLen − AlongLineLength(sourceEnd)</c> and the last to
-    /// <c>outLen − AlongLineLength(targetEnd)</c>, so the rounded corner never intrudes into an end
+    /// to <c>inLen − RenderedAlongLineLength(sourceEnd)</c> and the last to
+    /// <c>outLen − RenderedAlongLineLength(targetEnd)</c>, so the rounded corner never intrudes into an end
     /// decoration.
     /// </summary>
     /// <param name="waypoints">Ordered waypoints (unscaled); at least two entries.</param>
     /// <param name="cornerRadius">Unscaled line corner radius.</param>
     /// <param name="scale">Uniform scale factor.</param>
-    /// <param name="sourceEnd">Source end-marker style.</param>
-    /// <param name="targetEnd">Target end-marker style.</param>
+    /// <param name="sourceMarkerLength">Rendered along-line length of the source end marker (zero without one).</param>
+    /// <param name="targetMarkerLength">Rendered along-line length of the target end marker (zero without one).</param>
     /// <returns>The corner-baked connector path.</returns>
     private static GeometryPath BuildClampedLinePath(
         IReadOnlyList<Point2D> waypoints,
         double cornerRadius,
         float scale,
-        EndMarkerStyle sourceEnd,
-        EndMarkerStyle targetEnd)
+        double sourceMarkerLength,
+        double targetMarkerLength)
     {
         var builder = new PathBuilder();
         var first = waypoints[0];
@@ -919,12 +929,12 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
             var radius = Math.Min(cornerRadius, Math.Min(inLength / 2.0, outLength / 2.0));
             if (index == 1)
             {
-                radius = Math.Min(radius, inLength - NotationMetrics.AlongLineLength(sourceEnd));
+                radius = Math.Min(radius, inLength - sourceMarkerLength);
             }
 
             if (index == waypoints.Count - 2)
             {
-                radius = Math.Min(radius, outLength - NotationMetrics.AlongLineLength(targetEnd));
+                radius = Math.Min(radius, outLength - targetMarkerLength);
             }
 
             if (radius <= 0.0)
@@ -1054,8 +1064,8 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     /// </summary>
     /// <param name="Color">Stroke and fill color for the end marker.</param>
     /// <param name="BackgroundColor">Background fill for hollow enclosing markers so the connector line does not show through.</param>
-    /// <param name="StrokeWidth">Stroke width applied to open (non-filled) end-marker styles.</param>
-    /// <param name="Scale">Uniform scale factor used to size the end marker relative to the diagram.</param>
+    /// <param name="StrokeWidth">Marker outline width in pixels (<see cref="NotationMetrics.MarkerStrokeWidth(Theme)"/> times the render scale).</param>
+    /// <param name="Scale">Pixels per notation unit of marker geometry (<see cref="NotationMetrics.MarkerScale(Theme)"/> times the render scale), so PNG markers have the size of the SVG markers.</param>
     private readonly record struct EndMarkerPaint(Rgba32 Color, Rgba32 BackgroundColor, float StrokeWidth, float Scale);
 
     /// <summary>
@@ -1120,44 +1130,55 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var scale = paint.Scale;
         var strokeStyle = new StrokeStyle(paint.StrokeWidth);
 
+        // Polygonal markers stroke with a bevel join: their tips lie on the marker-box edge, where an SVG
+        // marker's clip blunts the miter, so a bevel gives the PNG the same blunt tip instead of a spike
+        // that would poke through the target box border.
+        var triangleStroke = new StrokeStyle(paint.StrokeWidth, LineCap.Butt, LineJoin.Bevel);
+
         switch (style)
         {
             case EndMarkerStyle.OpenChevron:
                 var chevron = TrianglePath(tipX, tipY, dx, dy, px, py, scale, close: false);
-                canvas.StrokePath(chevron, strokeStyle, paint.Color);
+                canvas.StrokePath(chevron, triangleStroke, paint.Color);
                 break;
 
             case EndMarkerStyle.HollowTriangle:
                 var hollowTriangle = TrianglePath(tipX, tipY, dx, dy, px, py, scale, close: true);
                 canvas.FillPath(hollowTriangle, paint.BackgroundColor);
-                canvas.StrokePath(hollowTriangle, strokeStyle, paint.Color);
+                canvas.StrokePath(hollowTriangle, triangleStroke, paint.Color);
                 break;
 
             case EndMarkerStyle.HollowTriangleCrossbar:
                 var crossbarTriangle = TrianglePath(tipX, tipY, dx, dy, px, py, scale, close: true);
                 canvas.FillPath(crossbarTriangle, paint.BackgroundColor);
-                canvas.StrokePath(crossbarTriangle, strokeStyle, paint.Color);
+                canvas.StrokePath(crossbarTriangle, triangleStroke, paint.Color);
 
-                var crossAlong = NotationMetrics.EndMarkerRefX - NotationMetrics.CrossbarX;
-                var crossStart = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(crossAlong, -NotationMetrics.EndMarkerHalfWidth), scale);
-                var crossEnd = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(crossAlong, NotationMetrics.EndMarkerHalfWidth), scale);
+                // The redefinition bar sits behind the triangle base, spanning the base height
+                var crossStart = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(NotationMetrics.CrossbarAlong, -NotationMetrics.CrossbarHalfLength), scale);
+                var crossEnd = MarkerPoint(tipX, tipY, dx, dy, px, py, new MarkerVertex(NotationMetrics.CrossbarAlong, NotationMetrics.CrossbarHalfLength), scale);
                 StrokeLine(canvas, crossStart.X, crossStart.Y, crossEnd.X, crossEnd.Y, strokeStyle, paint.Color);
                 break;
 
             case EndMarkerStyle.FilledArrow:
                 var filledTriangle = TrianglePath(tipX, tipY, dx, dy, px, py, scale, close: true);
                 canvas.FillPath(filledTriangle, paint.Color);
+
+                // The SVG marker also outlines the filled shape in the same color, so it is a stroke wider
+                canvas.StrokePath(filledTriangle, triangleStroke, paint.Color);
                 break;
 
             case EndMarkerStyle.HollowDiamond:
                 var hollowDiamond = DiamondPath(tipX, tipY, dx, dy, px, py, scale);
                 canvas.FillPath(hollowDiamond, paint.BackgroundColor);
-                canvas.StrokePath(hollowDiamond, strokeStyle, paint.Color);
+                canvas.StrokePath(hollowDiamond, triangleStroke, paint.Color);
                 break;
 
             case EndMarkerStyle.FilledDiamond:
                 var filledDiamond = DiamondPath(tipX, tipY, dx, dy, px, py, scale);
                 canvas.FillPath(filledDiamond, paint.Color);
+
+                // The SVG marker also outlines the filled shape in the same color, so it is a stroke wider
+                canvas.StrokePath(filledDiamond, triangleStroke, paint.Color);
                 break;
 
             case EndMarkerStyle.Circle:
@@ -1178,7 +1199,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
                 // The triangle lands exactly where a plain hollow triangle does; the dots trail its base
                 var dottedTriangle = TrianglePath(tipX, tipY, dx, dy, px, py, scale, close: true);
                 canvas.FillPath(dottedTriangle, paint.BackgroundColor);
-                canvas.StrokePath(dottedTriangle, strokeStyle, paint.Color);
+                canvas.StrokePath(dottedTriangle, triangleStroke, paint.Color);
                 var dotRadius = (float)NotationMetrics.DotRadius * scale;
                 foreach (var dot in NotationMetrics.DotCenters(style))
                 {

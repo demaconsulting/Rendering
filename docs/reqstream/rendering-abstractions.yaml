@@ -102,6 +102,7 @@ sections:
           - Rendering-Abstractions-NotationMetrics-LabelBackground
           - Rendering-Abstractions-NotationMetrics-DottedTriangleMarkers
           - Rendering-Abstractions-NotationMetrics-CircledPlusMarker
+          - Rendering-Abstractions-NotationMetrics-MarkerScale
           - Rendering-Abstractions-NotationMetrics-RenderedAlongLineLength
           - Rendering-Abstractions-NotationMetrics-AcrossHalfWidth
           - Rendering-Abstractions-NotationMetrics-ThickBarBadge

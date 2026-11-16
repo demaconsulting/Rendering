@@ -141,10 +141,106 @@ public sealed class ConnectorLabelPlacerObstacleTests
         var placement = ConnectorLabelPlacer.Place([line], FontSize, [blocker])[line];
         var rect = Rect(placement);
 
-        var markerZoneTop = 60.0 - (NotationMetrics.EndMarkerLength * 1.5);
+        var markerZoneTop = 60.0 - NotationMetrics.RenderedAlongLineLength(EndMarkerStyle.OpenChevron, Themes.Light);
         var overlapsMarkerZone = rect.Right > 44.0 && rect.Left < 56.0 && rect.Bottom > markerZoneTop && rect.Top < 60.0;
         Assert.False(Overlaps(rect, blocker));
         Assert.False(overlapsMarkerZone);
+    }
+
+    /// <summary>
+    ///     The end-decoration clearance is derived from the supplied marker scale (the theme stroke width),
+    ///     not a hard-coded constant: a thicker-stroke theme reserves a proportionally longer zone.
+    /// </summary>
+    [Fact]
+    public void PlaceWithObstacles_SlideAvoidsEndMarkerZone_UsesSuppliedMarkerScale()
+    {
+        var line = new LayoutLine(
+            [new Point2D(50, 0), new Point2D(50, 120)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.OpenChevron,
+            LineStyle.Solid,
+            "ab");
+
+        // The blocker leaves clear space only below y = 76: inside a 3x marker zone (starting at 90)
+        // but beyond the zone a 1.5x scale would assume (starting at 105 for a label that fits).
+        var blocker = Leaf(30, 0, 40, 76);
+        var theme = Themes.Light with { StrokeWidth = 3.0 };
+
+        var placement = ConnectorLabelPlacer.Place([line], FontSize, [blocker], NotationMetrics.MarkerScale(theme))[line];
+        var rect = Rect(placement);
+
+        var markerZoneTop = 120.0 - NotationMetrics.RenderedAlongLineLength(EndMarkerStyle.OpenChevron, theme);
+        Assert.False(rect.Bottom > markerZoneTop && rect.Top < 120.0, $"Label {rect} overlaps the 3x marker zone starting at {markerZoneTop}.");
+    }
+
+    /// <summary>
+    ///     The end decoration's footprint blocks the label's candidate positions, not only its slides: a
+    ///     label on a short run whose midpoint would sit on the arrowhead is moved clear of it, at either
+    ///     end of the line, even when there are no obstacle boxes.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Place_LabelOnShortRun_StaysClearOfEndMarkerFootprint(bool atTarget)
+    {
+        var points = atTarget
+            ? new[] { new Point2D(0, 0), new Point2D(80, 0) }
+            : new[] { new Point2D(80, 0), new Point2D(0, 0) };
+        var line = new LayoutLine(
+            points,
+            atTarget ? EndMarkerStyle.None : EndMarkerStyle.FilledArrow,
+            atTarget ? EndMarkerStyle.FilledArrow : EndMarkerStyle.None,
+            LineStyle.Solid,
+            "primary");
+
+        var placement = ConnectorLabelPlacer.Place([line], FontSize, [])[line];
+        var rect = Rect(placement);
+
+        // The marker sits at x = 80 in both cases (the source case reverses the line) and occupies its
+        // rendered length back along the line, so the label must not reach into it.
+        var markerLength = NotationMetrics.RenderedAlongLineLength(EndMarkerStyle.FilledArrow, Themes.Light);
+        Assert.True(rect.Right <= 80.0 - markerLength + 1e-9, $"Label {rect} overlaps the marker footprint.");
+        Assert.True(rect.Left >= -1e-9 || rect.Right <= 80.0, $"Label {rect} left the line.");
+    }
+
+    /// <summary>
+    ///     A label whose midpoint already clears the end decoration keeps its midpoint, so decorated lines
+    ///     with ample room are placed exactly as before.
+    /// </summary>
+    [Fact]
+    public void Place_LabelClearOfEndMarker_KeepsMidpoint()
+    {
+        var line = new LayoutLine(
+            [new Point2D(0, 0), new Point2D(300, 0)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            "primary");
+
+        var placement = ConnectorLabelPlacer.Place([line], FontSize, [])[line];
+
+        Assert.Equal(150.0, placement.X, 1e-9);
+        Assert.Equal(0.0, placement.Y, 1e-9);
+    }
+
+    /// <summary>
+    ///     A label that cannot clear the end decoration on a run too short for both stays on its own line
+    ///     (it is not nudged off to another row) and keeps its midpoint.
+    /// </summary>
+    [Fact]
+    public void Place_RunTooShortForLabelAndMarker_KeepsLabelOnItsLine()
+    {
+        var line = new LayoutLine(
+            [new Point2D(0, 0), new Point2D(40, 0)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            "primary");
+
+        var placement = ConnectorLabelPlacer.Place([line], FontSize, [])[line];
+
+        Assert.Equal(0.0, placement.Y, 1e-9);
+        Assert.Equal(20.0, placement.X, 1e-9);
     }
 
     /// <summary>
