@@ -34,8 +34,10 @@ limited to the generic default. A folder whose name is drawn in the tab
 `Appearance.FolderTitle` is `FolderTitlePlacement.Tab`) holds no name in its body, so
 `ResolveTitleHeight` returns `0.0` for it and no body title band is reserved above its children — unless
 the caller set an explicit `TitleHeight`, which is honored as given (for example to reserve a keyword
-line). The folder tab height is still added by `ResolveContentOffsetHeight`, because the tab itself
-occupies the top of the folder either way. The engine holds a single field, a `LayoutAlgorithmRegistry` used to
+line), or the node has a `Keyword`, whose line the renderers still draw in the body, so the default
+reserve is kept for the children to clear it. The folder tab height is still added by
+`ResolveContentOffsetHeight`, because the tab itself occupies the top of the folder either way.
+The engine holds a single field, a `LayoutAlgorithmRegistry` used to
 resolve the per-scope leaf algorithm by identifier. A default constructor builds a default registry
 containing the bundled `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm`; an injecting
 constructor accepts a caller-supplied registry (rejecting null). The engine treats a scope that

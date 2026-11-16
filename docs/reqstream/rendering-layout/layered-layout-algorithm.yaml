@@ -290,13 +290,19 @@ sections:
       - id: Rendering-Layout-LayeredAlgorithm-FolderTabTitleReserve
         title: >-
           LayeredLayoutAlgorithm shall not reserve a body title band (the title-versus-port top inset)
-          for a folder node whose appearance draws its name in the folder tab.
+          for a folder node whose appearance draws its name in the folder tab, unless the node also carries
+          a keyword, whose line is still drawn in the body and keeps the title-versus-port inset.
         justification: |
-          A folder that draws its name in the tab has no title in its body. Widening the top content inset
-          to keep a top port's label clear of a body title that is not drawn would waste space and push
-          the port label away from the box edge for no reason.
+          A folder that draws its name in the tab has no name title in its body. Widening the top content
+          inset to keep a top port's label clear of a body title that is not drawn would waste space and
+          push the port label away from the box edge for no reason. A keyword line is still drawn in the
+          body, so a node with a keyword keeps the clearance (at both the content-inset and the
+          port-driven growth sites).
         tests:
           - LayeredLayout_FolderNameInTabWithTopPort_ReservesNoTitleInset
+          - LayeredLayout_FolderNameInTabWithKeywordAndTopPort_ReservesTitleInset
+          - LayeredLayout_FolderNameInTabWithKeywordAndBottomPort_ReservesTitleInset
+          - LayeredLayout_FolderNameInTabWithKeywordAndSmallHeight_GrowsLikeBodyTitled
 
       - id: Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproach
         title: >-

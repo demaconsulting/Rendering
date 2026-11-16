@@ -343,7 +343,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         {
             sidePorts.TryGetValue(i, out var bySide);
             var (insetLeft, insetRight, insetTop, insetBottom) =
-                ResolveContentInsets(bySide, assumedFontSize, hasTitle: HasBodyTitle(graphNodes[i]));
+                ResolveContentInsets(bySide, assumedFontSize, hasTitle: HasBodyTitleContent(graphNodes[i]));
 
             // PortDistributor excludes engineNodes[i].TitleReserveTop from left/right-face port
             // placement for every titled node that actually has a left/right anchor (see the
@@ -563,7 +563,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             var rect = result.Rects[i];
             sidePorts.TryGetValue(i, out var bySide);
             var (insetLeft, insetRight, insetTop, insetBottom) =
-                ResolveContentInsets(bySide, assumedFontSize, hasTitle: HasBodyTitle(graphNodes[i]));
+                ResolveContentInsets(bySide, assumedFontSize, hasTitle: HasBodyTitleContent(graphNodes[i]));
 
             // A box whose ContentInsetTop was reserved specifically to keep a *left/right* port's
             // label out of the title's own row (see ResolveContentInsets' left/right fallback branch)
@@ -878,6 +878,16 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
     /// <returns><see langword="true"/> when the node's name occupies the body title band.</returns>
     internal static bool HasBodyTitle(LayoutGraphNode node) =>
         node.Label != null && !BoxMetrics.IsNameInTab(node.Shape, node.Label, node.Appearance);
+
+    /// <summary>
+    /// Returns whether a node draws any title content in its body that a top/bottom port label must stay
+    /// clear of: a body name (<see cref="HasBodyTitle"/>) or a keyword line, which the renderers still
+    /// draw in the body for a folder whose name is drawn in the tab.
+    /// </summary>
+    /// <param name="node">The input node.</param>
+    /// <returns><see langword="true"/> when the node has a body name or a keyword line.</returns>
+    internal static bool HasBodyTitleContent(LayoutGraphNode node) =>
+        HasBodyTitle(node) || node.Keyword != null;
 
     /// <summary>
     /// Resolves whether parallel edges are merged into a single rendered connector: an explicit

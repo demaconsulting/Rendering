@@ -67,7 +67,11 @@ Test `Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight` asserts a placed l
 and `HalfHeight` are both positive, and `Place_LongerLabel_HasLargerHalfWidth` asserts a longer
 `MidpointLabel` string yields a larger `HalfWidth` than a shorter one, confirming the extent is
 genuinely derived from the label's estimated rendered size (not a fixed placeholder), which a
-caller needs to compute the label's full bounding box for canvas-growth purposes.
+caller needs to compute the label's full bounding box for canvas-growth purposes. Test
+`Place_TwoArgOverload_ReturnsLabelPlacementWithTwoVariableDeconstruction` pins the two-argument overload's
+shipped result shape (`IReadOnlyDictionary<LayoutLine, LabelPlacement>`), asserts the exact centre and
+half-extents, and confirms `var (x, y) = result[line]` (the two-variable `LabelPlacement` deconstruction)
+yields the same centre coordinates.
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent`.
 
@@ -140,7 +144,8 @@ a `null` line sequence and asserts each raises `ArgumentNullException`.
 - **`Rendering-Abstractions-ConnectorLabelPlacer-LongestSegment`**: Place_SingleLine_UsesLongestSegmentMidpoint
 - **`Rendering-Abstractions-ConnectorLabelPlacer-AvoidOverlap`**: Place_CollidingLabels_AreSeparated
 - **`Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent`**:
-  Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight, Place_LongerLabel_HasLargerHalfWidth
+  Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight, Place_LongerLabel_HasLargerHalfWidth,
+  Place_TwoArgOverload_ReturnsLabelPlacementWithTwoVariableDeconstruction
 - **`Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight`**:
   EstimateLabelHeight_MatchesPlaceHalfHeightDoubled, EstimateLabelHeight_IsMonotonicInFontSize
 - **`Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelWidth`**:

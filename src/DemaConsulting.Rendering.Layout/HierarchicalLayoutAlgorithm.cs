@@ -192,7 +192,9 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// theme's actual title-area height, including a keyword line), otherwise
     /// <see cref="DefaultContainerTitleHeight"/>; zero for a node with no label, and zero for a folder
     /// whose name is drawn in the tab (<see cref="FolderTitlePlacement.Tab"/>) unless the caller set an
-    /// explicit <see cref="LayoutGraphNode.TitleHeight"/> (for example to reserve a keyword line).
+    /// explicit <see cref="LayoutGraphNode.TitleHeight"/> (for example to reserve a keyword line) or the
+    /// folder carries a <see cref="LayoutGraphNode.Keyword"/>, whose line the renderers still draw in the
+    /// body so the default reserve is kept to clear it.
     /// </summary>
     /// <param name="node">The container node whose title-band height is resolved.</param>
     /// <returns>The title-band height in logical pixels.</returns>
@@ -203,7 +205,9 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             return 0.0;
         }
 
-        if (node.TitleHeight is null && BoxMetrics.IsNameInTab(node.Shape, node.Label, node.Appearance))
+        if (node.TitleHeight is null
+            && node.Keyword is null
+            && BoxMetrics.IsNameInTab(node.Shape, node.Label, node.Appearance))
         {
             return 0.0;
         }

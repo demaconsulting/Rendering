@@ -53,6 +53,7 @@ sections:
         tests:
           - Place_SingleLine_ExposesPositiveHalfWidthAndHalfHeight
           - Place_LongerLabel_HasLargerHalfWidth
+          - Place_TwoArgOverload_ReturnsLabelPlacementWithTwoVariableDeconstruction
 
       - id: Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight
         title: >-

@@ -127,7 +127,14 @@ failure.
   `LayeredLayout_FolderNameInTabWithTopPort_ReservesNoTitleInset` lays out a folder with a labeled top port
   twice, once with the name drawn in the tab and once in the body, and confirms the in-tab folder's top
   content inset is smaller (the body title band is not reserved for a title that is not drawn there) while
-  the body-titled folder still reserves it.
+  the body-titled folder still reserves it;
+  `LayeredLayout_FolderNameInTabWithKeywordAndTopPort_ReservesTitleInset` and
+  `LayeredLayout_FolderNameInTabWithKeywordAndBottomPort_ReservesTitleInset` add a `Keyword` to the in-tab
+  folder and confirm its top (respectively bottom) content inset equals the body-titled folder's and
+  exceeds the keyword-less in-tab folder's, because the keyword line is still drawn in the body;
+  `LayeredLayout_FolderNameInTabWithKeywordAndSmallHeight_GrowsLikeBodyTitled` confirms the port-driven
+  growth path also sees the keyword (the in-tab keyword folder's height is at least the body-titled
+  folder's).
 - **Back-edge entry approach** (`Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproach`): the tests
   lay out a six-state, seven-transition elevator state machine (two reversed edges among forward ones,
   `MergeParallelEdges = false`) through `LayoutEngine.Layout`.
@@ -210,7 +217,10 @@ failure.
 - **`Rendering-Layout-LayeredAlgorithm-AppearancePassThrough`**:
   LayeredLayout_NodeAppearance_ReachesPlacedBox, LayeredLayout_NodeWithoutAppearance_StaysNull
 - **`Rendering-Layout-LayeredAlgorithm-FolderTabTitleReserve`**:
-  LayeredLayout_FolderNameInTabWithTopPort_ReservesNoTitleInset
+  LayeredLayout_FolderNameInTabWithTopPort_ReservesNoTitleInset,
+  LayeredLayout_FolderNameInTabWithKeywordAndTopPort_ReservesTitleInset,
+  LayeredLayout_FolderNameInTabWithKeywordAndBottomPort_ReservesTitleInset,
+  LayeredLayout_FolderNameInTabWithKeywordAndSmallHeight_GrowsLikeBodyTitled
 - **`Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproach`**:
   LayeredLayout_BackEdgeWithOpenChevron_FinalLegCoversChevronAndCorner,
   LayeredLayout_BackEdgeWithOpenChevron_AllDirectionsKeepCleanFinalLeg,

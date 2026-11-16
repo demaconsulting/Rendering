@@ -171,11 +171,87 @@ public sealed class NotationPrimitivePassThroughTests
         Assert.True(inTab.ContentInsetTop < inBody.ContentInsetTop);
     }
 
-    private static LayoutGraph FolderWithChild(BoxAppearance? appearance, double? titleHeight = null)
+    private static LayoutBox PlaceKeywordPortedFolder(
+        BoxAppearance? appearance, string? keyword, bool topPort, double height = 120)
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);
+        var folder = graph.AddNode("pkg", 160, height);
+        folder.Label = "Package";
+        folder.Keyword = keyword;
+        folder.Shape = BoxShape.Folder;
+        folder.Appearance = appearance;
+        var port = folder.Ports.AddPort("p");
+        port.ExternalLabel = "request";
+        var other = graph.AddNode("other", 80, 40);
+        other.Label = "Other";
+        if (topPort)
+        {
+            graph.AddEdge("e", other, port);
+        }
+        else
+        {
+            graph.AddEdge("e", port, other);
+        }
+
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+        return tree.Nodes.OfType<LayoutBox>().Single(box => box.Label == "Package");
+    }
+
+    /// <summary>
+    ///     A name-in-tab folder that still draws a keyword line in its body keeps the title clearance for
+    ///     a top port label: its top inset equals the body-titled folder's and exceeds the keyword-less one.
+    /// </summary>
+    [Fact]
+    public void LayeredLayout_FolderNameInTabWithKeywordAndTopPort_ReservesTitleInset()
+    {
+        var tab = new BoxAppearance(FolderTitle: FolderTitlePlacement.Tab);
+        var inTabKeyword = PlaceKeywordPortedFolder(tab, "package", topPort: true);
+        var inTabPlain = PlaceKeywordPortedFolder(tab, null, topPort: true);
+        var inBody = PlaceKeywordPortedFolder(null, "package", topPort: true);
+
+        Assert.True(inTabKeyword.ContentInsetTop > inTabPlain.ContentInsetTop);
+        Assert.Equal(inBody.ContentInsetTop, inTabKeyword.ContentInsetTop, 1e-9);
+    }
+
+    /// <summary>
+    ///     As above for a bottom port: the keyword line keeps the bottom content inset reserved.
+    /// </summary>
+    [Fact]
+    public void LayeredLayout_FolderNameInTabWithKeywordAndBottomPort_ReservesTitleInset()
+    {
+        var tab = new BoxAppearance(FolderTitle: FolderTitlePlacement.Tab);
+        var inTabKeyword = PlaceKeywordPortedFolder(tab, "package", topPort: false);
+        var inTabPlain = PlaceKeywordPortedFolder(tab, null, topPort: false);
+        var inBody = PlaceKeywordPortedFolder(null, "package", topPort: false);
+
+        Assert.True(inTabKeyword.ContentInsetBottom > inTabPlain.ContentInsetBottom);
+        Assert.Equal(inBody.ContentInsetBottom, inTabKeyword.ContentInsetBottom, 1e-9);
+    }
+
+    /// <summary>
+    ///     The port-driven growth path also sees the keyword line: with a small caller-set height the
+    ///     keyword-bearing name-in-tab folder grows at least as much as the body-titled folder.
+    /// </summary>
+    [Fact]
+    public void LayeredLayout_FolderNameInTabWithKeywordAndSmallHeight_GrowsLikeBodyTitled()
+    {
+        var tab = new BoxAppearance(FolderTitle: FolderTitlePlacement.Tab);
+        var inTabKeyword = PlaceKeywordPortedFolder(tab, "package", topPort: true, height: 20);
+        var inTabPlain = PlaceKeywordPortedFolder(tab, null, topPort: true, height: 20);
+        var inBody = PlaceKeywordPortedFolder(null, "package", topPort: true, height: 20);
+
+        Assert.True(inTabKeyword.Height >= inBody.Height - 1e-9);
+        Assert.True(inTabKeyword.Height >= inTabPlain.Height);
+    }
+
+    private static LayoutGraph FolderWithChild(
+        BoxAppearance? appearance, double? titleHeight = null, string? keyword = null)
     {
         var graph = new LayoutGraph();
         var folder = graph.AddNode("pkg", 10, 10);
         folder.Label = "Package";
+        folder.Keyword = keyword;
         folder.Shape = BoxShape.Folder;
         folder.Appearance = appearance;
         folder.TitleHeight = titleHeight;
@@ -202,6 +278,28 @@ public sealed class NotationPrimitivePassThroughTests
         Assert.True(tabbedOffset < bodiedOffset);
         // The body title band is the hierarchical algorithm's default container title height (24 px).
         Assert.Equal(24.0, bodiedOffset - tabbedOffset, 1e-9);
+    }
+
+    /// <summary>
+    ///     A name-in-tab folder that still draws a keyword line in its body keeps the default title reserve,
+    ///     so its child clears the keyword line exactly as in a body-titled folder.
+    /// </summary>
+    [Fact]
+    public void HierarchicalLayout_FolderNameInTabWithKeyword_ChildClearsKeywordLine()
+    {
+        var options = LayoutOptions.ForAlgorithm("layered");
+        var tabbed = new BoxAppearance(FolderTitle: FolderTitlePlacement.Tab);
+        var inTab = new HierarchicalLayoutAlgorithm().ApplyCore(FolderWithChild(tabbed, keyword: "package"), options);
+        var inBody = new HierarchicalLayoutAlgorithm().ApplyCore(FolderWithChild(null, keyword: "package"), options);
+
+        var folder = FindBox(inTab.Nodes, "Package");
+        var child = FindBox(inTab.Nodes, "Child");
+        var tabbedOffset = child.Y - folder.Y;
+        var bodiedOffset = FindBox(inBody.Nodes, "Child").Y - FindBox(inBody.Nodes, "Package").Y;
+
+        var keywordBottom = BoxMetrics.FolderTabHeight(Themes.Light) + BoxMetrics.TitleAreaHeight(Themes.Light, false, true);
+        Assert.True(tabbedOffset >= keywordBottom, "The child must clear the tab and the keyword line.");
+        Assert.Equal(bodiedOffset, tabbedOffset, 1e-9);
     }
 
     /// <summary>

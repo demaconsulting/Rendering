@@ -35,7 +35,10 @@ per node followed by `LayoutLine` per edge).
    has a label, and its `Appearance.FolderTitle` is `FolderTitlePlacement.Tab`) occupies no body title
    band, so the internal `HasBodyTitle` test (a label that is not drawn in the tab) replaces the plain
    "has a label" test everywhere a title reserve is sized: the `TitleReserveTop` handed to the pipeline
-   and the `hasTitle` argument of the content-inset resolution (steps 6 and 9).
+   and the `hasTitle` argument of the content-inset resolution (steps 6 and 9). A keyword line is still
+   drawn in the body of an in-tab folder, so the `hasTitle` argument uses the internal
+   `HasBodyTitleContent` test (`HasBodyTitle` or `Keyword != null`) at both content-inset sites; the
+   `TitleReserveTop` call already counts the keyword separately.
 2. **Edge mapping.** Maps each edge to an index pair, dropping any edge that references a node
    outside this graph. A *layout-only* edge (an edge marked through
    `HierarchicalLayoutAlgorithm.MarkLayoutOnly`, added by the hierarchical engine as a placement hint

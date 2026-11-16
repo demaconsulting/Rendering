@@ -251,7 +251,11 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   exactly the default container title height (24 px) higher when the name is in the tab;
   `HierarchicalLayout_FolderNameInTabWithExplicitTitleHeight_KeepsReserve` confirms that with an explicit
   `TitleHeight` of 30 px the in-tab folder's child sits at exactly the same offset as the body-titled
-  folder's, so the caller's reserve is honored.
+  folder's, so the caller's reserve is honored;
+  `HierarchicalLayout_FolderNameInTabWithKeyword_ChildClearsKeywordLine` gives the in-tab folder a
+  `Keyword` and confirms the child sits at least the tab height plus the keyword band below the folder
+  top and at exactly the same offset as the body-titled keyword folder's child (the default reserve is
+  kept).
 
 ### Requirements Coverage
 
@@ -323,4 +327,5 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   HierarchicalLayout_ContainerAndLeafAppearance_ReachPlacedBoxes
 - **`Rendering-Layout-HierarchicalLayout-FolderTabTitleReserve`**:
   HierarchicalLayout_FolderNameInTab_ReservesNoBodyTitleBand,
-  HierarchicalLayout_FolderNameInTabWithExplicitTitleHeight_KeepsReserve
+  HierarchicalLayout_FolderNameInTabWithExplicitTitleHeight_KeepsReserve,
+  HierarchicalLayout_FolderNameInTabWithKeyword_ChildClearsKeywordLine
