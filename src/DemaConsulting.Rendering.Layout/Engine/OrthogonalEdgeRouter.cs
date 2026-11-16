@@ -376,6 +376,18 @@ internal static class OrthogonalEdgeRouter
         var targetReference = target.PointAt(target.Preferred);
         var sourceStub = StubLength(sourceReference, source.Side, targetReference, stub);
         var targetStub = StubLength(targetReference, target.Side, sourceReference, stub);
+
+        // Two ends on the SAME side do not face each other, so the midline cap above is meaningless for
+        // them: with both anchors level along the face (for example two boxes with aligned left edges
+        // joined left to left) it collapses both stubs to zero, and the only "route" left is a straight
+        // segment lying on the faces themselves. Give such an end its full stub so the connector steps
+        // off and wraps around instead.
+        if (source.Side is not null && source.Side == target.Side)
+        {
+            sourceStub = sourceStub < 1e-9 ? stub : sourceStub;
+            targetStub = targetStub < 1e-9 ? stub : targetStub;
+        }
+
         var routeSource = StepOff(sourceReference, source.Side, sourceStub);
         var routeTarget = StepOff(targetReference, target.Side, targetStub);
 

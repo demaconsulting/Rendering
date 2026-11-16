@@ -75,7 +75,11 @@ which returns a `LayoutTree` carrying the packed region size and a flat list of 
    override be honored whether the algorithm is invoked directly or as a scope's leaf algorithm inside
    `HierarchicalLayoutAlgorithm` (which passes each scope's already-cascaded effective options).
 6. **Assembly.** Returns a `LayoutTree` with the region `Width`/`Height` and the packed boxes followed
-   by the routed lines.
+   by the routed lines. If a routed connector runs outside that canvas (a connector wrapping around the
+   outside of the packed boxes, for example the overflow of a face too short for the connectors converging
+   on it), `FitCanvasToLines` extends the canvas to include it (with a 4 px padding for the stroke and
+   rounded corner) and shifts the boxes and lines uniformly when it reaches the left or top edge, so the
+   connector is never clipped; with every connector inside, the canvas is exactly the packer's.
 
 An empty graph yields an empty `LayoutTree` with a positive-size canvas, because the packer returns a
 padding-only region for no children and no connections are routed.
@@ -144,6 +148,7 @@ routing, adapting their combined output to the public `LayoutAlgorithmBase` cont
 | Rendering-Layout-ContainmentAlgorithm-HonorsScopeEdgeRouting | ContainmentLayoutAlgorithm behavior described above |
 | Rendering-Layout-ContainmentAlgorithm-EdgeCountGapWidening | ContainmentLayoutAlgorithm behavior described above |
 | Rendering-Layout-ContainmentAlgorithm-VerticalStackUnaffected | ContainmentLayoutAlgorithm behavior described above |
+| Rendering-Layout-ContainmentAlgorithm-KeepsConnectorsInsideCanvas | Assembly (step 6, `FitCanvasToLines`) |
 | Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula | EdgeCountGapWidener helper described above |
 | Rendering-Layout-ContainmentAlgorithm-LayoutOnlyEdges | Connection building (step 4) |
 | Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly | Connection building (step 4) |

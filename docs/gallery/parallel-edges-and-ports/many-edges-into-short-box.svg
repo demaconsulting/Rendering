@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="688.00" height="554.00" viewBox="0 0 688.00 554.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#C0C0D8" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="14.747763" markerHeight="7" refX="14.747763" refY="3.5" orient="auto">
+      <polygon points="4.5 0, 14.5 3.5, 4.5 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50" stroke-linejoin="bevel"/>
+      <line x1="1" y1="0" x2="1" y2="7" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#C0C0D8" stroke="#C0C0D8" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9.75" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2.75" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#C0C0D8" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-two-dots" markerWidth="15.247763" markerHeight="7" refX="15.247763" refY="3.5" orient="auto">
+      <polygon points="5 0, 15 3.5, 5 7" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50" stroke-linejoin="bevel"/>
+      <circle cx="1.25" cy="1.25" r="1.25" fill="#C0C0D8"/>
+      <circle cx="1.25" cy="5.75" r="1.25" fill="#C0C0D8"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#1E1E2E"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <path d="M 20.00 44.00 L 20.00 20.00 L 80.00 20.00 L 80.00 44.00 L 374.00 44.00 L 374.00 534.00 L 20.00 534.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="197.00" y="57.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Usages</text>
+  <rect x="52.00" y="132.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="117.00" y="157.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Usage1</text>
+  <rect x="212.00" y="132.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="277.00" y="157.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Usage2</text>
+  <rect x="52.00" y="212.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="117.00" y="237.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Usage3</text>
+  <rect x="212.00" y="212.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="277.00" y="237.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Usage4</text>
+  <rect x="52.00" y="292.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="117.00" y="317.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Usage5</text>
+  <rect x="212.00" y="292.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="277.00" y="317.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Usage6</text>
+  <rect x="52.00" y="372.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="117.00" y="397.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Usage7</text>
+  <rect x="212.00" y="372.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="277.00" y="397.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Usage8</text>
+  <rect x="52.00" y="452.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="117.00" y="477.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Usage9</text>
+  <rect x="212.00" y="452.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="277.00" y="477.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Usage10</text>
+  <rect x="538.00" y="252.00" width="130.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="603.00" y="277.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Definition</text>
+  <path d="M 182.00 163.00 L 202.00 163.00 A 4.00 4.00 0 0 1 206.00 167.00 L 206.00 184.00 A 4.00 4.00 0 0 0 210.00 188.00 L 546.00 188.00 A 4.00 4.00 0 0 1 550.00 192.00 L 550.00 252.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)"/>
+  <path d="M 342.00 157.00 L 652.00 157.00 A 4.00 4.00 0 0 1 656.00 161.00 L 656.00 252.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)"/>
+  <path d="M 159.40 262.00 L 159.40 282.00 A 4.00 4.00 0 0 0 163.40 286.00 L 184.00 286.00 A 4.00 4.00 0 0 0 188.00 282.00 L 188.00 210.00 A 4.00 4.00 0 0 1 192.00 206.00 L 593.33 206.00 A 4.00 4.00 0 0 1 597.33 210.00 L 597.33 252.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)"/>
+  <path d="M 342.00 250.00 L 358.00 250.00 A 4.00 4.00 0 0 1 362.00 254.00 L 362.00 256.00 A 4.00 4.00 0 0 0 366.00 260.00 L 538.00 260.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)"/>
+  <path d="M 182.00 310.00 L 202.00 310.00 A 4.00 4.00 0 0 1 206.00 314.00 L 206.00 344.00 A 4.00 4.00 0 0 0 210.00 348.00 L 498.00 348.00 A 4.00 4.00 0 0 0 502.00 344.00 L 502.00 281.00 A 4.00 4.00 0 0 1 506.00 277.00 L 538.00 277.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)"/>
+  <path d="M 342.00 304.00 L 514.00 304.00 A 4.00 4.00 0 0 0 518.00 300.00 L 518.00 294.00 L 538.00 294.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)"/>
+  <path d="M 182.00 391.00 L 202.00 391.00 A 4.00 4.00 0 0 0 206.00 387.00 L 206.00 370.00 A 4.00 4.00 0 0 1 210.00 366.00 L 546.00 366.00 A 4.00 4.00 0 0 0 550.00 362.00 L 550.00 302.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)"/>
+  <path d="M 342.00 397.00 L 616.67 397.00 A 4.00 4.00 0 0 0 620.67 393.00 L 620.67 302.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)"/>
+  <path d="M 182.00 471.00 L 202.00 471.00 A 4.00 4.00 0 0 0 206.00 467.00 L 206.00 450.00 A 4.00 4.00 0 0 1 210.00 446.00 L 581.33 446.00 A 4.00 4.00 0 0 0 585.33 442.00 L 585.33 302.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)"/>
+  <path d="M 342.00 477.00 L 652.00 477.00 A 4.00 4.00 0 0 0 656.00 473.00 L 656.00 302.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)"/>
+</svg>

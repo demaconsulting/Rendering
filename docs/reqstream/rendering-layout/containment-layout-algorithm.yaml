@@ -108,13 +108,27 @@ sections:
       - id: Rendering-Layout-ContainmentAlgorithm-VerticalStackUnaffected
         title: >-
           The edge-count gap widening shall apply to the horizontal (same-row) gap only and shall leave
-          a vertical stack's box positions byte-identical.
+          a vertical stack's box positions, relative to one another, unchanged.
         justification: |
           The widening is deliberately horizontal-only so a Source-over-Target vertical stack keeps its
           exact prior geometry; a parallel-edge fan between vertically stacked peers must not perturb
-          their positions the way a same-row fan perturbs the horizontal gap.
+          their positions the way a same-row fan perturbs the horizontal gap. (The whole picture may be
+          shifted uniformly when a connector wraps around the outside of the stack and the canvas is
+          extended to keep it visible.)
         tests:
           - Apply_VerticalStackWithParallelEdges_LeavesBoxPositionsUnchanged
+
+      - id: Rendering-Layout-ContainmentAlgorithm-KeepsConnectorsInsideCanvas
+        title: >-
+          When a routed connector runs outside the packed boxes' canvas (for example when more connectors
+          converge on a short face than it can hold and the overflow wraps around the outside), the
+          algorithm shall extend the canvas, shifting the content uniformly, so every connector waypoint
+          lies inside the reported canvas.
+        justification: |
+          A connector outside the canvas is clipped by every renderer and vanishes from the diagram. The
+          canvas is otherwise exactly the packer's, so a layout whose connectors are all inside is unchanged.
+        tests:
+          - Apply_VerticalStackWithNineParallelEdges_KeepsEveryConnectorInsideTheCanvas
 
       - id: Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula
         title: >-

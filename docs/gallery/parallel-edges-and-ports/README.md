@@ -7,9 +7,8 @@ widening — the same small-box-count-many-edges shape compared across algorithm
 
 ## Parallel-edge routing regressions
 
-Regression coverage specific to routing many parallel connectors around and between boxes: a small graph, laid out by
-the containment algorithm, that reproduces a specific connector-routing bug once fixed, kept as permanent visual and
-numeric evidence that it stays fixed.
+Regression coverage specific to routing many parallel connectors around and between boxes: small graphs that reproduce a
+specific connector-routing bug once fixed, kept as permanent visual and numeric evidence that it stays fixed.
 
 ![Nine edges docking on a compartment box without crossing its interior](parallel-edges-into-compartment-box.svg)
 
@@ -17,6 +16,13 @@ Regression coverage for the parallel-edges-into-compartment-box fix: nine unmerg
 converge on a taller Target box's nine-row compartment. ConnectorRouter now treats every box, including a connection's
 own endpoints, as a hard obstacle for the whole route (not just the final docking stub), so a connector squeezed by
 other already-routed connectors can no longer detour straight through its own target box's interior.
+
+![Ten typing edges into one short definition box, anchors kept 16 px apart](many-edges-into-short-box.svg)
+
+Ten cross-container typing edges from usages inside a folder converge on one short 130x50 Definition box. A 50 px face
+holds only three anchors 16 px apart, so ConnectorRouter fills the west face with three and wraps the rest onto the top
+and bottom faces: every anchor on every face stays at least MinFixedAnchorSeparation (16 px) from its neighbors, instead
+of crowding the markers together.
 
 ## Parallel edges and named ports
 

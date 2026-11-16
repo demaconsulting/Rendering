@@ -52,6 +52,7 @@ sections:
         tests:
           - Route_WithSourceSide_LeavesPerpendicular
           - Route_WithTargetSide_EntersPerpendicular
+          - RouteWithStatus_SameSideAlignedEnds_StepOffInsteadOfRunningAlongFaces
 
       - id: Rendering-Layout-OrthogonalEdgeRouter-CrossingStatus
         title: >-

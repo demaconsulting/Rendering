@@ -170,6 +170,13 @@ and one of its own descendants cannot be drawn between two distinct boxes and is
 on a cross-container edge is not supported (it throws `NotSupportedException`), and an edge cannot
 rearrange the inside of the one container that holds both of its endpoints.
 
+Anchors on one box face are kept at least 16 px apart (`MinFixedAnchorSeparation`, roughly the length of an
+arrowhead) from each other and from the anchors of connectors already drawn on that face inside a
+container. A short face (a 50 px box) holds only three such anchors, so when more connectors converge on it —
+for example ten typing edges into one definition box — the router fills the face and wraps the rest around the
+adjacent faces rather than crowding the markers together. A box that receives many connectors still reads best
+when it is tall (or wide) enough for them; the layered layout grows a node for its anchors automatically.
+
 ```csharp
 var graph = new LayoutGraph();
 
@@ -496,7 +503,11 @@ selects one of these glyphs:
 | `Circle` | Circle | Circle end |
 | `OpenChevron`, `FilledArrow` | Open or filled arrowhead | Flow, succession |
 
-The meanings are conventions of the consuming notation; the renderers draw only the glyph. The
+The meanings are conventions of the consuming notation; the renderers draw only the glyph. Every marker
+tip lands exactly on the line endpoint, which a router or layout places on the box boundary, so a tip meets
+the target's border instead of poking into its interior; both renderers do this identically (the glyph is
+moved back by half the marker stroke width scaled by the corner angle, see `NotationMetrics.TipRetraction`),
+and a marker whose line ends on a port is drawn up to the port square's outer edge, not under it. The
 dotted and circled glyphs were added after the original set, so the older markers keep their
 ordinal values; the new SVG definitions are written only when a line uses them. The redefinition
 glyph now follows the SysML v2 notation, with the bar on the line side of the triangle base and a
@@ -653,7 +664,10 @@ renderer.Render(tree, new RenderOptions(Themes.Light), output);
 
 For a graph that is already a single, fully (or mostly) connected component (the common case), `"auto"`
 delegates directly to the equivalent leaf algorithm with no splitting or copying cost, so it is a safe
-default even when you are not sure a graph is disconnected.
+default even when you are not sure a graph is disconnected. When a graph is split, every node's, port's and
+edge's own options (for example a per-node `CoreOptions.Algorithm` or `Direction` on a container) and the options
+set on a container's `Children` graph are carried onto the copy, so a container is laid out the same way
+whether or not an unrelated node beside it forces the split.
 
 ### Algorithm capabilities at a glance
 

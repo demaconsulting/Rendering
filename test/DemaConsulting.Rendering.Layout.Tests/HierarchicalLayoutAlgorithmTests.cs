@@ -1645,13 +1645,122 @@ public sealed class HierarchicalLayoutAlgorithmTests
         // Act
         var tree = LayoutWith(algorithm, graph);
 
-        // Assert: both lines leave Login, from distinct points on its face. A 50px-tall face with the
-        // 12px end insets can hold two anchors at most 13px apart, so require at least that.
+        // Assert: both lines leave Login, from distinct points on its face, at least the router's
+        // MinFixedAnchorSeparation (16 px) apart (Login's 50 px face can hold two such anchors).
         var lines = AllLines(tree.Nodes).ToList();
         Assert.Equal(2, lines.Count);
         var starts = lines.Select(l => l.Waypoints[0]).ToList();
         var distance = Math.Abs(starts[0].X - starts[1].X) + Math.Abs(starts[0].Y - starts[1].Y);
-        Assert.True(distance >= 12.0, $"Login's two connectors start only {distance}px apart.");
+        Assert.True(distance >= 16.0 - 1e-6, $"Login's two connectors start only {distance}px apart.");
+    }
+
+    /// <summary>
+    ///     Issue #53 Repro 1: leaf H; folder P (layered, TitleHeight 56) containing M -> E; root edge H -> E
+    ///     (hollow-triangle ends), every leaf 130x50. E's west face carries the interior M -> E anchor at its
+    ///     centre (y = 157); the cross-hierarchy H -> E anchor must be at least 16 px from it (it was 13 px).
+    /// </summary>
+    [Fact]
+    public void Apply_CrossHierarchyRepro1_AnchorsOnSharedFaceAtLeast16Apart()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        var h = AddLeaf130(graph, "H");
+        var p = AddContainer(graph, "P");
+        p.Shape = BoxShape.Folder;
+        p.TitleHeight = 56;
+        p.Set(CoreOptions.Algorithm, "layered");
+        var m = AddLeaf130(p.Children, "M");
+        var e = AddLeaf130(p.Children, "E");
+        p.Children.AddEdge("m-e", m, e).TargetEnd = EndMarkerStyle.HollowTriangle;
+        graph.AddEdge("h-e", h, e).TargetEnd = EndMarkerStyle.HollowTriangle;
+
+        // Act
+        var tree = LayoutWith("auto", graph);
+
+        // Assert: the interior anchor stays at the face centre and the cross-hierarchy one is >= 16 px away.
+        var engine = FindBox(tree.Nodes, "E");
+        var interior = LineBetween(tree, "M", "E").Waypoints[^1];
+        var crossing = LineBetween(tree, "H", "E").Waypoints[^1];
+        Assert.Equal(engine.Y + 25.0, interior.Y, 6);
+        Assert.True(Math.Abs(crossing.Y - interior.Y) >= 16.0 - 1e-6, $"The two anchors on E are only {Math.Abs(crossing.Y - interior.Y)} px apart.");
+        AssertFaceAnchorsSeparated(tree, "E");
+    }
+
+    /// <summary>
+    ///     Issue #53 (general case): N cross-hierarchy typing edges from usages inside a folder into one 130x50
+    ///     definition outside it. On every face of the definition the anchors are at least 16 px apart.
+    /// </summary>
+    /// <param name="count">The number of usages (and edges).</param>
+    [Theory]
+    [InlineData(3)]
+    [InlineData(5)]
+    [InlineData(10)]
+    public void Apply_ManyCrossHierarchyEdgesIntoOneBox_AnchorsAtLeast16Apart(int count)
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        var usages = AddContainer(graph, "Usages");
+        usages.Shape = BoxShape.Folder;
+        usages.TitleHeight = 56;
+        usages.Set(CoreOptions.Algorithm, "layered");
+        var definition = AddLeaf130(graph, "Definition");
+        for (var i = 1; i <= count; i++)
+        {
+            var usage = AddLeaf130(usages.Children, "Usage" + i);
+            graph.AddEdge("typing" + i, usage, definition).TargetEnd = EndMarkerStyle.HollowTriangleTwoDots;
+        }
+
+        // Act
+        var tree = LayoutWith("auto", graph);
+
+        // Assert
+        Assert.Equal(count, AllLines(tree.Nodes).Count());
+        AssertFaceAnchorsSeparated(tree, "Definition");
+    }
+
+    /// <summary>
+    ///     Asserts that, on every face of the box labeled <paramref name="label"/>, the end points of the
+    ///     tree's connectors landing on it are pairwise at least <c>MinFixedAnchorSeparation</c> (16 px) apart.
+    /// </summary>
+    private static void AssertFaceAnchorsSeparated(LayoutTree tree, string label)
+    {
+        var box = FindBox(tree.Nodes, label);
+        var faces = new Dictionary<PortSide, List<double>>();
+        foreach (var line in AllLines(tree.Nodes))
+        {
+            foreach (var point in new[] { line.Waypoints[0], line.Waypoints[^1] })
+            {
+                if (ConnectorRouter.TryResolveFaceAnchor(box, point, out var anchor))
+                {
+                    if (!faces.TryGetValue(anchor.Side, out var coords))
+                    {
+                        coords = [];
+                        faces[anchor.Side] = coords;
+                    }
+
+                    coords.Add(anchor.Along);
+                }
+            }
+        }
+
+        foreach (var (side, coords) in faces)
+        {
+            coords.Sort();
+            for (var i = 1; i < coords.Count; i++)
+            {
+                Assert.True(
+                    coords[i] - coords[i - 1] >= 16.0 - 1e-6,
+                    $"{label}.{side}: anchors {coords[i - 1]} and {coords[i]} are only {coords[i] - coords[i - 1]} px apart.");
+            }
+        }
+    }
+
+    /// <summary>Adds a 130x50 leaf node whose id and label are both <paramref name="id"/>.</summary>
+    private static LayoutGraphNode AddLeaf130(LayoutGraph graph, string id)
+    {
+        var node = graph.AddNode(id, 130, 50);
+        node.Label = id;
+        return node;
     }
 
     /// <summary>Returns the length over which two axis-aligned segments lie on the same line.</summary>

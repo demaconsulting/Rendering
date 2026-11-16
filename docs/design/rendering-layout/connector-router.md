@@ -77,8 +77,10 @@ implementations are:
    `LineStyle`, and `Label`, with `SourceEnd` left `None`.
 
 The batch overload first computes those naive per-connection face coordinates, then groups any shared
-box face claims and redistributes them across the **union of that face's connectable extents** rather
-than across the full bounding-box span. It still orders the claims by counterpart-box centre so the
+box face claims (and any face that already carries an occupied anchor) and assigns the claims
+(`DistributeSharedFaceAnchors`, see _Anchor separation and face overflow_ below) across the **union of that
+face's connectable extents** rather than across the full bounding-box span. It still orders the claims by
+counterpart-box centre so the
 visual left-to-right or top-to-bottom order of the connectors tracks the order of their counterparts.
 Finally it routes the connectors sequentially and turns only each prior route's **interior** segments
 into soft obstacles; the short endpoint-adjacent approach legs are intentionally omitted so several
@@ -88,6 +90,40 @@ proportion to how far it extends, rather than treating every overlap as an equal
 parallel fan-out or fan-in connectors separate into visually distinct corridors instead of merging
 along a shared trunk for an extended span. The single-connection overload is routed as a one-element
 batch, so both overloads share every stage described below.
+
+**Anchor separation and face overflow.** Connector end markers are about 15 px long and 10 px wide at the
+default theme, so two anchors closer than `MinFixedAnchorSeparation` (16 px) on one face make neighboring
+markers touch and the connectors hard to trace. `DistributeSharedFaceAnchors` therefore guarantees that
+connectors landing on one face are at least 16 px apart, the anchors already occupied there (the end points
+of connectors routed in a child scope, passed to the batch as fixed anchors) included, in up to
+`MaxAnchorRedistributionPasses` (4) deterministic passes:
+
+1. Each shared (or already occupied) face is placed inside its connectable extents inset by the connector
+   clearance (12 px), the historical region. The part clear of the occupied anchors (the extents minus the
+   open 16 px windows around them) is packed greedily to count how many anchors it holds 16 px apart.
+2. If that region holds all the face's connectors, they are spread evenly along it (no occupied anchor:
+   exactly the historical result) or each takes the position nearest its current anchor that is clear of
+   every anchor already placed (occupied anchors present), so an anchor that already satisfies the rule does
+   not move. Otherwise the wider _corner-margin_ region is used: the extents inset by the marker-aware
+   `PortCornerMargin` (8 px; `PortCornerMarginFor` of the target end, 10 px for a circled plus). A 50 px
+   face therefore holds three anchors (at 8, 25 and 42) instead of two, and a centered interior anchor
+   still leaves room for an external anchor at 9 or 41 (16 px away), instead of the old "most separated"
+   fallback of 12 to 13 px. An anchor placed outside the clearance inset is flagged _slid_, so the
+   clearance clamp and the later sliding stage keep it there.
+3. If even the corner-margin region cannot hold them, the connectors nearest the middle of the face keep it
+   and the overflow is peeled from the ends of the ordering (the claim whose counterpart sits farthest from
+   the face's middle first) and moved to the adjacent face on the side the counterpart lies on: the lower end
+   (counterpart above or left) to the top or left face, the upper end to the bottom or right face, falling
+   back to the other adjacent face when the first is unusable. A connector end never returns to a face it
+   has left, so two full faces cannot ping-pong. An overflowing claim from a right or bottom face takes the
+   reverse connection order on its new face, so the connectors that wrap around the corner nest instead of
+   crossing. The moved connectors take part in the next pass as ordinary claims of their new face.
+4. On the last pass nothing moves: a face that is still over capacity (every adjacent face is full or
+   unusable) is spread as evenly as its region allows, a documented best effort that never throws.
+
+Later stages preserve the separation: the sliding stage keeps at least the smaller of 16 px and the current
+distance from each neighbor, so it never repairs-or-worsens a face this stage already separated. The layered
+pipeline is unaffected: its `PortDistributor` grows a node until every face holds its anchors 20 px apart.
 
 **Port sliding (straight-lane alignment).** The anchors above are fixed before any obstacle is
 considered, so a connector whose straight line is blocked used to step off its face, jog around the
@@ -262,6 +298,8 @@ any set of placed boxes.
 | Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther | ConnectorRouter behavior described above |
 | Rendering-Layout-ConnectorRouter-ShapeAwareAnchors | ConnectorRouter behavior described above |
 | Rendering-Layout-ConnectorRouter-SharedFaceDistribution | ConnectorRouter behavior described above |
+| Rendering-Layout-ConnectorRouter-MinimumAnchorSeparation | Anchor separation and face overflow (steps 1-2) |
+| Rendering-Layout-ConnectorRouter-FaceOverflowToAdjacentFace | Anchor separation and face overflow (steps 3-4) |
 | Rendering-Layout-ConnectorRouter-AvoidsObstacles | ConnectorRouter behavior described above |
 | Rendering-Layout-ConnectorRouter-ExcludesEndpoints | ConnectorRouter behavior described above |
 | Rendering-Layout-ConnectorRouter-CarriesStyling | ConnectorRouter behavior described above |
