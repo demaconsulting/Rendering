@@ -16,7 +16,9 @@ handling, validation, and determinism are all measured on production output.
 
 - **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
-- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/Engine/InterconnectionLayoutEngineTests.cs`.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/Engine/InterconnectionLayoutEngineTests.cs`, plus
+  `test/DemaConsulting.Rendering.Layout.Tests/BackEdgeEntryApproachTests.cs` (the back-edge entry approach
+  parameter).
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and options.
 - **Isolation**: each test builds its own inputs; the engine and pipeline are stateless between
@@ -28,7 +30,9 @@ A verification run passes when every named scenario below asserts without unexpe
 the referenced tests cover each `Rendering-Layout-InterconnectionEngine-*` requirement. Any drift
 in monotonic layer indices along a chain, overlapping placed rectangles, dummy nodes leaking into
 the returned rectangle list, missing or non-orthogonal edge waypoints, direction handling
-transposing incorrectly, or non-deterministic geometry for identical input constitutes a failure.
+transposing incorrectly, a back-edge entry approach that is not byte-identical to the connector clearance
+by default or that fails to lengthen a reversed edge's final run when raised, or non-deterministic
+geometry for identical input constitutes a failure.
 
 #### Test Scenarios
 
@@ -65,6 +69,14 @@ transposing incorrectly, or non-deterministic geometry for identical input const
   `Place_RepeatedInvocation_ProducesIdenticalGeometry` confirms identical input produces identical
   rects, totals, retained acyclic edges, layer indices, and connector waypoints on repeated
   invocation.
+- **Back-edge entry approach parameter**
+  (`Rendering-Layout-InterconnectionEngine-BackEdgeEntryApproachParameter`): both scenarios place a
+  three-node cycle (`0 -> 1 -> 2 -> 0`, so one edge is reversed).
+  `InterconnectionLayoutEngine_DefaultApproach_EqualsExplicitConnectorClearance` confirms omitting the
+  argument and passing `LayeredLayoutMetrics.ConnectorClearance` explicitly yield identical rectangles and
+  identical connector waypoints, and `InterconnectionLayoutEngine_LargerApproach_LengthensBackEdgeFinalRun`
+  confirms raising the argument to 40 px never shortens the longest final run of any connector and never
+  narrows the canvas.
 - **Validation** (supporting the documented error contract):
   `Place_NullNodes_ThrowsArgumentNullException` and `Place_NullEdges_ThrowsArgumentNullException`
   confirm null inputs are rejected before any pipeline stage executes.
@@ -91,3 +103,6 @@ transposing incorrectly, or non-deterministic geometry for identical input const
   Place_DefaultDirection_MatchesRightFlow
 - **`Rendering-Layout-InterconnectionEngine-Deterministic`**:
   Place_RepeatedInvocation_ProducesIdenticalGeometry
+- **`Rendering-Layout-InterconnectionEngine-BackEdgeEntryApproachParameter`**:
+  InterconnectionLayoutEngine_DefaultApproach_EqualsExplicitConnectorClearance,
+  InterconnectionLayoutEngine_LargerApproach_LengthensBackEdgeFinalRun

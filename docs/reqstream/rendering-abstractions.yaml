@@ -100,6 +100,13 @@ sections:
           - Rendering-Abstractions-NotationMetrics-RejectNullTheme
           - Rendering-Abstractions-NotationMetrics-Badge
           - Rendering-Abstractions-NotationMetrics-LabelBackground
+          - Rendering-Abstractions-NotationMetrics-DottedTriangleMarkers
+          - Rendering-Abstractions-NotationMetrics-CircledPlusMarker
+          - Rendering-Abstractions-NotationMetrics-RenderedAlongLineLength
+          - Rendering-Abstractions-NotationMetrics-AcrossHalfWidth
+          - Rendering-Abstractions-NotationMetrics-ThickBarBadge
+          - Rendering-Abstractions-NotationMetrics-CrossedCircleBadge
+          - Rendering-Abstractions-NotationMetrics-CornerIcon
         tests:
           - TriangleFamily_HasCanonicalValues
 
@@ -115,6 +122,9 @@ sections:
           - Rendering-Abstractions-BoxMetrics-FolderTabHeight
           - Rendering-Abstractions-BoxMetrics-TitleAreaHeight
           - Rendering-Abstractions-BoxMetrics-RejectNullTheme
+          - Rendering-Abstractions-BoxMetrics-FolderTabResolution
+          - Rendering-Abstractions-BoxMetrics-TitleAreaHeightForBox
+          - Rendering-Abstractions-BoxMetrics-LifelineHeaderHeight
         tests:
           - BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding
 
@@ -133,6 +143,9 @@ sections:
           - Rendering-Abstractions-ConnectorLabelPlacer-ExposesLabelExtent
           - Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelHeight
           - Rendering-Abstractions-ConnectorLabelPlacer-EstimateLabelWidth
+          - Rendering-Abstractions-ConnectorLabelPlacer-AvoidBoxes
+          - Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration
+          - Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments
         tests:
           - Place_SingleLine_UsesLongestSegmentMidpoint
 

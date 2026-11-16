@@ -16,7 +16,9 @@ obstacle avoidance, and produced `LayoutLine` styling are all observed on real o
 
 - **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
-- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ConnectorRouterTests.cs`.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ConnectorRouterTests.cs`, plus
+  `NotationPrimitivePassThroughTests.cs` (folder-tab resolution, port corner margin, and new end-marker
+  clearance) in the same project.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutBox` list and `Connection` records.
 - **Isolation**: each test builds its own inputs; the class under test holds no static state, so
@@ -27,7 +29,9 @@ obstacle avoidance, and produced `LayoutLine` styling are all observed on real o
 A verification run passes when every named scenario below asserts without unexpected exception, and
 the referenced tests cover each `Rendering-Layout-ConnectorRouter-*` requirement. Any wrong anchor
 face, waypoint that enters an obstacle's strict interior, incorrect line styling passthrough,
-out-of-order batch result, or non-argument-null exception for invalid input constitutes a failure.
+out-of-order batch result, folder tab that disagrees with the shared box metrics, slid-port corner
+margin other than 8 px for a legacy end marker (10 px for a circled plus), final leg shorter than a new
+end marker plus the bend radius, or non-argument-null exception for invalid input constitutes a failure.
 
 ### Test Scenarios
 
@@ -119,6 +123,20 @@ out-of-order batch result, or non-argument-null exception for invalid input cons
   boxes: no interior segment under 24 px, no reversal, ports at least the marker reach from the corners) and
   `RouteBatch_PeerEndZone_LaterConnectorNeverCrossesWithinZoneOfEarlierArrowhead` (any crossing of an
   earlier connector keeps 24 px from its arrowhead tip).
+- **Folder tab resolution** (`Rendering-Layout-ConnectorRouter-FolderTabResolution`):
+  `FolderGeometry_NameInTab_UsesMeasuredTabWidth` resolves the tab width of a wide folder with a long name
+  twice through `ConnectorRouter.FolderGeometry`, once with the name drawn in the tab and once without, and
+  confirms each equals `BoxMetrics.ResolveFolderTabWidth` for that box and that the two widths differ
+  (the in-tab tab is sized to the measured name).
+- **Port corner margin** (`Rendering-Layout-ConnectorRouter-PortCornerMargin`):
+  `ConnectorRouter_PortCornerMarginFor_LegacyIsEightAndCircledPlusIsTen` asserts `PortCornerMarginFor`
+  returns exactly 8 for every legacy style (none, open chevron, hollow triangle, crossbar triangle,
+  filled arrow, hollow and filled diamond, circle, bar) and both dotted-triangle styles, and exactly 10
+  for the circled plus.
+- **New end-marker clearance** (`Rendering-Layout-ConnectorRouter-NewEndMarkerClearance`):
+  `ConnectorRouter_NewEndMarker_ReservesCleanEndLeg` (theory over the two-dot hollow triangle, the
+  four-dot hollow triangle, and the circled plus) routes a connector needing a jog between two boxes and
+  confirms the final leg is at least the style's along-line length plus the corner radius.
 
 ### Additional Regression Coverage
 
@@ -186,6 +204,12 @@ level rather than introducing a new `ConnectorRouter`-level responsibility:
   RouteBatch_ShieldedTopFace_ChoosesAdjacentFaceWithOneBend
 - **`Rendering-Layout-ConnectorRouter-PeerEndZones`**:
   RouteBatch_PeerEndZone_LaterConnectorNeverCrossesWithinZoneOfEarlierArrowhead
+- **`Rendering-Layout-ConnectorRouter-FolderTabResolution`**:
+  FolderGeometry_NameInTab_UsesMeasuredTabWidth
+- **`Rendering-Layout-ConnectorRouter-PortCornerMargin`**:
+  ConnectorRouter_PortCornerMarginFor_LegacyIsEightAndCircledPlusIsTen
+- **`Rendering-Layout-ConnectorRouter-NewEndMarkerClearance`**:
+  ConnectorRouter_NewEndMarker_ReservesCleanEndLeg
 
 The internal per-connection batch entry point used by the hierarchical engine is verified without a
 dedicated requirement (the public contract is unchanged): RouteBatch_EndpointAncestorOmittedFromObstacles_RouteCrossesAncestorWall

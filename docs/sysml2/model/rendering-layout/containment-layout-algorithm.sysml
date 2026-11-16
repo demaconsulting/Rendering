@@ -6,7 +6,7 @@ package RenderingLayout {
 
         metadata info : SoftwareInfo {
             sourceFiles = ("src/DemaConsulting.Rendering.Layout/ContainmentLayoutAlgorithm.cs");
-            testFiles = ("test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs");
+            testFiles = ("test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs");
             designFiles = ("docs/design/rendering-layout/containment-layout-algorithm.md");
             verificationFiles = ("docs/verification/rendering-layout/containment-layout-algorithm.md");
             requirementFiles = ("docs/reqstream/rendering-layout/containment-layout-algorithm.yaml");

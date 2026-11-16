@@ -161,3 +161,14 @@ sections:
         tests:
           - Apply_MarkedLayoutOnlyEdge_IsNotDrawnAfterComponentSplit
           - Apply_UserEdgeWithOldReservedPrefixAcrossComponents_StillEmitsLine
+
+      - id: Rendering-Layout-AutoAlgorithm-AppearancePassThrough
+        title: >-
+          AutoLayoutAlgorithm shall carry a node's appearance onto the placed box it produces for that
+          node, including when it copies the graph into component sub-graphs.
+        justification: |
+          The component copy is built field by field; an appearance that is not copied is silently lost
+          for every graph routed through the auto algorithm, so a styled node would draw with the legacy
+          look.
+        tests:
+          - AutoLayout_NodeAppearance_SurvivesClone

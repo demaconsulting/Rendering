@@ -90,3 +90,43 @@ sections:
           - EstimateLabelWidth_MatchesPlaceHalfWidthDoubled
           - EstimateLabelWidth_IsMonotonicInFontSize
           - EstimateLabelWidth_IsMonotonicInTextLength
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-AvoidBoxes
+        title: >-
+          The connector-label placer shall offer an overload taking obstacle boxes that rejects a
+          candidate label overlapping a leaf box or straddling the border of a container box (a label
+          fully inside a container is allowed), tries segment midpoints, then slides along the segment,
+          then nudges perpendicular, falls back to the obstacle-free placement when nothing clears,
+          is deterministic, and places exactly as the two-argument overload when given no obstacles.
+        justification: |
+          A label's opaque background painted over a box hides the box's border and text, but labels
+          legitimately sit inside container boxes. Distinguishing leaf from container obstacles, with
+          a bounded search and a guaranteed fallback, keeps labels readable without ever losing one,
+          and the no-obstacle parity keeps every existing caller unchanged.
+        tests:
+          - PlaceWithObstacles_NoObstacles_MatchesLegacyOverload
+          - PlaceWithObstacles_LeafBoxOnMidpoint_SlidesLabelClear
+          - PlaceWithObstacles_LabelFullyInsideContainer_IsAllowed
+          - PlaceWithObstacles_LabelStraddlingContainerBorder_IsRejected
+          - PlaceWithObstacles_EverythingBlocked_FallsBackToObstacleFreePlacement
+          - PlaceWithObstacles_SameInput_IsDeterministic
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration
+        title: >-
+          When avoiding obstacle boxes, the connector-label placer shall keep a label that it slides
+          along a segment clear of the footprint of the end decoration at the ends of the line.
+        justification: |
+          Sliding a label off a blocking box must not move it onto an arrowhead or other end
+          decoration, which would hide the relationship kind the decoration conveys.
+        tests:
+          - PlaceWithObstacles_SlideAvoidsEndMarkerZone
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments
+        title: >-
+          The box-aware connector-label placer overload shall reject a null line sequence or a null
+          obstacle sequence with an ArgumentNullException.
+        justification: |
+          Failing fast with a documented exception type gives callers a clear contract at the public
+          boundary, matching the existing placer overload.
+        tests:
+          - PlaceWithObstacles_NullArguments_Throw

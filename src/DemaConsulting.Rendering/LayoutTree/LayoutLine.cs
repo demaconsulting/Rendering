@@ -42,6 +42,24 @@ public enum EndMarkerStyle
 
     /// <summary>Bar (perpendicular line).</summary>
     Bar,
+
+    /// <summary>
+    /// Hollow closed triangle followed by two dots, one on each side of the line just behind the
+    /// triangle base (SysML v2 feature typing / definition).
+    /// </summary>
+    HollowTriangleTwoDots,
+
+    /// <summary>
+    /// Hollow closed triangle followed by four dots in a 2x2 grid straddling the line just behind
+    /// the triangle base (SysML v2 reference subsetting).
+    /// </summary>
+    HollowTriangleFourDots,
+
+    /// <summary>
+    /// Circle containing a plus sign, with the far edge of the circle on the line endpoint
+    /// (SysML v2 owned membership).
+    /// </summary>
+    CircledPlus,
 }
 
 /// <summary>

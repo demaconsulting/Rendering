@@ -130,7 +130,7 @@ public sealed class ConnectorLabelPlacerTests
 
     /// <summary>
     ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelHeight"/> returns the full (not
-    ///     half) label bounding-box height matching the formula <see cref="ConnectorLabelPlacer.Place"/>
+    ///     half) label bounding-box height matching the formula <see cref="ConnectorLabelPlacer.Place(IEnumerable{LayoutLine}, double)"/>
     ///     uses internally
     ///     for <c>halfHeight</c> (<c>fontSize * 1.3 + 2 * Gap</c>, doubled), so other layout stages can
     ///     size themselves against the exact same value this placer uses when testing for overlap.
@@ -167,7 +167,7 @@ public sealed class ConnectorLabelPlacerTests
 
     /// <summary>
     ///     Proves that <see cref="ConnectorLabelPlacer.EstimateLabelWidth"/> returns the full (not
-    ///     half) label bounding-box width matching the formula <see cref="ConnectorLabelPlacer.Place"/>
+    ///     half) label bounding-box width matching the formula <see cref="ConnectorLabelPlacer.Place(IEnumerable{LayoutLine}, double)"/>
     ///     uses internally for <c>halfWidth</c> (<c>text.Length * fontSize * 0.6 + 2 * Gap</c>,
     ///     doubled), so other layout stages can size themselves against the exact same value this
     ///     placer uses when testing for overlap.

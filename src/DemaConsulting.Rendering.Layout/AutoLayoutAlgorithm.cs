@@ -528,6 +528,7 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
         copy.RoundedCornerRadius = source.RoundedCornerRadius;
         copy.FolderTabWidth = source.FolderTabWidth;
         copy.FolderTabHeight = source.FolderTabHeight;
+        copy.Appearance = source.Appearance;
         nodeMap[source] = copy;
 
         if (source.HasPorts)

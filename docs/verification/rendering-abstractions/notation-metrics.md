@@ -7,7 +7,8 @@ This document describes the verification design for the notation-metrics unit of
 least one named test scenario so a reviewer can confirm coverage without reading the test code. The
 verification strategy, test environment, and acceptance criteria are described in the
 system verification document; the test project is
-`DemaConsulting.Rendering.Abstractions.Tests` (`NotationMetricsTests.cs`).
+`DemaConsulting.Rendering.Abstractions.Tests` (`NotationMetricsTests.cs` and
+`NotationPrimitiveMetricsTests.cs`).
 
 ### Verification Approach
 
@@ -17,13 +18,17 @@ directly. No mocking, dependency injection, or filesystem access is used. Where 
 `Theme` argument (`RoundedRectRadius(Theme)`), the tests pass one of the built-in `Themes` so the
 inputs are deterministic. The tests both assert the canonical constant values (for example the
 triangle 10x7 box) and reproduce the historical SVG marker points to prove the shared vertices
-match the values shipped previously.
+match the values shipped previously. The notation-primitive tests additionally assert each derived
+dotted-triangle, circled-plus, and badge constant against its documented derivation, assert the dot
+centers and corner-icon polygons structurally (counts, symmetry, columns, and containment within the
+marker box or icon box), and assert that every pre-existing `AlongLineLength` arm is unchanged.
 
 ### Test Environment
 
 - **Framework**: xUnit v4 running under the .NET SDK on `net8.0`, `net9.0`, `net10.0`, and `net11.0`.
 - **Execution**: `dotnet test` invoked by `build.ps1` and by the CI pipeline.
-- **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`NotationMetricsTests.cs`).
+- **Test project**: `DemaConsulting.Rendering.Abstractions.Tests` (`NotationMetricsTests.cs` and
+  `NotationPrimitiveMetricsTests.cs`).
 - **External dependencies**: none.
 
 ### Acceptance Criteria
@@ -81,7 +86,9 @@ Test `Crossbar_IsDerivedFraction` asserts the crossbar fraction is 0.7 and the d
 
 Test `AlongLineLength_MatchesMarkerBox` reads `AlongLineLength` for each `EndMarkerStyle` and asserts
 each reports its documented length (0 for None, 10 for the triangle family and circle, 14 for
-diamonds, 4 for bar).
+diamonds, 4 for bar). Test `AlongLineLength_NewStyles_MatchMarkerBoxesAndLegacyUnchanged` asserts the
+three appended styles report `TwoDotsMarkerLength` (14), `FourDotsMarkerLength` (17.5), and
+`CircledPlusMarkerBox` (12), and that every legacy style still reports its historical value.
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-AlongLineLength`.
 
@@ -128,6 +135,73 @@ Test `LabelBackground_ExtentMatchesInset` asserts the label-background extent de
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-LabelBackground`.
 
+#### Dotted-triangle markers keep the triangle anchored
+
+Test `DottedTriangles_HaveCanonicalValues` asserts the dot extensions, marker box lengths, and tip
+anchors equal their documented derivations (`TwoDotsExtension` = `DotBaseGap` + 2 x `DotRadius`,
+`FourDotsExtension` adds `DotColumnSpacing`, each marker length adds the extension to
+`EndMarkerLength`, each anchor adds it to `EndMarkerRefX`). Test `DotCenters_TwoDots_StraddleLineBehindBase`
+asserts two dots at the same `Along` position, mirrored about the line, wholly behind the triangle base
+and clear of the line stroke. Test `DotCenters_FourDots_FormTwoByTwoGrid` asserts four dots in two
+columns `DotColumnSpacing` apart with two dots on each side of the line. Test
+`DotCenters_NonDottedStyles_AreEmpty` asserts `HollowTriangle`, `CircledPlus`, and `None` yield no dots.
+Test `DotCenters_StayInsideMarkerBox` asserts every dot lies within the marker box length and within
+`EndMarkerHalfWidth` across the line. Test `TriangleFamilyBox_DottedVariants_KeepTriangleTipAnchored`
+asserts the plain box is (`EndMarkerLength`, `EndMarkerRefX`), the dotted boxes are
+(`TwoDotsMarkerLength`, `TwoDotsRefX`) and (`FourDotsMarkerLength`, `FourDotsRefX`), and the distance from
+the tip anchor to the box end is the same as for the plain triangle.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-DottedTriangleMarkers`.
+
+#### Circled-plus geometry is canonical
+
+Test `CircledPlus_HasCanonicalValues` asserts the center is half the marker box, the tip anchor is the
+center plus the radius and lies within the box, and the plus-arm half length equals the circle radius.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-CircledPlusMarker`.
+
+#### Rendered along-line length scales by stroke width
+
+Test `RenderedAlongLineLength_ScalesNotationLengthByStrokeWidth` asserts the result is
+`AlongLineLength` x the Light theme's `StrokeWidth` for `OpenChevron` and `CircledPlus`, and zero for
+`None`. Test `RenderedAlongLineLength_NullTheme_Throws` asserts a `null` theme raises
+`ArgumentNullException`.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-RenderedAlongLineLength`.
+
+#### Across-line half width is the widest point
+
+Test `AcrossHalfWidth_EveryStyle_MatchesWidestPoint` asserts zero for `None`, `EndMarkerHalfWidth` for
+the triangle family including both dotted variants, `DiamondHalfWidth` for both diamonds,
+`CircleRadius` for the circle, `BarHalf` for the bar, and `CircledPlusRadius` for the circled plus.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-AcrossHalfWidth`.
+
+#### Thick-bar thickness is documented
+
+Test `ThickBarAndCrossedCircle_HaveCanonicalValues` asserts `ThickBarThickness` is 4.0.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-ThickBarBadge`.
+
+#### Crossed-circle arm fraction lands the arms on the circle
+
+Test `ThickBarAndCrossedCircle_HaveCanonicalValues` also asserts `CrossedCircleArmFraction` equals cos 45
+degrees and that an arm with that fraction on both axes has unit length, so it ends exactly on the
+circle.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-CrossedCircleBadge`.
+
+#### Corner-icon polygons are canonical
+
+Test `CornerIconVertices_Send_IsConvexPentagonInsideIconBox` asserts the send icon has five vertices,
+all within the 12x9 icon box, with its rightmost vertex at (`CornerIconWidth`, half the height) and its
+leftmost edge at zero. Test `CornerIconVertices_Accept_HasNotchInLeftEdge` asserts the accept icon has
+one more vertex than the send icon and that the extra final vertex is the notch at
+(`CornerIconNotchDepth`, half the height). Test `CornerIconVertices_None_IsEmpty` asserts no icon yields
+no vertices.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-CornerIcon`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-NotationMetrics-TriangleDimensions`**: TriangleFamily_HasCanonicalValues,
@@ -138,7 +212,8 @@ Test `LabelBackground_ExtentMatchesInset` asserts the label-background extent de
 - **`Rendering-Abstractions-NotationMetrics-DiamondFarPointOnEndpoint`**: DiamondVertices_FarPoint_LandsOnEndpoint
 - **`Rendering-Abstractions-NotationMetrics-CircleBarGeometry`**: CircleAndBar_HaveCanonicalValues
 - **`Rendering-Abstractions-NotationMetrics-Crossbar`**: Crossbar_IsDerivedFraction
-- **`Rendering-Abstractions-NotationMetrics-AlongLineLength`**: AlongLineLength_MatchesMarkerBox
+- **`Rendering-Abstractions-NotationMetrics-AlongLineLength`**: AlongLineLength_MatchesMarkerBox,
+  AlongLineLength_NewStyles_MatchMarkerBoxesAndLegacyUnchanged
 - **`Rendering-Abstractions-NotationMetrics-PortSquare`**: Port_SizeIsTwiceHalfSize
 - **`Rendering-Abstractions-NotationMetrics-FolderTab`**: FolderTab_HasDocumentedConstants
 - **`Rendering-Abstractions-NotationMetrics-NoteFold`**: NoteFold_HasDocumentedConstants
@@ -146,3 +221,19 @@ Test `LabelBackground_ExtentMatchesInset` asserts the label-background extent de
 - **`Rendering-Abstractions-NotationMetrics-RejectNullTheme`**: RoundedRectRadius_NullTheme_ThrowsArgumentNullException
 - **`Rendering-Abstractions-NotationMetrics-Badge`**: BadgeFractions_HaveDocumentedValues
 - **`Rendering-Abstractions-NotationMetrics-LabelBackground`**: LabelBackground_ExtentMatchesInset
+- **`Rendering-Abstractions-NotationMetrics-DottedTriangleMarkers`**: DottedTriangles_HaveCanonicalValues,
+  DotCenters_TwoDots_StraddleLineBehindBase, DotCenters_FourDots_FormTwoByTwoGrid,
+  DotCenters_NonDottedStyles_AreEmpty, DotCenters_StayInsideMarkerBox,
+  TriangleFamilyBox_DottedVariants_KeepTriangleTipAnchored
+- **`Rendering-Abstractions-NotationMetrics-CircledPlusMarker`**: CircledPlus_HasCanonicalValues
+- **`Rendering-Abstractions-NotationMetrics-RenderedAlongLineLength`**:
+  RenderedAlongLineLength_ScalesNotationLengthByStrokeWidth, RenderedAlongLineLength_NullTheme_Throws
+- **`Rendering-Abstractions-NotationMetrics-AcrossHalfWidth`**:
+  AcrossHalfWidth_EveryStyle_MatchesWidestPoint
+- **`Rendering-Abstractions-NotationMetrics-ThickBarBadge`**:
+  ThickBarAndCrossedCircle_HaveCanonicalValues
+- **`Rendering-Abstractions-NotationMetrics-CrossedCircleBadge`**:
+  ThickBarAndCrossedCircle_HaveCanonicalValues
+- **`Rendering-Abstractions-NotationMetrics-CornerIcon`**:
+  CornerIconVertices_Send_IsConvexPentagonInsideIconBox, CornerIconVertices_Accept_HasNotchInLeftEdge,
+  CornerIconVertices_None_IsEmpty

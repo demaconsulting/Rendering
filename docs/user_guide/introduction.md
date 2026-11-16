@@ -248,6 +248,58 @@ group.Keyword = "package";
 group.TitleHeight = BoxMetrics.TitleAreaHeight(Themes.Light, hasLabel: true, hasKeyword: true);
 ```
 
+### Refining the look with `BoxAppearance`
+
+Beyond `Shape`, `Keyword`, and `Compartments`, a node may carry an optional `Appearance` (a
+`BoxAppearance`) that refines how its box is drawn. Every member defaults to the legacy look, and
+`null` (the default) is identical to `new BoxAppearance()`, so existing diagrams render exactly as
+before. Every bundled leaf algorithm, the containment and hierarchical algorithms, and the `auto`
+meta-algorithm copy `Appearance` unchanged onto the placed `LayoutBox`:
+
+| Member | Values (default first) | Effect |
+| --- | --- | --- |
+| `OutlineStyle` | `Solid`, `Dashed`, `Dotted` | Stroke style of the outline, for every `BoxShape` |
+| `NameStyle` | `null` (bold), or a `TextStyle` | Weight and slant of the name label |
+| `KeywordStyle` | `null` (italic), or a `TextStyle` | Weight and slant of the keyword line |
+| `FolderTitle` | `Body`, `Tab` | For a `Folder`, draw the name in the body or inside the tab |
+| `CornerIcon` | `None`, `Send`, `Accept` | Small pentagon icon in the top-left of the body |
+
+`TextStyle` pairs a `FontWeight` with a `FontStyle`; the presets `TextStyle.Regular`, `Bold`,
+`Italic`, and `BoldItalic` cover the common cases. With `FolderTitle = Tab` the name is drawn
+left-aligned inside the folder tab, the tab is sized to fit it, and no title band is reserved in
+the body, so compartments and nested children start directly under the tab (for a container node,
+`HierarchicalLayoutAlgorithm` likewise reserves no body title band unless `TitleHeight` is set
+explicitly). The setting is ignored for shapes other than `Folder`. A `CornerIcon` on a folder
+starts below the tab.
+
+A compartment can also style its own title: `LayoutCompartment.TitleAlign` (`Left`, the default,
+or `Center` to center the title between the box's content insets) and `TitleStyle` (`null` is bold
+italic). The compartment divider line always spans the full box width:
+
+```csharp
+var package = graph.AddNode("pkg", width: 220, height: 120);
+package.Label = "Vehicle";
+package.Shape = BoxShape.Folder;
+package.Appearance = new BoxAppearance(
+    OutlineStyle: LineStyle.Dashed,
+    NameStyle: TextStyle.Regular,
+    FolderTitle: FolderTitlePlacement.Tab);
+
+var action = graph.AddNode("send", width: 160, height: 60);
+action.Label = "sendSignal";
+action.Appearance = new BoxAppearance(CornerIcon: BoxCornerIcon.Send);
+action.Compartments =
+[
+    new LayoutCompartment("parameters", ["signal"], TitleAlign: TextAlign.Center)
+];
+```
+
+Sizing rules are unchanged: a caller still sizes each node to fit its content. The one addition is
+`BoxMetrics.TitleAreaHeight(LayoutBox, Theme)`, which accounts for an in-tab folder name (such a
+folder counts no name line in its body). The
+[gallery's "Box appearance via the input graph" diagram](../gallery/README.md) shows the appearance
+set once on the input graph.
+
 ## Configuring layout with options
 
 Options are set with typed keys from `CoreOptions` directly on the graph and its elements — the graph
@@ -424,6 +476,57 @@ For folder-shaped boxes, `FolderTabWidth` and `FolderTabHeight` may be supplied 
 individually on each `LayoutBox`. If one value is omitted, `ConnectorRouter` falls back the
 missing dimension before choosing anchors so routes still avoid the tab strip and land on the
 recessed body top that the renderers draw.
+
+## Notation primitives: edge ends, badges, lifelines, bands
+
+The `LayoutTree` primitives are generic diagram vocabulary with no SysML knowledge, yet they are
+rich enough for a SysML v2 view to reproduce the standard graphical notation. Setting an end marker
+on a `LayoutLine` (via `SourceEnd` or `TargetEnd`), or on a `LayoutGraphEdge` (via `TargetEnd`),
+selects one of these glyphs:
+
+| `EndMarkerStyle` | Glyph | Typical SysML v2 meaning |
+| --- | --- | --- |
+| `HollowTriangle` | Hollow closed triangle | Specialization, subsetting |
+| `HollowTriangleCrossbar` | Hollow triangle with a crossbar | Redefinition |
+| `HollowTriangleTwoDots` | Hollow triangle plus two dots behind its base | Feature typing |
+| `HollowTriangleFourDots` | Hollow triangle plus a 2x2 grid of dots | Reference subsetting |
+| `CircledPlus` | Circle containing a plus sign | Owned membership |
+| `HollowDiamond` | Hollow diamond | Shared aggregation |
+| `FilledDiamond` | Filled diamond | Composition |
+| `Circle` | Circle | Circle end |
+| `OpenChevron`, `FilledArrow` | Open or filled arrowhead | Flow, succession |
+
+The meanings are conventions of the consuming notation; the renderers draw only the glyph. The
+dotted and circled glyphs were added after the original set, so the older markers keep their
+ordinal values and their SVG definitions are written unchanged; the new definitions are written
+only when a line uses them. An SVG marker at the *start* of a line (`SourceEnd`) now uses a mirrored
+definition so that the glyph points outward from the line start, matching `TargetEnd`; earlier
+versions drew a source-end glyph pointing into the line, which was a defect and is corrected.
+
+A decorated edge that goes through the layered layout must set `LayoutGraphEdge.TargetEnd`: the
+layout uses it to give every edge a clear final approach, including edges that the algorithm routes
+backwards around a cycle through a wrap-around corridor. Without it the layout cannot know the
+decoration, and a wide marker such as an open chevron can crowd the corner of a back edge. Edges
+with no decoration keep the original approach, so existing diagrams are unchanged. Edge labels are
+placed so that their background does not cut through box borders.
+
+Other primitives follow the same pattern of optional, default-preserving members:
+
+| Primitive | Member | Effect |
+| --- | --- | --- |
+| `LayoutBadge` | `ThickHorizontalBar`, `ThickVerticalBar` | Filled bar (fork/join); `Size` is the full length |
+| `LayoutBadge` | `Thickness` | Bar thickness; `null` uses the default notation thickness |
+| `LayoutBadge` | `CrossedCircle` | Circle crossed by an X whose arms end on the circle (terminate) |
+| `LayoutLifeline` | `Keyword` | A keyword line above the label in the header |
+| `LayoutLifeline` | `HeaderShape`, `HeaderCornerRadius` | Rectangular or rounded header |
+| `LayoutLifeline` | `HeaderAppearance` | Header outline style and label style (a `BoxAppearance`) |
+| `LayoutBand` | `OutlineStyle` | `Dashed` or `Dotted` swim-lane outline instead of solid |
+
+Size a lifeline header that carries a keyword with `BoxMetrics.LifelineHeaderHeight(theme,
+hasKeyword: true)`, which adds one text line. The SVG renderer scales end markers by the stroke
+width, whereas the raster renderer draws them at the notation size; use
+`NotationMetrics.RenderedAlongLineLength` when you need the length an SVG marker actually
+occupies.
 
 ## Packing boxes into a container
 
@@ -683,8 +786,10 @@ produce: a layered diagram, a containment-packed diagram, a hierarchical nested 
 cross-container edge, edges between nodes nested at different depths of separate folders (under both the
 `auto` and `hierarchical` root algorithms), auto-routed diagrams mixing clusters/containers/singletons,
 orthogonal edge
-routing around an obstacle, the three built-in themes on one diagram, and both the SVG and PNG output
-paths. Every image is generated by the
+routing around an obstacle, the three built-in themes on one diagram, SysML-style notation primitives
+(every relationship end marker plus dashed, centered, in-tab, icon, badge, lifeline, and band
+primitives), box appearance set once on the input graph, a back-edge entry-approach regression, and
+both the SVG and PNG output paths. Every image is generated by the
 `DemaConsulting.Rendering.Gallery` test project directly from the public API, so the gallery doubles
 as an end-to-end rendering smoke test that runs on every build.
 

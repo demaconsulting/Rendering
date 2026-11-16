@@ -161,7 +161,12 @@ failure.
   `OrthogonalRouter_ForwardEdges_GeometryUnchanged`, `OrthogonalRouter_AcyclicGraph_NoApproachChange`,
   `OrthogonalRouter_CustomApproach_PushesEntryStubOutward`,
   `OrthogonalRouter_ReversedEdge_DefaultApproachClearsClearance`, and
-  `OrthogonalRouter_DecorationAwareApproach_ClearsMarkerAlongLength`.
+  `OrthogonalRouter_DecorationAwareApproach_ClearsMarkerAlongLength`. The end-to-end consequence of the
+  S09 root cause (a reversed edge's final leg shorter than the rendered end marker plus the corner radius
+  because the caller never raised the approach) is verified one level up, where the approach is derived: the
+  `BackEdgeEntryApproachTests` scenarios under `Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproach`
+  (see the LayeredLayoutAlgorithm unit verification) and the parameter threading under
+  `Rendering-Layout-InterconnectionEngine-BackEdgeEntryApproachParameter`; the pipeline itself is unchanged.
 - **Long-edge joining** (`Rendering-Layout-LayeredPipeline-LongEdgeJoining`):
   `LongEdgeJoiner_Apply_SingleEdge_ProducesWaypointsPerOriginalEdge` and
   `LongEdgeJoiner_Apply_LongEdge_ConcatenatesSubEdgeBendPoints`.

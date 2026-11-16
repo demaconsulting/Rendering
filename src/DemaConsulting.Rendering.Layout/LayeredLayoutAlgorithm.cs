@@ -95,7 +95,10 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 RealWidth: node.Width,
                 RealHeight: node.Height,
                 TitleReserveTop: node.HasPorts
-                    ? LayeredLayoutMetrics.ResolveTitleReserveTop(node.Label != null, node.Keyword != null, assumedFontSize)
+                    ? LayeredLayoutMetrics.ResolveTitleReserveTop(
+                        HasBodyTitle(node),
+                        node.Keyword != null,
+                        assumedFontSize)
                     : 0.0);
 
             if (!node.HasPorts)
@@ -152,6 +155,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         var direction = ToEngineDirection(ResolveDirection(graph, options));
         var nodeSpacing = ResolveNodeSpacing(graph, options);
         var mergeParallelEdges = ResolveMergeParallelEdges(graph, options);
+        var backEdgeEntryApproach = ResolveBackEdgeEntryApproach(edgeByEngineIndex);
 
         // Count how many raw input edges share each node pair, so the final connector emission loop
         // can tell whether an emitted line is a genuine single edge or the survivor of 2+ collapsed
@@ -198,7 +202,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             LayerNode[] nodesForPass)
         {
             var passResult = InterconnectionLayoutEngine.Place(
-                nodesForPass, engineEdges, direction, nodeSpacing, mergeParallelEdges);
+                nodesForPass, engineEdges, direction, nodeSpacing, mergeParallelEdges, backEdgeEntryApproach);
 
             // Build an engine-edge-index -> (waypoints, reversed) lookup from the acyclic edge set the
             // engine routed. When MergeParallelEdges is true, CycleBreaker has already collapsed
@@ -339,7 +343,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         {
             sidePorts.TryGetValue(i, out var bySide);
             var (insetLeft, insetRight, insetTop, insetBottom) =
-                ResolveContentInsets(bySide, assumedFontSize, hasTitle: graphNodes[i].Label != null);
+                ResolveContentInsets(bySide, assumedFontSize, hasTitle: HasBodyTitle(graphNodes[i]));
 
             // PortDistributor excludes engineNodes[i].TitleReserveTop from left/right-face port
             // placement for every titled node that actually has a left/right anchor (see the
@@ -559,7 +563,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             var rect = result.Rects[i];
             sidePorts.TryGetValue(i, out var bySide);
             var (insetLeft, insetRight, insetTop, insetBottom) =
-                ResolveContentInsets(bySide, assumedFontSize, hasTitle: graphNodes[i].Label != null);
+                ResolveContentInsets(bySide, assumedFontSize, hasTitle: HasBodyTitle(graphNodes[i]));
 
             // A box whose ContentInsetTop was reserved specifically to keep a *left/right* port's
             // label out of the title's own row (see ResolveContentInsets' left/right fallback branch)
@@ -596,7 +600,8 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 ContentInsetRight: insetRight,
                 ContentInsetTop: insetTop,
                 ContentInsetBottom: insetBottom,
-                CenterTitle: graphNodes[i].Compartments.Count == 0 && !hasNamedLeftOrRightPort));
+                CenterTitle: graphNodes[i].Compartments.Count == 0 && !hasNamedLeftOrRightPort,
+                Appearance: graphNodes[i].Appearance));
         }
 
         // Emit one connector (and, for a port endpoint, one LayoutPort) per emitted edge. When 2+ raw
@@ -835,6 +840,44 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
 
         return (left, right, top, bottom);
     }
+
+    /// <summary>
+    /// Resolves the minimum straight entry approach reserved for a reversed (back) edge's final
+    /// sub-edge from the end decorations the graph's edges actually carry. A reversed edge ends in a
+    /// wrap-around corridor whose final approach was historically only
+    /// <see cref="LayeredLayoutMetrics.ConnectorClearance"/> wide — shorter than a rendered open
+    /// chevron plus the rounded corner before it, so the renderer's corner clamp collapsed the bend
+    /// into a sharp corner inside the decoration (a small hollow triangle at the arrowhead). The
+    /// approach is therefore raised to the widest decoration's rendered along-line length plus the
+    /// corner radius plus the clean-leg margin (the same formula the connector router uses for a
+    /// forward edge's end leg). A graph whose edges carry no decoration keeps exactly
+    /// <see cref="LayeredLayoutMetrics.ConnectorClearance"/>, so its output is unchanged.
+    /// </summary>
+    /// <param name="edges">The graph edges whose <see cref="LayoutGraphEdge.TargetEnd"/> decorations are inspected.</param>
+    /// <returns>The back-edge entry approach, in logical pixels.</returns>
+    internal static double ResolveBackEdgeEntryApproach(IEnumerable<LayoutGraphEdge> edges)
+    {
+        var approach = LayeredLayoutMetrics.ConnectorClearance;
+        foreach (var edge in edges)
+        {
+            var needed = NotationMetrics.RenderedAlongLineLength(edge.TargetEnd, Themes.Light)
+                + Themes.Light.LineCornerRadius
+                + Themes.Light.CleanLegMargin;
+            approach = Math.Max(approach, needed);
+        }
+
+        return approach;
+    }
+
+    /// <summary>
+    /// Returns whether a node has a name label that occupies the body title band: it has a label and
+    /// does not draw it in a folder tab (<see cref="FolderTitlePlacement.Tab"/>), whose name therefore
+    /// reserves no body space.
+    /// </summary>
+    /// <param name="node">The input node.</param>
+    /// <returns><see langword="true"/> when the node's name occupies the body title band.</returns>
+    internal static bool HasBodyTitle(LayoutGraphNode node) =>
+        node.Label != null && !BoxMetrics.IsNameInTab(node.Shape, node.Label, node.Appearance);
 
     /// <summary>
     /// Resolves whether parallel edges are merged into a single rendered connector: an explicit

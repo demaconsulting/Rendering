@@ -11,7 +11,8 @@ the test code.
 
 Because `CanvasNetRasterRenderer` is `abstract`, it is exercised indirectly through the concrete
 PNG render path in `DemaConsulting.Rendering.CanvasNet.Tests` (`PngRendererPortedTests.cs`,
-`PngEndMarkerTests.cs`, `CanvasNetPortAndContentInsetTests.cs`, and `CanvasNetTypefacesTests.cs`).
+`PngEndMarkerTests.cs`, `CanvasNetPortAndContentInsetTests.cs`, `CanvasNetTypefacesTests.cs`, and
+`CanvasNetNotationPrimitiveTests.cs`).
 Each test renders a small placed `LayoutTree` into a `MemoryStream` or a disposable `Surface` and
 either inspects specific pixel colors or asserts on geometric properties of the rendered output.
 Using `PngRenderer.RenderToSurface` for pixel sampling is deliberate: it avoids any encode/decode
@@ -19,13 +20,16 @@ round trip and samples the exact pixels the shared rasterizer produced. No depen
 `RenderOptions`, `Theme`, `NotationMetrics`, `BoxMetrics`, and `ConnectorLabelPlacer` are supplied
 as real instances (typically from `Themes.Light` / `Themes.Dark`).
 
-Coverage is organized around four concerns:
+Coverage is organized around five concerns:
 
 1. Drawing of every supported `LayoutTree` node kind (boxes, lines, ports, badges, lifelines,
    activations, bands, labels, deeply nested boxes).
 2. Theme-driven fill selection from `Theme.DepthFillColors` and `Theme.BackgroundColor`.
 3. Connector end-marker geometry derived from `NotationMetrics`.
 4. Robust handling of the degenerate empty-tree case (minimum one-by-one surface).
+5. The SysML notation primitives (dotted-triangle and circled-plus markers, dashed outlines, text
+   styles, centered titles, folder name in tab, corner icons, thick-bar and crossed-circle badges,
+   lifeline headers, and obstacle-aware labels), checked by pixel-level ink assertions.
 
 ### CanvasNetRasterRenderer Test Environment
 
@@ -143,6 +147,82 @@ against the exact same lazily loaded typeface objects.
 
 **Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-SharedTypefaces`.
 
+#### Dotted-triangle and circled-plus markers, including at a source end
+
+`PngTwoDots_InkAtBothDotCenters_TriangleTipUnchanged` renders a line with the two-dots target marker and
+a plain hollow-triangle line, and asserts there is ink at every `NotationMetrics.DotCenters` position in the
+dotted render (and none in the plain one) and that the rightmost ink column, the triangle tip, is identical
+in both. `PngFourDots_InkAtAllFourDotCenters` asserts ink at all four centers of the two-by-two grid.
+`PngCircledPlus_RingAndArmsHaveInkAndInteriorIsEmpty` asserts ink at the top and bottom of the ring, on the
+vertical arm, and where the circle's far edge meets the endpoint, and background pixels inside the circle
+off the arms.
+
+`PngCircledPlus_AtSourceEnd_SitsOnLineSideOfStartPoint` renders the circled plus at the source end and
+asserts ink on the ring on the line side of the start point and no ink at all beyond the start point.
+`PngTwoDots_AtSourceEnd_DotsFollowTriangleBaseAlongLine` renders the two-dots marker at the source end and
+asserts ink at every dot center mirrored along the line. Together they verify the same outward placement
+that the SVG renderer reaches with its mirrored start variants.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerDottedTriangles`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCircledPlus`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSourceEnd`.
+
+#### Box and band outlines and box text styles
+
+Theory `PngBoxOutline_Dashed_HasGapsAlongTopEdgeAndSolidHasNone` (rectangle, rounded rectangle, folder, and
+note) counts ink-to-background transitions along the top edge (for a folder, the body's top edge beside the
+tab) and asserts at least five gaps for a dashed outline and none for a solid one. `PngBand_Dashed_HasGapsAlongTopEdge`
+does the same for a dashed and a solid band.
+
+`PngBoxName_RegularHasLessInkThanBold_DefaultIsBold` renders the same name regular, bold, and with no
+appearance, and asserts the regular name has less ink than the bold one and that the default render has
+exactly the bold ink count. `PngBoxName_Italic_SlantsRelativeToRegular` compares the horizontal ink centroid of
+the upper and lower halves of the name and asserts the italic name slants more than the regular one.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-BoxOutlineStyle`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-BandDashed`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-BoxNameStyle`.
+
+The resolved keyword style is applied by the same font-selection code as the name style, but no raster
+scenario measures a box keyword's weight or slant; the keyword style requirement is verified for the SVG
+renderer only (`Rendering-Svg-SvgRenderer-BoxKeywordStyle`).
+
+#### Compartment title, folder name in tab, and corner icon
+
+`PngCompartmentTitle_Centered_InkCenteredInContentArea` asserts a centered title's ink centroid lies within
+six pixels of the box center while a legacy title's centroid is in the left part of the box.
+`PngFolderNameInTab_InkInTabAndNoneInBodyBand` asserts that with the tab placement there is ink inside the
+tab and none in the body's title band, whereas the default placement inks the body band and leaves the tab
+empty. `PngCornerIcon_SendHasLeftEdgeAcceptHasNotch` asserts the send icon's left edge is inked at its
+mid-height, the accept icon's left edge is not (the notch), the notch tip is inked, and a box with no icon
+has no ink there.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-CompartmentTitleStyle`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-FolderTitleInTab`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-BoxCornerIcon`.
+
+#### Thick-bar and crossed-circle badges, lifeline headers, and label avoidance
+
+`PngBadgeThickHorizontalBar_FillsSizeByThickness` asserts the default bar is inked across its size and
+default thickness and not beyond, and that an explicit thickness widens it.
+`PngBadgeThickVerticalBar_FillsThicknessBySize` asserts the same for the vertical bar.
+`PngBadgeCrossedCircle_RingAndDiagonalArmsHaveInk` asserts ink on the ring, at the center, and along the
+diagonals, with a background interior between the arms.
+
+`PngLifeline_RoundedHeader_CutsCornerAndSharpDoesNot` asserts the square corner pixel is empty for a rounded
+header and inked for a sharp one. `PngLifeline_Keyword_AddsTextRowAboveLabel` counts text bands inside the
+header and asserts two with a keyword and one without. `PngLifeline_DashedHeaderAppearance_HasGapsAlongTopEdge`
+asserts gaps along a dashed header's top edge.
+
+`PngLineLabel_MidpointOnLeafBox_DoesNotEraseBoxBorder` renders a labeled line whose midpoint lies on a small
+leaf box and asserts the box's top border is still inked, i.e. the label's opaque backplate was placed
+clear of the box.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-BadgeThickBar`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-BadgeCrossedCircle`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-LifelineRoundedHeader`,
+`Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes`.
+
 ### Requirements Coverage
 
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree`**:
@@ -181,3 +261,35 @@ against the exact same lazily loaded typeface objects.
   PngRenderer_Render_ManyCollidingConnectorLabels_BitmapGrowsToFitAllLabels
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-SharedTypefaces`**:
   CanvasNetTypefaces_Resolve_ReturnsStableDistinctTypefacesPerVariant
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerDottedTriangles`**:
+  PngTwoDots_InkAtBothDotCenters_TriangleTipUnchanged,
+  PngFourDots_InkAtAllFourDotCenters
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCircledPlus`**:
+  PngCircledPlus_RingAndArmsHaveInkAndInteriorIsEmpty
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSourceEnd`**:
+  PngCircledPlus_AtSourceEnd_SitsOnLineSideOfStartPoint,
+  PngTwoDots_AtSourceEnd_DotsFollowTriangleBaseAlongLine
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-BoxOutlineStyle`**:
+  PngBoxOutline_Dashed_HasGapsAlongTopEdgeAndSolidHasNone
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-BoxNameStyle`**:
+  PngBoxName_RegularHasLessInkThanBold_DefaultIsBold,
+  PngBoxName_Italic_SlantsRelativeToRegular
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-CompartmentTitleStyle`**:
+  PngCompartmentTitle_Centered_InkCenteredInContentArea
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-FolderTitleInTab`**:
+  PngFolderNameInTab_InkInTabAndNoneInBodyBand
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-BoxCornerIcon`**:
+  PngCornerIcon_SendHasLeftEdgeAcceptHasNotch
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-BadgeThickBar`**:
+  PngBadgeThickHorizontalBar_FillsSizeByThickness,
+  PngBadgeThickVerticalBar_FillsThicknessBySize
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-BadgeCrossedCircle`**:
+  PngBadgeCrossedCircle_RingAndDiagonalArmsHaveInk
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-BandDashed`**:
+  PngBand_Dashed_HasGapsAlongTopEdge
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-LifelineRoundedHeader`**:
+  PngLifeline_RoundedHeader_CutsCornerAndSharpDoesNot,
+  PngLifeline_Keyword_AddsTextRowAboveLabel,
+  PngLifeline_DashedHeaderAppearance_HasGapsAlongTopEdge
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes`**:
+  PngLineLabel_MidpointOnLeafBox_DoesNotEraseBoxBorder

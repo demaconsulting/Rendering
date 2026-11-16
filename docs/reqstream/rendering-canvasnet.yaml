@@ -46,6 +46,19 @@ sections:
           - Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphOutline
           - Rendering-CanvasNet-CanvasNetRasterRenderer-CanvasGrowsForLabels
           - Rendering-CanvasNet-CanvasNetRasterRenderer-SharedTypefaces
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerDottedTriangles
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCircledPlus
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSourceEnd
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-BoxOutlineStyle
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-BoxNameStyle
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-CompartmentTitleStyle
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-FolderTitleInTab
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-BoxCornerIcon
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-BadgeThickBar
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-BadgeCrossedCircle
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-BandDashed
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-LifelineRoundedHeader
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes
           - Rendering-CanvasNet-PngRenderer-EmitsPng
           - Rendering-CanvasNet-JpegRenderer-EmitsJpeg
         tests:

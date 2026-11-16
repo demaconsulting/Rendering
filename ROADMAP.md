@@ -692,6 +692,23 @@ surface area (not just a margin reservation) and hasn't been scoped in detail ye
 future pass rather than folded into the title-vs-port-margin fix above, which only protects
 against port labels, not arbitrary externally-supplied connector geometry.
 
+## Engine-2 backlog (not in this change)
+
+The SysML-agnostic notation primitives (dotted-triangle and circled-plus end markers, `BoxAppearance`,
+compartment title styling, in-tab folder titles, thick-bar and crossed-circle badges, lifeline header
+styling, dashed bands) are implemented. The following follow-on primitives were identified while
+scoping that work and are **not** implemented; none of them has any API, requirement, or design
+presence yet:
+
+- **Rich-text compartment rows.** Rows that mix styled spans (for example a bold-span row such as
+  a bold feature name followed by regular text) instead of a single plain string per row.
+- **Port glyph, direction, and proxy.** A port drawn as a glyph with a direction indicator (in or
+  out) and a proxy-port form, beyond the current port marker.
+- **Edge end labels.** Labels anchored at the source or target end of a line (for example
+  multiplicities), distinct from the single mid-line label.
+- **Port outward label.** A dedicated label placed outward of a port, beyond the existing per-side
+  port label placement.
+
 ## Process note
 
 When a future session identifies further deferred/advisory work, add it here rather than letting

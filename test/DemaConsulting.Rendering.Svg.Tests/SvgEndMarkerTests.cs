@@ -120,12 +120,12 @@ public sealed class SvgEndMarkerTests
         Assert.Contains("marker-end=\"url(#line-end-filled-arrow)\"", svg, StringComparison.Ordinal);
     }
 
-    /// <summary>A filled-diamond line references the filled-diamond marker via <c>marker-start</c>.</summary>
+    /// <summary>A filled-diamond line references the mirrored start-of-line filled-diamond marker via <c>marker-start</c>.</summary>
     [Fact]
     public void SvgRenderer_Render_SingleLine_WithFilledDiamond_ProducesFilledDiamondMarker()
     {
         var svg = RenderLine(EndMarkerStyle.FilledDiamond, EndMarkerStyle.None);
-        Assert.Contains("marker-start=\"url(#line-end-filled-diamond)\"", svg, StringComparison.Ordinal);
+        Assert.Contains("marker-start=\"url(#line-start-filled-diamond)\"", svg, StringComparison.Ordinal);
     }
 
     /// <summary>A circle-ended line references the circle marker via <c>marker-end</c>.</summary>

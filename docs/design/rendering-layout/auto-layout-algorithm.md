@@ -76,7 +76,8 @@ rather than a shared view of the original graph: the public `LayoutGraph`/`Layou
 no way to insert an existing node instance into a different graph's node list, and
 `LayoutGraphNode.Children` has no setter, so an original node cannot simply be attached, by reference,
 to a new parent graph. Every node in a split-off component is therefore copied field-by-field — label,
-shape, keyword, compartments, title height, rounded-corner radius, folder-tab dimensions, its named
+shape, keyword, compartments, title height, rounded-corner radius, folder-tab dimensions, appearance
+(the `BoxAppearance` reference, so a styled node's notation survives the split), its named
 ports, and (recursively) its entire nested `Children` subgraph — with edges re-added afterward once
 every node and port in the component has a copy, so both direct and cross-container edge endpoints
 resolve correctly regardless of nesting depth. A layout-only edge (see the hierarchical algorithm's
@@ -124,3 +125,4 @@ bundled algorithms and is resolved by renderers through the layout registry like
 | Rendering-Layout-AutoAlgorithm-NestedEndpointConnectivity | Component detection (step 1) |
 | Rendering-Layout-AutoAlgorithm-PreservesInputBoxOrder | Genuine multi-group split (step 4) |
 | Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker | Sub-Graph Construction (edge copying) |
+| Rendering-Layout-AutoAlgorithm-AppearancePassThrough | Sub-Graph Construction (node copying) |

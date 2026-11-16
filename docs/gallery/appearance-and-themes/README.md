@@ -33,6 +33,17 @@ Every Shape value side by side, each with content appropriate to it: rectangle a
 keyword and a compartment, a folder holding a nested child, and a note holding free-form text — every shape reserves
 enough space so its content never overlaps the tab or the folded corner.
 
+## Box appearance via the input graph
+
+A node's Appearance property carries presentation attributes — outline stroke style, name and keyword text style, and
+where a folder draws its name — through the input graph model, so the hierarchical and layered algorithms place boxes
+that render with them and reserve space for an in-tab folder title.
+
+![Package folder with name in tab, dashed and italic boxes, beside an imported folder](box-appearance-graph.svg)
+
+Graph-driven appearance: a package whose name is drawn in the tab (no title band is reserved in its body), a dashed
+rounded box with a regular name and keyword, an italic (abstract) name, and a dashed imported folder.
+
 ## Themes
 
 One representative diagram rendered with each of the three built-in themes, showing how the theme controls colors,

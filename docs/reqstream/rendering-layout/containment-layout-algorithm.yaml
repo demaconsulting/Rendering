@@ -152,3 +152,13 @@ sections:
           caller-chosen identifier can silently turn a real edge into a placement hint that is never drawn.
         tests:
           - Apply_UserEdgeWithOldReservedPrefixOnPackedPeers_StillEmitsLine
+
+      - id: Rendering-Layout-ContainmentAlgorithm-AppearancePassThrough
+        title: >-
+          ContainmentLayoutAlgorithm shall copy a node's appearance onto the placed box it produces for
+          that node.
+        justification: |
+          A node's BoxAppearance is only drawn if it reaches the placed layout tree; passing it through
+          unchanged lets every renderer draw the notation for a packed diagram exactly as for a layered one.
+        tests:
+          - ContainmentLayout_NodeAppearance_ReachesPlacedBox

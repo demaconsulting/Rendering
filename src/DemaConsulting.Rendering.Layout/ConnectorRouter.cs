@@ -420,9 +420,30 @@ public static class ConnectorRouter
     /// still positions not-slid (default) anchors. (A bar or circle marker is not a connector end the
     /// router places, so it needs no separate allowance.)
     /// </summary>
-    private static readonly double PortCornerMargin = Math.Ceiling(
-        (Themes.Light.StrokeWidth * (Math.Max(NotationMetrics.EndMarkerHalfWidth, NotationMetrics.DiamondHalfWidth) + (Themes.Light.StrokeWidth / 2.0)))
-        + (Themes.Light.StrokeWidth / 2.0));
+    private static readonly double PortCornerMargin = PortCornerMarginFor(EndMarkerStyle.None);
+
+    /// <summary>
+    /// Returns the smallest inset kept between a slid port and its face's corner for a connector end
+    /// drawn with <paramref name="style"/>: the <see cref="PortCornerMargin"/> derivation applied to
+    /// the wider of the legacy widest arrowhead (the diamond) and, for the circled plus, its circle
+    /// radius. Every legacy style (including the bar and circle, which the router has never allowed
+    /// for separately) keeps the historical 8 px; the wider circled plus gets 10 px so it never
+    /// overhangs a corner.
+    /// </summary>
+    /// <param name="style">The end-marker style at the port.</param>
+    /// <returns>The margin, in logical pixels.</returns>
+    internal static double PortCornerMarginFor(EndMarkerStyle style)
+    {
+        var halfWidth = Math.Max(NotationMetrics.EndMarkerHalfWidth, NotationMetrics.DiamondHalfWidth);
+        if (style == EndMarkerStyle.CircledPlus)
+        {
+            halfWidth = Math.Max(halfWidth, NotationMetrics.AcrossHalfWidth(style));
+        }
+
+        return Math.Ceiling(
+            (Themes.Light.StrokeWidth * (halfWidth + (Themes.Light.StrokeWidth / 2.0)))
+            + (Themes.Light.StrokeWidth / 2.0));
+    }
 
     /// <summary>Extra cost charged against a face pair other than the natural one, to avoid gratuitous face changes.</summary>
     private const double AlternativeFacePenalty = 5.0;
@@ -939,7 +960,7 @@ public static class ConnectorRouter
             return null;
         }
 
-        var usable = SlideExtents(extents);
+        var usable = SlideExtents(extents, isSource ? PortCornerMargin : PortCornerMarginFor(connections[index].TargetEnd));
         var current = anchors[index];
         var isCurrentFace = side == (isSource ? current.SourceSide : current.TargetSide);
         double local;
@@ -976,11 +997,11 @@ public static class ConnectorRouter
     }
 
     /// <summary>
-    /// Insets each connectable face segment by <see cref="PortCornerMargin"/> at both ends to give the
+    /// Insets each connectable face segment by <paramref name="margin"/> at both ends to give the
     /// range a port may slide over. A segment too short to keep that margin from both ends collapses to
     /// its midpoint, so a short face keeps its centered anchor instead of letting a port crowd a corner.
     /// </summary>
-    private static List<(double Lo, double Hi)> SlideExtents(IReadOnlyList<(double Lo, double Hi)> extents)
+    private static List<(double Lo, double Hi)> SlideExtents(IReadOnlyList<(double Lo, double Hi)> extents, double margin)
     {
         var slide = new List<(double Lo, double Hi)>(extents.Count);
         foreach (var (lo, hi) in extents)
@@ -990,9 +1011,9 @@ public static class ConnectorRouter
                 continue;
             }
 
-            if (hi - lo >= 2.0 * PortCornerMargin)
+            if (hi - lo >= 2.0 * margin)
             {
-                slide.Add((lo + PortCornerMargin, hi - PortCornerMargin));
+                slide.Add((lo + margin, hi - margin));
             }
             else
             {
@@ -1786,21 +1807,8 @@ public static class ConnectorRouter
         /// </summary>
         /// <param name="box">Box whose folder-tab width is being resolved.</param>
         /// <returns>The non-negative folder-tab width, in logical pixels.</returns>
-        internal static double ResolveFolderTabWidth(LayoutBox box)
-        {
-            if (box.FolderTabWidth.HasValue)
-            {
-                return Math.Max(0.0, box.FolderTabWidth.Value);
-            }
-
-            return Math.Min(
-                box.Width * NotationMetrics.FolderTabMaxWidthFraction,
-                Math.Max(
-                    NotationMetrics.FolderTabMinWidth,
-                    (box.Label?.Length ?? 4) * Themes.Light.FontSizeBody *
-                    NotationMetrics.FolderLabelCharWidthFactor +
-                    (2.0 * Themes.Light.LabelPadding)));
-        }
+        internal static double ResolveFolderTabWidth(LayoutBox box) =>
+            BoxMetrics.ResolveFolderTabWidth(box, Themes.Light);
 
         /// <summary>
         /// Resolves the folder-tab height used by routing, honoring a caller-supplied hint and
@@ -1809,9 +1817,7 @@ public static class ConnectorRouter
         /// <param name="box">Box whose folder-tab height is being resolved.</param>
         /// <returns>The non-negative folder-tab height, in logical pixels.</returns>
         internal static double ResolveFolderTabHeight(LayoutBox box) =>
-            box.FolderTabHeight.HasValue
-                ? Math.Max(0.0, box.FolderTabHeight.Value)
-                : BoxMetrics.FolderTabHeight(Themes.Light);
+            BoxMetrics.ResolveFolderTabHeight(box, Themes.Light);
 
         public override IReadOnlyList<(double Lo, double Hi)> GetConnectableExtents(PortSide side)
         {

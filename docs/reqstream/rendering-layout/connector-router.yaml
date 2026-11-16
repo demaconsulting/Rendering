@@ -215,3 +215,38 @@ sections:
           makes the target of the crossed connector ambiguous.
         tests:
           - RouteBatch_PeerEndZone_LaterConnectorNeverCrossesWithinZoneOfEarlierArrowhead
+
+      - id: Rendering-Layout-ConnectorRouter-FolderTabResolution
+        title: >-
+          ConnectorRouter shall resolve a folder box's tab width and height through the shared box
+          metrics, so a folder whose name is drawn in the tab has a non-connectable tab strip sized to the
+          measured name rather than to the historical label-length estimate.
+        justification: |
+          The router excludes the folder tab from the connectable face, so it must agree exactly with the
+          tab the renderers draw. Delegating to one shared resolution removes the duplicated formula and
+          keeps the router and both renderers in step when the tab is sized to a name.
+        tests:
+          - FolderGeometry_NameInTab_UsesMeasuredTabWidth
+
+      - id: Rendering-Layout-ConnectorRouter-PortCornerMargin
+        title: >-
+          ConnectorRouter shall keep a slid port at least 8 px from its face's corners for every legacy
+          end-marker style and at least 10 px for a circled-plus end marker.
+        justification: |
+          A port slid along a face must keep its decoration inside the face. Every legacy style keeps the
+          historical margin so existing routes do not move; the wider circled plus needs a larger margin
+          so its circle never overhangs a corner.
+        tests:
+          - ConnectorRouter_PortCornerMarginFor_LegacyIsEightAndCircledPlusIsTen
+
+      - id: Rendering-Layout-ConnectorRouter-NewEndMarkerClearance
+        title: >-
+          ConnectorRouter shall keep a straight final leg of at least the along-line length of a
+          dotted-triangle (feature typing or reference subsetting) or circled-plus end marker plus the
+          bend radius, as it does for every other end-marker style.
+        justification: |
+          The new notation end markers are longer than the legacy arrowheads; because the required end
+          leg and end zone derive from the marker's along-line length, a marker sits on a clean straight
+          run without a corner clamped inside its footprint.
+        tests:
+          - ConnectorRouter_NewEndMarker_ReservesCleanEndLeg

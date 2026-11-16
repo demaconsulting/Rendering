@@ -106,7 +106,15 @@ margin) keeps its centre. The margin is derived, not chosen: the renderers draw 
 side of the line once its own outline stroke is included (6.375 px for an arrowhead, 7.125 px for a
 diamond at the 1.5 stroke), and the box border adds half its stroke (0.75 px); rounded up that is 8 px.
 A slid port therefore keeps the arrowhead's wings inside the face instead of overhanging a corner (the
-earlier fixed 5 px, the unscaled half-width, left the wing flush with or past the corner). The ports are
+earlier fixed 5 px, the unscaled half-width, left the wing flush with or past the corner). The margin is
+computed by `PortCornerMarginFor(EndMarkerStyle style)`, which applies the same derivation to the wider of
+the legacy widest arrowhead (the diamond) and, for `EndMarkerStyle.CircledPlus` only, the circle's
+across half-width (`NotationMetrics.AcrossHalfWidth`): every legacy style, and the two dotted-triangle
+styles, keep exactly 8 px (so no existing route moves), while the circled plus gets 10 px so its circle
+never overhangs a corner. `PortCornerMargin` itself is `PortCornerMarginFor(EndMarkerStyle.None)` (8 px)
+and is used at a connector's source end and by the straight-lane and clearance clamps; the slid-port
+extents of the _target_ end use `PortCornerMarginFor(connection.TargetEnd)`, because the end marker is
+drawn at the target. The ports are
 restricted so a
 slid port stays between its neighbors on the same face (other batch connectors at their planned or
 final ports, and fixed anchors), in the original order, and at least the smaller of the batch
@@ -125,6 +133,19 @@ position and the clearance clamp no longer pulls them back inward) before the ne
 radius plus the clean-leg margin (15 for an arrow, 19 for a diamond), wherever the gap between the faces
 allows it. The legs are soft costs, never hard blocks, so a gap too narrow for both still yields a route
 that crosses no box (the legacy half-gap stub); the renderers' corner clamp keeps the decoration clean.
+The required end leg and the peer end zone are both derived from `NotationMetrics.AlongLineLength` of the
+connection's `TargetEnd`, so the `HollowTriangleTwoDots`, `HollowTriangleFourDots` and `CircledPlus` end
+markers automatically receive a clean straight final leg of at least their own along-line length plus the
+bend radius, with no extra router code.
+
+**Folder tab resolution.** `FolderGeometry.ResolveFolderTabWidth` and `ResolveFolderTabHeight`, which
+size the folder's non-connectable tab strip, delegate to `BoxMetrics.ResolveFolderTabWidth(box,
+Themes.Light)` and `BoxMetrics.ResolveFolderTabHeight(box, Themes.Light)` instead of keeping a private
+copy of the formula. A caller-supplied `FolderTabWidth`/`FolderTabHeight` still wins. Without one, a folder
+that draws its name in the tab (`BoxShape.Folder`, a label and `Appearance.FolderTitle` equal to
+`FolderTitlePlacement.Tab`) gets a tab as wide as the measured name plus padding (never narrower than
+`FolderTabMinWidth`, never wider than the box), and every other folder keeps the historical
+label-length estimate, so the router's cutout always matches the tab the renderers draw.
 
 **Cross-hierarchy profile (`RoutingProfile`).** The hierarchical engine supplies a profile carrying each
 connector's container wall keep-out strips. With it, a defective connector additionally (a) keeps its runs
@@ -191,13 +212,14 @@ this is unreachable today because `Orthogonal` is the only enum value, but guard
   `NoteFoldMaxSize`, `FolderTabMaxWidthFraction`, `FolderTabMinWidth`, `FolderLabelCharWidthFactor`)
   consumed by `NoteGeometry` and `FolderGeometry` to compute each shape's connectable-extent cutouts
   (the note's diagonal fold corner and the folder's top-edge tab).
-- **`Themes`** — `Themes.Light`'s `FontSizeBody` and `LabelPadding` feed `FolderGeometry`'s fallback
-  folder-tab width formula when a box does not supply its own `FolderTabWidth` hint, approximating the
+- **`Themes`** — `Themes.Light`'s `FontSizeBody` and `LabelPadding` feed the shared folder-tab width
+  resolution (through `BoxMetrics`) when a box does not supply its own `FolderTabWidth` hint, approximating the
   tab width a themed folder label would need; its `ConnectorStub`, `LineCornerRadius` and `CleanLegMargin`
   set the minimum first and final legs (with `NotationMetrics.AlongLineLength` for the end marker).
-- **`BoxMetrics`** — `BoxMetrics.FolderTabHeight(Themes.Light)` is `FolderGeometry`'s fallback folder-tab
-  height when a box does not supply its own `FolderTabHeight` hint, keeping the routing cutout consistent
-  with the renderer's own default folder-tab geometry.
+- **`BoxMetrics`** — `BoxMetrics.ResolveFolderTabWidth` and `BoxMetrics.ResolveFolderTabHeight` (with
+  `Themes.Light`) are what `FolderGeometry` delegates to for the folder-tab dimensions, so the routing
+  cutout stays consistent with the renderers' own folder-tab geometry, including a tab sized to an in-tab
+  name.
 
 No OTS runtime component or shared package is consumed.
 
@@ -247,3 +269,6 @@ any set of placed boxes.
 | Rendering-Layout-ConnectorRouter-MinimumEndLegs | Minimum end legs |
 | Rendering-Layout-ConnectorRouter-WallsAndFaceSelection | Cross-hierarchy profile; straightness policy |
 | Rendering-Layout-ConnectorRouter-PeerEndZones | Cross-hierarchy profile (peer end zones) |
+| Rendering-Layout-ConnectorRouter-FolderTabResolution | Folder tab resolution |
+| Rendering-Layout-ConnectorRouter-PortCornerMargin | Port sliding (`PortCornerMarginFor`) |
+| Rendering-Layout-ConnectorRouter-NewEndMarkerClearance | Minimum end legs |

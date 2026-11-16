@@ -31,6 +31,10 @@ extensible property system, and new algorithms, renderers, and options are added
   nested children, with external and internal fan-out consolidated onto that single anchor.
 - **Multiple output formats** — SVG (zero external dependencies) plus PNG and JPEG via
   CanvasNet, with light, dark, and print themes.
+- **SysML-ready notation primitives** — SysML-agnostic building blocks for rich block diagrams: end markers
+  including dotted triangles and the circled plus, dashed and styled boxes, centered compartment titles,
+  in-tab folder titles, thick fork/join and terminate badges, send/accept corner icons, dashed bands, and
+  rounded lifeline headers.
 
 ## Algorithm capabilities
 

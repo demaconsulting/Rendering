@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1010.00" height="740.00" viewBox="0 0 1010.00 740.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+      <line x1="7" y1="0" x2="7" y2="7" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#FFFFFF"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <text x="20.00" y="22.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Outline and text style</text>
+  <rect x="20.00" y="36.00" width="180.00" height="52.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="10.00" ry="10.00"/>
+  <text x="110.00" y="52.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="110.00" y="71.00" font-family="Noto Sans, sans-serif" font-size="14.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Vehicle</text>
+  <text x="20.00" y="106.00" font-family="Noto Sans, sans-serif" font-size="11.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle" textLength="200.00" lengthAdjust="spacingAndGlyphs">solid, regular name and keyword</text>
+  <rect x="230.00" y="36.00" width="180.00" height="52.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="10.00" ry="10.00" stroke-dasharray="6 3"/>
+  <text x="320.00" y="52.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="320.00" y="71.00" font-family="Noto Sans, sans-serif" font-size="14.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Imported</text>
+  <text x="230.00" y="106.00" font-family="Noto Sans, sans-serif" font-size="11.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">dashed outline</text>
+  <rect x="440.00" y="36.00" width="180.00" height="52.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="10.00" ry="10.00"/>
+  <text x="530.00" y="52.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="530.00" y="71.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Abstract</text>
+  <text x="440.00" y="106.00" font-family="Noto Sans, sans-serif" font-size="11.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">italic (abstract) name</text>
+  <rect x="650.00" y="36.00" width="180.00" height="52.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="10.00" ry="10.00"/>
+  <text x="740.00" y="52.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="740.00" y="71.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Legacy</text>
+  <text x="650.00" y="106.00" font-family="Noto Sans, sans-serif" font-size="11.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle" textLength="200.00" lengthAdjust="spacingAndGlyphs">default: bold name, italic keyword</text>
+  <text x="20.00" y="156.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle" textLength="400.00" lengthAdjust="spacingAndGlyphs">Compartments: centered italic regular titles (left) and legacy (right)</text>
+  <rect x="20.00" y="170.00" width="220.00" height="158.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="130.00" y="182.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="130.00" y="201.00" font-family="Noto Sans, sans-serif" font-size="14.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Vehicle</text>
+  <line x1="20.00" y1="214.00" x2="240.00" y2="214.00" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="130.00" y="226.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">attributes</text>
+  <text x="26.00" y="250.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">mass : Real</text>
+  <text x="26.00" y="268.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">speed : Real</text>
+  <line x1="20.00" y1="280.00" x2="240.00" y2="280.00" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="130.00" y="292.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">parts</text>
+  <text x="26.00" y="316.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">engine : Engine</text>
+  <rect x="260.00" y="170.00" width="220.00" height="158.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="370.00" y="182.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="370.00" y="201.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Vehicle</text>
+  <line x1="260.00" y1="214.00" x2="480.00" y2="214.00" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="266.00" y="226.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="italic" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">attributes</text>
+  <text x="266.00" y="250.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">mass : Real</text>
+  <text x="266.00" y="268.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">speed : Real</text>
+  <line x1="260.00" y1="280.00" x2="480.00" y2="280.00" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="266.00" y="292.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="italic" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">parts</text>
+  <text x="266.00" y="316.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">engine : Engine</text>
+  <text x="520.00" y="156.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Folders: name in tab, dashed imported, name in body</text>
+  <path d="M 520.00 194.00 L 520.00 170.00 L 580.00 170.00 L 580.00 194.00 L 670.00 194.00 L 670.00 270.00 L 520.00 270.00 Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="526.00" y="182.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Package</text>
+  <rect x="536.00" y="210.00" width="110.00" height="34.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="591.00" y="227.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Child</text>
+  <path d="M 700.00 194.00 L 700.00 170.00 L 763.24 170.00 L 763.24 194.00 L 830.00 194.00 L 830.00 270.00 L 700.00 270.00 Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-dasharray="6 3"/>
+  <text x="706.00" y="182.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Imported</text>
+  <path d="M 860.00 194.00 L 860.00 170.00 L 918.50 170.00 L 918.50 194.00 L 990.00 194.00 L 990.00 270.00 L 860.00 270.00 Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="925.00" y="232.00" font-family="Noto Sans, sans-serif" font-size="14.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Identification</text>
+  <text x="20.00" y="390.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Fork / join bars and terminate</text>
+  <rect x="45.00" y="428.00" width="90.00" height="4.00" fill="#1A1A2E"/>
+  <text x="141.00" y="436.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">fork</text>
+  <rect x="248.00" y="400.00" width="4.00" height="60.00" fill="#1A1A2E"/>
+  <text x="258.00" y="436.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">join</text>
+  <circle cx="360.00" cy="430.00" r="12.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <line x1="351.51" y1="421.51" x2="368.49" y2="438.49" stroke="#1A1A2E" stroke-width="1.50"/>
+  <line x1="351.51" y1="438.49" x2="368.49" y2="421.51" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="378.00" y="436.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">terminate</text>
+  <text x="500.00" y="390.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Send / accept corner icons</text>
+  <rect x="500.00" y="406.00" width="140.00" height="46.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="10.00" ry="10.00"/>
+  <polygon points="506.00,412.00 514.00,412.00 518.00,416.50 514.00,421.00 506.00,421.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="570.00" y="429.00" font-family="Noto Sans, sans-serif" font-size="14.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">send msg</text>
+  <rect x="660.00" y="406.00" width="140.00" height="46.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="10.00" ry="10.00"/>
+  <polygon points="666.00,412.00 674.00,412.00 678.00,416.50 674.00,421.00 666.00,421.00 669.00,416.50" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="730.00" y="429.00" font-family="Noto Sans, sans-serif" font-size="14.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">accept sig</text>
+  <text x="830.00" y="390.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Dashed swim lane</text>
+  <rect x="830.00" y="406.00" width="160.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-dasharray="6 3"/>
+  <text x="0" y="0" transform="translate(842.00,441.00) rotate(-90)" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Lane</text>
+  <rect x="884.00" y="418.00" width="90.00" height="34.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="929.00" y="435.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">task</text>
+  <text x="20.00" y="520.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Lifelines: rounded header with keyword, dashed header, legacy</text>
+  <rect x="35.00" y="536.00" width="150.00" height="42.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="8.00" ry="8.00"/>
+  <text x="110.00" y="548.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="110.00" y="566.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">engine : Engine</text>
+  <line x1="110.00" y1="578.00" x2="110.00" y2="710.00" stroke="#1A1A2E" stroke-width="1.50" stroke-dasharray="6 3"/>
+  <rect x="225.00" y="536.00" width="150.00" height="42.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="8.00" ry="8.00" stroke-dasharray="6 3"/>
+  <text x="300.00" y="548.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="300.00" y="566.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">wheel : Wheel</text>
+  <line x1="300.00" y1="578.00" x2="300.00" y2="710.00" stroke="#1A1A2E" stroke-width="1.50" stroke-dasharray="6 3"/>
+  <rect x="415.00" y="536.00" width="150.00" height="24.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="490.00" y="548.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">legacy</text>
+  <line x1="490.00" y1="560.00" x2="490.00" y2="710.00" stroke="#1A1A2E" stroke-width="1.50" stroke-dasharray="6 3"/>
+</svg>

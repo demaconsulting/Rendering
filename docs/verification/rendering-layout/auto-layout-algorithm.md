@@ -19,7 +19,8 @@ content equality, since record equality on a `LayoutTree` falls back to referenc
 
 - **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
-- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/AutoLayoutAlgorithmTests.cs`.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/AutoLayoutAlgorithmTests.cs`, plus
+  `NotationPrimitivePassThroughTests.cs` (appearance preserved by the component clone) in the same project.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and `LayoutOptions` instances.
 - **Isolation**: each test builds its own inputs; the algorithm is stateless between calls.
@@ -29,7 +30,8 @@ content equality, since record equality on a `LayoutTree` falls back to referenc
 A verification run passes when every named scenario below asserts without unexpected exception, and
 the referenced tests cover each `Rendering-Layout-AutoAlgorithm-*` requirement. Any drift in the stable
 identifier (`"auto"`), in the component-routing rule, in the fast-path byte-identity guarantee, in the
-multi-group packing behavior, in cascaded-option handling, in empty-graph handling, or in the
+multi-group packing behavior, in cascaded-option handling, in the preservation of node appearance
+across the component clone, in empty-graph handling, or in the
 argument-null validation behavior constitutes a failure.
 
 ### Test Scenarios
@@ -73,8 +75,12 @@ argument-null validation behavior constitutes a failure.
 - **Validation** (`Rendering-Layout-AutoAlgorithm-Validation`): `Apply_NullGraph_ThrowsArgumentNullException`
   and `ApplyCore_NullOptions_ThrowsArgumentNullException` confirm null arguments are rejected with an
   argument-null error.
-
-### Requirements Coverage
+- **Appearance pass-through** (`Rendering-Layout-AutoAlgorithm-AppearancePassThrough`):
+  `AutoLayout_NodeAppearance_SurvivesClone` lays out a three-node graph (a connected pair with an
+  appearance on one node, plus an isolated node with an appearance) through `AutoLayoutAlgorithm.Apply`.
+  The graph splits into two groups, so both the connected component and the singleton bucket are built
+  by the field-by-field sub-graph copy (Sub-Graph Construction); the test confirms each styled node's
+  placed box carries the very same `BoxAppearance` instance while the unstyled node stays `null`.
 
 - **`Rendering-Layout-AutoAlgorithm-Identity`**:
   Id_IsAuto
@@ -120,3 +126,5 @@ argument-null validation behavior constitutes a failure.
   one - is emitted), Apply_UserEdgeWithOldReservedPrefixAcrossComponents_StillEmitsLine (two components,
   one joined by an edge whose identifier is the literal former reserved prefix `"\u0001layout-only:"`
   plus a suffix: both edges are drawn)
+- **`Rendering-Layout-AutoAlgorithm-AppearancePassThrough`**:
+  AutoLayout_NodeAppearance_SurvivesClone

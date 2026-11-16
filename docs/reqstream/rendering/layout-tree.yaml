@@ -190,3 +190,88 @@ sections:
           geometry on the placed box lets both later stages agree on the same physical outline.
         tests:
           - LayoutBox_Construction_StoresAllFields
+
+      - id: Rendering-Model-LayoutTree-EndMarkerStyles
+        title: >-
+          The end-marker style enumeration shall provide hollow-triangle-with-two-dots,
+          hollow-triangle-with-four-dots, and circled-plus members appended after the existing
+          members, leaving every existing member's ordinal unchanged.
+        justification: |
+          SysML v2 draws feature typing, reference subsetting, and owned membership with distinct end
+          decorations. Appending the new members (never renumbering) keeps persisted or interop
+          enumeration values stable and leaves every existing caller's output unchanged.
+        tests:
+          - EndMarkerStyle_LegacyOrdinals_ArePinnedAndNewMembersAppended
+
+      - id: Rendering-Model-LayoutTree-BoxAppearance
+        title: >-
+          A box node shall carry an optional appearance (outline stroke style, name text style,
+          keyword text style, folder title placement, and corner icon) in which a null appearance and
+          a default appearance both mean the legacy look, and the model shall provide the text-style
+          presets used to express it.
+        justification: |
+          SysML v2 notation needs dashed and dotted outlines, regular or italic names, a folder name
+          drawn in the tab, and send/accept corner icons. Grouping them in one optional appearance
+          with legacy defaults (solid outline, bold name, italic keyword, body title, no icon) lets a
+          caller opt in per box while every existing box renders exactly as before.
+        tests:
+          - TextStyle_Presets_PairNamedWeightAndStyle
+          - BoxAppearance_Defaults_ResolveLegacyLook
+          - BoxAppearance_ExplicitStyles_OverrideLegacyDefaults
+          - LayoutBox_Appearance_DefaultsToNull
+
+      - id: Rendering-Model-LayoutTree-CompartmentTitleStyle
+        title: >-
+          A compartment shall carry an optional title alignment (left by default) and an optional
+          title text style (bold italic by default).
+        justification: |
+          SysML v2 compartment titles are centered and not bold; carrying the alignment and style on
+          the compartment lets a caller select that look while defaults keep the legacy left-aligned
+          bold-italic title for every existing compartment.
+        tests:
+          - LayoutCompartment_Defaults_KeepLegacyTitle
+          - LayoutCompartment_ExplicitTitleAlignAndStyle_AreCarried
+
+      - id: Rendering-Model-LayoutTree-BadgeThickBar
+        title: >-
+          The badge shape enumeration shall provide thick horizontal and thick vertical bar members
+          appended after the existing members, and a badge shall carry an optional bar thickness
+          defaulting to none.
+        justification: |
+          SysML v2 fork and join nodes are thick filled bars whose length is chosen by the caller;
+          appending the shapes and an optional thickness keeps existing badge ordinals and call sites
+          unchanged while a null thickness selects the shared default bar thickness.
+        tests:
+          - BadgeShape_LegacyOrdinals_ArePinnedAndNewMembersAppended
+          - LayoutBadge_Thickness_DefaultsToNull
+
+      - id: Rendering-Model-LayoutTree-BadgeCrossedCircle
+        title: >-
+          The badge shape enumeration shall provide a crossed-circle member appended after the
+          existing members.
+        justification: |
+          The SysML v2 terminate node is a circle crossed by an X; appending the shape keeps the
+          existing badge ordinals stable.
+        tests:
+          - BadgeShape_LegacyOrdinals_ArePinnedAndNewMembersAppended
+
+      - id: Rendering-Model-LayoutTree-BandOutlineStyle
+        title: >-
+          A band node shall carry an outline stroke style defaulting to solid.
+        justification: |
+          SysML v2 swim lanes that are not solid partitions are drawn dashed; carrying the style on the
+          band lets a caller select it while the solid default keeps every existing band unchanged.
+        tests:
+          - LayoutBand_OutlineStyle_DefaultsToSolid
+
+      - id: Rendering-Model-LayoutTree-LifelineHeaderStyle
+        title: >-
+          A lifeline node shall carry an optional keyword, a header shape (rectangle by default), an
+          optional header appearance, and an optional header corner radius, all defaulting to the
+          legacy look.
+        justification: |
+          Sequence-diagram participants may be drawn with a keyword line, a rounded header, a
+          non-bold name, or a dashed header outline; carrying those on the lifeline lets a caller
+          opt in while a lifeline built with only its legacy members is unchanged.
+        tests:
+          - LayoutLifeline_NewMembers_DefaultToLegacyLook

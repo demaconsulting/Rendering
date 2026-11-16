@@ -111,6 +111,7 @@ reviews:
       - "src/DemaConsulting.Rendering/LayoutTree/**/*.cs"
       - "src/DemaConsulting.Rendering/Rect.cs"
       - "test/DemaConsulting.Rendering.Tests/LayoutTests.cs"
+      - "test/DemaConsulting.Rendering.Tests/NotationPrimitiveModelTests.cs"
     context:
       - "docs/design/rendering.md"
       - "docs/reqstream/rendering.yaml"
@@ -137,6 +138,7 @@ reviews:
       - "src/DemaConsulting.Rendering/Graph/**/*.cs"
       - "test/DemaConsulting.Rendering.Tests/LayoutGraphTests.cs"
       - "test/DemaConsulting.Rendering.Tests/LayoutGraphPortTests.cs"
+      - "test/DemaConsulting.Rendering.Tests/NotationPrimitiveModelTests.cs"
     context:
       - "docs/design/rendering.md"
       - "docs/reqstream/rendering.yaml"
@@ -232,6 +234,7 @@ reviews:
       - "docs/verification/rendering-abstractions/notation-metrics.md"
       - "src/DemaConsulting.Rendering.Abstractions/NotationMetrics.cs"
       - "test/DemaConsulting.Rendering.Abstractions.Tests/NotationMetricsTests.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/NotationPrimitiveMetricsTests.cs"
     context:
       - "docs/design/rendering-abstractions.md"
       - "docs/reqstream/rendering-abstractions.yaml"
@@ -244,6 +247,7 @@ reviews:
       - "docs/verification/rendering-abstractions/box-metrics.md"
       - "src/DemaConsulting.Rendering.Abstractions/BoxMetrics.cs"
       - "test/DemaConsulting.Rendering.Abstractions.Tests/BoxMetricsTests.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/BoxMetricsNotationTests.cs"
     context:
       - "docs/design/rendering-abstractions.md"
       - "docs/reqstream/rendering-abstractions.yaml"
@@ -256,6 +260,7 @@ reviews:
       - "docs/verification/rendering-abstractions/connector-label-placer.md"
       - "src/DemaConsulting.Rendering.Abstractions/ConnectorLabelPlacer.cs"
       - "test/DemaConsulting.Rendering.Abstractions.Tests/ConnectorLabelPlacerTests.cs"
+      - "test/DemaConsulting.Rendering.Abstractions.Tests/ConnectorLabelPlacerObstacleTests.cs"
     context:
       - "docs/design/rendering-abstractions.md"
       - "docs/reqstream/rendering-abstractions.yaml"
@@ -364,6 +369,7 @@ reviews:
       - "docs/verification/rendering-layout/engine/interconnection-layout-engine.md"
       - "src/DemaConsulting.Rendering.Layout/Engine/InterconnectionLayoutEngine.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/Engine/InterconnectionLayoutEngineTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/BackEdgeEntryApproachTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/design/rendering-layout/engine/engine.md"
@@ -424,6 +430,8 @@ reviews:
       - "docs/verification/rendering-layout/layered-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/LayeredLayoutAlgorithm.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/BackEdgeEntryApproachTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
@@ -436,6 +444,7 @@ reviews:
       - "docs/verification/rendering-layout/connector-router.md"
       - "src/DemaConsulting.Rendering.Layout/ConnectorRouter.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/ConnectorRouterTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
@@ -473,6 +482,7 @@ reviews:
       - "docs/verification/rendering-layout/containment-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/ContainmentLayoutAlgorithm.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
@@ -485,6 +495,7 @@ reviews:
       - "docs/verification/rendering-layout/hierarchical-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/HierarchicalLayoutAlgorithm.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
@@ -511,6 +522,7 @@ reviews:
       - "docs/verification/rendering-layout/auto-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/AutoLayoutAlgorithm.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/AutoLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
@@ -625,6 +637,7 @@ reviews:
       - "src/DemaConsulting.Rendering.CanvasNet/CanvasNetTypefaces.cs"
       - "test/DemaConsulting.Rendering.CanvasNet.Tests/PngRendererPortedTests.cs"
       - "test/DemaConsulting.Rendering.CanvasNet.Tests/PngEndMarkerTests.cs"
+      - "test/DemaConsulting.Rendering.CanvasNet.Tests/CanvasNetNotationPrimitiveTests.cs"
       - "test/DemaConsulting.Rendering.CanvasNet.Tests/CanvasNetPortAndContentInsetTests.cs"
       - "test/DemaConsulting.Rendering.CanvasNet.Tests/CanvasNetTypefacesTests.cs"
     context:

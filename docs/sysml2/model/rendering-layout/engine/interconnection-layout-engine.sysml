@@ -6,7 +6,7 @@ package RenderingLayout {
 
         metadata info : SoftwareInfo {
             sourceFiles = ("src/DemaConsulting.Rendering.Layout/Engine/InterconnectionLayoutEngine.cs");
-            testFiles = ("test/DemaConsulting.Rendering.Layout.Tests/Engine/InterconnectionLayoutEngineTests.cs");
+            testFiles = ("test/DemaConsulting.Rendering.Layout.Tests/Engine/InterconnectionLayoutEngineTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/BackEdgeEntryApproachTests.cs");
             designFiles = ("docs/design/rendering-layout/engine/interconnection-layout-engine.md");
             verificationFiles = ("docs/verification/rendering-layout/engine/interconnection-layout-engine.md");
             requirementFiles = ("docs/reqstream/rendering-layout/engine/interconnection-layout-engine.yaml");

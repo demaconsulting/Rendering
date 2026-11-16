@@ -171,6 +171,99 @@ public static class NotationMetrics
     /// <summary>Bar-badge half-length as a fraction of the badge radius.</summary>
     public const double BadgeBarLengthFraction = 0.8;
 
+    // ── Dotted-triangle primitives (feature typing and reference subsetting) ───────────────────
+
+    /// <summary>Radius of each dot trailing a dotted hollow triangle marker.</summary>
+    public const double DotRadius = 1.25;
+
+    /// <summary>Gap between the triangle base and the first column of dots.</summary>
+    public const double DotBaseGap = 2.5;
+
+    /// <summary>Distance between the two dot columns of the reference-subsetting (2x2) marker.</summary>
+    public const double DotColumnSpacing = 4.0;
+
+    /// <summary>Perpendicular offset of each dot row from the line (each dot sits this far to either side of the line).</summary>
+    public const double DotRowOffset = 2.25;
+
+    /// <summary>
+    /// Along-line extension a single column of dots adds behind the triangle base
+    /// (<see cref="DotBaseGap"/> + 2 x <see cref="DotRadius"/>).
+    /// </summary>
+    public const double TwoDotsExtension = DotBaseGap + (2.0 * DotRadius);
+
+    /// <summary>
+    /// Along-line extension two columns of dots add behind the triangle base
+    /// (<see cref="TwoDotsExtension"/> + <see cref="DotColumnSpacing"/>).
+    /// </summary>
+    public const double FourDotsExtension = TwoDotsExtension + DotColumnSpacing;
+
+    /// <summary>Along-line length of the hollow-triangle-with-two-dots marker box.</summary>
+    public const double TwoDotsMarkerLength = EndMarkerLength + TwoDotsExtension;
+
+    /// <summary>Along-line length of the hollow-triangle-with-four-dots marker box.</summary>
+    public const double FourDotsMarkerLength = EndMarkerLength + FourDotsExtension;
+
+    /// <summary>
+    /// Along-line tip anchor of the two-dots marker box: the triangle anchor
+    /// (<see cref="EndMarkerRefX"/>) shifted by the dot extension so the triangle lands exactly where
+    /// a plain hollow triangle would.
+    /// </summary>
+    public const double TwoDotsRefX = EndMarkerRefX + TwoDotsExtension;
+
+    /// <summary>
+    /// Along-line tip anchor of the four-dots marker box (<see cref="EndMarkerRefX"/> +
+    /// <see cref="FourDotsExtension"/>).
+    /// </summary>
+    public const double FourDotsRefX = EndMarkerRefX + FourDotsExtension;
+
+    // ── Circled-plus primitives (owned membership) ─────────────────────────────────────────────
+
+    /// <summary>Radius of the circle of the circled-plus end marker.</summary>
+    public const double CircledPlusRadius = 5.0;
+
+    /// <summary>Square box that contains the circled-plus marker.</summary>
+    public const double CircledPlusMarkerBox = 12.0;
+
+    /// <summary>Centre of the circled-plus marker box (half of <see cref="CircledPlusMarkerBox"/>).</summary>
+    public const double CircledPlusCenter = CircledPlusMarkerBox / 2.0;
+
+    /// <summary>
+    /// Along-line tip anchor of the circled-plus marker: the far edge of the circle
+    /// (<see cref="CircledPlusCenter"/> + <see cref="CircledPlusRadius"/>) sits on the line endpoint.
+    /// </summary>
+    public const double CircledPlusRefX = CircledPlusCenter + CircledPlusRadius;
+
+    /// <summary>Half the length of each plus arm; the arms span the circle diameter.</summary>
+    public const double CircledPlusArmHalfLength = CircledPlusRadius;
+
+    // ── Thick bar and crossed-circle badges (fork/join, terminate) ─────────────────────────────
+
+    /// <summary>Default thickness, across its axis, of a thick fork/join bar badge.</summary>
+    public const double ThickBarThickness = 4.0;
+
+    /// <summary>
+    /// Fraction of the circle radius, along each axis, at which an arm of the crossed-circle
+    /// (terminate) badge ends, so the four arms end exactly on the circle (cos 45 degrees).
+    /// </summary>
+    public static readonly double CrossedCircleArmFraction = Math.Cos(Math.PI / 4.0);
+
+    // ── Corner icon (send / accept action) ─────────────────────────────────────────────────────
+
+    /// <summary>Width of the send/accept corner icon.</summary>
+    public const double CornerIconWidth = 12.0;
+
+    /// <summary>Height of the send/accept corner icon.</summary>
+    public const double CornerIconHeight = 9.0;
+
+    /// <summary>Inset of the corner icon from the box's left edge and from the top of its body.</summary>
+    public const double CornerIconInset = 6.0;
+
+    /// <summary>Depth of the triangular notch cut into the left edge of the accept icon.</summary>
+    public const double CornerIconNotchDepth = 3.0;
+
+    /// <summary>Width of the pointed (right) end of the send/accept icon.</summary>
+    public const double CornerIconPointWidth = 4.0;
+
     // ── Label background filter ────────────────────────────────────────────────────────────────
 
     /// <summary>Negative inset (each side) of the SVG label-background filter region.</summary>
@@ -207,8 +300,138 @@ public static class NotationMetrics
         EndMarkerStyle.FilledDiamond => DiamondLength,
         EndMarkerStyle.Circle => CircleMarkerBox,
         EndMarkerStyle.Bar => BarAlong,
+        EndMarkerStyle.HollowTriangleTwoDots => TwoDotsMarkerLength,
+        EndMarkerStyle.HollowTriangleFourDots => FourDotsMarkerLength,
+        EndMarkerStyle.CircledPlus => CircledPlusMarkerBox,
         _ => 0.0,
     };
+
+    /// <summary>
+    /// Returns the along-line length of an end-marker decoration as it is drawn by the SVG renderer,
+    /// whose <c>&lt;marker&gt;</c> elements scale their content by the theme stroke width (the SVG
+    /// default <c>markerUnits="strokeWidth"</c>), whereas the raster renderers draw at the notation
+    /// size. It is therefore the conservative length for a layout that must keep a decoration clear
+    /// of the corner that precedes it.
+    /// </summary>
+    /// <param name="style">The end-marker style.</param>
+    /// <param name="theme">Theme providing the stroke width.</param>
+    /// <returns>The rendered along-line length in logical pixels; zero for <see cref="EndMarkerStyle.None"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="theme"/> is <see langword="null"/>.</exception>
+    public static double RenderedAlongLineLength(EndMarkerStyle style, Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(theme);
+        return AlongLineLength(style) * theme.StrokeWidth;
+    }
+
+    /// <summary>
+    /// Returns the half-extent, perpendicular to the line, of an end-marker decoration (the widest
+    /// point of the glyph measured from the line centre).
+    /// </summary>
+    /// <param name="style">The end-marker style.</param>
+    /// <returns>The across-line half width in notation units; zero for <see cref="EndMarkerStyle.None"/>.</returns>
+    public static double AcrossHalfWidth(EndMarkerStyle style) => style switch
+    {
+        EndMarkerStyle.OpenChevron => EndMarkerHalfWidth,
+        EndMarkerStyle.HollowTriangle => EndMarkerHalfWidth,
+        EndMarkerStyle.HollowTriangleCrossbar => EndMarkerHalfWidth,
+        EndMarkerStyle.FilledArrow => EndMarkerHalfWidth,
+        EndMarkerStyle.HollowTriangleTwoDots => EndMarkerHalfWidth,
+        EndMarkerStyle.HollowTriangleFourDots => EndMarkerHalfWidth,
+        EndMarkerStyle.HollowDiamond => DiamondHalfWidth,
+        EndMarkerStyle.FilledDiamond => DiamondHalfWidth,
+        EndMarkerStyle.Circle => CircleRadius,
+        EndMarkerStyle.Bar => BarHalf,
+        EndMarkerStyle.CircledPlus => CircledPlusRadius,
+        _ => 0.0,
+    };
+
+    /// <summary>
+    /// Returns the tip-relative centers of the dots that trail the base of a dotted hollow triangle
+    /// marker: two (one on each side of the line) for
+    /// <see cref="EndMarkerStyle.HollowTriangleTwoDots"/>, four (a 2x2 grid) for
+    /// <see cref="EndMarkerStyle.HollowTriangleFourDots"/>, and none for every other style.
+    /// </summary>
+    /// <param name="style">The end-marker style.</param>
+    /// <returns>The dot centers in draw order; empty when the style carries no dots.</returns>
+    public static IReadOnlyList<MarkerVertex> DotCenters(EndMarkerStyle style)
+    {
+        var firstColumn = EndMarkerRefX + DotBaseGap + DotRadius;
+        switch (style)
+        {
+            case EndMarkerStyle.HollowTriangleTwoDots:
+                return
+                [
+                    new MarkerVertex(firstColumn, -DotRowOffset),
+                    new MarkerVertex(firstColumn, DotRowOffset),
+                ];
+
+            case EndMarkerStyle.HollowTriangleFourDots:
+                var secondColumn = firstColumn + DotColumnSpacing;
+                return
+                [
+                    new MarkerVertex(firstColumn, -DotRowOffset),
+                    new MarkerVertex(firstColumn, DotRowOffset),
+                    new MarkerVertex(secondColumn, -DotRowOffset),
+                    new MarkerVertex(secondColumn, DotRowOffset),
+                ];
+
+            default:
+                return [];
+        }
+    }
+
+    /// <summary>
+    /// Returns the marker-box length and the tip anchor (<c>refX</c>) of the hollow-triangle family,
+    /// widened behind the base for the dotted variants.
+    /// </summary>
+    /// <param name="style">A hollow-triangle-family style.</param>
+    /// <returns>The marker-box length and tip anchor along the line.</returns>
+    public static (double Length, double RefX) TriangleFamilyBox(EndMarkerStyle style) => style switch
+    {
+        EndMarkerStyle.HollowTriangleTwoDots => (TwoDotsMarkerLength, TwoDotsRefX),
+        EndMarkerStyle.HollowTriangleFourDots => (FourDotsMarkerLength, FourDotsRefX),
+        _ => (EndMarkerLength, EndMarkerRefX),
+    };
+
+    /// <summary>
+    /// Returns the icon-local polygon of a send/accept corner icon: x increases to the right from the
+    /// icon's left edge (0 to <see cref="CornerIconWidth"/>), y increases downward from its top
+    /// (0 to <see cref="CornerIconHeight"/>). The send icon is a convex pentagon pointing right; the
+    /// accept icon is the same pentagon with a triangular notch cut into its left edge.
+    /// </summary>
+    /// <param name="icon">The corner icon.</param>
+    /// <returns>The polygon vertices in draw order; empty for <see cref="BoxCornerIcon.None"/>.</returns>
+    public static IReadOnlyList<MarkerVertex> CornerIconVertices(BoxCornerIcon icon)
+    {
+        const double MidY = CornerIconHeight / 2.0;
+        const double ShoulderX = CornerIconWidth - CornerIconPointWidth;
+        switch (icon)
+        {
+            case BoxCornerIcon.Send:
+                return
+                [
+                    new MarkerVertex(0.0, 0.0),
+                    new MarkerVertex(ShoulderX, 0.0),
+                    new MarkerVertex(CornerIconWidth, MidY),
+                    new MarkerVertex(ShoulderX, CornerIconHeight),
+                    new MarkerVertex(0.0, CornerIconHeight),
+                ];
+
+            case BoxCornerIcon.Accept:
+                return
+                [
+                    new MarkerVertex(0.0, 0.0),
+                    new MarkerVertex(ShoulderX, 0.0),
+                    new MarkerVertex(CornerIconWidth, MidY),
+                    new MarkerVertex(ShoulderX, CornerIconHeight),
+                    new MarkerVertex(0.0, CornerIconHeight),
+                    new MarkerVertex(CornerIconNotchDepth, MidY),
+                ];
+
+            default:
+                return [];
+        }
+    }
 
     /// <summary>
     /// Returns the triangle vertices (base corner, apex, base corner) in tip-relative notation units,

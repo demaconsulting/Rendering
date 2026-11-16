@@ -64,5 +64,20 @@ sections:
           - Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond
           - Rendering-Svg-SvgRenderer-EndMarkerCircle
           - Rendering-Svg-SvgRenderer-EndMarkerBar
+          - Rendering-Svg-SvgRenderer-EndMarkerDottedTriangles
+          - Rendering-Svg-SvgRenderer-EndMarkerCircledPlus
+          - Rendering-Svg-SvgRenderer-EndMarkerDefsOnlyWhenUsed
+          - Rendering-Svg-SvgRenderer-EndMarkerStartVariants
+          - Rendering-Svg-SvgRenderer-BoxOutlineStyle
+          - Rendering-Svg-SvgRenderer-BoxNameStyle
+          - Rendering-Svg-SvgRenderer-BoxKeywordStyle
+          - Rendering-Svg-SvgRenderer-CompartmentTitleStyle
+          - Rendering-Svg-SvgRenderer-FolderTitleInTab
+          - Rendering-Svg-SvgRenderer-BoxCornerIcon
+          - Rendering-Svg-SvgRenderer-BadgeThickBar
+          - Rendering-Svg-SvgRenderer-BadgeCrossedCircle
+          - Rendering-Svg-SvgRenderer-BandDashed
+          - Rendering-Svg-SvgRenderer-LifelineRoundedHeader
+          - Rendering-Svg-SvgRenderer-LabelsAvoidBoxes
         tests:
           - SvgRenderer_Render_SingleBox_ProducesSvgDocument

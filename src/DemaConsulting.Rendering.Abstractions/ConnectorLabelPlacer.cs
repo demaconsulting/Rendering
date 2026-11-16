@@ -51,6 +51,13 @@ public static class ConnectorLabelPlacer
     /// <summary>Label box height as a multiple of the font size (cap height plus padding).</summary>
     private const double HeightFactor = 1.3;
 
+    /// <summary>
+    /// Factor applied to an end decoration's notation along-line length to approximate its drawn
+    /// length: the SVG renderer scales markers by the stroke width (1.5 for the built-in light and dark
+    /// themes), the conservative of the two renderers.
+    /// </summary>
+    private const double EndMarkerScale = 1.5;
+
     /// <summary>Extra clearance, in logical pixels, added around each label box when testing overlap.</summary>
     private const double Gap = 2.0;
 
@@ -65,10 +72,42 @@ public static class ConnectorLabelPlacer
     /// </returns>
     public static IReadOnlyDictionary<LayoutLine, LabelPlacement> Place(
         IEnumerable<LayoutLine> lines,
-        double fontSize)
+        double fontSize) =>
+        Place(lines, fontSize, []);
+
+    /// <summary>
+    /// Computes a label position for every line that has a <see cref="LayoutLine.MidpointLabel"/>,
+    /// additionally keeping each label clear of the supplied obstacle boxes.
+    /// </summary>
+    /// <remarks>
+    /// A candidate label rectangle is rejected when it crosses an obstacle. For a leaf box (one whose
+    /// children, if any, are only ports) any overlap with the box rectangle rejects the candidate,
+    /// because a label there would paint its opaque background over the box. For a container box (one
+    /// with nested nodes) only straddling its border rejects the candidate — overlapping the rectangle
+    /// without lying fully inside it — because a label legitimately sits inside a container. Candidate
+    /// order is: segment midpoints (longest first), then sliding along each segment in half-label
+    /// steps, then perpendicular nudges of the longest segment. When no candidate clears every
+    /// obstacle, the obstacle-free placement of the two-argument overload is used, so the no-overlap
+    /// guarantee between labels is preserved. With no obstacles the result is identical to the
+    /// two-argument overload.
+    /// </remarks>
+    /// <param name="lines">The lines to place labels for, in render order.</param>
+    /// <param name="fontSize">Body font size, in logical pixels, used to estimate label box sizes.</param>
+    /// <param name="obstacles">The boxes labels should avoid; an empty sequence disables avoidance.</param>
+    /// <returns>
+    /// A dictionary mapping each labeled line to its chosen <see cref="LabelPlacement"/>. Lines without
+    /// a label are omitted.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="lines"/> or <paramref name="obstacles"/> is <see langword="null"/>.</exception>
+    public static IReadOnlyDictionary<LayoutLine, LabelPlacement> Place(
+        IEnumerable<LayoutLine> lines,
+        double fontSize,
+        IEnumerable<LayoutBox> obstacles)
     {
         ArgumentNullException.ThrowIfNull(lines);
+        ArgumentNullException.ThrowIfNull(obstacles);
 
+        var blocking = obstacles.Select(ToObstacle).ToList();
         var placed = new List<Bounds>();
         var result = new Dictionary<LayoutLine, LabelPlacement>();
 
@@ -82,13 +121,25 @@ public static class ConnectorLabelPlacer
             var halfWidth = (EstimateTextWidth(line.MidpointLabel, fontSize) / 2.0) + Gap;
             var halfHeight = (fontSize * HeightFactor / 2.0) + Gap;
 
-            var position = ChoosePosition(line.Waypoints, halfWidth, halfHeight, placed);
+            var position = ChoosePosition(
+                line.Waypoints,
+                halfWidth,
+                halfHeight,
+                placed,
+                blocking,
+                (NotationMetrics.AlongLineLength(line.SourceEnd) * EndMarkerScale, NotationMetrics.AlongLineLength(line.TargetEnd) * EndMarkerScale));
             placed.Add(new Bounds(position.X - halfWidth, position.Y - halfHeight, position.X + halfWidth, position.Y + halfHeight));
             result[line] = new LabelPlacement(position.X, position.Y, halfWidth, halfHeight);
         }
 
         return result;
     }
+
+    /// <summary>Converts a layout box to an obstacle rectangle, classifying it as leaf or container.</summary>
+    /// <param name="box">The box to convert.</param>
+    /// <returns>The obstacle.</returns>
+    private static Obstacle ToObstacle(LayoutBox box) =>
+        new(box.X, box.Y, box.X + box.Width, box.Y + box.Height, box.Children.Any(child => child is not LayoutPort));
 
     /// <summary>Estimates the rendered width of a label string in logical pixels.</summary>
     /// <param name="text">The label text.</param>
@@ -99,7 +150,7 @@ public static class ConnectorLabelPlacer
 
     /// <summary>
     /// Estimates the full (not half) height of a connector midpoint label's bounding box, including
-    /// the clearance <see cref="Place"/> already adds around every label when testing for overlap.
+    /// the clearance <see cref="Place(IEnumerable{LayoutLine}, double)"/> already adds around every label when testing for overlap.
     /// Exposed so other layout stages (for example <c>LayeredLayoutAlgorithm</c>'s parallel-edge lane
     /// spacing) can size themselves against the same label-height formula this placer uses internally,
     /// without duplicating the <see cref="HeightFactor"/>/<see cref="Gap"/> constants.
@@ -111,7 +162,7 @@ public static class ConnectorLabelPlacer
 
     /// <summary>
     /// Estimates the full (not half) width of a connector midpoint label's bounding box, including
-    /// the clearance <see cref="Place"/> already adds around every label when testing for overlap.
+    /// the clearance <see cref="Place(IEnumerable{LayoutLine}, double)"/> already adds around every label when testing for overlap.
     /// Exposed so other layout stages (for example <c>LayeredLayoutAlgorithm</c>'s parallel-edge lane
     /// spacing on a <c>Top</c>/<c>Bottom</c> box face, where anchors are spread horizontally) can size
     /// themselves against the same label-width formula this placer uses internally, without
@@ -126,26 +177,35 @@ public static class ConnectorLabelPlacer
 
     /// <summary>
     /// Selects a label position for a single line, preferring the midpoint of the longest segment and
-    /// falling back to shorter segments or perpendicular nudges to avoid overlapping placed labels.
+    /// falling back to shorter segments or perpendicular nudges to avoid overlapping placed labels and
+    /// obstacle boxes.
     /// </summary>
     /// <param name="waypoints">The line's waypoints.</param>
     /// <param name="halfWidth">Half the label box width (including gap).</param>
     /// <param name="halfHeight">Half the label box height (including gap).</param>
     /// <param name="placed">Boxes of labels already placed.</param>
+    /// <param name="obstacles">Boxes the label must stay clear of; empty disables avoidance.</param>
+    /// <param name="endClearances">
+    /// The along-line space, in logical pixels, the line's source and target end decorations occupy at
+    /// the first and last waypoint; an obstacle-avoiding slide never moves a label into it.
+    /// </param>
     /// <returns>The chosen label centre.</returns>
     private static (double X, double Y) ChoosePosition(
         IReadOnlyList<Point2D> waypoints,
         double halfWidth,
         double halfHeight,
-        List<Bounds> placed)
+        List<Bounds> placed,
+        List<Obstacle> obstacles,
+        (double Source, double Target) endClearances)
     {
         if (waypoints.Count == 1)
         {
             return (waypoints[0].X, waypoints[0].Y);
         }
 
-        // Segment midpoints ordered by descending length (longest, most-open run first).
-        var segments = new List<(double Length, double X, double Y, double DirX, double DirY)>();
+        // Segment midpoints ordered by descending length (longest, most-open run first). Each segment
+        // also records how much of its start and end is reserved for an end decoration.
+        var segments = new List<(double Length, double X, double Y, double DirX, double DirY, double StartReserve, double EndReserve)>();
         for (var i = 0; i < waypoints.Count - 1; i++)
         {
             var a = waypoints[i];
@@ -155,12 +215,31 @@ public static class ConnectorLabelPlacer
             var length = Math.Sqrt((dx * dx) + (dy * dy));
             var dirX = length > 1e-9 ? dx / length : 0.0;
             var dirY = length > 1e-9 ? dy / length : 0.0;
-            segments.Add((length, (a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0, dirX, dirY));
+            segments.Add((
+                length,
+                (a.X + b.X) / 2.0,
+                (a.Y + b.Y) / 2.0,
+                dirX,
+                dirY,
+                i == 0 ? endClearances.Source : 0.0,
+                i == waypoints.Count - 2 ? endClearances.Target : 0.0));
         }
 
         // Stable ordering keeps ties in waypoint order on every target framework, because an
         // unstable sort resolves ties differently on .NET Framework and .NET Core.
         segments = [.. segments.OrderByDescending(seg => seg.Length)];
+
+        // Obstacle-aware pass: only when a box could be crossed. Its first step takes the first
+        // segment midpoint clear of both labels and boxes, which is the same midpoint the
+        // obstacle-free pass below would take whenever that midpoint is itself clear of every box.
+        if (obstacles.Count > 0)
+        {
+            var avoided = ChooseObstacleClearPosition(segments, halfWidth, halfHeight, placed, obstacles);
+            if (avoided is not null)
+            {
+                return avoided.Value;
+            }
+        }
 
         // First pass: take the first segment midpoint that does not collide.
         var firstClear = segments
@@ -199,6 +278,80 @@ public static class ConnectorLabelPlacer
         return (best.X, clearBottom + halfHeight + Gap);
     }
 
+    /// <summary>
+    /// Searches for a label position that clears both the already-placed labels and every obstacle
+    /// box: segment midpoints, then sliding along each segment in half-label steps (staying within the
+    /// segment), then perpendicular nudges of the longest segment.
+    /// </summary>
+    /// <param name="segments">Segments ordered by descending length.</param>
+    /// <param name="halfWidth">Half the label box width (including gap).</param>
+    /// <param name="halfHeight">Half the label box height (including gap).</param>
+    /// <param name="placed">Boxes of labels already placed.</param>
+    /// <param name="obstacles">Boxes the label must stay clear of.</param>
+    /// <returns>The clear position, or <see langword="null"/> when no candidate clears every obstacle.</returns>
+    private static (double X, double Y)? ChooseObstacleClearPosition(
+        List<(double Length, double X, double Y, double DirX, double DirY, double StartReserve, double EndReserve)> segments,
+        double halfWidth,
+        double halfHeight,
+        List<Bounds> placed,
+        List<Obstacle> obstacles)
+    {
+        // Segment midpoints, longest first.
+        foreach (var seg in segments)
+        {
+            if (!Collides(seg.X, seg.Y, halfWidth, halfHeight, placed, obstacles))
+            {
+                return (seg.X, seg.Y);
+            }
+        }
+
+        // Slide along each segment, alternating either side of its midpoint. A slide keeps the whole
+        // label inside the segment and clear of any end decoration at either end, so a label never
+        // ends up hiding an arrowhead or running into the box the segment attaches to.
+        foreach (var seg in segments)
+        {
+            var labelExtent = (Math.Abs(seg.DirX) * halfWidth) + (Math.Abs(seg.DirY) * halfHeight);
+            var towardEnd = (seg.Length / 2.0) - labelExtent - seg.EndReserve;
+            var towardStart = (seg.Length / 2.0) - labelExtent - seg.StartReserve;
+            for (var k = 1; (k * halfHeight) <= Math.Max(towardEnd, towardStart); k++)
+            {
+                var offset = k * halfHeight;
+                if (offset <= towardEnd
+                    && !Collides(seg.X + (seg.DirX * offset), seg.Y + (seg.DirY * offset), halfWidth, halfHeight, placed, obstacles))
+                {
+                    return (seg.X + (seg.DirX * offset), seg.Y + (seg.DirY * offset));
+                }
+
+                if (offset <= towardStart
+                    && !Collides(seg.X - (seg.DirX * offset), seg.Y - (seg.DirY * offset), halfWidth, halfHeight, placed, obstacles))
+                {
+                    return (seg.X - (seg.DirX * offset), seg.Y - (seg.DirY * offset));
+                }
+            }
+        }
+
+        // Perpendicular nudges of the longest segment.
+        var best = segments[0];
+        var perpX = -best.DirY;
+        var perpY = best.DirX;
+        var step = (halfHeight * 2.0) + Gap;
+        for (var k = 1; k <= 4; k++)
+        {
+            var offset = step * k;
+            if (!Collides(best.X + (perpX * offset), best.Y + (perpY * offset), halfWidth, halfHeight, placed, obstacles))
+            {
+                return (best.X + (perpX * offset), best.Y + (perpY * offset));
+            }
+
+            if (!Collides(best.X - (perpX * offset), best.Y - (perpY * offset), halfWidth, halfHeight, placed, obstacles))
+            {
+                return (best.X - (perpX * offset), best.Y - (perpY * offset));
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Tests whether a candidate label box overlaps any already-placed box.</summary>
     /// <param name="centreX">Candidate box centre X.</param>
     /// <param name="centreY">Candidate box centre Y.</param>
@@ -222,6 +375,62 @@ public static class ConnectorLabelPlacer
 
         return false;
     }
+
+    /// <summary>
+    /// Tests whether a candidate label box overlaps an already-placed label or crosses an obstacle
+    /// box (any overlap of a leaf box; straddling the border of a container box).
+    /// </summary>
+    /// <param name="centreX">Candidate box centre X.</param>
+    /// <param name="centreY">Candidate box centre Y.</param>
+    /// <param name="halfWidth">Half the candidate box width.</param>
+    /// <param name="halfHeight">Half the candidate box height.</param>
+    /// <param name="placed">Boxes already placed.</param>
+    /// <param name="obstacles">Obstacle boxes.</param>
+    /// <returns><see langword="true"/> if the candidate is rejected.</returns>
+    private static bool Collides(
+        double centreX,
+        double centreY,
+        double halfWidth,
+        double halfHeight,
+        List<Bounds> placed,
+        List<Obstacle> obstacles)
+    {
+        if (Collides(centreX, centreY, halfWidth, halfHeight, placed))
+        {
+            return true;
+        }
+
+        var left = centreX - halfWidth;
+        var top = centreY - halfHeight;
+        var right = centreX + halfWidth;
+        var bottom = centreY + halfHeight;
+        foreach (var box in obstacles)
+        {
+            var overlaps = left < box.Right && right > box.Left && top < box.Bottom && bottom > box.Top;
+            if (!overlaps)
+            {
+                continue;
+            }
+
+            var inside = left >= box.Left && right <= box.Right && top >= box.Top && bottom <= box.Bottom;
+            if (!box.IsContainer || !inside)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// An axis-aligned obstacle rectangle used only for label avoidance.
+    /// </summary>
+    /// <param name="Left">Left edge.</param>
+    /// <param name="Top">Top edge.</param>
+    /// <param name="Right">Right edge.</param>
+    /// <param name="Bottom">Bottom edge.</param>
+    /// <param name="IsContainer">Whether the box nests other nodes, so a label may sit wholly inside it.</param>
+    private readonly record struct Obstacle(double Left, double Top, double Right, double Bottom, bool IsContainer);
 
     /// <summary>
     /// An axis-aligned bounding box used only for label overlap tests. Distinct from the public

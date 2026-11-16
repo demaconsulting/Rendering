@@ -378,7 +378,7 @@ internal static class GalleryDiagrams
     /// <remarks>
     ///     A leaf algorithm places a box at exactly the width and height its node declares — it never
     ///     grows a box to fit a keyword line or compartment rows — so the caller must size each node
-    ///     tall enough to hold its title area (<see cref="BoxMetrics.TitleAreaHeight"/>) plus every
+    ///     tall enough to hold its title area (<see cref="BoxMetrics.TitleAreaHeight(Theme, bool, bool)"/>) plus every
     ///     compartment's own rows, exactly as a caller such as a SysML general-view layout strategy does.
     /// </remarks>
     /// <returns>A two-level compound graph with a folder container and boxes carrying a keyword and compartments.</returns>

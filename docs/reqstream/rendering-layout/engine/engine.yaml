@@ -78,6 +78,7 @@ sections:
           - Rendering-Layout-InterconnectionEngine-Direction-DefaultsToRight
           - Rendering-Layout-InterconnectionEngine-NodeSpacing
           - Rendering-Layout-InterconnectionEngine-Deterministic
+          - Rendering-Layout-InterconnectionEngine-BackEdgeEntryApproachParameter
         tests:
           - Place_LinearChain_MonotonicLayerAssignment
           - Place_WorkstationTopology_CorrectLayersAndNoOverlap

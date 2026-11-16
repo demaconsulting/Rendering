@@ -255,7 +255,7 @@ public sealed class SvgRendererPortedTests
         // (not merely that the marker id appears in <defs>).
         output.Position = 0;
         var svgText = ReadAllText(output);
-        Assert.Contains("marker-start=\"url(#line-end-hollow-diamond)\"", svgText, StringComparison.Ordinal);
+        Assert.Contains("marker-start=\"url(#line-start-hollow-diamond)\"", svgText, StringComparison.Ordinal);
     }
 
     /// <summary>

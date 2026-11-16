@@ -45,6 +45,11 @@ sections:
           - Rendering-Layout-LayeredAlgorithm-LayoutOnlyEdges
           - Rendering-Layout-LayeredAlgorithm-RealEdgeNeverHiddenByLayoutOnlyEdge
           - Rendering-Layout-LayeredAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly
+          - Rendering-Layout-LayeredAlgorithm-AppearancePassThrough
+          - Rendering-Layout-LayeredAlgorithm-FolderTabTitleReserve
+          - Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproach
+          - Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproachLegacyPreserved
+          - Rendering-Layout-LayeredAlgorithm-LabelsClearOfNodeBorders
         tests:
           - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
           - Id_IsLayered
@@ -134,6 +139,9 @@ sections:
           - Rendering-Layout-ConnectorRouter-MinimumEndLegs
           - Rendering-Layout-ConnectorRouter-WallsAndFaceSelection
           - Rendering-Layout-ConnectorRouter-PeerEndZones
+          - Rendering-Layout-ConnectorRouter-FolderTabResolution
+          - Rendering-Layout-ConnectorRouter-PortCornerMargin
+          - Rendering-Layout-ConnectorRouter-NewEndMarkerClearance
         tests:
           - Route_TargetToTheRight_AnchorsFaceEachOther
           - Route_ObstacleBetweenEndpoints_RoutesAroundInterior
@@ -191,6 +199,7 @@ sections:
           - Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula
           - Rendering-Layout-ContainmentAlgorithm-LayoutOnlyEdges
           - Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly
+          - Rendering-Layout-ContainmentAlgorithm-AppearancePassThrough
         tests:
           - Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas
           - Id_IsContainment
@@ -233,6 +242,8 @@ sections:
           - Rendering-Layout-HierarchicalLayout-ValidatesGraph
           - Rendering-Layout-HierarchicalLayout-ValidatesOptions
           - Rendering-Layout-HierarchicalLayout-ValidatesRegistry
+          - Rendering-Layout-HierarchicalLayout-AppearancePassThrough
+          - Rendering-Layout-HierarchicalLayout-FolderTabTitleReserve
         tests:
           - Id_IsHierarchical
           - Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly
@@ -296,6 +307,7 @@ sections:
           - Rendering-Layout-AutoAlgorithm-NestedEndpointConnectivity
           - Rendering-Layout-AutoAlgorithm-PreservesInputBoxOrder
           - Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker
+          - Rendering-Layout-AutoAlgorithm-AppearancePassThrough
         tests:
           - Id_IsAuto
           - Apply_ClusterPlusIsolatedSingletons_PacksBothGroupsWithoutOverlap

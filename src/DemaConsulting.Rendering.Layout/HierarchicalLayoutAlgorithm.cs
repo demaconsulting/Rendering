@@ -190,12 +190,26 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// Resolves the title-band height reserved above a container's children: the node's own
     /// <see cref="LayoutGraphNode.TitleHeight"/> override when set (so a caller can match a specific
     /// theme's actual title-area height, including a keyword line), otherwise
-    /// <see cref="DefaultContainerTitleHeight"/>; zero for a node with no label.
+    /// <see cref="DefaultContainerTitleHeight"/>; zero for a node with no label, and zero for a folder
+    /// whose name is drawn in the tab (<see cref="FolderTitlePlacement.Tab"/>) unless the caller set an
+    /// explicit <see cref="LayoutGraphNode.TitleHeight"/> (for example to reserve a keyword line).
     /// </summary>
     /// <param name="node">The container node whose title-band height is resolved.</param>
     /// <returns>The title-band height in logical pixels.</returns>
-    private static double ResolveTitleHeight(LayoutGraphNode node) =>
-        node.Label is null ? 0.0 : node.TitleHeight ?? DefaultContainerTitleHeight;
+    private static double ResolveTitleHeight(LayoutGraphNode node)
+    {
+        if (node.Label is null)
+        {
+            return 0.0;
+        }
+
+        if (node.TitleHeight is null && BoxMetrics.IsNameInTab(node.Shape, node.Label, node.Appearance))
+        {
+            return 0.0;
+        }
+
+        return node.TitleHeight ?? DefaultContainerTitleHeight;
+    }
 
     /// <summary>
     /// Resolves the total vertical band reserved above a container's children: the label/keyword
@@ -607,6 +621,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             viewNode.RoundedCornerRadius = node.RoundedCornerRadius;
             viewNode.FolderTabWidth = node.FolderTabWidth;
             viewNode.FolderTabHeight = node.FolderTabHeight;
+            viewNode.Appearance = node.Appearance;
             viewOf[node] = viewNode;
 
             // Copy named ports too, so a same-scope port edge classified into leafEdges (per

@@ -19,8 +19,9 @@ exceptions.
 
 - **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
-- **Project**: `test/DemaConsulting.Rendering.Tests/LayoutGraphTests.cs` and
-  `LayoutGraphPortTests.cs` (port-model scenarios).
+- **Project**: `test/DemaConsulting.Rendering.Tests/LayoutGraphTests.cs`,
+  `LayoutGraphPortTests.cs` (port-model scenarios), and `NotationPrimitiveModelTests.cs`
+  (node-appearance scenario).
 - **Target frameworks**: .NET 8, .NET 9, .NET 10, and .NET 11.
 - **Dependencies**: no external services, files, or network access; every test uses only in-memory
   graph objects.
@@ -121,6 +122,19 @@ and `InternalLabel` both default to `null` and can be set independently of each 
 
 **Covers**: `Rendering-Model-LayoutGraph-PortLabels`.
 
+#### Node appearance defaults to none and is propagated
+
+Test `LayoutGraphNode_Appearance_DefaultsToNullAndRoundTrips` (in `NotationPrimitiveModelTests.cs`)
+confirms a new node's `Appearance` is `null` and that an assigned `BoxAppearance` is returned as the
+same instance. The propagation tests `LayeredLayout_NodeAppearance_ReachesPlacedBox`,
+`LayeredLayout_NodeWithoutAppearance_StaysNull`, `ContainmentLayout_NodeAppearance_ReachesPlacedBox`,
+`HierarchicalLayout_ContainerAndLeafAppearance_ReachPlacedBoxes`, and
+`AutoLayout_NodeAppearance_SurvivesClone` (in `NotationPrimitivePassThroughTests.cs` of the layout test
+project) then confirm the layered, containment, hierarchical, and auto layout paths copy the appearance
+onto the placed boxes unchanged and leave an unset appearance `null`.
+
+**Covers**: `Rendering-Model-LayoutGraph-NodeAppearance`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-LayoutGraph-AddNode`**: AddNode_AppendsNodeAndReturnsIt
@@ -146,3 +160,8 @@ and `InternalLabel` both default to `null` and can be set independently of each 
   Ports_AddPort_SameIdOnDifferentNodes_Allowed, Ports_AddPort_NullId_ThrowsArgumentNullException,
   Ports_AddPort_EmptyId_ThrowsArgumentException, AddEdge_PortToNode_ConnectsPortAsSource
 - **`Rendering-Model-LayoutGraph-PortLabels`**: Port_Labels_DefaultNullAndIndependentlySettable
+- **`Rendering-Model-LayoutGraph-NodeAppearance`**:
+  LayoutGraphNode_Appearance_DefaultsToNullAndRoundTrips, LayeredLayout_NodeAppearance_ReachesPlacedBox,
+  LayeredLayout_NodeWithoutAppearance_StaysNull, ContainmentLayout_NodeAppearance_ReachesPlacedBox,
+  HierarchicalLayout_ContainerAndLeafAppearance_ReachPlacedBoxes,
+  AutoLayout_NodeAppearance_SurvivesClone

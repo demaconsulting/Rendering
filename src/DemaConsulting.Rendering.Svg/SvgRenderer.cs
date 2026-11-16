@@ -87,7 +87,7 @@ public sealed class SvgRenderer : IRenderer
         // label nudged to avoid colliding with another can land outside the box/routing geometry's
         // extent, so the canvas must be sized only after label placement is known, not before.
         var lines = CollectLines(layout.Nodes).ToList();
-        var labelPositions = ConnectorLabelPlacer.Place(lines, theme.FontSizeBody);
+        var labelPositions = ConnectorLabelPlacer.Place(lines, theme.FontSizeBody, CollectBoxes(layout.Nodes));
 
         // Compute canvas dimensions, ensuring a minimum 1×1 canvas, then grow to fully include every
         // placed label's bounding box (a label can be nudged beyond the box/routing geometry's
@@ -105,8 +105,9 @@ public sealed class SvgRenderer : IRenderer
             $"""<svg xmlns="http://www.w3.org/2000/svg" width="{F(width)}" height="{F(height)}" viewBox="0 0 {F(width)} {F(height)}">""");
         sb.AppendLine();
 
-        // Write defs section with all line-end markers
-        WriteEndMarkerDefs(sb, theme);
+        // Write defs section with all line-end markers (the dotted-triangle and circled-plus markers
+        // are emitted only when a line in the tree actually uses them)
+        WriteEndMarkerDefs(sb, theme, CollectLazyMarkers(lines));
 
         // Render all top-level nodes recursively (wires are drawn without their labels here)
         foreach (var node in layout.Nodes)
@@ -139,105 +140,50 @@ public sealed class SvgRenderer : IRenderer
     /// definitions used by <see cref="RenderLine"/>.
     /// </summary>
     /// <remarks>
-    /// Markers defined: <c>line-end-open-chevron</c> (open two-stroke chevron drawn as a
+    /// Markers always defined: <c>line-end-open-chevron</c> (open two-stroke chevron drawn as a
     /// <c>&lt;polyline&gt;</c> with no closing base edge), <c>line-end-hollow-triangle</c> (hollow
-    /// triangle), <c>line-end-hollow-triangle-crossbar</c> (hollow triangle with perpendicular
-    /// crossbar), <c>line-end-filled-arrow</c> (filled triangle), <c>line-end-hollow-diamond</c>
-    /// (hollow diamond), <c>line-end-filled-diamond</c> (filled diamond), <c>line-end-circle</c>
-    /// (hollow circle), and <c>line-end-bar</c> (perpendicular bar). Every coordinate is derived from
-    /// <see cref="NotationMetrics"/>, so a geometry literal never appears twice and the PNG renderer
-    /// draws the identical shapes from the same source constants.
+    /// triangle), <c>line-end-filled-arrow</c> (filled triangle), <c>line-end-hollow-triangle-crossbar</c>
+    /// (hollow triangle with perpendicular crossbar), <c>line-end-hollow-diamond</c> (hollow diamond),
+    /// <c>line-end-filled-diamond</c> (filled diamond), <c>line-end-circle</c> (hollow circle), and
+    /// <c>line-end-bar</c> (perpendicular bar). Written only when a line uses them:
+    /// <c>line-end-hollow-triangle-two-dots</c>, <c>line-end-hollow-triangle-four-dots</c> and
+    /// <c>line-end-circled-plus</c>, plus a mirrored <c>line-start-…</c> variant of any style used at
+    /// the start of a line (an SVG <c>marker-start</c> marker's x axis points into the line, so the
+    /// end-marker geometry would otherwise sit outside the line start, pointing inward). Every
+    /// coordinate is derived from <see cref="NotationMetrics"/>, so a geometry literal never appears
+    /// twice and the PNG renderer draws the identical shapes from the same source constants. Note
+    /// that SVG markers scale by the stroke width (<c>markerUnits="strokeWidth"</c>, the SVG default)
+    /// whereas the PNG renderer draws them at the notation size.
     /// </remarks>
     /// <param name="sb">String builder receiving the SVG markup.</param>
     /// <param name="theme">Theme providing stroke color and width.</param>
-    private static void WriteEndMarkerDefs(StringBuilder sb, Theme theme)
+    /// <param name="lazyMarkers">
+    /// The on-demand markers (and whether the start or end variant) that lines in the tree use; only
+    /// these are written after the always-defined set, so a tree that uses none produces the historical
+    /// defs byte-for-byte.
+    /// </param>
+    private static void WriteEndMarkerDefs(
+        StringBuilder sb,
+        Theme theme,
+        IReadOnlyList<(EndMarkerStyle Style, bool IsStart)> lazyMarkers)
     {
-        var stroke = theme.StrokeColor;
-        var sw = F(theme.StrokeWidth);
         var bg = theme.BackgroundColor;
-        var trianglePoints = MarkerPoints(
-            NotationMetrics.TriangleVertices(), NotationMetrics.EndMarkerRefX, NotationMetrics.EndMarkerHalfWidth);
-        var diamondPoints = MarkerPoints(
-            NotationMetrics.DiamondVertices(), NotationMetrics.DiamondRefX, NotationMetrics.DiamondHalfWidth);
 
         sb.AppendLine("  <defs>");
 
-        // Open-chevron marker — OPEN two-stroke chevron (polyline with no closing base edge), drawn
-        // from the same triangle vertices as the hollow triangle but left open along the line.
-        sb.Append(
-            $"""    <marker id="line-end-open-chevron" markerWidth="{M(NotationMetrics.EndMarkerLength)}" markerHeight="{M(NotationMetrics.EndMarkerWidth)}" refX="{M(NotationMetrics.EndMarkerRefX)}" refY="{M(NotationMetrics.EndMarkerHalfWidth)}" orient="auto">""");
-        sb.AppendLine();
-        sb.Append(
-            $"""      <polyline points="{trianglePoints}" fill="none" stroke="{stroke}" stroke-width="{sw}"/>""");
-        sb.AppendLine();
-        sb.AppendLine(MarkerClose);
+        // The eight historical end markers, always written (in this fixed order) so documents that
+        // use any of them stay byte-identical to what earlier versions produced.
+        foreach (var style in AlwaysDefinedMarkers)
+        {
+            WriteMarker(sb, theme, style, isStart: false);
+        }
 
-        // Hollow-triangle marker — closed hollow triangle pointing along the line direction; filled
-        // with the background color so the connector line does not show through the unfilled interior.
-        sb.Append(
-            $"""    <marker id="line-end-hollow-triangle" markerWidth="{M(NotationMetrics.EndMarkerLength)}" markerHeight="{M(NotationMetrics.EndMarkerWidth)}" refX="{M(NotationMetrics.EndMarkerRefX)}" refY="{M(NotationMetrics.EndMarkerHalfWidth)}" orient="auto">""");
-        sb.AppendLine();
-        sb.Append(
-            $"""      <polygon points="{trianglePoints}" fill="{bg}" stroke="{stroke}" stroke-width="{sw}"/>""");
-        sb.AppendLine();
-        sb.AppendLine(MarkerClose);
-
-        // Filled-arrow marker — solid triangle pointing along the line direction
-        sb.Append(
-            $"""    <marker id="line-end-filled-arrow" markerWidth="{M(NotationMetrics.EndMarkerLength)}" markerHeight="{M(NotationMetrics.EndMarkerWidth)}" refX="{M(NotationMetrics.EndMarkerRefX)}" refY="{M(NotationMetrics.EndMarkerHalfWidth)}" orient="auto">""");
-        sb.AppendLine();
-        sb.Append(
-            $"""      <polygon points="{trianglePoints}" fill="{stroke}" stroke="{stroke}" stroke-width="{sw}"/>""");
-        sb.AppendLine();
-        sb.AppendLine(MarkerClose);
-
-        // Hollow-triangle-with-crossbar marker — hollow triangle + perpendicular crossbar on the shaft.
-        sb.Append(
-            $"""    <marker id="line-end-hollow-triangle-crossbar" markerWidth="{M(NotationMetrics.EndMarkerLength)}" markerHeight="{M(NotationMetrics.EndMarkerWidth)}" refX="{M(NotationMetrics.EndMarkerRefX)}" refY="{M(NotationMetrics.EndMarkerHalfWidth)}" orient="auto">""");
-        sb.AppendLine();
-        sb.Append(
-            $"""      <polygon points="{trianglePoints}" fill="{bg}" stroke="{stroke}" stroke-width="{sw}"/>""");
-        sb.AppendLine();
-        sb.Append(
-            $"""      <line x1="{M(NotationMetrics.CrossbarX)}" y1="0" x2="{M(NotationMetrics.CrossbarX)}" y2="{M(NotationMetrics.EndMarkerWidth)}" stroke="{stroke}" stroke-width="{sw}"/>""");
-        sb.AppendLine();
-        sb.AppendLine(MarkerClose);
-
-        // Hollow-diamond marker — open four-point diamond straddling the line end
-        sb.Append(
-            $"""    <marker id="line-end-hollow-diamond" markerWidth="{M(NotationMetrics.DiamondLength)}" markerHeight="{M(NotationMetrics.DiamondWidth)}" refX="{M(NotationMetrics.DiamondRefX)}" refY="{M(NotationMetrics.DiamondHalfWidth)}" orient="auto">""");
-        sb.AppendLine();
-        sb.Append(
-            $"""      <polygon points="{diamondPoints}" fill="{bg}" stroke="{stroke}" stroke-width="{sw}"/>""");
-        sb.AppendLine();
-        sb.AppendLine(MarkerClose);
-
-        // Filled-diamond marker — solid four-point diamond straddling the line end
-        sb.Append(
-            $"""    <marker id="line-end-filled-diamond" markerWidth="{M(NotationMetrics.DiamondLength)}" markerHeight="{M(NotationMetrics.DiamondWidth)}" refX="{M(NotationMetrics.DiamondRefX)}" refY="{M(NotationMetrics.DiamondHalfWidth)}" orient="auto">""");
-        sb.AppendLine();
-        sb.Append(
-            $"""      <polygon points="{diamondPoints}" fill="{stroke}" stroke="{stroke}" stroke-width="{sw}"/>""");
-        sb.AppendLine();
-        sb.AppendLine(MarkerClose);
-
-        // Circle marker — open circle whose near edge sits at the line endpoint
-        sb.Append(
-            $"""    <marker id="line-end-circle" markerWidth="{M(NotationMetrics.CircleMarkerBox)}" markerHeight="{M(NotationMetrics.CircleMarkerBox)}" refX="{M(NotationMetrics.CircleRefX)}" refY="{M(NotationMetrics.CircleCenter)}" orient="auto">""");
-        sb.AppendLine();
-        sb.Append(
-            $"""      <circle cx="{M(NotationMetrics.CircleCenter)}" cy="{M(NotationMetrics.CircleCenter)}" r="{M(NotationMetrics.CircleRadius)}" fill="{bg}" stroke="{stroke}" stroke-width="{sw}"/>""");
-        sb.AppendLine();
-        sb.AppendLine(MarkerClose);
-
-        // Bar marker — perpendicular line centered on the line endpoint
-        sb.Append(
-            $"""    <marker id="line-end-bar" markerWidth="{M(NotationMetrics.BarAlong)}" markerHeight="{M(NotationMetrics.BarAcross)}" refX="{M(NotationMetrics.BarHalfAlong)}" refY="{M(NotationMetrics.BarHalf)}" orient="auto">""");
-        sb.AppendLine();
-        sb.Append(
-            $"""      <line x1="{M(NotationMetrics.BarHalfAlong)}" y1="0" x2="{M(NotationMetrics.BarHalfAlong)}" y2="{M(NotationMetrics.BarAcross)}" stroke="{stroke}" stroke-width="{sw}"/>""");
-        sb.AppendLine();
-        sb.AppendLine(MarkerClose);
+        // The dotted-triangle and circled-plus end markers (SysML typing, reference subsetting, owned
+        // membership) and every start-of-line marker, written only when used.
+        foreach (var (style, isStart) in lazyMarkers)
+        {
+            WriteMarker(sb, theme, style, isStart);
+        }
 
         // Auto-sizing background for text drawn over lines (e.g. message and guard labels), painted in
         // the theme background so it occludes the connector line consistently under any theme.
@@ -260,7 +206,10 @@ public sealed class SvgRenderer : IRenderer
     /// <param name="refAlong">Along-line position of the marker box anchor (the SVG <c>refX</c>).</param>
     /// <param name="refAcross">Across-line position of the marker box anchor (the SVG <c>refY</c>).</param>
     /// <returns>An SVG <c>points</c> attribute value, for example <c>"0 0, 10 3.5, 0 7"</c>.</returns>
-    private static string MarkerPoints(IReadOnlyList<MarkerVertex> vertices, double refAlong, double refAcross)
+    private static string MarkerPoints(
+        IReadOnlyList<MarkerVertex> vertices,
+        double refAlong,
+        double refAcross)
     {
         var sb = new StringBuilder();
         for (var i = 0; i < vertices.Count; i++)
@@ -275,6 +224,240 @@ public sealed class SvgRenderer : IRenderer
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// The eight historical end-marker styles whose <c>line-end-…</c> definitions are always written
+    /// to <c>&lt;defs&gt;</c>, in the order earlier versions wrote them.
+    /// </summary>
+    private static readonly EndMarkerStyle[] AlwaysDefinedMarkers =
+    [
+        EndMarkerStyle.OpenChevron,
+        EndMarkerStyle.HollowTriangle,
+        EndMarkerStyle.FilledArrow,
+        EndMarkerStyle.HollowTriangleCrossbar,
+        EndMarkerStyle.HollowDiamond,
+        EndMarkerStyle.FilledDiamond,
+        EndMarkerStyle.Circle,
+        EndMarkerStyle.Bar,
+    ];
+
+    /// <summary>
+    /// Returns whether a marker definition is written only when a line uses it: every start-of-line
+    /// marker (a <c>marker-start</c> marker is a mirrored variant, because its x axis points into the
+    /// line rather than out of it) and the dotted-triangle and circled-plus end markers.
+    /// </summary>
+    /// <param name="style">The end-marker style.</param>
+    /// <param name="isStart">Whether the marker is used at the start of a line.</param>
+    /// <returns><see langword="true"/> when the definition is written on demand.</returns>
+    private static bool IsLazyMarker(EndMarkerStyle style, bool isStart) =>
+        style != EndMarkerStyle.None && (isStart || !AlwaysDefinedMarkers.Contains(style));
+
+    /// <summary>
+    /// Returns the SVG marker id of an end-marker style. The end variant (<c>line-end-…</c>) is
+    /// referenced by <c>marker-end</c>; the start variant (<c>line-start-…</c>) is geometrically
+    /// mirrored along the line, because a <c>marker-start</c> marker's x axis points into the line
+    /// (<c>orient="auto"</c>), so its tip anchor must sit at the near end of the marker box and its
+    /// body extend along the line.
+    /// </summary>
+    /// <param name="style">The end-marker style.</param>
+    /// <param name="isStart">Whether the start-of-line variant is wanted.</param>
+    /// <returns>The marker id.</returns>
+    private static string MarkerId(EndMarkerStyle style, bool isStart)
+    {
+        var name = style switch
+        {
+            EndMarkerStyle.OpenChevron => "open-chevron",
+            EndMarkerStyle.HollowTriangle => "hollow-triangle",
+            EndMarkerStyle.HollowTriangleCrossbar => "hollow-triangle-crossbar",
+            EndMarkerStyle.FilledArrow => "filled-arrow",
+            EndMarkerStyle.HollowDiamond => "hollow-diamond",
+            EndMarkerStyle.FilledDiamond => "filled-diamond",
+            EndMarkerStyle.Circle => "circle",
+            EndMarkerStyle.Bar => "bar",
+            EndMarkerStyle.HollowTriangleTwoDots => "hollow-triangle-two-dots",
+            EndMarkerStyle.HollowTriangleFourDots => "hollow-triangle-four-dots",
+            _ => "circled-plus",
+        };
+        return (isStart ? "line-start-" : "line-end-") + name;
+    }
+
+    /// <summary>
+    /// Resolves the <c>marker-start</c>/<c>marker-end</c> attribute for a line end, or an empty string
+    /// when the style has no marker.
+    /// </summary>
+    /// <param name="style">The end-marker style.</param>
+    /// <param name="isStart">Whether this is the source (start) end of the line.</param>
+    /// <returns>A leading-space attribute fragment, or an empty string.</returns>
+    private static string MarkerAttribute(EndMarkerStyle style, bool isStart)
+    {
+        if (style == EndMarkerStyle.None)
+        {
+            return string.Empty;
+        }
+
+        var attribute = isStart ? "marker-start" : "marker-end";
+        return $" {attribute}=\"url(#{MarkerId(style, isStart)})\"";
+    }
+
+    /// <summary>
+    /// Collects the distinct on-demand marker definitions used by a set of lines, in a stable order.
+    /// </summary>
+    /// <param name="lines">The lines of the tree.</param>
+    /// <returns>The distinct (style, isStart) pairs that need a definition.</returns>
+    private static List<(EndMarkerStyle Style, bool IsStart)> CollectLazyMarkers(IEnumerable<LayoutLine> lines)
+    {
+        var used = new HashSet<(EndMarkerStyle Style, bool IsStart)>();
+        foreach (var line in lines)
+        {
+            if (IsLazyMarker(line.SourceEnd, isStart: true))
+            {
+                used.Add((line.SourceEnd, true));
+            }
+
+            if (IsLazyMarker(line.TargetEnd, isStart: false))
+            {
+                used.Add((line.TargetEnd, false));
+            }
+        }
+
+        return [.. used.OrderBy(marker => marker.IsStart).ThenBy(marker => marker.Style)];
+    }
+
+    /// <summary>
+    /// Writes one <c>&lt;marker&gt;</c> definition. The end variant draws the glyph with its tip anchor
+    /// (<c>refX</c>) on the line endpoint and its body behind it; the start variant wraps the same glyph
+    /// in a mirror transform and mirrors the anchor, so the glyph points out of the line start exactly
+    /// as the end variant points out of the line end.
+    /// </summary>
+    /// <param name="sb">String builder receiving the SVG markup.</param>
+    /// <param name="theme">Theme providing stroke color, width, and background.</param>
+    /// <param name="style">The marker style.</param>
+    /// <param name="isStart">Whether to write the start-of-line (mirrored) variant.</param>
+    private static void WriteMarker(StringBuilder sb, Theme theme, EndMarkerStyle style, bool isStart)
+    {
+        var (length, height, refX, refY, body) = DescribeMarker(style, theme);
+        var anchorX = isStart ? length - refX : refX;
+        sb.Append(
+            $"""    <marker id="{MarkerId(style, isStart)}" markerWidth="{M(length)}" markerHeight="{M(height)}" refX="{M(anchorX)}" refY="{M(refY)}" orient="auto">""");
+        sb.AppendLine();
+        if (isStart)
+        {
+            sb.AppendLine($"""      <g transform="matrix(-1 0 0 1 {M(length)} 0)">""");
+        }
+
+        foreach (var element in body)
+        {
+            sb.AppendLine(element);
+        }
+
+        if (isStart)
+        {
+            sb.AppendLine("      </g>");
+        }
+
+        sb.AppendLine(MarkerClose);
+    }
+
+    /// <summary>
+    /// Describes the end variant of a marker: its box (length and height), its tip anchor, and the SVG
+    /// elements of its glyph. Every coordinate comes from <see cref="NotationMetrics"/>.
+    /// </summary>
+    /// <param name="style">The marker style.</param>
+    /// <param name="theme">Theme providing stroke color, width, and background.</param>
+    /// <returns>The marker box, tip anchor and body elements.</returns>
+    private static (double Length, double Height, double RefX, double RefY, List<string> Body) DescribeMarker(
+        EndMarkerStyle style,
+        Theme theme)
+    {
+        var stroke = theme.StrokeColor;
+        var sw = F(theme.StrokeWidth);
+        var bg = theme.BackgroundColor;
+
+        string Polygon(string points, string fill) =>
+            $"""      <polygon points="{points}" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>""";
+        string Line(double x1, double y1, double x2, double y2) =>
+            $"""      <line x1="{M(x1)}" y1="{M(y1)}" x2="{M(x2)}" y2="{M(y2)}" stroke="{stroke}" stroke-width="{sw}"/>""";
+        string Circle(double cx, double cy, double r, string fill, bool outlined) =>
+            outlined
+                ? $"""      <circle cx="{M(cx)}" cy="{M(cy)}" r="{M(r)}" fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>"""
+                : $"""      <circle cx="{M(cx)}" cy="{M(cy)}" r="{M(r)}" fill="{fill}"/>""";
+
+        switch (style)
+        {
+            case EndMarkerStyle.HollowDiamond:
+            case EndMarkerStyle.FilledDiamond:
+                var diamondPoints = MarkerPoints(
+                    NotationMetrics.DiamondVertices(), NotationMetrics.DiamondRefX, NotationMetrics.DiamondHalfWidth);
+                return (
+                    NotationMetrics.DiamondLength,
+                    NotationMetrics.DiamondWidth,
+                    NotationMetrics.DiamondRefX,
+                    NotationMetrics.DiamondHalfWidth,
+                    [Polygon(diamondPoints, style == EndMarkerStyle.FilledDiamond ? stroke : bg)]);
+
+            case EndMarkerStyle.Circle:
+                return (
+                    NotationMetrics.CircleMarkerBox,
+                    NotationMetrics.CircleMarkerBox,
+                    NotationMetrics.CircleRefX,
+                    NotationMetrics.CircleCenter,
+                    [Circle(NotationMetrics.CircleCenter, NotationMetrics.CircleCenter, NotationMetrics.CircleRadius, bg, outlined: true)]);
+
+            case EndMarkerStyle.Bar:
+                return (
+                    NotationMetrics.BarAlong,
+                    NotationMetrics.BarAcross,
+                    NotationMetrics.BarHalfAlong,
+                    NotationMetrics.BarHalf,
+                    [Line(NotationMetrics.BarHalfAlong, 0, NotationMetrics.BarHalfAlong, NotationMetrics.BarAcross)]);
+
+            case EndMarkerStyle.CircledPlus:
+                var centre = NotationMetrics.CircledPlusCenter;
+                var arm = NotationMetrics.CircledPlusArmHalfLength;
+                return (
+                    NotationMetrics.CircledPlusMarkerBox,
+                    NotationMetrics.CircledPlusMarkerBox,
+                    NotationMetrics.CircledPlusRefX,
+                    centre,
+                    [
+                        Circle(centre, centre, NotationMetrics.CircledPlusRadius, bg, outlined: true),
+                        Line(centre - arm, centre, centre + arm, centre),
+                        Line(centre, centre - arm, centre, centre + arm),
+                    ]);
+
+            default:
+                // The triangle family: open chevron, hollow/filled triangle, crossbar, and the dotted variants
+                var (length, tipAnchor) = NotationMetrics.TriangleFamilyBox(style);
+                var trianglePoints = MarkerPoints(
+                    NotationMetrics.TriangleVertices(), tipAnchor, NotationMetrics.EndMarkerHalfWidth);
+                var body = new List<string>();
+                if (style == EndMarkerStyle.OpenChevron)
+                {
+                    body.Add($"""      <polyline points="{trianglePoints}" fill="none" stroke="{stroke}" stroke-width="{sw}"/>""");
+                }
+                else
+                {
+                    body.Add(Polygon(trianglePoints, style == EndMarkerStyle.FilledArrow ? stroke : bg));
+                }
+
+                if (style == EndMarkerStyle.HollowTriangleCrossbar)
+                {
+                    body.Add(Line(NotationMetrics.CrossbarX, 0, NotationMetrics.CrossbarX, NotationMetrics.EndMarkerWidth));
+                }
+
+                foreach (var dot in NotationMetrics.DotCenters(style))
+                {
+                    body.Add(Circle(
+                        tipAnchor - dot.Along,
+                        NotationMetrics.EndMarkerHalfWidth + dot.Across,
+                        NotationMetrics.DotRadius,
+                        stroke,
+                        outlined: false));
+                }
+
+                return (length, NotationMetrics.EndMarkerWidth, tipAnchor, NotationMetrics.EndMarkerHalfWidth, body);
+        }
     }
 
     /// <summary>
@@ -361,6 +544,9 @@ public sealed class SvgRenderer : IRenderer
         // Draw the box outline (shape-specific)
         RenderBoxOutline(sb, box, theme, fillColor, scale);
 
+        // Draw the optional send/accept corner icon
+        RenderBoxCornerIcon(sb, box, theme, scale);
+
         // Draw the keyword and label in the title area
         RenderBoxTitle(sb, box, theme, scale);
 
@@ -409,17 +595,39 @@ public sealed class SvgRenderer : IRenderer
                     ? $" rx=\"{F(cornerRadius * scale)}\" ry=\"{F(cornerRadius * scale)}\""
                     : string.Empty;
                 sb.Append(
-                    $"""  <rect x="{F(x)}" y="{F(y)}" width="{F(w)}" height="{F(h)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{cornerStr}/>""");
+                    $"""  <rect x="{F(x)}" y="{F(y)}" width="{F(w)}" height="{F(h)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{cornerStr}{OutlineDash(box)}/>""");
                 sb.AppendLine();
                 break;
 
             default:
                 sb.Append(
-                    $"""  <rect x="{F(x)}" y="{F(y)}" width="{F(w)}" height="{F(h)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
+                    $"""  <rect x="{F(x)}" y="{F(y)}" width="{F(w)}" height="{F(h)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{OutlineDash(box)}/>""");
                 sb.AppendLine();
                 break;
         }
     }
+
+    /// <summary>
+    /// Returns the <c>stroke-dasharray</c> attribute fragment for a box outline, or an empty string for
+    /// a solid (or unspecified) outline.
+    /// </summary>
+    /// <param name="box">The box whose outline style is resolved.</param>
+    /// <returns>A leading-space attribute fragment, or an empty string.</returns>
+    private static string OutlineDash(LayoutBox box) =>
+        DashAttribute(box.Appearance?.OutlineStyle ?? LineStyle.Solid);
+
+    /// <summary>
+    /// Returns the <c>stroke-dasharray</c> attribute fragment for a stroke style: <c>6 3</c> for
+    /// dashed, <c>2 2</c> for dotted, and an empty string for solid.
+    /// </summary>
+    /// <param name="style">The stroke style.</param>
+    /// <returns>A leading-space attribute fragment, or an empty string.</returns>
+    private static string DashAttribute(LineStyle style) => style switch
+    {
+        LineStyle.Dashed => " stroke-dasharray=\"6 3\"",
+        LineStyle.Dotted => " stroke-dasharray=\"2 2\"",
+        _ => string.Empty,
+    };
 
     /// <summary>
     /// Renders a folder-shaped outline (a tab at the top-left above a full-width body),
@@ -438,7 +646,7 @@ public sealed class SvgRenderer : IRenderer
         var yBottom = (box.Y + box.Height) * scale;
 
         sb.Append(
-            $"""  <path d="M {F(x)} {F(yBody)} L {F(x)} {F(yTab)} L {F(xTabRight)} {F(yTab)} L {F(xTabRight)} {F(yBody)} L {F(xRight)} {F(yBody)} L {F(xRight)} {F(yBottom)} L {F(x)} {F(yBottom)} Z" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
+            $"""  <path d="M {F(x)} {F(yBody)} L {F(x)} {F(yTab)} L {F(xTabRight)} {F(yTab)} L {F(xTabRight)} {F(yBody)} L {F(xRight)} {F(yBody)} L {F(xRight)} {F(yBottom)} L {F(x)} {F(yBottom)} Z" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{OutlineDash(box)}/>""");
         sb.AppendLine();
     }
 
@@ -458,14 +666,7 @@ public sealed class SvgRenderer : IRenderer
     /// is clamped to zero.
     /// </summary>
     private static double ResolveFolderTabWidth(LayoutBox box, Theme theme) =>
-        box.FolderTabWidth.HasValue
-            ? Math.Max(0.0, box.FolderTabWidth.Value)
-            : Math.Min(
-                box.Width * NotationMetrics.FolderTabMaxWidthFraction,
-                Math.Max(
-                    NotationMetrics.FolderTabMinWidth,
-                    (box.Label?.Length ?? 4) * theme.FontSizeBody * NotationMetrics.FolderLabelCharWidthFactor +
-                    (2.0 * theme.LabelPadding)));
+        BoxMetrics.ResolveFolderTabWidth(box, theme);
 
     /// <summary>
     /// Resolves the folder tab height for a box, preferring a caller-supplied placed-box value so
@@ -473,9 +674,7 @@ public sealed class SvgRenderer : IRenderer
     /// caller-supplied value is clamped to zero.
     /// </summary>
     private static double ResolveFolderTabHeight(LayoutBox box, Theme theme) =>
-        box.FolderTabHeight.HasValue
-            ? Math.Max(0.0, box.FolderTabHeight.Value)
-            : BoxMetrics.FolderTabHeight(theme);
+        BoxMetrics.ResolveFolderTabHeight(box, theme);
 
     /// <summary>
     /// Resolves the top Y coordinate (unscaled) of the title/label area for a box. For a
@@ -504,17 +703,20 @@ public sealed class SvgRenderer : IRenderer
 
         // Main body with the top-right corner cut
         sb.Append(
-            $"""  <path d="M {F(x)} {F(y)} L {F(xFold)} {F(y)} L {F(xRight)} {F(yFold)} L {F(xRight)} {F(yBottom)} L {F(x)} {F(yBottom)} Z" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
+            $"""  <path d="M {F(x)} {F(y)} L {F(xFold)} {F(y)} L {F(xRight)} {F(yFold)} L {F(xRight)} {F(yBottom)} L {F(x)} {F(yBottom)} Z" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{OutlineDash(box)}/>""");
         sb.AppendLine();
 
         // The folded corner triangle
         sb.Append(
-            $"""  <path d="M {F(xFold)} {F(y)} L {F(xFold)} {F(yFold)} L {F(xRight)} {F(yFold)}" fill="none" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
+            $"""  <path d="M {F(xFold)} {F(y)} L {F(xFold)} {F(yFold)} L {F(xRight)} {F(yFold)}" fill="none" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{OutlineDash(box)}/>""");
         sb.AppendLine();
     }
 
     /// <summary>
-    /// Renders the optional keyword line and bold name label in the title area of a box.
+    /// Renders the optional keyword line and name label in the title area of a box, using the box's
+    /// <see cref="BoxAppearance"/> text styles (the legacy italic keyword and bold name by default).
+    /// A folder whose appearance requests the name in the tab draws the name inside the tab instead
+    /// of the body.
     /// </summary>
     /// <param name="sb">String builder receiving the SVG markup.</param>
     /// <param name="box">Box whose title is rendered.</param>
@@ -524,18 +726,34 @@ public sealed class SvgRenderer : IRenderer
     {
         var centerX = (box.X + (box.Width / 2.0)) * scale;
         var cursorY = BoxMetrics.TitleCursorTop(box, theme);
+        var appearance = box.Appearance ?? new BoxAppearance();
+        var nameStyle = TextStyleAttributes(appearance.ResolvedNameStyle);
 
-        // Keyword line (smaller, italic, guillemet-wrapped) above the name
+        // Keyword line (smaller, guillemet-wrapped) above the name
         if (box.Keyword != null)
         {
             var kwY = (cursorY + theme.FontSizeBody / 2.0) * scale;
             sb.Append(
-                $"""  <text x="{F(centerX)}" y="{F(kwY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" font-style="italic" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle">{EscapeXml("\u00AB" + box.Keyword + "\u00BB")}</text>""");
+                $"""  <text x="{F(centerX)}" y="{F(kwY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}"{TextStyleAttributes(appearance.ResolvedKeywordStyle)} fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle">{EscapeXml("\u00AB" + box.Keyword + "\u00BB")}</text>""");
             sb.AppendLine();
             cursorY += theme.FontSizeBody + theme.LabelPadding;
         }
 
-        // Bold name label — only constrain width when the text would actually overflow the box,
+        // Name label drawn inside the folder tab (SysML "package with name in tab")
+        if (BoxMetrics.IsNameInTab(box))
+        {
+            var tabWidth = ResolveFolderTabWidth(box, theme);
+            var tabHeight = ResolveFolderTabHeight(box, theme);
+            var tabTextX = (box.X + theme.LabelPadding) * scale;
+            var tabTextY = (box.Y + (tabHeight / 2.0)) * scale;
+            var tabFit = FitTextLength(box.Label!, theme.FontSizeBody, tabWidth - (2 * theme.LabelPadding), scale, useAccurateEstimator: true);
+            sb.Append(
+                $"""  <text x="{F(tabTextX)}" y="{F(tabTextY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}"{nameStyle} fill="{theme.StrokeColor}" text-anchor="start" dominant-baseline="middle"{tabFit}>{EscapeXml(box.Label!)}</text>""");
+            sb.AppendLine();
+            return;
+        }
+
+        // Name label — only constrain width when the text would actually overflow the box,
         // so short labels render at their natural size instead of being stretched to fill.
         if (box.Label != null)
         {
@@ -543,9 +761,47 @@ public sealed class SvgRenderer : IRenderer
             var availableWidth = box.Width - (2 * theme.LabelPadding);
             var fit = FitTextLength(box.Label, theme.FontSizeTitle, availableWidth, scale);
             sb.Append(
-                $"""  <text x="{F(centerX)}" y="{F(textY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeTitle * scale)}" font-weight="bold" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle"{fit}>{EscapeXml(box.Label)}</text>""");
+                $"""  <text x="{F(centerX)}" y="{F(textY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeTitle * scale)}"{nameStyle} fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle"{fit}>{EscapeXml(box.Label)}</text>""");
             sb.AppendLine();
         }
+    }
+
+    /// <summary>
+    /// Returns the <c>font-weight</c>/<c>font-style</c> attribute fragment for a text style. Only
+    /// non-default values are emitted (<c>bold</c>, <c>italic</c>), so the legacy bold name, italic
+    /// keyword, and bold-italic compartment title reproduce their historical markup exactly.
+    /// </summary>
+    /// <param name="style">The text style.</param>
+    /// <returns>A leading-space attribute fragment, or an empty string for regular upright text.</returns>
+    private static string TextStyleAttributes(TextStyle style) =>
+        (style.Weight == FontWeight.Bold ? " font-weight=\"bold\"" : string.Empty)
+        + (style.Style == FontStyle.Italic ? " font-style=\"italic\"" : string.Empty);
+
+    /// <summary>
+    /// Renders the send/accept corner icon of a box as a polygon in the top-left corner of its body
+    /// (below the tab for a folder), filled with the theme background and stroked in the theme stroke.
+    /// </summary>
+    /// <param name="sb">String builder receiving the SVG markup.</param>
+    /// <param name="box">The box whose icon is drawn.</param>
+    /// <param name="theme">Visual theme providing stroke and background colors.</param>
+    /// <param name="scale">Uniform scale factor.</param>
+    private static void RenderBoxCornerIcon(StringBuilder sb, LayoutBox box, Theme theme, double scale)
+    {
+        var icon = box.Appearance?.CornerIcon ?? BoxCornerIcon.None;
+        var vertices = NotationMetrics.CornerIconVertices(icon);
+        if (vertices.Count == 0)
+        {
+            return;
+        }
+
+        var originX = box.X + NotationMetrics.CornerIconInset;
+        var originY = ResolveTitleAreaTop(box, theme) + NotationMetrics.CornerIconInset;
+        var points = string.Join(
+            " ",
+            vertices.Select(v => $"{F((originX + v.Along) * scale)},{F((originY + v.Across) * scale)}"));
+        sb.Append(
+            $"""  <polygon points="{points}" fill="{theme.BackgroundColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
+        sb.AppendLine();
     }
 
     /// <summary>
@@ -596,7 +852,7 @@ public sealed class SvgRenderer : IRenderer
     private static void RenderBoxCompartments(StringBuilder sb, LayoutBox box, Theme theme, double scale)
     {
         // Compartments start below the title area (keyword + label), computed via shared metrics
-        var labelAreaHeight = BoxMetrics.TitleAreaHeight(theme, box.Label != null, box.Keyword != null);
+        var labelAreaHeight = BoxMetrics.TitleAreaHeight(box, theme);
 
         // Deliberately based on the computed title-area height (labelAreaHeight > 0), not on
         // "is Label/Keyword set": a theme with zero title padding/font-size would give
@@ -635,13 +891,18 @@ public sealed class SvgRenderer : IRenderer
 
             isFirstCompartment = false;
 
-            // Draw optional bold compartment title
+            // Draw optional compartment title (bold italic and left-aligned unless the compartment
+            // requests another alignment/style, e.g. the SysML centered italic title)
             if (compartment.Title != null)
             {
-                var titleX = (box.X + theme.LabelPadding + box.ContentInsetLeft) * scale;
+                var centered = compartment.TitleAlign == TextAlign.Center;
+                var titleX = centered
+                    ? (box.X + box.ContentInsetLeft + ((box.Width - box.ContentInsetLeft - box.ContentInsetRight) / 2.0)) * scale
+                    : (box.X + theme.LabelPadding + box.ContentInsetLeft) * scale;
                 var titleY = (compartmentY + theme.LabelPadding + theme.FontSizeBody / 2.0) * scale;
+                var titleAnchor = centered ? TextAnchorMiddle : "start";
                 sb.Append(
-                    $"""  <text x="{F(titleX)}" y="{F(titleY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" font-weight="bold" font-style="italic" fill="{theme.StrokeColor}" text-anchor="start" dominant-baseline="middle">{EscapeXml(compartment.Title)}</text>""");
+                    $"""  <text x="{F(titleX)}" y="{F(titleY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}"{TextStyleAttributes(compartment.ResolvedTitleStyle)} fill="{theme.StrokeColor}" text-anchor="{titleAnchor}" dominant-baseline="middle">{EscapeXml(compartment.Title)}</text>""");
                 sb.AppendLine();
                 compartmentY += theme.LabelPadding + theme.FontSizeBody + theme.LabelPadding;
             }
@@ -692,31 +953,9 @@ public sealed class SvgRenderer : IRenderer
         var pathData = BuildLinePath(
             line.Waypoints, theme.LineCornerRadius, scale, line.SourceEnd, line.TargetEnd);
 
-        // Resolve line-end marker attribute strings
-        var markerStart = line.SourceEnd switch
-        {
-            EndMarkerStyle.OpenChevron => " marker-start=\"url(#line-end-open-chevron)\"",
-            EndMarkerStyle.HollowTriangle => " marker-start=\"url(#line-end-hollow-triangle)\"",
-            EndMarkerStyle.HollowTriangleCrossbar => " marker-start=\"url(#line-end-hollow-triangle-crossbar)\"",
-            EndMarkerStyle.FilledArrow => " marker-start=\"url(#line-end-filled-arrow)\"",
-            EndMarkerStyle.HollowDiamond => " marker-start=\"url(#line-end-hollow-diamond)\"",
-            EndMarkerStyle.FilledDiamond => " marker-start=\"url(#line-end-filled-diamond)\"",
-            EndMarkerStyle.Circle => " marker-start=\"url(#line-end-circle)\"",
-            EndMarkerStyle.Bar => " marker-start=\"url(#line-end-bar)\"",
-            _ => string.Empty
-        };
-        var markerEnd = line.TargetEnd switch
-        {
-            EndMarkerStyle.OpenChevron => " marker-end=\"url(#line-end-open-chevron)\"",
-            EndMarkerStyle.HollowTriangle => " marker-end=\"url(#line-end-hollow-triangle)\"",
-            EndMarkerStyle.HollowTriangleCrossbar => " marker-end=\"url(#line-end-hollow-triangle-crossbar)\"",
-            EndMarkerStyle.FilledArrow => " marker-end=\"url(#line-end-filled-arrow)\"",
-            EndMarkerStyle.HollowDiamond => " marker-end=\"url(#line-end-hollow-diamond)\"",
-            EndMarkerStyle.FilledDiamond => " marker-end=\"url(#line-end-filled-diamond)\"",
-            EndMarkerStyle.Circle => " marker-end=\"url(#line-end-circle)\"",
-            EndMarkerStyle.Bar => " marker-end=\"url(#line-end-bar)\"",
-            _ => string.Empty
-        };
+        // Resolve line-end marker attribute strings (a start marker is a mirrored line-start-… variant)
+        var markerStart = MarkerAttribute(line.SourceEnd, isStart: true);
+        var markerEnd = MarkerAttribute(line.TargetEnd, isStart: false);
 
         // Determine stroke dash pattern for non-solid lines
         var dashArray = line.LineStyle switch
@@ -755,6 +994,38 @@ public sealed class SvgRenderer : IRenderer
         sb.Append(
             $"""  <text x="{F(midX * scale)}" y="{F(midY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">{EscapeXml(line.MidpointLabel)}</text>""");
         sb.AppendLine();
+    }
+
+    /// <summary>Recursively collects all <see cref="LayoutBox"/> nodes from a node tree.</summary>
+    /// <param name="nodes">Top-level nodes to walk.</param>
+    /// <returns>Every box node, including those nested inside boxes or bands, parents before children.</returns>
+    private static IEnumerable<LayoutBox> CollectBoxes(IReadOnlyList<LayoutNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            switch (node)
+            {
+                case LayoutBox box:
+                    yield return box;
+                    foreach (var inner in CollectBoxes(box.Children))
+                    {
+                        yield return inner;
+                    }
+
+                    break;
+
+                case LayoutBand band:
+                    foreach (var inner in CollectBoxes(band.Children))
+                    {
+                        yield return inner;
+                    }
+
+                    break;
+
+                default:
+                    break;
+            }
+        }
     }
 
     /// <summary>Recursively collects all <see cref="LayoutLine"/> nodes from a node tree.</summary>
@@ -1103,15 +1374,48 @@ public sealed class SvgRenderer : IRenderer
                 sb.AppendLine();
                 break;
 
+            case BadgeShape.ThickHorizontalBar:
+                // Filled bar: Size is the full length along the axis, Thickness (default notation
+                // thickness) across it
+                var hBarThickness = (badge.Thickness ?? NotationMetrics.ThickBarThickness) * scale;
+                sb.Append(
+                    $"""  <rect x="{F(cx - r)}" y="{F(cy - hBarThickness / 2.0)}" width="{F(r * 2.0)}" height="{F(hBarThickness)}" fill="{theme.StrokeColor}"/>""");
+                sb.AppendLine();
+                break;
+
+            case BadgeShape.ThickVerticalBar:
+                var vBarThickness = (badge.Thickness ?? NotationMetrics.ThickBarThickness) * scale;
+                sb.Append(
+                    $"""  <rect x="{F(cx - vBarThickness / 2.0)}" y="{F(cy - r)}" width="{F(vBarThickness)}" height="{F(r * 2.0)}" fill="{theme.StrokeColor}"/>""");
+                sb.AppendLine();
+                break;
+
+            case BadgeShape.CrossedCircle:
+                // Hollow circle (theme background fill) crossed by an X whose arms end on the circle
+                var arm = r * NotationMetrics.CrossedCircleArmFraction;
+                sb.Append(
+                    $"""  <circle cx="{F(cx)}" cy="{F(cy)}" r="{F(r)}" fill="{theme.BackgroundColor}" stroke="{theme.StrokeColor}" stroke-width="{sw}"/>""");
+                sb.AppendLine();
+                sb.Append(
+                    $"""  <line x1="{F(cx - arm)}" y1="{F(cy - arm)}" x2="{F(cx + arm)}" y2="{F(cy + arm)}" stroke="{theme.StrokeColor}" stroke-width="{sw}"/>""");
+                sb.AppendLine();
+                sb.Append(
+                    $"""  <line x1="{F(cx - arm)}" y1="{F(cy + arm)}" x2="{F(cx + arm)}" y2="{F(cy - arm)}" stroke="{theme.StrokeColor}" stroke-width="{sw}"/>""");
+                sb.AppendLine();
+                break;
+
             default:
                 // Unknown badge shapes are skipped for forward compatibility
                 break;
         }
 
-        // Optional label to the right of the bounding circle
+        // Optional label to the right of the bounding circle (of the bar for a thick vertical bar)
         if (badge.Label != null)
         {
-            var labelX = (badge.CentreX + badge.Size / 2.0 + theme.LabelPadding) * scale;
+            var labelHalfExtent = badge.Shape == BadgeShape.ThickVerticalBar
+                ? (badge.Thickness ?? NotationMetrics.ThickBarThickness) / 2.0
+                : badge.Size / 2.0;
+            var labelX = (badge.CentreX + labelHalfExtent + theme.LabelPadding) * scale;
             var labelY = (badge.CentreY + theme.FontSizeBody / 2.0) * scale;
             sb.Append(
                 $"""  <text x="{F(labelX)}" y="{F(labelY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="start" dominant-baseline="middle">{EscapeXml(badge.Label)}</text>""");
@@ -1137,7 +1441,7 @@ public sealed class SvgRenderer : IRenderer
         var fillColor = theme.DepthFillColors[0];
 
         sb.Append(
-            $"""  <rect x="{F(x)}" y="{F(y)}" width="{F(w)}" height="{F(h)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
+            $"""  <rect x="{F(x)}" y="{F(y)}" width="{F(w)}" height="{F(h)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{DashAttribute(band.OutlineStyle)}/>""");
         sb.AppendLine();
 
         // Draw the optional label; Horizontal → rotated 90° CCW on left edge, Vertical → top
@@ -1188,16 +1492,41 @@ public sealed class SvgRenderer : IRenderer
         var hw = lifeline.HeaderWidth * scale;
         var hh = lifeline.HeaderHeight * scale;
         var fillColor = theme.DepthFillColors[0];
+        var appearance = lifeline.HeaderAppearance ?? new BoxAppearance();
+
+        // Rounded headers use the box corner radius (caller-supplied or the theme's rounded-rectangle radius)
+        var cornerStr = string.Empty;
+        if (lifeline.HeaderShape == BoxShape.RoundedRectangle)
+        {
+            var radius = lifeline.HeaderCornerRadius.HasValue
+                ? Math.Max(0.0, lifeline.HeaderCornerRadius.Value)
+                : NotationMetrics.RoundedRectRadius(theme);
+            if (radius > 0)
+            {
+                cornerStr = $" rx=\"{F(radius * scale)}\" ry=\"{F(radius * scale)}\"";
+            }
+        }
 
         sb.Append(
-            $"""  <rect x="{F(hx)}" y="{F(hy)}" width="{F(hw)}" height="{F(hh)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"/>""");
+            $"""  <rect x="{F(hx)}" y="{F(hy)}" width="{F(hw)}" height="{F(hh)}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{cornerStr}{DashAttribute(appearance.OutlineStyle)}/>""");
         sb.AppendLine();
 
-        // Centered label within the header box
+        // Label (and optional «keyword» line above it) centered within the header box
         var textX = lifeline.CentreX * scale;
         var textY = (lifeline.TopY + lifeline.HeaderHeight / 2.0) * scale;
+        if (lifeline.Keyword != null)
+        {
+            var blockHeight = BoxMetrics.LifelineHeaderHeight(theme, hasKeyword: true);
+            var blockTop = lifeline.TopY + Math.Max(0.0, (lifeline.HeaderHeight - blockHeight) / 2.0);
+            var keywordY = (blockTop + theme.LabelPadding + theme.FontSizeBody / 2.0) * scale;
+            textY = (blockTop + (2.0 * theme.LabelPadding) + theme.FontSizeBody + theme.FontSizeBody / 2.0) * scale;
+            sb.Append(
+                $"""  <text x="{F(textX)}" y="{F(keywordY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}"{TextStyleAttributes(appearance.ResolvedKeywordStyle)} fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle">{EscapeXml("\u00AB" + lifeline.Keyword + "\u00BB")}</text>""");
+            sb.AppendLine();
+        }
+
         sb.Append(
-            $"""  <text x="{F(textX)}" y="{F(textY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" font-weight="bold" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle">{EscapeXml(lifeline.Label)}</text>""");
+            $"""  <text x="{F(textX)}" y="{F(textY)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}"{TextStyleAttributes(appearance.ResolvedNameStyle)} fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle">{EscapeXml(lifeline.Label)}</text>""");
         sb.AppendLine();
 
         // Dashed vertical stem from the bottom of the header to BottomY

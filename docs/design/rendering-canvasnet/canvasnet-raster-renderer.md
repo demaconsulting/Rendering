@@ -36,8 +36,9 @@ The unit is otherwise stateless: render-time state lives in method-local variabl
 ### CanvasNetRasterRenderer Methods
 
 - **`RenderToSurface(LayoutTree, RenderOptions)`** — validates its arguments, recursively collects
-  all `LayoutLine` nodes, resolves every connector label's placement via
-  `ConnectorLabelPlacer.Place` *before* allocating the raster surface, grows the required width and
+  all `LayoutLine` and `LayoutBox` nodes, resolves every connector label's placement via
+  `ConnectorLabelPlacer.Place(lines, fontSize, boxes)` (the obstacle-aware overload, with every box as an
+  obstacle) *before* allocating the raster surface, grows the required width and
   height to include the full bounding-box extent of every placed connector label, allocates a
   managed `Surface`, clears it to `RenderOptions.Theme.BackgroundColor`, draws every node through a
   CanvasNet `Canvas`, and finally draws connector labels in a dedicated pass at their finalized
@@ -50,7 +51,7 @@ The unit is otherwise stateless: render-time state lives in method-local variabl
   colors from `Theme.DepthFillColors`; render keyword/title rows centered on the box's full
   geometric width; and render compartments starting at `box.X + Theme.LabelPadding +
   box.ContentInsetLeft` so reserved port-label margins shift content exactly as the SVG renderer
-  does.
+  does. The notation extensions are described under *Notation Primitives* below.
 - **Line helpers** — render straight or clamped polyline paths with `PathBuilder`, optionally round
   corners with `CornerRoundEffect`, apply dashed/dotted `StrokeStyle` patterns, and draw
   notation-metric-derived end markers plus midpoint-label background plates in the theme background
@@ -65,6 +66,68 @@ The unit is otherwise stateless: render-time state lives in method-local variabl
 - **Marker helpers** — `DrawEndMarker`, `TrianglePath`, `DiamondPath`, and `MarkerPoint` derive all
   marker geometry from `NotationMetrics`, keeping raster markers aligned with the SVG renderer.
 
+### Notation Primitives
+
+The SysML notation primitives are drawn with the same shared geometry the SVG renderer uses, so the two
+formats agree. Each rule below is the raster counterpart of the SVG rule of the same name.
+
+- **Dotted-triangle end markers** — `HollowTriangleTwoDots` and `HollowTriangleFourDots` draw the hollow
+  triangle exactly as `HollowTriangle` does (filled with the theme background and stroked), then a filled
+  circle of radius `NotationMetrics.DotRadius × scale` at every center returned by
+  `NotationMetrics.DotCenters(style)`, mapped into canvas space with `MarkerPoint`: two dots on the line
+  axis, or a two-by-two grid of four dots, trailing the triangle base along the line.
+- **Circled-plus end marker** — `CircledPlus` draws a circle of radius `NotationMetrics.CircledPlusRadius`
+  whose near edge sits on the line endpoint (center one radius back along the line from the endpoint),
+  filled with the theme background and stroked, then two arms of half-length `CircledPlusArmHalfLength`
+  along and across the line through the center.
+- **Source-end markers** — `RenderLine` draws a source-end marker with the same `DrawEndMarker` helper as
+  a target-end marker, using the outward direction from the second waypoint to the first, and
+  `MarkerPoint` places the glyph relative to the endpoint along that direction. At a source end the glyph
+  body therefore extends back along the line and lies on the line side of the start point. No separate
+  mirrored variant is needed; the SVG renderer reaches the same placement with its mirrored
+  `line-start-…` marker definitions.
+- **Marker units** — the PNG renderer draws markers at their notation size, while SVG markers scale by the
+  stroke width (`markerUnits="strokeWidth"`). This pre-existing difference is documented, not unified.
+- **Dashed and dotted outlines** — `DashArrayFor` maps a `LineStyle` to a dash array scaled by the render
+  scale: `6 3` for dashed and `2 2` for dotted; solid has no dash array. A box takes its style from
+  `box.Appearance.OutlineStyle`, a band from `band.OutlineStyle`, and a lifeline header from
+  `lifeline.HeaderAppearance.OutlineStyle`. The dedicated rectangle strokers (`StrokeRect`,
+  `StrokeRoundRect`) do not dash, so a dashed outline is stroked as a path built by `BuildRoundRectPath`
+  (straight edges plus `TangentArcTo` corners, starting at the top edge so the pattern begins with ink
+  there). The folder and note outlines are already paths and take the dash pattern directly. A solid
+  outline keeps using the rectangle strokers.
+- **Text styles** — the box name, box keyword, compartment title, and lifeline name and keyword select
+  their embedded typeface from the resolved style (`ResolvedNameStyle` default bold,
+  `ResolvedKeywordStyle` default italic, `ResolvedTitleStyle` default bold italic) through
+  `CreateFont(bold, italic)`, so defaults reproduce the previous fonts.
+- **Centered compartment title** — a compartment whose `TitleAlign` is `Center` draws its title with
+  centered text alignment at `box.X + box.ContentInsetLeft + (box.Width - box.ContentInsetLeft -
+  box.ContentInsetRight) / 2`; otherwise the title is left-aligned at
+  `box.X + Theme.LabelPadding + box.ContentInsetLeft`.
+- **Folder name in tab** — when `BoxMetrics.IsNameInTab(box)` is true, the name is drawn left-aligned
+  inside the tab at `box.X + Theme.LabelPadding`, vertically centered on the tab, with its font size
+  shrunk by `FitFontSize` to fit the tab width less twice the label padding. The tab size comes from
+  `BoxMetrics.ResolveFolderTabWidth` / `ResolveFolderTabHeight`, and the body title area height from
+  `BoxMetrics.TitleAreaHeight(box, theme)`, so compartments start directly under the tab and no name is
+  drawn in the body.
+- **Corner icon** — `RenderBoxCornerIcon` builds a closed path from `NotationMetrics.CornerIconVertices`
+  for `Send` (pentagon) or `Accept` (pentagon with a notched left edge), inset by
+  `NotationMetrics.CornerIconInset` from the box's left edge and from the top of the title area (below the
+  tab for a folder), fills it with the theme background, and strokes it.
+- **Badges** — `ThickHorizontalBar` and `ThickVerticalBar` fill a rectangle of `Size` by `Thickness`
+  (default `NotationMetrics.ThickBarThickness`) centered on the badge center with the stroke color;
+  `CrossedCircle` fills a circle with the theme background, strokes it, and strokes two diagonal arms
+  whose ends lie on the circle (`radius × NotationMetrics.CrossedCircleArmFraction` on each axis). A label
+  of a thick vertical bar is offset by half the thickness instead of half the size.
+- **Lifeline headers** — a header whose `HeaderShape` is `RoundedRectangle` is filled with `FillRoundRect`
+  using `HeaderCornerRadius` (or `NotationMetrics.RoundedRectRadius(theme)`) and stroked rounded; a
+  dashed header appearance strokes the path instead. A non-null `Keyword` adds a centered keyword text row
+  above the label (guillemet-wrapped, in the keyword style); the two-line block height comes from
+  `BoxMetrics.LifelineHeaderHeight(theme, hasKeyword: true)` and is centered in the header. A lifeline
+  without these properties draws as before.
+- **Obstacle-aware labels** — connector labels are placed so a label at a line midpoint on a leaf box
+  moves clear of that box instead of painting its opaque backplate over the box border.
+
 ### CanvasNetRasterRenderer Design Constraints
 
 - The rasterizer shall enforce a minimum surface size of one by one pixels before allocating the
@@ -74,6 +137,10 @@ The unit is otherwise stateless: render-time state lives in method-local variabl
 - Box and grid fills shall be selected from `Theme.DepthFillColors` by layout depth.
 - Connector end-marker geometry shall derive from `NotationMetrics`, matching the SVG renderer's
   marker dimensions.
+- Notation primitives (dotted-triangle and circled-plus markers, corner icons, thick-bar and crossed-circle
+  badges, folder tab sizing, title-area heights) shall derive their geometry from `NotationMetrics` and
+  `BoxMetrics`, and a layout node without the corresponding appearance properties shall draw exactly as
+  before.
 - The output stream remains owned by the caller; the renderer writes encoded bytes but does not
   close or flush the stream.
 
@@ -143,3 +210,16 @@ step.
 | Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphOutline | `RenderPort` outlines the glyph in background color |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-PortLabelSqueeze | `DrawPortLabel` bounds width to `port.MaxLabelWidth` |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-SharedTypefaces | `CanvasNetTypefaces.Resolve` lazily loaded fields |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerDottedTriangles | `DrawEndMarker` dotted-triangle cases |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCircledPlus | `DrawEndMarker` circled-plus case |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSourceEnd | `RenderLine` outward direction and `MarkerPoint` |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-BoxOutlineStyle | `DashArrayFor` and `BuildRoundRectPath` |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-BoxNameStyle | `RenderBoxTitle` resolved name style |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-CompartmentTitleStyle | `RenderBoxCompartments` title layout |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-FolderTitleInTab | `RenderBoxTitle` and `BoxMetrics.IsNameInTab` |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-BoxCornerIcon | `RenderBoxCornerIcon` |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-BadgeThickBar | `RenderBadge` thick-bar cases |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-BadgeCrossedCircle | `RenderBadge` crossed-circle case |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-BandDashed | `RenderBand` dashed stroke |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-LifelineRoundedHeader | `RenderLifeline` header and keyword |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes | `RenderToSurface` passes `CollectBoxes` to the placer |
