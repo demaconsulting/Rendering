@@ -1676,6 +1676,60 @@ public class LayeredLayoutAlgorithmTests
         // Assert
         Assert.Single(tree.Nodes.OfType<LayoutLine>());
     }
+
+    /// <summary>
+    ///     Guards the behavior downstream callers rely on (issue #53): many typing edges from sources in the
+    ///     same scope into one 130x50 node. The layered pipeline grows the target to fit its anchors, so on
+    ///     every face the connectors' anchors stay at least 16 px apart.
+    /// </summary>
+    /// <param name="count">The number of sources (and edges).</param>
+    [Theory]
+    [InlineData(3)]
+    [InlineData(5)]
+    [InlineData(8)]
+    public void Apply_ManyEdgesIntoOneNode_AnchorsAtLeast16Apart(int count)
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        var definition = graph.AddNode("Definition", 130, 50);
+        definition.Label = "Definition";
+        for (var i = 1; i <= count; i++)
+        {
+            var usage = graph.AddNode("Usage" + i, 130, 50);
+            usage.Label = "Usage" + i;
+            graph.AddEdge("typing" + i, usage, definition).TargetEnd = EndMarkerStyle.HollowTriangleTwoDots;
+        }
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        var box = tree.Nodes.OfType<LayoutBox>().Single(b => b.Label == "Definition");
+        var faces = new Dictionary<PortSide, List<double>>();
+        foreach (var line in tree.Nodes.OfType<LayoutLine>())
+        {
+            if (ConnectorRouter.TryResolveFaceAnchor(box, line.Waypoints[^1], out var anchor))
+            {
+                if (!faces.TryGetValue(anchor.Side, out var coords))
+                {
+                    coords = [];
+                    faces[anchor.Side] = coords;
+                }
+
+                coords.Add(anchor.Along);
+            }
+        }
+
+        Assert.Equal(count, faces.Sum(face => face.Value.Count));
+        foreach (var (side, coords) in faces)
+        {
+            coords.Sort();
+            for (var i = 1; i < coords.Count; i++)
+            {
+                Assert.True(coords[i] - coords[i - 1] >= 16.0 - 1e-6, $"{side}: anchors {coords[i - 1]} and {coords[i]} are too close.");
+            }
+        }
+    }
 }
 
 

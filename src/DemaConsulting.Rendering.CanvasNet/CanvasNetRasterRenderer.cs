@@ -106,7 +106,10 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         surface.Clear(ParseColor(options.Theme.BackgroundColor));
 
         var canvas = new CanvasRenderer(surface);
-        foreach (var node in layout.Nodes)
+
+        // A marker end that sits on a port glyph is shortened to the glyph's outer edge first, so the
+        // arrowhead is not hidden under the (later-drawn) port square.
+        foreach (var node in ShortenPortEnds(layout.Nodes))
         {
             RenderNode(canvas, node, options);
         }
@@ -782,10 +785,13 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
             var tip = line.Waypoints[0];
             var next = line.Waypoints[1];
             var (dx, dy) = ComputeDirection(next.X, next.Y, tip.X, tip.Y);
+
+            // Move the glyph back along the line so its STROKED tip, not its geometric vertex, lands on the endpoint.
+            var retraction = NotationMetrics.TipRetraction(line.SourceEnd, theme) * markerPaint.Scale;
             DrawEndMarker(
                 canvas,
-                (float)(tip.X * scale),
-                (float)(tip.Y * scale),
+                (float)(tip.X * scale) - ((float)dx * (float)retraction),
+                (float)(tip.Y * scale) - ((float)dy * (float)retraction),
                 (float)dx,
                 (float)dy,
                 line.SourceEnd,
@@ -798,10 +804,11 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
             var tip = line.Waypoints[count - 1];
             var previous = line.Waypoints[count - 2];
             var (dx, dy) = ComputeDirection(previous.X, previous.Y, tip.X, tip.Y);
+            var retraction = NotationMetrics.TipRetraction(line.TargetEnd, theme) * markerPaint.Scale;
             DrawEndMarker(
                 canvas,
-                (float)(tip.X * scale),
-                (float)(tip.Y * scale),
+                (float)(tip.X * scale) - ((float)dx * (float)retraction),
+                (float)(tip.Y * scale) - ((float)dy * (float)retraction),
                 (float)dx,
                 (float)dy,
                 line.TargetEnd,
@@ -1056,6 +1063,133 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Recursively collects all <see cref="LayoutPort"/> nodes from a node tree.
+    /// </summary>
+    /// <param name="nodes">Top-level nodes to walk.</param>
+    /// <param name="ports">Receives every port found, including those nested inside boxes or bands.</param>
+    private static void CollectPorts(IReadOnlyList<LayoutNode> nodes, List<LayoutPort> ports)
+    {
+        foreach (var node in nodes)
+        {
+            switch (node)
+            {
+                case LayoutPort port:
+                    ports.Add(port);
+                    break;
+
+                case LayoutBox box:
+                    CollectPorts(box.Children, ports);
+                    break;
+
+                case LayoutBand band:
+                    CollectPorts(band.Children, ports);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns the node list with every line whose marker end sits on a port centre shortened by
+    /// <see cref="NotationMetrics.PortHalfSize"/> along its end segment, so the painted marker tip lands on
+    /// the port square's outer edge instead of being hidden under the glyph. The layout tree itself (and the
+    /// connector label placement computed from it) is not modified. The SVG renderer applies the identical rule.
+    /// </summary>
+    /// <param name="nodes">The tree's top-level nodes.</param>
+    /// <returns>The original list when the tree has no ports; otherwise a rewritten copy.</returns>
+    private static IReadOnlyList<LayoutNode> ShortenPortEnds(IReadOnlyList<LayoutNode> nodes)
+    {
+        var ports = new List<LayoutPort>();
+        CollectPorts(nodes, ports);
+        return ports.Count == 0 ? nodes : RewriteForPorts(nodes, ports);
+    }
+
+    /// <summary>
+    /// Rewrites the lines of a node list (recursively) for <see cref="ShortenPortEnds"/>.
+    /// </summary>
+    /// <param name="nodes">The nodes to rewrite.</param>
+    /// <param name="ports">Every port in the tree.</param>
+    /// <returns>The rewritten nodes.</returns>
+    private static List<LayoutNode> RewriteForPorts(IReadOnlyList<LayoutNode> nodes, List<LayoutPort> ports)
+    {
+        var result = new List<LayoutNode>(nodes.Count);
+        foreach (var node in nodes)
+        {
+            result.Add(node switch
+            {
+                LayoutLine line => ShortenLineForPorts(line, ports),
+                LayoutBox box => box with { Children = RewriteForPorts(box.Children, ports) },
+                LayoutBand band => band with { Children = RewriteForPorts(band.Children, ports) },
+                _ => node,
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Shortens a line's marker ends that sit on a port centre (see <see cref="ShortenPortEnds"/>).
+    /// </summary>
+    /// <param name="line">The line.</param>
+    /// <param name="ports">Every port in the tree.</param>
+    /// <returns>The line, or a copy with shortened end waypoints.</returns>
+    private static LayoutLine ShortenLineForPorts(LayoutLine line, List<LayoutPort> ports)
+    {
+        var waypoints = line.Waypoints;
+        if (waypoints.Count < 2)
+        {
+            return line;
+        }
+
+        var first = line.SourceEnd == EndMarkerStyle.None ? null : RetreatFromPort(waypoints[0], waypoints[1], ports);
+        var last = line.TargetEnd == EndMarkerStyle.None ? null : RetreatFromPort(waypoints[^1], waypoints[^2], ports);
+        if (first is null && last is null)
+        {
+            return line;
+        }
+
+        var shortened = new List<Point2D>(waypoints);
+        if (first is not null)
+        {
+            shortened[0] = first;
+        }
+
+        if (last is not null)
+        {
+            shortened[^1] = last;
+        }
+
+        return line with { Waypoints = shortened };
+    }
+
+    /// <summary>
+    /// Moves <paramref name="end"/> toward <paramref name="adjacent"/> by <see cref="NotationMetrics.PortHalfSize"/>
+    /// when it coincides with a port centre and the end segment is longer than that.
+    /// </summary>
+    /// <param name="end">The line end point.</param>
+    /// <param name="adjacent">The adjacent waypoint.</param>
+    /// <param name="ports">Every port in the tree.</param>
+    /// <returns>The retreated point, or <see langword="null"/> when the end is not on a port.</returns>
+    private static Point2D? RetreatFromPort(Point2D end, Point2D adjacent, List<LayoutPort> ports)
+    {
+        const double portTolerance = 0.5;
+        if (!ports.Exists(port => Math.Abs(port.CentreX - end.X) <= portTolerance && Math.Abs(port.CentreY - end.Y) <= portTolerance))
+        {
+            return null;
+        }
+
+        var dx = adjacent.X - end.X;
+        var dy = adjacent.Y - end.Y;
+        var length = Math.Sqrt((dx * dx) + (dy * dy));
+        if (length <= NotationMetrics.PortHalfSize)
+        {
+            return null;
+        }
+
+        var fraction = NotationMetrics.PortHalfSize / length;
+        return new Point2D(end.X + (dx * fraction), end.Y + (dy * fraction));
     }
 
     /// <summary>

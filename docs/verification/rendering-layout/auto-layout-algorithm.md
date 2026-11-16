@@ -70,6 +70,17 @@ argument-null validation behavior constitutes a failure.
   `CoreOptions.Algorithm = "auto"` and the multi-group split routes one group to hierarchical with a
   genuinely nested (2+ level) container, the algorithm-selection reset prevents the hierarchical
   algorithm's own nested cascade from attempting to resolve `"auto"` and throwing a lookup error.
+- **Preserves node options** (`Rendering-Layout-AutoAlgorithm-PreservesNodeOptions`):
+  `Apply_PerNodeAlgorithmOverrideOnSplitContainer_IsPreserved`,
+  `Apply_PerNodeDirectionOverrideOnSplitContainer_IsPreserved` and
+  `Apply_ChildrenGraphOverrideOnSplitContainer_IsPreserved` build a root `auto` graph holding a container "C"
+  (children A -> B) carrying the override, lay it out with and without an unrelated singleton alongside
+  (the singleton forces the multi-group split path; without it the zero-copy fast path keeps the override
+  intact), and assert the container's child layout is identical in both and differs from the un-overridden
+  layout (so the comparison is meaningful). Each fails on the code before the fix.
+  `BuildComponentGraph_CopiesNodeChildrenPortAndEdgeOverrides` asserts directly that node, children-graph,
+  port, root-edge and nested-edge overrides appear on the copy (port and edge overrides are not observable
+  through a bundled algorithm).
 - **Empty graph** (`Rendering-Layout-AutoAlgorithm-EmptyGraph`): `Apply_EmptyGraph_ReturnsEmptyTree`
   confirms an empty graph yields an empty placed layout tree.
 - **Validation** (`Rendering-Layout-AutoAlgorithm-Validation`): `Apply_NullGraph_ThrowsArgumentNullException`
@@ -105,6 +116,11 @@ argument-null validation behavior constitutes a failure.
 - **`Rendering-Layout-AutoAlgorithm-CascadesOptions`**:
   Apply_GraphLevelOptionOverride_AppliesToSplitComponents,
   Apply_GraphDeclaresAutoAlgorithmWithNestedContainerGroup_DoesNotThrow
+- **`Rendering-Layout-AutoAlgorithm-PreservesNodeOptions`**:
+  Apply_PerNodeAlgorithmOverrideOnSplitContainer_IsPreserved,
+  Apply_PerNodeDirectionOverrideOnSplitContainer_IsPreserved,
+  Apply_ChildrenGraphOverrideOnSplitContainer_IsPreserved,
+  BuildComponentGraph_CopiesNodeChildrenPortAndEdgeOverrides
 - **`Rendering-Layout-AutoAlgorithm-EmptyGraph`**:
   Apply_EmptyGraph_ReturnsEmptyTree
 - **`Rendering-Layout-AutoAlgorithm-Validation`**:

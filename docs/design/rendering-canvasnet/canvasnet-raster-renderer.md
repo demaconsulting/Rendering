@@ -91,12 +91,22 @@ formats agree. Each rule below is the raster counterpart of the SVG rule of the 
   default `markerUnits="strokeWidth"`) times the render scale, and outlines are drawn
   `NotationMetrics.MarkerStrokeWidth(theme)` wide, as SVG strokes the marker content in marker units. The
   filled arrow and filled diamond are also outlined in their own color, as in SVG. Polygonal markers use a
-  bevel join: an SVG marker is clipped to its box, which blunts a sharp apex lying on the box edge, and a
-  mitered apex would instead poke through the target box border. The final-corner clamp
+  bevel join, as the SVG markers do, so the painted tip is the bevel corner and not a miter spike that would
+  poke through the target box border. The final-corner clamp
   (`NeedsEndCornerClamp`, `BuildClampedLinePath`) reserves `NotationMetrics.RenderedAlongLineLength`, and
   the connector-label placer receives `MarkerScale(theme)`, so layout, labels and both formats agree. A
   parity test asserts, for every style at both ends, that the pixel footprint of the PNG marker equals the
   SVG marker geometry converted to pixels.
+- **Tip on the endpoint** — `RenderLine` moves each glyph back along the line by
+  `NotationMetrics.TipRetraction(style, theme)` (times the marker and render scales) before calling
+  `DrawEndMarker`, so the stroked tip (the bevel corner, or the full half stroke width of a circle or bar) lands
+  exactly on the endpoint, the box boundary, and no marker ink enters the target box interior. The SVG
+  renderer applies the same retraction through `NotationMetrics.MarkerAnchor`; a cross-renderer parity test
+  asserts the painted tip of every style, at both ends and in two stroke widths, is on the endpoint in both.
+- **Port ends** — before rendering, `ShortenPortEnds` moves a marker end that coincides with a `LayoutPort`
+  centre by `NotationMetrics.PortHalfSize` along its end segment, so the arrowhead tip lands on the port
+  square's outer edge instead of being hidden under the glyph painted after the connector. It leaves the
+  layout tree and label placement untouched, and mirrors the SVG renderer's rule exactly.
 - **Redefinition crossbar** — `HollowTriangleCrossbar` draws the hollow triangle, then a bar at
   `NotationMetrics.CrossbarAlong` back from the endpoint spanning `±CrossbarHalfLength` across the line:
   behind the triangle base with a clear gap (SysML v2.0 section 8.2.3.6), like the SVG marker.
@@ -225,6 +235,8 @@ step.
 | Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerDottedTriangles | `DrawEndMarker` dotted-triangle cases |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerCircledPlus | `DrawEndMarker` circled-plus case |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerSourceEnd | `RenderLine` outward direction and `MarkerPoint` |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerTipOnEndpoint | `RenderLine` tip retraction by `TipRetraction` |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-EndMarkerPortEndpoint | `ShortenPortEnds` shortens marker ends on a port |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-BoxOutlineStyle | `DashArrayFor` and `BuildRoundRectPath` |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-BoxNameStyle | `RenderBoxTitle` resolved name style |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-CompartmentTitleStyle | `RenderBoxCompartments` title layout |

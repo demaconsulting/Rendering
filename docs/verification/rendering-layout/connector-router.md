@@ -52,6 +52,24 @@ end marker plus the bend radius, or non-argument-null exception for invalid inpu
   (`Rendering-Layout-ConnectorRouter-SharedFaceDistribution`):
   `Route_SharedFolderTopFace_DistributesAcrossReducedExtent` confirms a batch of connectors sharing a
   folder's top face is spread only across the usable extent to the right of the tab.
+- **Minimum anchor separation** (`Rendering-Layout-ConnectorRouter-MinimumAnchorSeparation`):
+  `RouteBatch_FixedAnchorOnShortFace_ExternalAnchorKeepsSeparation` routes one connector into a 130x50 box
+  whose left face already carries an occupied anchor at its centre and asserts the end lands at least 16 px
+  from it (it was 13 px: the clearance-inset region [12, 38] holds no such position, so the corner-margin
+  region [8, 42] is used). The theory `Route_ManyConnectorsIntoShortFace_AnchorsAtLeast16Apart` (N = 2 to 8
+  stacked sources into one 130x50 target, public `Route`) asserts on every face of the target the anchors are
+  pairwise at least 16 px apart, every connector end is accounted for, and every route is orthogonal. The
+  hierarchical `Apply_CrossHierarchyRepro1_AnchorsOnSharedFaceAtLeast16Apart` (the exact issue #53 graph: leaf H,
+  layered folder P holding M -> E, root edge H -> E, all 130x50) and
+  `Apply_ManyCrossHierarchyEdgesIntoOneBox_AnchorsAtLeast16Apart` (N = 3, 5 and 10 usages in a folder typing one
+  box) assert the same through the cross-container batch, and the gallery fact
+  `Gallery_ManyEdgesIntoShortBox_RendersSvgWithSeparatedAnchors` asserts it for the committed ten-edge example.
+- **Face overflow to an adjacent face** (`Rendering-Layout-ConnectorRouter-FaceOverflowToAdjacentFace`):
+  `Route_FaceOverCapacity_OverflowUsesAdjacentFace` routes eight connectors into a 130x50 box (its 50 px face holds
+  three anchors 16 px apart), asserts the left face holds at most three, the rest wrap onto the top and bottom
+  faces, and no route enters the target's interior; `Route_NineParallelEdgesIntoCompartmentBox_DoNotLoopBehindEitherBox`
+  asserts the nine parallel edges (three on the short source face, six wrapped onto its bottom face) stay in the box
+  pair's envelope, stay orthogonal, do not cross one another and keep 16 px between anchors on every face.
 - **Obstacle avoidance** (`Rendering-Layout-ConnectorRouter-AvoidsObstacles`):
   `Route_ObstacleBetweenEndpoints_RoutesAroundInterior` confirms the route is orthogonal and never
   enters an intervening box's interior.
@@ -166,6 +184,15 @@ level rather than introducing a new `ConnectorRouter`-level responsibility:
   Route_FaceSelectionFallback_EmptyNaturalFaceUsesAdjacentFace
 - **`Rendering-Layout-ConnectorRouter-SharedFaceDistribution`**:
   Route_SharedFolderTopFace_DistributesAcrossReducedExtent
+- **`Rendering-Layout-ConnectorRouter-MinimumAnchorSeparation`**:
+  RouteBatch_FixedAnchorOnShortFace_ExternalAnchorKeepsSeparation,
+  Route_ManyConnectorsIntoShortFace_AnchorsAtLeast16Apart,
+  Apply_CrossHierarchyRepro1_AnchorsOnSharedFaceAtLeast16Apart,
+  Apply_ManyCrossHierarchyEdgesIntoOneBox_AnchorsAtLeast16Apart,
+  Gallery_ManyEdgesIntoShortBox_RendersSvgWithSeparatedAnchors
+- **`Rendering-Layout-ConnectorRouter-FaceOverflowToAdjacentFace`**:
+  Route_FaceOverCapacity_OverflowUsesAdjacentFace,
+  Route_NineParallelEdgesIntoCompartmentBox_DoNotLoopBehindEitherBox
 - **`Rendering-Layout-ConnectorRouter-AvoidsObstacles`**:
   Route_ObstacleBetweenEndpoints_RoutesAroundInterior
 - **`Rendering-Layout-ConnectorRouter-ExcludesEndpoints`**:

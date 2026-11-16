@@ -20,15 +20,32 @@ sections:
           - TriangleFamily_HasCanonicalValues
           - TriangleVertices_ReproduceSvgBoxPoints
 
-      - id: Rendering-Abstractions-NotationMetrics-TriangleApexOvershoot
+      - id: Rendering-Abstractions-NotationMetrics-TriangleApexOnEndpoint
         title: >-
-          The notation metrics shall define a triangular end-marker apex vertex that overshoots
-          the line endpoint.
+          The notation metrics shall define a triangular end-marker apex vertex that lands on the
+          marker's tip anchor, with no overshoot past it.
         justification: |
-          The apex must extend past the line endpoint so the drawn stroke does not leave a visible
-          gap under the marker; defining the overshoot once keeps every renderer's markers aligned.
+          The apex must sit on the tip anchor, and the anchor on the line endpoint (the box boundary),
+          so the marker does not poke into the target box; defining this once keeps every renderer's
+          markers aligned with the boundary.
         tests:
-          - TriangleVertices_Apex_OvershootsEndpoint
+          - TriangleVertices_Apex_LandsOnEndpoint
+
+      - id: Rendering-Abstractions-NotationMetrics-TipRetraction
+        title: >-
+          The notation metrics shall report, per end-marker style and theme, the distance a marker glyph
+          is retracted along the line so its STROKED tip lands on the line endpoint, and the resulting
+          marker box length and tip anchor, and shall reject a null theme with an argument-null error.
+        justification: |
+          A stroked shape paints beyond its geometric vertex (a bevel-joined corner by half the stroke
+          width times the sine of its half angle, a circle or bar by the full half stroke width), so
+          drawing the vertex on the endpoint leaves the painted tip past it, inside the target box.
+          Deriving the retraction, and the box and anchor that follow from it, in one place lets both
+          renderers land the painted tip exactly on the endpoint; a null theme must fail fast.
+        tests:
+          - TipRetraction_IsHalfStrokeTimesTipFactor
+          - TipRetraction_ScalesWithThemeStrokeWidth_AndRejectsNullTheme
+          - MarkerAnchor_KeepsRetractedAnchorInsideBox_AndFeedsRenderedLength
 
       - id: Rendering-Abstractions-NotationMetrics-DiamondDimensions
         title: >-
@@ -201,8 +218,8 @@ sections:
       - id: Rendering-Abstractions-NotationMetrics-RenderedAlongLineLength
         title: >-
           The notation metrics shall report the rendered along-line length of an end-marker style as
-          its notation length scaled by the marker scale, and shall reject a null theme with an
-          argument-null error.
+          its marker box length (including the tip retraction) scaled by the marker scale, and shall
+          reject a null theme with an argument-null error.
         justification: |
           Both renderers draw markers at the marker scale. A layout that must keep a decoration clear
           of the preceding corner, and a renderer that clamps the final corner radius, need the drawn

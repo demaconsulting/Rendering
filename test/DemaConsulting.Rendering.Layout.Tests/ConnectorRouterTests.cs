@@ -848,6 +848,21 @@ public sealed class ConnectorRouterTests
         AssertWaypointsWithinBoxPairEnvelope(lines, eePort, lbo);
         Assert.All(lines, line => AssertAllSegmentsOrthogonal(line.Waypoints));
         AssertNoTransversalCrossingAcrossLines(lines);
+
+        // Assert (issue #53): on every face of both boxes the anchors are at least 16 px apart. The 50 px
+        // source face holds three; the other six wrap around its bottom face (a 130 px face holds eight).
+        foreach (var box in new[] { eePort, lbo })
+        {
+            foreach (var (face, coords) in FaceAnchorsOf(box, lines))
+            {
+                for (var i = 1; i < coords.Count; i++)
+                {
+                    Assert.True(coords[i] - coords[i - 1] >= 16.0 - 1e-6, $"{box.Label}.{face}: anchors {coords[i - 1]} and {coords[i]} are too close.");
+                }
+            }
+        }
+
+        Assert.Equal(9, FaceAnchorsOf(lbo, lines)[PortSide.Left].Count);
     }
 
     /// <summary>
@@ -1223,6 +1238,140 @@ public sealed class ConnectorRouterTests
         // Assert: unconstrained anchors mid-face; with the occupied anchor it sits at least 16px away.
         Assert.Equal(30.0, unconstrained[0].Waypoints[0].Y, 3);
         Assert.True(Math.Abs(moved[0].Waypoints[0].Y - 30.0) >= 16.0);
+    }
+
+    /// <summary>
+    ///     Issue #53: a fixed anchor at the centre of a short (50 px) face must keep the batch anchor at least
+    ///     <c>MinFixedAnchorSeparation</c> (16 px) away. The usable extent inset by the 12 px connector
+    ///     clearance ([12, 38]) holds no such position, so the anchor may use the marker-aware corner margin
+    ///     region ([8, 42]) instead of silently settling for the 13 px "most separated" candidate.
+    /// </summary>
+    [Fact]
+    public void RouteBatch_FixedAnchorOnShortFace_ExternalAnchorKeepsSeparation()
+    {
+        // Arrange: source above-left of a 130x50 target; the target's left face has a fixed anchor at its centre.
+        var source = Box(20, 92, 130, 50, "H");
+        var target = Box(452, 132, 130, 50, "E");
+        var connections = new[] { new Connection(source, target, EndMarkerStyle.HollowTriangle) };
+        var occupied = new[] { new ConnectorRouter.FixedAnchor(target, PortSide.Left, 25.0) };
+
+        // Act
+        var lines = ConnectorRouter.RouteBatch(connections, new ConnectorRouteOptions(), _ => new[] { source, target }, occupied);
+
+        // Assert: the end lands on the face, at least 16 px from the fixed anchor (y = 157).
+        var end = lines[0].Waypoints[^1];
+        Assert.Equal(target.X, end.X, 6);
+        Assert.True(Math.Abs(end.Y - 157.0) >= 16.0 - 1e-6, $"Anchor y {end.Y} is only {Math.Abs(end.Y - 157.0)} px from the fixed anchor.");
+        Assert.InRange(end.Y, target.Y, target.Y + target.Height);
+    }
+
+    /// <summary>
+    ///     Issue #53 (general case): N connectors from stacked source boxes into one short 130x50 target box.
+    ///     On every box face, the anchors of the routed connectors are pairwise at least 16 px apart, are
+    ///     distinct, sit on the face boundary, and every route stays orthogonal.
+    /// </summary>
+    /// <param name="count">The number of connectors.</param>
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    [InlineData(8)]
+    public void Route_ManyConnectorsIntoShortFace_AnchorsAtLeast16Apart(int count)
+    {
+        // Arrange
+        var (boxes, target, connections) = StackedSourcesIntoShortTarget(count);
+
+        // Act
+        var lines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+
+        // Assert
+        Assert.All(lines, line => AssertAllSegmentsOrthogonal(line.Waypoints));
+        var faces = FaceAnchorsOf(target, lines);
+        Assert.Equal(count, faces.Sum(face => face.Value.Count));
+        foreach (var (face, coords) in faces)
+        {
+            for (var i = 1; i < coords.Count; i++)
+            {
+                Assert.True(
+                    coords[i] - coords[i - 1] >= 16.0 - 1e-6,
+                    $"N={count}: anchors {coords[i - 1]} and {coords[i]} on the {face} face are only {coords[i] - coords[i - 1]} px apart.");
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Issue #53: when more connectors than a short face can hold 16 px apart converge on it, the face is
+    ///     filled to its capacity and the overflow goes to the adjacent faces (top and bottom), ordered by the
+    ///     counterpart's position, instead of crowding the face.
+    /// </summary>
+    [Fact]
+    public void Route_FaceOverCapacity_OverflowUsesAdjacentFace()
+    {
+        // Arrange: eight connectors into a 130x50 target (a 50 px face holds at most three anchors 16 px apart).
+        var (boxes, target, connections) = StackedSourcesIntoShortTarget(8);
+
+        // Act
+        var lines = ConnectorRouter.Route(boxes, connections, new ConnectorRouteOptions());
+
+        // Assert: the left face is not over-filled; the overflow lands on both the top and bottom faces.
+        var faces = FaceAnchorsOf(target, lines);
+        Assert.True(faces.GetValueOrDefault(PortSide.Left)?.Count <= 3, "The 50 px left face holds at most three anchors 16 px apart.");
+        Assert.True(faces.GetValueOrDefault(PortSide.Top)?.Count > 0, "Expected overflow on the top face.");
+        Assert.True(faces.GetValueOrDefault(PortSide.Bottom)?.Count > 0, "Expected overflow on the bottom face.");
+        Assert.Equal(8, faces.Sum(face => face.Value.Count));
+
+        // Assert: no route cuts through its target's interior.
+        var targetRect = new Rect(target.X, target.Y, target.Width, target.Height);
+        Assert.All(lines, line => AssertNoSegmentCrossesObstacle(line.Waypoints, targetRect));
+    }
+
+    /// <summary>
+    ///     Builds <paramref name="count"/> 130x50 source boxes stacked in a column to the left of one 130x50
+    ///     target box (vertically centered on the stack), each connected to the target with a typing marker.
+    /// </summary>
+    private static (LayoutBox[] Boxes, LayoutBox Target, Connection[] Connections) StackedSourcesIntoShortTarget(int count)
+    {
+        var sources = Enumerable.Range(0, count).Select(i => Box(20, 20 + (i * 80), 130, 50, $"S{i}")).ToArray();
+        var target = Box(420, 20 + ((count - 1) * 40), 130, 50, "T");
+        var connections = sources.Select(source => new Connection(source, target, EndMarkerStyle.HollowTriangleTwoDots)).ToArray();
+        return ([.. sources, target], target, connections);
+    }
+
+    /// <summary>
+    ///     Groups the end points of <paramref name="lines"/> that land on <paramref name="box"/> by face,
+    ///     returning each face's local along-coordinates in ascending order.
+    /// </summary>
+    private static Dictionary<PortSide, List<double>> FaceAnchorsOf(LayoutBox box, IReadOnlyList<LayoutLine> lines)
+    {
+        var faces = new Dictionary<PortSide, List<double>>();
+        foreach (var line in lines)
+        {
+            foreach (var point in new[] { line.Waypoints[0], line.Waypoints[^1] })
+            {
+                if (!ConnectorRouter.TryResolveFaceAnchor(box, point, out var anchor))
+                {
+                    continue;
+                }
+
+                if (!faces.TryGetValue(anchor.Side, out var coords))
+                {
+                    coords = [];
+                    faces[anchor.Side] = coords;
+                }
+
+                coords.Add(anchor.Along);
+            }
+        }
+
+        foreach (var coords in faces.Values)
+        {
+            coords.Sort();
+        }
+
+        return faces;
     }
 
     /// <summary>

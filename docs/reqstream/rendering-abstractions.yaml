@@ -87,7 +87,8 @@ sections:
           match exactly and notation literals never have to be duplicated across the rendering path.
         children:
           - Rendering-Abstractions-NotationMetrics-TriangleDimensions
-          - Rendering-Abstractions-NotationMetrics-TriangleApexOvershoot
+          - Rendering-Abstractions-NotationMetrics-TriangleApexOnEndpoint
+          - Rendering-Abstractions-NotationMetrics-TipRetraction
           - Rendering-Abstractions-NotationMetrics-DiamondDimensions
           - Rendering-Abstractions-NotationMetrics-DiamondFarPointOnEndpoint
           - Rendering-Abstractions-NotationMetrics-CircleBarGeometry

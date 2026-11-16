@@ -134,10 +134,15 @@ however many lines use it. All markers use `theme.StrokeColor` and `theme.Stroke
 block also defines the `label-bg` filter used behind connector labels.
 
 Every marker is written by `WriteMarker` from a description produced by `DescribeMarker`: the marker box
-(length and height), the tip anchor (`refX`, `refY`), and the SVG elements of the glyph. Every
-coordinate is derived from the single-source notation geometry in `NotationMetrics`, for example
+(length and height), the tip anchor (`refX`, `refY`), and the SVG elements of the glyph. The glyph
+coordinates are derived from the single-source notation geometry in `NotationMetrics`, for example
 `EndMarkerLength`, `EndMarkerWidth`, `EndMarkerRefX`, `DiamondLength`, `CircleRadius`, and the
-`TriangleVertices()` / `DiamondVertices()` helpers that return `MarkerVertex` values. Because the
+`TriangleVertices()` / `DiamondVertices()` helpers that return `MarkerVertex` values; the marker box length
+and tip anchor come from `NotationMetrics.MarkerAnchor(style, theme)`, which retracts the anchor by
+`TipRetraction` so the STROKED glyph tip, not its geometric vertex, lands exactly on the line endpoint (the
+box is widened for the retraction, so the tip is never clipped). Polygons and polylines carry
+`stroke-linejoin="bevel"` (as in the raster renderer), so the painted tip is the bevel corner rather than a
+miter spike. Because the
 SVG and PNG renderers read from the same `NotationMetrics` source in
 `DemaConsulting.Rendering.Abstractions`, their end markers are geometrically identical.
 `line-end-open-chevron` is the only open marker: it omits the closing base edge so the chevron renders
@@ -151,7 +156,7 @@ The newer glyphs are:
   `DotRadius` at the centers returned by `NotationMetrics.DotCenters`: two dots on the line axis, or a
   two-by-two grid of four dots. Each dot is a filled `<circle>` with no stroke.
 - **Redefinition crossbar** — `line-end-hollow-triangle-crossbar` draws the hollow triangle (its box and tip
-  anchor from `NotationMetrics.TriangleFamilyBox`: 14.5 long, anchor 13.5, so the triangle lands exactly
+  anchor from `NotationMetrics.TriangleFamilyBox`: 14.5 long, anchor 14.5, so the triangle lands exactly
   where a plain hollow triangle does) followed by a `<line>` bar at box x = `CrossbarExtension` -
   `CrossbarBaseGap` (1.0), spanning the full box height (the base height). The bar is therefore on the
   line side of the triangle base with a clear gap, as SysML v2.0 section 8.2.3.6 draws redefinition; the
@@ -177,17 +182,18 @@ newer ones).
 #### Marker scale: one size in SVG and PNG
 
 SVG markers use the default `markerUnits="strokeWidth"`, so a marker's box is scaled by the line's stroke
-width and its rendered along-line size is `NotationMetrics.AlongLineLength × theme.StrokeWidth`
+width and its rendered along-line size is the marker box length times `theme.StrokeWidth`
 (`NotationMetrics.RenderedAlongLineLength`); the marker's own outline (written as `theme.StrokeWidth` in
 marker units) is scaled the same way. This scale, `NotationMetrics.MarkerScale(Theme)`, is the one size at
 which both renderers draw every marker: the PNG renderer applies the same scale and the same outline width
 (`NotationMetrics.MarkerStrokeWidth(Theme)`), so a PNG marker has the size and geometry of the SVG marker
 (the SVG renderer is the reference; a parity test compares the pixel footprint of every PNG marker with the
-SVG marker geometry converted to pixels). Both renderers also use `RenderedAlongLineLength` to clamp the
+SVG marker geometry converted to pixels, and a second one that the painted tip of every style lands on the
+endpoint in both). Both renderers also use `RenderedAlongLineLength` to clamp the
 final corner radius, so a rounded bend never begins inside a marker, and pass `MarkerScale` to
 `ConnectorLabelPlacer` so a label keeps clear of the marker as it is drawn. An SVG marker is clipped to its
-box, which blunts a sharp apex at the box edge; the PNG renderer reproduces that blunt tip with a bevel join
-on polygonal markers.
+box; the box is widened so the clip is inert at the tip, and clips only the outer half of the outline at the
+base.
 
 **`RenderNode(StringBuilder sb, LayoutNode node, Theme theme, double scale)`**
 
@@ -280,6 +286,16 @@ values through `MarkerAttribute`: the `SourceEnd` style references the mirrored
 marker via `marker-end` (see _Mirrored start variants_). Adds `stroke-dasharray` for
 `Dashed` and `Dotted` line styles. `RenderLine` intentionally does not draw `MidpointLabel`; connector
 labels are drawn in the final pass of `Render` so later wires cannot cover earlier labels.
+
+**`ShortenPortEnds(IReadOnlyList<LayoutNode> nodes)`**
+
+Before the nodes are rendered, a line end that carries an end marker and coincides (within 0.5 px) with a
+`LayoutPort` centre is moved `NotationMetrics.PortHalfSize` along its end segment, away from the port
+(`RewriteForPorts` / `ShortenLineForPorts` / `RetreatFromPort`, recursing through boxes and bands). The
+port square is painted after the connector and would otherwise hide the last half port size of the
+marker; shortening the drawn end puts the painted tip on the port square's outer edge. The end segment
+must be longer than the port half size; the layout tree, the connector label placement and an end
+without a marker are left untouched. The CanvasNet renderer applies the identical rule.
 
 **`BuildLinePath(...)`**
 
@@ -426,7 +442,9 @@ Any consumer of the rendering library that selects vector output constructs an `
 | Rendering-Svg-SvgRenderer-EndMarkersOpenChevronReference | `RenderLine` references `line-end-open-chevron` |
 | Rendering-Svg-SvgRenderer-HollowTriangleEndMarkers | `WriteEndMarkerDefs` defines the hollow triangle polygon |
 | Rendering-Svg-SvgRenderer-HollowTriangleEndMarkerReference | `RenderLine` writes a hollow-triangle `marker-end` |
-| Rendering-Svg-SvgRenderer-TriangleEndMarkerMetrics | `WriteEndMarkerDefs` reads triangle `NotationMetrics` |
+| Rendering-Svg-SvgRenderer-TriangleEndMarkerMetrics | `WriteEndMarkerDefs` reads `NotationMetrics` and `MarkerAnchor` |
+| Rendering-Svg-SvgRenderer-EndMarkerTipOnEndpoint | `DescribeMarker` anchor, `DescribeGlyph` bevel |
+| Rendering-Svg-SvgRenderer-EndMarkerPortEndpoint | `ShortenPortEnds` shortens marker ends on a port |
 | Rendering-Svg-SvgRenderer-DiamondEndMarkers | `WriteEndMarkerDefs` reads diamond `NotationMetrics` |
 | Rendering-Svg-SvgRenderer-DiamondEndMarkerReference | `RenderLine` writes the hollow-diamond marker reference |
 | Rendering-Svg-SvgRenderer-CrossbarEndMarkers | `RenderLine` writes the crossbar marker reference |

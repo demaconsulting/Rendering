@@ -101,6 +101,200 @@ public sealed partial class EndMarkerParityTests
         AssertSameFootprint(EndMarkerStyle.HollowTriangleTwoDots, expected, actual, 1.0 + (NotationMetrics.MarkerStrokeWidth(theme) / 2.0));
     }
 
+    /// <summary>
+    ///     For every style, at both line ends, in the default and a thicker-stroke theme, the STROKED glyph tip
+    ///     lands on the line endpoint in BOTH renderers: the SVG marker's painted tip (computed from the
+    ///     marker definition) is exactly on the endpoint and the PNG's painted tip (probed from pixels) is on
+    ///     it within a pixel, so the two agree with each other. This is the cross-renderer regression test
+    ///     for demaconsulting/Rendering#49: a tip past the endpoint pokes into the target box.
+    /// </summary>
+    /// <param name="style">The end-marker style.</param>
+    /// <param name="atTarget">Whether the marker is at the target (end) or source (start) of the line.</param>
+    /// <param name="thick">Whether to use a thicker-stroke theme.</param>
+    [Theory]
+    [MemberData(nameof(StyleEndTheme))]
+    public void EndMarkerParity_TipLandsOnEndpoint_InBothRenderers(EndMarkerStyle style, bool atTarget, bool thick)
+    {
+        var theme = thick ? Themes.Light with { StrokeWidth = 2.5 } : Themes.Light;
+        var endpoint = atTarget ? LineEndX : LineStartX;
+        var direction = atTarget ? 1.0 : -1.0;
+
+        var svgTip = SvgPaintedTip(style, atTarget, endpoint, direction, theme);
+        var pngTip = PngPaintedTip(style, atTarget, theme);
+
+        Assert.True(Math.Abs(svgTip - endpoint) < 1e-3, $"{style}: SVG painted tip {svgTip} must be on the endpoint {endpoint}.");
+        Assert.True(Math.Abs(pngTip - endpoint) <= 1.0, $"{style}: PNG painted tip {pngTip} must be on the endpoint {endpoint} (within a pixel).");
+        Assert.True(Math.Abs(svgTip - pngTip) <= 1.0, $"{style}: SVG tip {svgTip} and PNG tip {pngTip} must agree.");
+    }
+
+    /// <summary>Theory data: every style at both ends in both themes.</summary>
+    public static TheoryData<EndMarkerStyle, bool, bool> StyleEndTheme
+    {
+        get
+        {
+            var data = new TheoryData<EndMarkerStyle, bool, bool>();
+            foreach (var style in Enum.GetValues<EndMarkerStyle>().Where(style => style != EndMarkerStyle.None))
+            {
+                foreach (var atTarget in new[] { true, false })
+                {
+                    foreach (var thick in new[] { false, true })
+                    {
+                        data.Add(style, atTarget, thick);
+                    }
+                }
+            }
+
+            return data;
+        }
+    }
+
+    /// <summary>
+    ///     A marker end on a port is shortened identically by both renderers: the SVG path ends at the port's
+    ///     outer edge and the PNG arrow base sits one marker length behind that same edge, so the arrowhead
+    ///     is not hidden under the port glyph in either output.
+    /// </summary>
+    [Fact]
+    public void EndMarkerParity_PortEnd_ShortenedIdenticallyInBothRenderers()
+    {
+        var theme = Themes.Light;
+        var port = new LayoutPort(LineEndX, LineY, PortSide.Left, null);
+        var line = new LayoutLine(
+            [new Point2D(LineStartX, LineY), new Point2D(LineEndX, LineY)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            null);
+        var tree = new LayoutTree(200, 100, [line, port]);
+
+        string svg;
+        using (var output = new MemoryStream())
+        {
+            new SvgRenderer().Render(tree, new RenderOptions(theme), output);
+            svg = Encoding.UTF8.GetString(output.ToArray());
+        }
+
+        var pathEnd = Number(Regex.Match(svg, "<path d=\"M [\\d.]+ [\\d.]+ L ([\\d.]+) [\\d.]+\"").Groups[1].Value);
+        Assert.Equal(LineEndX - NotationMetrics.PortHalfSize, pathEnd, 1e-6);
+
+        // The arrow base is one marker anchor behind the shortened endpoint in the SVG...
+        var (_, refX) = NotationMetrics.MarkerAnchor(EndMarkerStyle.FilledArrow, theme);
+        var baseX = pathEnd - (refX * NotationMetrics.MarkerScale(theme));
+
+        // ...and the PNG draws the base ink at that same column (the wide base corners just above the line).
+        using var surface = RenderPng(tree, new RenderOptions(theme));
+        var column = (int)Math.Round(baseX);
+        var darkest = 0.0;
+        for (var y = 45; y <= 46; y++)
+        {
+            darkest = Math.Max(darkest, (255.0 - surface[column, y].R) / (255.0 - 0x1A));
+        }
+
+        Assert.True(darkest >= 0.5, $"Expected PNG arrow-base ink at column {column} (SVG base x {baseX}).");
+    }
+
+    /// <summary>Returns the x, in pixels, of the SVG marker's painted tip (the stroked glyph's far point).</summary>
+    private static double SvgPaintedTip(EndMarkerStyle style, bool atTarget, double endpoint, double direction, Theme theme)
+    {
+        string svg;
+        using (var output = new MemoryStream())
+        {
+            new SvgRenderer().Render(HorizontalLine(style, atTarget), new RenderOptions(theme), output);
+            svg = Encoding.UTF8.GetString(output.ToArray());
+        }
+
+        var pathStroke = Number(Regex.Match(svg, "<path [^>]*stroke-width=\"([^\"]+)\"[^>]*marker-(?:start|end)").Groups[1].Value);
+        var id = Regex.Match(svg, "marker-(?:start|end)=\"url\\(#([^)]+)\\)\"").Groups[1].Value;
+        var start = svg.IndexOf($"<marker id=\"{id}\"", StringComparison.Ordinal);
+        var marker = svg[start..svg.IndexOf("</marker>", start, StringComparison.Ordinal)];
+
+        var header = MarkerHeader().Match(marker);
+        var width = Number(header.Groups[1].Value);
+        var anchor = Number(header.Groups[3].Value);
+
+        // The start variant mirrors the glyph about the box, so measure its anchor from the far side.
+        var tipAnchor = atTarget ? anchor : width - anchor;
+        var paintedMax = double.MinValue;
+        foreach (Match element in Element().Matches(marker))
+        {
+            paintedMax = Math.Max(paintedMax, PaintedMaxX(element.Groups[1].Value, element.Groups[2].Value));
+        }
+
+        // Clip to the marker box exactly as a browser does, then convert marker units to pixels.
+        paintedMax = Math.Min(paintedMax, width);
+        return endpoint + (direction * (paintedMax - tipAnchor) * pathStroke);
+    }
+
+    /// <summary>
+    ///     Returns the x, in pixels, of the PNG marker's painted tip: the outer edge of the last column
+    ///     (toward the line's free end) that carries at least half the stroke color's darkness on the axis band.
+    /// </summary>
+    private static double PngPaintedTip(EndMarkerStyle style, bool atTarget, Theme theme)
+    {
+        using var surface = RenderPng(HorizontalLine(style, atTarget), new RenderOptions(theme));
+        var tip = atTarget ? double.MinValue : double.MaxValue;
+        for (var x = 0; x < 200; x++)
+        {
+            for (var y = 20; y < 80; y++)
+            {
+                if ((255.0 - surface[x, y].R) / (255.0 - 0x1A) < 0.5)
+                {
+                    continue;
+                }
+
+                // A target tip is the right edge of the right-most inked column; a source tip the left edge of the left-most.
+                tip = atTarget ? Math.Max(tip, x + 1.0) : Math.Min(tip, x);
+            }
+        }
+
+        return tip;
+    }
+
+    /// <summary>
+    ///     Returns the largest marker-box x any painted pixel of the element can reach: the union of the
+    ///     stroked segments' rectangles (exact for bevel joins and butt caps), or the circle radius plus the
+    ///     half stroke.
+    /// </summary>
+    private static double PaintedMaxX(string tag, string attributes)
+    {
+        var strokeWidth = AttributeOrNull(attributes, "stroke-width");
+        var half = strokeWidth is null ? 0.0 : Number(strokeWidth) / 2.0;
+        if (tag == "circle")
+        {
+            return Number(Attribute(attributes, "cx")) + Number(Attribute(attributes, "r")) + half;
+        }
+
+        List<(double X, double Y)> points;
+        if (tag == "line")
+        {
+            points =
+            [
+                (Number(Attribute(attributes, "x1")), Number(Attribute(attributes, "y1"))),
+                (Number(Attribute(attributes, "x2")), Number(Attribute(attributes, "y2"))),
+            ];
+        }
+        else
+        {
+            points = Attribute(attributes, "points").Split(',', StringSplitOptions.TrimEntries)
+                .Select(pair => pair.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                .Select(parts => (X: Number(parts[0]), Y: Number(parts[1])))
+                .ToList();
+        }
+
+        var closed = tag == "polygon";
+        var max = double.MinValue;
+        var segmentCount = closed ? points.Count : points.Count - 1;
+        for (var i = 0; i < segmentCount; i++)
+        {
+            var (x0, y0) = points[i];
+            var (x1, y1) = points[(i + 1) % points.Count];
+            var length = Math.Sqrt(((x1 - x0) * (x1 - x0)) + ((y1 - y0) * (y1 - y0)));
+            var normalX = Math.Abs((y1 - y0) / length);
+            max = Math.Max(max, Math.Max(x0, x1) + (normalX * half));
+        }
+
+        return max;
+    }
+
     private static void AssertSameFootprint(
         EndMarkerStyle style,
         (double MinX, double MaxX, double MinY, double MaxY) expected,

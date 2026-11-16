@@ -42,17 +42,29 @@ proportion, or in the vertex geometry constitutes a failure.
 #### Triangle marker geometry is canonical
 
 Tests `TriangleFamily_HasCanonicalValues` and `TriangleVertices_ReproduceSvgBoxPoints` assert the
-triangle-family constants (10x7, refX 9) and map the shared vertices back to the SVG box points
-"0 0, 10 3.5, 0 7".
+triangle-family constants (10x7, apex on the tip anchor: refX 10, overshoot 0) and map the shared vertices
+back to the SVG box points "0 0, 10 3.5, 0 7".
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-TriangleDimensions`.
 
-#### Triangle apex overshoots the endpoint
+#### Triangle apex lands on the endpoint
 
-Test `TriangleVertices_Apex_OvershootsEndpoint` confirms the apex overshoots the endpoint by the
-documented amount.
+Test `TriangleVertices_Apex_LandsOnEndpoint` confirms the apex sits on the tip anchor (`Along` 0) and that
+no vertex lies ahead of it.
 
-**Covers**: `Rendering-Abstractions-NotationMetrics-TriangleApexOvershoot`.
+**Covers**: `Rendering-Abstractions-NotationMetrics-TriangleApexOnEndpoint`.
+
+#### The stroked tip is retracted onto the endpoint
+
+Test `TipRetraction_IsHalfStrokeTimesTipFactor` asserts, at the default theme, that the retraction is
+half the stroke width times sin(half apex angle) for the triangle family (0.2478 units) and the diamond
+far vertex (0.4163 units), the full half stroke width (0.75) for the circle, circled plus and bar, and zero
+for `None`. Test `TipRetraction_ScalesWithThemeStrokeWidth_AndRejectsNullTheme` asserts it doubles with a
+double stroke width and rejects a `null` theme. Test `MarkerAnchor_KeepsRetractedAnchorInsideBox_AndFeedsRenderedLength`
+asserts for six representative styles that the tip anchor lies inside the (possibly widened) box, the box is
+no shorter than the glyph's own, and `RenderedAlongLineLength` is that box length times the marker scale.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-TipRetraction`.
 
 #### Diamond marker geometry is canonical
 
@@ -175,8 +187,9 @@ scale (4.0, 2.25), and that both reject a `null` theme with `ArgumentNullExcepti
 
 #### Rendered along-line length scales by the marker scale
 
-Test `RenderedAlongLineLength_ScalesNotationLengthByStrokeWidth` asserts the result is
-`AlongLineLength` x the Light theme's marker scale for `OpenChevron` and `CircledPlus`, and zero for
+Test `RenderedAlongLineLength_ScalesNotationLengthByStrokeWidth` asserts the result is the marker box
+length (`AlongLineLength` plus the tip retraction for `OpenChevron`, unchanged for `CircledPlus`, whose
+box has slack behind its far point) x the Light theme's marker scale, and zero for
 `None`. Test `RenderedAlongLineLength_NullTheme_Throws` asserts a `null` theme raises
 `ArgumentNullException`.
 
@@ -219,7 +232,10 @@ no vertices.
 
 - **`Rendering-Abstractions-NotationMetrics-TriangleDimensions`**: TriangleFamily_HasCanonicalValues,
   TriangleVertices_ReproduceSvgBoxPoints
-- **`Rendering-Abstractions-NotationMetrics-TriangleApexOvershoot`**: TriangleVertices_Apex_OvershootsEndpoint
+- **`Rendering-Abstractions-NotationMetrics-TriangleApexOnEndpoint`**: TriangleVertices_Apex_LandsOnEndpoint
+- **`Rendering-Abstractions-NotationMetrics-TipRetraction`**: TipRetraction_IsHalfStrokeTimesTipFactor,
+  TipRetraction_ScalesWithThemeStrokeWidth_AndRejectsNullTheme,
+  MarkerAnchor_KeepsRetractedAnchorInsideBox_AndFeedsRenderedLength
 - **`Rendering-Abstractions-NotationMetrics-DiamondDimensions`**: Diamond_HasCanonicalValues,
   DiamondVertices_ReproduceSvgBoxPoints
 - **`Rendering-Abstractions-NotationMetrics-DiamondFarPointOnEndpoint`**: DiamondVertices_FarPoint_LandsOnEndpoint

@@ -44,7 +44,10 @@ algorithm is:
 1. **Perpendicular stubs.** When a side is supplied, the anchor is stepped off its edge by a short
    stub so the connector leaves and enters boxes at right angles. Each stub length is capped to half
    the gap to the opposing anchor so two facing stubs across a narrow gap meet at the midline
-   instead of overshooting.
+   instead of overshooting. Two ends on the same side do not face each other: when they are level
+   along the face (for example two boxes with aligned left edges joined left to left) the cap would
+   collapse both stubs to zero and leave a straight segment lying on the faces, so such an end keeps
+   its full stub and the connector wraps around.
 2. **Grid construction.** Candidate grid lines are built from the two endpoint coordinates plus each
    obstacle's near and far edges offset outward by the current clearance; optional soft-obstacle
    edges are also added so the search has candidate lanes on either side of an already-routed line.

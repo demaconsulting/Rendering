@@ -44,7 +44,9 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
   requested clearance from obstacles.
 - **Perpendicular ends** (`Rendering-Layout-OrthogonalEdgeRouter-PerpendicularEnds`):
   `Route_WithSourceSide_LeavesPerpendicular` and `Route_WithTargetSide_EntersPerpendicular` confirm
-  the connector leaves/enters an anchor perpendicular to the given box side.
+  the connector leaves/enters an anchor perpendicular to the given box side, and
+  `RouteWithStatus_SameSideAlignedEnds_StepOffInsteadOfRunningAlongFaces` confirms two level ends on the same
+  side step off and wrap around instead of running along the faces.
 - **Crossing status** (`Rendering-Layout-OrthogonalEdgeRouter-CrossingStatus`):
   `RouteWithStatus_NoBlockingObstacle_ReportsNotCrossed` reports a clean route, and
   `RouteWithStatus_TargetEnclosedByObstacle_ReportsCrossed` reports a forced crossing for an enclosed
@@ -124,7 +126,8 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
 - **`Rendering-Layout-OrthogonalEdgeRouter-Clearance`**:
   RouteWithStatus_CleanRoute_KeepsClearanceFromObstacles
 - **`Rendering-Layout-OrthogonalEdgeRouter-PerpendicularEnds`**:
-  Route_WithSourceSide_LeavesPerpendicular, Route_WithTargetSide_EntersPerpendicular
+  Route_WithSourceSide_LeavesPerpendicular, Route_WithTargetSide_EntersPerpendicular,
+  RouteWithStatus_SameSideAlignedEnds_StepOffInsteadOfRunningAlongFaces
 - **`Rendering-Layout-OrthogonalEdgeRouter-CrossingStatus`**:
   RouteWithStatus_NoBlockingObstacle_ReportsNotCrossed, RouteWithStatus_TargetEnclosedByObstacle_ReportsCrossed
 - **`Rendering-Layout-OrthogonalEdgeRouter-CostBands`**:

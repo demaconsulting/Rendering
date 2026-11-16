@@ -214,9 +214,23 @@ and tip anchor are the widened `NotationMetrics.Crossbar*` values, that the tria
 height whose box x is below the base's by `CrossbarBaseGap`, i.e. behind the base with a gap.
 
 Test `LineCornerClamp_UsesRenderedMarkerLength` renders a line whose final leg is 17 px before a 15 px
-rendered chevron and asserts the final corner arc radius is 2 px (leg minus the rendered marker length), not the 4 px
+rendered chevron and asserts the final corner arc radius is 17 px minus the rendered marker length, not the 4 px
 that a clamp
 using the notation length would allow.
+
+Tests `Marker_PaintedTip_LandsOnTipAnchor_AtBothEnds` and `Marker_PaintedTip_LandsOnTipAnchor_WithThickerStroke`
+read the marker definition back for every end-marker style, at the line end and (mirrored) the line start, in
+the Light theme and a 2.5-stroke theme, and compute the STROKED tip with an independent stroke-geometry helper
+(the union of the stroked segments' rectangles, exact for bevel joins and butt caps, and the stroke
+half-width beyond a circle radius). They assert the painted tip equals the marker's tip anchor, which is the
+line endpoint, and is not clipped by the marker box (the regression test for issue #49: before the fix every
+tip was 1 to 1.5 px past the endpoint). Test `Marker_PolygonsAndPolylines_UseBevelJoin` asserts every polygon
+and polyline in every marker carries `stroke-linejoin="bevel"`.
+
+Tests `LineEndingAtPort_TargetMarker_IsShortenedToPortEdge`, `LineStartingAtPort_SourceMarker_IsShortenedToPortEdge`
+and `LineEnd_WithoutMarkerOrPort_IsNotShortened` render a line whose marker end sits on a `LayoutPort`
+centre and assert the path ends (or starts) `PortHalfSize` short of it, at the port square's outer edge, while
+a line end without a marker, or one not on a port, keeps its original endpoint.
 
 Tests `SvgRenderer_Render_SingleLine_WithFilledArrow_ProducesFilledArrowMarker`,
 `SvgRenderer_Render_SingleLine_WithFilledDiamond_ProducesFilledDiamondMarker`,
@@ -244,7 +258,9 @@ variants_ below); the filled-diamond scenario likewise asserts `marker-start="ur
 `Rendering-Svg-SvgRenderer-EndMarkerFilledArrow`,
 `Rendering-Svg-SvgRenderer-EndMarkerFilledDiamond`,
 `Rendering-Svg-SvgRenderer-EndMarkerCircle`,
-`Rendering-Svg-SvgRenderer-EndMarkerBar`.
+`Rendering-Svg-SvgRenderer-EndMarkerBar`,
+`Rendering-Svg-SvgRenderer-EndMarkerTipOnEndpoint`,
+`Rendering-Svg-SvgRenderer-EndMarkerPortEndpoint`.
 
 #### Dotted-triangle and circled-plus markers, on-demand definitions, and start variants
 
@@ -437,6 +453,12 @@ leaf box and asserts the label's estimated extent lies entirely left or right of
   `SvgRenderer_Render_SingleLine_WithCircleEnd_ProducesCircleMarker`
 - **`Rendering-Svg-SvgRenderer-EndMarkerBar`**:
   `SvgRenderer_Render_SingleLine_WithBarEnd_ProducesBarMarker`
+- **`Rendering-Svg-SvgRenderer-EndMarkerTipOnEndpoint`**:
+  `Marker_PaintedTip_LandsOnTipAnchor_AtBothEnds`, `Marker_PaintedTip_LandsOnTipAnchor_WithThickerStroke`,
+  `Marker_PolygonsAndPolylines_UseBevelJoin`
+- **`Rendering-Svg-SvgRenderer-EndMarkerPortEndpoint`**:
+  `LineEndingAtPort_TargetMarker_IsShortenedToPortEdge`, `LineStartingAtPort_SourceMarker_IsShortenedToPortEdge`,
+  `LineEnd_WithoutMarkerOrPort_IsNotShortened`
 - **`Rendering-Svg-SvgRenderer-EndMarkerDottedTriangles`**:
   `EndMarkerTwoDots_DefinesTriangleAndTwoDotsFromNotationMetrics`,
   `EndMarkerFourDots_HasTwoByTwoDotGrid`

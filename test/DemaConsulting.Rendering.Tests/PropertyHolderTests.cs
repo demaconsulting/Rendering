@@ -269,4 +269,82 @@ public class PropertyHolderTests
         // Act / Assert: a null parent argument is rejected
         Assert.Throws<ArgumentNullException>(() => holder.OverlayOnto(null!));
     }
+
+    /// <summary>
+    ///     Proves that CopyOverridesTo copies every explicitly-set value, including a value explicitly
+    ///     set to null, onto the target.
+    /// </summary>
+    [Fact]
+    public void CopyOverridesTo_CopiesEveryExplicitValue_IncludingNull()
+    {
+        // Arrange: a source with one concrete and one explicitly-null override
+        var source = new PropertyHolder();
+        source.Set(Count, 5);
+        source.Set(Name, null);
+        var target = new PropertyHolder();
+
+        // Act
+        source.CopyOverridesTo(target);
+
+        // Assert: both are present on the target and read back like the source
+        Assert.True(target.Contains(Count));
+        Assert.Equal(5, target.Get(Count));
+        Assert.True(target.Contains(Name));
+        Assert.Null(target.Get(Name));
+    }
+
+    /// <summary>
+    ///     Proves that CopyOverridesTo overwrites a same-keyed value on the target (later wins) and
+    ///     leaves the target's unrelated own values untouched.
+    /// </summary>
+    [Fact]
+    public void CopyOverridesTo_SourceWinsOnConflict_KeepsUnrelatedTargetValues()
+    {
+        // Arrange
+        var source = new PropertyHolder();
+        source.Set(Count, 9);
+        var target = new PropertyHolder();
+        target.Set(Count, 1);
+        target.Set(Name, "kept");
+
+        // Act
+        source.CopyOverridesTo(target);
+
+        // Assert
+        Assert.Equal(9, target.Get(Count));
+        Assert.Equal("kept", target.Get(Name));
+    }
+
+    /// <summary>
+    ///     Proves that CopyOverridesTo does not alias the source: later changes to either holder do not
+    ///     affect the other.
+    /// </summary>
+    [Fact]
+    public void CopyOverridesTo_DoesNotAliasSource()
+    {
+        // Arrange
+        var source = new PropertyHolder();
+        source.Set(Count, 3);
+        var target = new PropertyHolder();
+        source.CopyOverridesTo(target);
+
+        // Act
+        source.Set(Count, 4);
+
+        // Assert
+        Assert.Equal(3, target.Get(Count));
+    }
+
+    /// <summary>
+    ///     Proves that CopyOverridesTo rejects a null target.
+    /// </summary>
+    [Fact]
+    public void CopyOverridesTo_NullTarget_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var source = new PropertyHolder();
+
+        // Act / Assert
+        Assert.Throws<ArgumentNullException>(() => source.CopyOverridesTo(null!));
+    }
 }

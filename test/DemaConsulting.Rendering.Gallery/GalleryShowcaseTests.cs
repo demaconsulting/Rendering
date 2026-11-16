@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering.Abstractions;
+using DemaConsulting.Rendering.Layout;
 
 namespace DemaConsulting.Rendering.Gallery;
 
@@ -87,6 +88,115 @@ public sealed class GalleryShowcaseTests
             GalleryCatalog.ParallelEdgesIntoCompartmentBoxSideBySideSvg,
             GalleryDiagrams.ParallelEdgesIntoCompartmentBoxSideBySide(Themes.Dark),
             Themes.Dark);
+    }
+
+    /// <summary>
+    ///     Renders the many-edges-into-one-short-box diagram (issue #53) to SVG and asserts the layout invariant
+    ///     the image demonstrates: on every face of the 130x50 definition box, the anchors of the ten typing
+    ///     edges are at least 16 px apart (<c>MinFixedAnchorSeparation</c>), the overflow having wrapped onto
+    ///     the top and bottom faces, and every edge still lands on the definition's boundary.
+    /// </summary>
+    [Fact]
+    public void Gallery_ManyEdgesIntoShortBox_RendersSvgWithSeparatedAnchors()
+    {
+        // Arrange
+        var graph = GalleryDiagrams.ManyEdgesIntoShortBox();
+        graph.Set(CoreOptions.Algorithm, "auto");
+
+        // Act: render the committed image, and lay the same graph out again to inspect the anchors.
+        GalleryWriter.Svg(
+            GalleryCatalog.ManyEdgesIntoShortBoxSvg,
+            graph,
+            Themes.Dark);
+        var tree = LayoutEngine.Layout(graph);
+
+        // Assert
+        var definition = FindBox(tree.Nodes, "Definition");
+        var faces = new Dictionary<string, List<double>>();
+        var lines = new List<LayoutLine>();
+        CollectEdgeLines(tree.Nodes, lines);
+        Assert.Equal(10, lines.Count);
+        foreach (var line in lines)
+        {
+            var end = line.Waypoints[^1];
+            var (face, along) = ClassifyAnchor(definition, end);
+            Assert.True(face.Length > 0, $"A typing edge ends at {end}, not on the definition's boundary.");
+            if (!faces.TryGetValue(face, out var coords))
+            {
+                coords = [];
+                faces[face] = coords;
+            }
+
+            coords.Add(along);
+        }
+
+        Assert.True(faces["west"].Count <= 3, "The 50 px west face holds at most three anchors 16 px apart.");
+        foreach (var (face, coords) in faces)
+        {
+            coords.Sort();
+            for (var i = 1; i < coords.Count; i++)
+            {
+                Assert.True(coords[i] - coords[i - 1] >= 16.0 - 1e-6, $"{face}: anchors {coords[i - 1]} and {coords[i]} are too close.");
+            }
+        }
+    }
+
+    /// <summary>Returns the face name and along-face coordinate of a point on the box boundary, or an empty face name.</summary>
+    private static (string Face, double Along) ClassifyAnchor(LayoutBox box, Point2D point)
+    {
+        if (Math.Abs(point.X - box.X) < 0.01)
+        {
+            return ("west", point.Y);
+        }
+
+        if (Math.Abs(point.X - (box.X + box.Width)) < 0.01)
+        {
+            return ("east", point.Y);
+        }
+
+        if (Math.Abs(point.Y - box.Y) < 0.01)
+        {
+            return ("north", point.X);
+        }
+
+        return Math.Abs(point.Y - (box.Y + box.Height)) < 0.01 ? ("south", point.X) : (string.Empty, 0.0);
+    }
+
+    private static LayoutBox FindBox(IEnumerable<LayoutNode> nodes, string label) =>
+        FindBoxOrNull(nodes, label) ?? throw new InvalidOperationException($"No box labeled '{label}'.");
+
+    private static LayoutBox? FindBoxOrNull(IEnumerable<LayoutNode> nodes, string label)
+    {
+        foreach (var box in nodes.OfType<LayoutBox>())
+        {
+            if (box.Label == label)
+            {
+                return box;
+            }
+
+            var nested = FindBoxOrNull(box.Children, label);
+            if (nested is not null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
+    private static void CollectEdgeLines(IEnumerable<LayoutNode> nodes, List<LayoutLine> lines)
+    {
+        foreach (var node in nodes)
+        {
+            if (node is LayoutLine line)
+            {
+                lines.Add(line);
+            }
+            else if (node is LayoutBox box)
+            {
+                CollectEdgeLines(box.Children, lines);
+            }
+        }
     }
 
     /// <summary>

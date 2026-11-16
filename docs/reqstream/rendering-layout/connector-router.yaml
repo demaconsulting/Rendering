@@ -39,6 +39,41 @@ sections:
           - Route_FolderTopFace_ProjectsAnchorToRecessedBodyTop
           - Route_FaceSelectionFallback_EmptyNaturalFaceUsesAdjacentFace
 
+      - id: Rendering-Layout-ConnectorRouter-MinimumAnchorSeparation
+        title: >-
+          ConnectorRouter shall keep the anchors of connectors landing on one box face at least
+          16 px apart, including anchors already occupied there by connectors routed elsewhere, using
+          the marker-aware corner-margin region of the face when the clearance-inset region cannot hold
+          them that far apart.
+        justification: |
+          Connector end markers are about 15 px long and 10 px wide, so anchors closer than 16 px make
+          neighboring markers touch or overlap and the connectors hard to trace (diagram-quality
+          criterion C6). A short face with the 12 px connector clearance on each end (a 50 px box) has
+          no position 16 px from an interior connector's centered anchor, so the usable region widens
+          to the corner margin (8 px, or 10 px for a circled plus) before a connector is crowded.
+        tests:
+          - RouteBatch_FixedAnchorOnShortFace_ExternalAnchorKeepsSeparation
+          - Route_ManyConnectorsIntoShortFace_AnchorsAtLeast16Apart
+          - Apply_CrossHierarchyRepro1_AnchorsOnSharedFaceAtLeast16Apart
+          - Apply_ManyCrossHierarchyEdgesIntoOneBox_AnchorsAtLeast16Apart
+          - Gallery_ManyEdgesIntoShortBox_RendersSvgWithSeparatedAnchors
+
+      - id: Rendering-Layout-ConnectorRouter-FaceOverflowToAdjacentFace
+        title: >-
+          When more connectors converge on a box face than it can hold 16 px apart, ConnectorRouter
+          shall keep the connectors nearest the face's middle on it and move the overflow, from each end
+          of the ordering and only toward the side their counterpart lies on, to the adjacent face, in an
+          order that keeps the wrapped connectors from crossing, and shall fall back to an even spread
+          when every candidate face is full.
+        justification: |
+          Some boxes are too short for the connectors they receive (nine edges into a 50 px face). Rather
+          than crowd them, the router spreads them over the box's other faces, so every anchor keeps its
+          clear 16 px and every connector stays individually traceable, while a face that is full on
+          every side still routes (best effort) instead of failing.
+        tests:
+          - Route_FaceOverCapacity_OverflowUsesAdjacentFace
+          - Route_NineParallelEdgesIntoCompartmentBox_DoNotLoopBehindEitherBox
+
       - id: Rendering-Layout-ConnectorRouter-SharedFaceDistribution
         title: >-
           When several connectors share one box face, ConnectorRouter shall distribute their anchors

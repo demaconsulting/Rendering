@@ -15,18 +15,18 @@ namespace DemaConsulting.Rendering.Abstractions.Tests;
 /// </summary>
 public sealed class NotationMetricsTests
 {
-    /// <summary>The triangle-family canonical values match the historical SVG marker (10x7, refX 9).</summary>
+    /// <summary>The triangle-family canonical values: 10x7 box with the apex on the tip anchor (refX 10).</summary>
     [Fact]
     public void TriangleFamily_HasCanonicalValues()
     {
-        // Assert: the triangle-family primitives match the historical SVG marker.
+        // Assert: the triangle-family primitives.
         Assert.Equal(10.0, NotationMetrics.EndMarkerLength);
         Assert.Equal(7.0, NotationMetrics.EndMarkerWidth);
-        Assert.Equal(9.0, NotationMetrics.EndMarkerRefX);
+        Assert.Equal(10.0, NotationMetrics.EndMarkerRefX);
         Assert.Equal(3.5, NotationMetrics.EndMarkerHalfWidth);
 
-        // The apex overshoots the endpoint by markerLength - refX = 1.
-        Assert.Equal(1.0, NotationMetrics.EndMarkerTipOvershoot);
+        // The apex lands on the tip anchor: markerLength - refX = 0 (no overshoot).
+        Assert.Equal(0.0, NotationMetrics.EndMarkerTipOvershoot);
     }
 
     /// <summary>The diamond canonical values match the historical SVG marker (14x8, refX 13).</summary>
@@ -70,7 +70,7 @@ public sealed class NotationMetricsTests
         Assert.Equal(3.5, NotationMetrics.CrossbarBaseGap);
         Assert.Equal(4.5, NotationMetrics.CrossbarExtension);
         Assert.Equal(14.5, NotationMetrics.CrossbarMarkerLength);
-        Assert.Equal(13.5, NotationMetrics.CrossbarRefX);
+        Assert.Equal(14.5, NotationMetrics.CrossbarRefX);
 
         // Assert: the bar is behind the base (greater distance back from the tip) by the gap.
         Assert.Equal(NotationMetrics.EndMarkerRefX + NotationMetrics.CrossbarBaseGap, NotationMetrics.CrossbarAlong, 1e-9);
@@ -146,17 +146,88 @@ public sealed class NotationMetricsTests
         Assert.Contains(vertices, v => Math.Abs(v.Along) < 1e-9 && Math.Abs(v.Across) < 1e-9);
     }
 
-    /// <summary>The triangle apex overshoots the endpoint (negative Along) by the documented amount.</summary>
+    /// <summary>The triangle apex lands exactly on the endpoint (Along == 0): no overshoot into the target.</summary>
     [Fact]
-    public void TriangleVertices_Apex_OvershootsEndpoint()
+    public void TriangleVertices_Apex_LandsOnEndpoint()
     {
         // Arrange: the shared triangle vertices; the apex is the middle vertex.
         var vertices = NotationMetrics.TriangleVertices();
         var apex = vertices[1];
 
-        // Assert: the apex overshoots the endpoint by the documented amount.
-        Assert.Equal(-NotationMetrics.EndMarkerTipOvershoot, apex.Along);
+        // Assert: the apex sits on the endpoint, not ahead of it.
+        Assert.Equal(0.0, apex.Along);
         Assert.Equal(0.0, apex.Across);
+        Assert.All(vertices, vertex => Assert.True(vertex.Along >= 0.0));
+    }
+
+    /// <summary>
+    ///     The tip retraction is half the marker stroke times the bevel (or round/butt) tip factor, so the
+    ///     STROKED tip - not the geometric vertex - lands on the endpoint: sin(half apex angle) for the
+    ///     triangle family, the diamond's far-vertex factor, and 1 for circle, circled plus and bar.
+    /// </summary>
+    [Fact]
+    public void TipRetraction_IsHalfStrokeTimesTipFactor()
+    {
+        // Arrange: the default theme (stroke width 1.5 marker units -> half stroke 0.75).
+        var theme = Themes.Light;
+        var triangleFactor = NotationMetrics.EndMarkerHalfWidth / Math.Sqrt((NotationMetrics.EndMarkerLength * NotationMetrics.EndMarkerLength) + (NotationMetrics.EndMarkerHalfWidth * NotationMetrics.EndMarkerHalfWidth));
+        var diamondRun = NotationMetrics.DiamondRefX - NotationMetrics.DiamondMidX;
+        var diamondFactor = NotationMetrics.DiamondHalfWidth / Math.Sqrt((diamondRun * diamondRun) + (NotationMetrics.DiamondHalfWidth * NotationMetrics.DiamondHalfWidth));
+
+        // Assert
+        Assert.Equal(0.75 * triangleFactor, NotationMetrics.TipRetraction(EndMarkerStyle.HollowTriangle, theme), 1e-9);
+        Assert.Equal(0.75 * triangleFactor, NotationMetrics.TipRetraction(EndMarkerStyle.OpenChevron, theme), 1e-9);
+        Assert.Equal(0.75 * triangleFactor, NotationMetrics.TipRetraction(EndMarkerStyle.FilledArrow, theme), 1e-9);
+        Assert.Equal(0.75 * triangleFactor, NotationMetrics.TipRetraction(EndMarkerStyle.HollowTriangleCrossbar, theme), 1e-9);
+        Assert.Equal(0.75 * triangleFactor, NotationMetrics.TipRetraction(EndMarkerStyle.HollowTriangleTwoDots, theme), 1e-9);
+        Assert.Equal(0.75 * triangleFactor, NotationMetrics.TipRetraction(EndMarkerStyle.HollowTriangleFourDots, theme), 1e-9);
+        Assert.Equal(0.75 * diamondFactor, NotationMetrics.TipRetraction(EndMarkerStyle.HollowDiamond, theme), 1e-9);
+        Assert.Equal(0.75 * diamondFactor, NotationMetrics.TipRetraction(EndMarkerStyle.FilledDiamond, theme), 1e-9);
+        Assert.Equal(0.75, NotationMetrics.TipRetraction(EndMarkerStyle.Circle, theme), 1e-9);
+        Assert.Equal(0.75, NotationMetrics.TipRetraction(EndMarkerStyle.CircledPlus, theme), 1e-9);
+        Assert.Equal(0.75, NotationMetrics.TipRetraction(EndMarkerStyle.Bar, theme), 1e-9);
+        Assert.Equal(0.0, NotationMetrics.TipRetraction(EndMarkerStyle.None, theme));
+    }
+
+    /// <summary>The tip retraction scales with the theme stroke width and rejects a null theme.</summary>
+    [Fact]
+    public void TipRetraction_ScalesWithThemeStrokeWidth_AndRejectsNullTheme()
+    {
+        // Arrange: a stroke twice as thick as the default.
+        var thick = Themes.Light with { StrokeWidth = 3.0 };
+
+        // Assert: twice the default retraction.
+        Assert.Equal(
+            2.0 * NotationMetrics.TipRetraction(EndMarkerStyle.Circle, Themes.Light),
+            NotationMetrics.TipRetraction(EndMarkerStyle.Circle, thick),
+            1e-9);
+        Assert.Throws<ArgumentNullException>(() => NotationMetrics.TipRetraction(EndMarkerStyle.Circle, null!));
+    }
+
+    /// <summary>
+    ///     The marker anchor puts the retracted tip anchor inside the marker box (widening the box only when
+    ///     the retraction exceeds the slack behind the glyph's far point), and the rendered along-line
+    ///     length is that box length times the marker scale.
+    /// </summary>
+    [Theory]
+    [InlineData(EndMarkerStyle.HollowTriangle)]
+    [InlineData(EndMarkerStyle.HollowTriangleTwoDots)]
+    [InlineData(EndMarkerStyle.HollowDiamond)]
+    [InlineData(EndMarkerStyle.Circle)]
+    [InlineData(EndMarkerStyle.Bar)]
+    [InlineData(EndMarkerStyle.CircledPlus)]
+    public void MarkerAnchor_KeepsRetractedAnchorInsideBox_AndFeedsRenderedLength(EndMarkerStyle style)
+    {
+        // Arrange
+        var theme = Themes.Light;
+
+        // Act
+        var (length, refX) = NotationMetrics.MarkerAnchor(style, theme);
+
+        // Assert: the anchor is the glyph anchor plus the retraction, inside the (possibly widened) box.
+        Assert.True(refX <= length + 1e-9);
+        Assert.True(length >= NotationMetrics.AlongLineLength(style) - 1e-9);
+        Assert.Equal(length * theme.StrokeWidth, NotationMetrics.RenderedAlongLineLength(style, theme), 1e-9);
     }
 
     /// <summary>Each end-marker style reports the documented along-line length.</summary>

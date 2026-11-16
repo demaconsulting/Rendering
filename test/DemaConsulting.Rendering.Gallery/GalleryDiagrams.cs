@@ -178,6 +178,41 @@ internal static class GalleryDiagrams
     }
 
     /// <summary>
+    ///     Regression coverage (and visual evidence) for issue #53: ten usages inside a <c>Usages</c> folder
+    ///     are each typed by (connected with a hollow-triangle-and-two-dots typing edge to) one short 130x50
+    ///     <c>Definition</c> box declared outside the folder. The edges cross the folder boundary, so the
+    ///     <c>ConnectorRouter</c> places every anchor on the definition. A 50 px face holds only three anchors
+    ///     <c>MinFixedAnchorSeparation</c> (16 px) apart, so the router fills the west face with three and
+    ///     wraps the remaining connectors around onto the top and bottom faces instead of crowding them
+    ///     (before the fix four anchors sat 6 px apart on the west face and the markers overlapped).
+    /// </summary>
+    /// <returns>
+    ///     A two-level compound graph for the <c>"auto"</c> algorithm: a folder of ten 130x50 usages and a
+    ///     separate 130x50 definition joined by ten typing edges declared on the root.
+    /// </returns>
+    public static LayoutGraph ManyEdgesIntoShortBox()
+    {
+        var graph = new LayoutGraph();
+
+        var usages = AddFolder(graph, "usages", "Usages");
+        usages.TitleHeight = 56;
+        usages.Set(CoreOptions.Algorithm, "layered");
+
+        var definition = graph.AddNode("definition", 130, 50);
+        definition.Label = "Definition";
+
+        for (var i = 1; i <= 10; i++)
+        {
+            var usage = usages.Children.AddNode($"usage{i}", 130, 50);
+            usage.Label = $"Usage{i}";
+            var typing = graph.AddEdge($"usage{i}-definition", usage, definition);
+            typing.TargetEnd = EndMarkerStyle.HollowTriangleTwoDots;
+        }
+
+        return graph;
+    }
+
+    /// <summary>
     ///     Permanent visual regression coverage for the connector-router "coiled/looping" robustness
     ///     fix (<c>OrthogonalEdgeRouter</c>'s soft-obstacle envelope clamp and envelope-departure cost),
     ///     built with explicit, hardcoded box positions rather than any layout algorithm. This deliberately

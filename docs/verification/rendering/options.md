@@ -77,6 +77,17 @@ pass through unchanged, and a null parent is rejected.
 
 **Covers**: `Rendering-Model-Options-Cascade`.
 
+#### Copying overrides carries every explicit value
+
+Tests `CopyOverridesTo_CopiesEveryExplicitValue_IncludingNull`,
+`CopyOverridesTo_SourceWinsOnConflict_KeepsUnrelatedTargetValues`, `CopyOverridesTo_DoesNotAliasSource` and
+`CopyOverridesTo_NullTarget_ThrowsArgumentNullException` copy a holder carrying a concrete and an
+explicitly-null override onto another and assert both read back as set on the target, a same-keyed target
+value is overwritten while the target's unrelated value is kept, a later change to the source does not
+reach the target, and a null target is rejected.
+
+**Covers**: `Rendering-Model-Options-CopyOverrides`.
+
 #### MergeParallelEdges defaults true and cascades
 
 Tests `MergeParallelEdges_DefaultValue_IsTrue` and `MergeParallelEdges_SetOnGraph_ReadsBackExplicitValue`
@@ -102,6 +113,9 @@ value set on an options bag reads back correctly.
 - **`Rendering-Model-Options-Cascade`**: OverlayOnto_EmptyHolderOntoPopulatedParent_ReturnsParentValuesUnchanged,
   OverlayOnto_HolderOverridesProperty_HolderValueWins, OverlayOnto_ValueOnlyOnParent_PassesThrough,
   OverlayOnto_CustomPropertyNotInCoreOptions_IsMerged, OverlayOnto_NullParent_ThrowsArgumentNullException
+- **`Rendering-Model-Options-CopyOverrides`**: CopyOverridesTo_CopiesEveryExplicitValue_IncludingNull,
+  CopyOverridesTo_SourceWinsOnConflict_KeepsUnrelatedTargetValues, CopyOverridesTo_DoesNotAliasSource,
+  CopyOverridesTo_NullTarget_ThrowsArgumentNullException
 - **`Rendering-Model-Options-MergeParallelEdges`**: MergeParallelEdges_DefaultValue_IsTrue,
   MergeParallelEdges_SetOnGraph_ReadsBackExplicitValue
 - **`Rendering-Model-Options-AssumedFontSize`**: AssumedFontSize_DefaultValue_Is12,

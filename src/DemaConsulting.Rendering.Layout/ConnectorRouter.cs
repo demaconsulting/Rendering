@@ -1269,25 +1269,46 @@ public static class ConnectorRouter
     /// <summary>
     /// One connector's claim on a shared box face: which connection it belongs to, whether it is the
     /// connection's source or target end, and the position (its counterpart box's centre on the face's
-    /// axis) used to order claims before spreading them evenly across the face.
+    /// axis) used to order claims before spreading them evenly across the face. <c>Reverse</c> marks a claim
+    /// that overflowed from a face with a positive outward normal (right or bottom) to an adjacent face:
+    /// among claims with equal counterparts it takes the reverse connection order, so the connectors that
+    /// wrap around the corner nest instead of crossing one another.
     /// </summary>
-    private readonly record struct FaceSlot(int ConnectionIndex, bool IsSource, double Counterpart);
+    private readonly record struct FaceSlot(int ConnectionIndex, bool IsSource, double Counterpart, bool Reverse = false);
 
     /// <summary>
-    /// Redistributes anchors for any box face claimed by more than one connector in this batch, so
-    /// co-terminating connectors land at evenly spaced points along the face instead of each
-    /// independently clamping to the same boundary point (see <see cref="FacingAnchors"/>).
+    /// Redistributes anchors for any box face claimed by more than one connector in this batch (or that
+    /// already carries an occupied anchor), so connectors landing on one face are always at least
+    /// <see cref="MinFixedAnchorSeparation"/> apart instead of each independently clamping to the same
+    /// boundary point (see <see cref="FacingAnchors"/>) or being crowded together.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Each face is first spread inside its connectable extent inset by the connector clearance (the
+    /// historical behavior). If that region cannot hold the face's connectors the required distance apart —
+    /// including the anchors already occupied there — the wider marker-aware corner-margin region
+    /// (<see cref="PortCornerMargin"/>, or <see cref="PortCornerMarginFor"/> for a wider target marker) is
+    /// used instead, and the anchors outside the clearance inset are flagged as slid so later stages keep
+    /// them there.
+    /// </para>
+    /// <para>
+    /// When even that region is full, the connectors nearest the middle of the face (ordered by where their
+    /// counterpart sits) keep it and the overflow from each end moves to the adjacent face on that side,
+    /// where it takes a fresh part in the next pass (at most <see cref="MaxAnchorRedistributionPasses"/>
+    /// passes, in deterministic order; a connector end never returns to a face it has already left). If
+    /// every candidate face is full the face is spread as evenly as it allows (best effort, never an error).
+    /// </para>
+    /// </remarks>
     /// <param name="connections">The connections being routed, in the same order as <paramref name="anchors"/>.</param>
     /// <param name="anchors">
     /// The naive per-connection anchors computed by <see cref="FacingAnchors"/>; updated in place for any
-    /// connector whose anchor is moved to share its face fairly with others. The redistribution spans
-    /// the union of the face's connectable extents rather than the full bounding-box edge.
+    /// connector whose anchor (or face) is moved to share its face fairly with others. The redistribution
+    /// spans the union of the face's connectable extents rather than the full bounding-box edge.
     /// </param>
     /// <param name="clearance">Minimum inset kept between a redistributed anchor and the ends of the face.</param>
     /// <param name="fixedAnchors">
-    /// Anchor points already occupied on box faces; a face carrying one never keeps a batch anchor that
-    /// would sit on top of it (see <see cref="SeparateFromFixedAnchors"/>).
+    /// Anchor points already occupied on box faces; a face carrying one never keeps a batch anchor closer
+    /// than <see cref="MinFixedAnchorSeparation"/> to it.
     /// </param>
     private static void DistributeSharedFaceAnchors(
         IReadOnlyList<Connection> connections,
@@ -1295,17 +1316,68 @@ public static class ConnectorRouter
         double clearance,
         IReadOnlyList<FixedAnchor> fixedAnchors)
     {
+        // The face each connector end started on (to detect an overflowed end) and every face it has been on
+        // (so an overflowing end never returns to a face it left).
+        var origin = new Dictionary<(int Index, bool IsSource), PortSide>();
+        var visited = new HashSet<(int Index, bool IsSource, PortSide Side)>();
+        for (var i = 0; i < connections.Count; i++)
+        {
+            origin[(i, true)] = anchors[i].SourceSide;
+            origin[(i, false)] = anchors[i].TargetSide;
+            visited.Add((i, true, anchors[i].SourceSide));
+            visited.Add((i, false, anchors[i].TargetSide));
+        }
+
+        for (var pass = 0; pass < MaxAnchorRedistributionPasses; pass++)
+        {
+            // The last pass places every connector where it is (best effort) rather than moving any.
+            var allowOverflow = pass < MaxAnchorRedistributionPasses - 1;
+            if (!AssignFaceAnchors(connections, anchors, clearance, fixedAnchors, origin, visited, allowOverflow))
+            {
+                return;
+            }
+        }
+    }
+
+    /// <summary>Maximum number of overflow passes made by <see cref="DistributeSharedFaceAnchors"/>.</summary>
+    private const int MaxAnchorRedistributionPasses = 4;
+
+    /// <summary>
+    /// One pass of <see cref="DistributeSharedFaceAnchors"/>: groups the connector ends by face, places each
+    /// shared face's ends at least <see cref="MinFixedAnchorSeparation"/> apart and, when
+    /// <paramref name="allowOverflow"/> is set, moves the ends a full face cannot hold to an adjacent face.
+    /// </summary>
+    /// <returns><see langword="true"/> when at least one connector end moved to another face.</returns>
+    private static bool AssignFaceAnchors(
+        IReadOnlyList<Connection> connections,
+        FaceAnchors[] anchors,
+        double clearance,
+        IReadOnlyList<FixedAnchor> fixedAnchors,
+        Dictionary<(int Index, bool IsSource), PortSide> origin,
+        HashSet<(int Index, bool IsSource, PortSide Side)> visited,
+        bool allowOverflow)
+    {
         var groups = new Dictionary<(LayoutBox Box, PortSide Side), List<FaceSlot>>(FaceKeyComparer.Instance);
+
+        // A claim that overflowed from a right or bottom face keeps the reverse connection order on its new
+        // face, so the connectors wrapping around the corner nest instead of crossing.
+        bool Overflowed(int index, bool isSource, PortSide current) =>
+            origin[(index, isSource)] != current && origin[(index, isSource)] is PortSide.Right or PortSide.Bottom;
 
         for (var i = 0; i < connections.Count; i++)
         {
             var connection = connections[i];
             var faceAnchors = anchors[i];
 
-            AddSlot(groups, connection.From, faceAnchors.SourceSide, i, isSource: true, CounterpartCentre(connection.To, faceAnchors.SourceSide));
-            AddSlot(groups, connection.To, faceAnchors.TargetSide, i, isSource: false, CounterpartCentre(connection.From, faceAnchors.TargetSide));
+            AddSlot(
+                groups, connection.From, faceAnchors.SourceSide, i, isSource: true, CounterpartCentre(connection.To, faceAnchors.SourceSide),
+                Overflowed(i, true, faceAnchors.SourceSide));
+            AddSlot(
+                groups, connection.To, faceAnchors.TargetSide, i, isSource: false, CounterpartCentre(connection.From, faceAnchors.TargetSide),
+                Overflowed(i, false, faceAnchors.TargetSide));
         }
 
+        var moved = false;
         foreach (var (key, slots) in groups)
         {
             var (box, side) = key;
@@ -1321,34 +1393,341 @@ public static class ConnectorRouter
                 continue;
             }
 
-            var geometry = ResolveShapeGeometry(box);
-            var usableExtents = BuildUsableExtents(geometry.GetConnectableExtents(side), clearance);
-            if (usableExtents.Count == 0)
+            var extents = ResolveShapeGeometry(box).GetConnectableExtents(side);
+            var usable = BuildUsableExtents(extents, clearance);
+            if (usable.Count == 0)
             {
                 continue;
             }
 
-            if (occupied.Count > 0)
+            var ordered = slots
+                .OrderBy(s => s.Counterpart)
+                .ThenBy(s => s.Reverse ? -s.ConnectionIndex : s.ConnectionIndex)
+                .ToList();
+            var margin = SlideExtents(extents, FaceMargin(ordered, connections));
+            var (region, free, capacity) = ChooseFaceRegion(usable, margin, occupied, ordered.Count);
+
+            var stayers = ordered;
+            if (allowOverflow && ordered.Count > capacity)
             {
-                SeparateFromFixedAnchors(slots, anchors, usableExtents, occupied);
-                continue;
+                (stayers, var overflowed) = MoveOverflowToAdjacentFaces(
+                    box, side, ordered, capacity, connections, anchors, clearance, visited);
+                moved |= overflowed;
             }
 
-            var usableLength = TotalExtentLength(usableExtents);
-            var ordered = slots.OrderBy(s => s.Counterpart).ThenBy(s => s.ConnectionIndex).ToList();
-            var count = ordered.Count;
-
-            for (var k = 0; k < count; k++)
+            if (stayers.Count > 0)
             {
-                var distance = count == 1 ? usableLength / 2.0 : k * usableLength / (count - 1);
-                var along = CoordinateAtDistance(usableExtents, distance);
-                var slot = ordered[k];
-                var current = anchors[slot.ConnectionIndex];
-                anchors[slot.ConnectionIndex] = slot.IsSource
-                    ? current with { SourceAlong = along }
-                    : current with { TargetAlong = along };
+                PlaceOnFace(stayers, anchors, region, free, usable, occupied);
             }
         }
+
+        return moved;
+    }
+
+    /// <summary>
+    /// The corner margin used for a face's connectors: the legacy <see cref="PortCornerMargin"/>, widened to
+    /// <see cref="PortCornerMarginFor"/> the end marker of any connector that ends (targets) on the face.
+    /// </summary>
+    private static double FaceMargin(IReadOnlyList<FaceSlot> slots, IReadOnlyList<Connection> connections)
+    {
+        var margin = PortCornerMargin;
+        foreach (var slot in slots)
+        {
+            if (!slot.IsSource)
+            {
+                margin = Math.Max(margin, PortCornerMarginFor(connections[slot.ConnectionIndex].TargetEnd));
+            }
+        }
+
+        return margin;
+    }
+
+    /// <summary>
+    /// Chooses the region of a face the connectors are placed in: the clearance-inset
+    /// <paramref name="usable"/> extents when they can hold <paramref name="count"/> anchors the required
+    /// distance apart (kept clear of the <paramref name="occupied"/> anchors), otherwise the wider
+    /// <paramref name="margin"/> extents; when neither can, the one holding more.
+    /// </summary>
+    /// <returns>The chosen extents, the part of them clear of occupied anchors, and how many anchors that part holds.</returns>
+    private static (IReadOnlyList<(double Lo, double Hi)> Region, List<(double Lo, double Hi)> Free, int Capacity) ChooseFaceRegion(
+        IReadOnlyList<(double Lo, double Hi)> usable,
+        IReadOnlyList<(double Lo, double Hi)> margin,
+        List<double> occupied,
+        int count)
+    {
+        var usableFree = ExcludeNeighborWindows(usable, occupied);
+        var usableCapacity = PackPositions(usableFree, int.MaxValue).Count;
+        if (usableCapacity >= count)
+        {
+            return (usable, usableFree, usableCapacity);
+        }
+
+        var marginFree = ExcludeNeighborWindows(margin, occupied);
+        var marginCapacity = PackPositions(marginFree, int.MaxValue).Count;
+        return marginCapacity >= usableCapacity
+            ? (margin, marginFree, marginCapacity)
+            : (usable, usableFree, usableCapacity);
+    }
+
+    /// <summary>
+    /// Moves the connectors a full face cannot hold to an adjacent face. Connectors are peeled from the ends
+    /// of the ordering (the ones whose counterpart sits farthest from the face's middle first), and only
+    /// toward the side their counterpart lies on: the lower end goes to the adjacent face on the lower side
+    /// (top or left), the upper end to the one on the upper side (bottom or right), falling back to the other
+    /// adjacent face. The connectors nearest the middle keep the face. A connector whose adjacent faces are
+    /// unusable or already visited stays on this face.
+    /// </summary>
+    /// <returns>The connectors that remain on the face (in order) and whether any moved.</returns>
+    private static (List<FaceSlot> Stayers, bool Moved) MoveOverflowToAdjacentFaces(
+        LayoutBox box,
+        PortSide side,
+        List<FaceSlot> ordered,
+        int capacity,
+        IReadOnlyList<Connection> connections,
+        FaceAnchors[] anchors,
+        double clearance,
+        HashSet<(int Index, bool IsSource, PortSide Side)> visited)
+    {
+        var keep = Math.Max(capacity, 0);
+        var geometry = ResolveShapeGeometry(box);
+        var (lowerFace, upperFace) = side is PortSide.Left or PortSide.Right
+            ? (PortSide.Top, PortSide.Bottom)
+            : (PortSide.Left, PortSide.Right);
+        var faceMiddle = CounterpartCentre(box, side);
+
+        // The face a claim moves to when peeled from the front (its counterpart on the lower side) or the
+        // back (the upper side) of the ordering; null when it cannot move that way.
+        PortSide? OverflowFace(FaceSlot slot, bool fromFront)
+        {
+            var lowerSide = slot.Counterpart <= faceMiddle;
+            if (lowerSide != fromFront)
+            {
+                return null;
+            }
+
+            return new[] { fromFront ? lowerFace : upperFace, fromFront ? upperFace : lowerFace }
+                .Where(face => geometry.GetConnectableExtents(face).Count > 0 && !visited.Contains((slot.ConnectionIndex, slot.IsSource, face)))
+                .Cast<PortSide?>()
+                .FirstOrDefault();
+        }
+
+        var peeled = new List<(FaceSlot Slot, PortSide Face)>();
+        var front = 0;
+        var back = ordered.Count;
+        while (back - front > keep)
+        {
+            var frontFace = OverflowFace(ordered[front], fromFront: true);
+            var backFace = OverflowFace(ordered[back - 1], fromFront: false);
+            if (frontFace is null && backFace is null)
+            {
+                break;
+            }
+
+            var peelFront = backFace is null
+                || (frontFace is not null
+                    && Math.Abs(ordered[front].Counterpart - faceMiddle) >= Math.Abs(ordered[back - 1].Counterpart - faceMiddle));
+            if (peelFront)
+            {
+                peeled.Add((ordered[front], frontFace!.Value));
+                front++;
+            }
+            else
+            {
+                back--;
+                peeled.Add((ordered[back], backFace!.Value));
+            }
+        }
+
+        var moved = false;
+        foreach (var (slot, face) in peeled)
+        {
+            var connection = connections[slot.ConnectionIndex];
+            var counterpart = slot.IsSource ? connection.To : connection.From;
+            var along = ToLocalAlong(box, face, NaiveAnchorCoordinate(box, counterpart, face, clearance));
+            var current = anchors[slot.ConnectionIndex];
+            anchors[slot.ConnectionIndex] = slot.IsSource
+                ? current with { SourceSide = face, SourceAlong = along, SourceSlid = false }
+                : current with { TargetSide = face, TargetAlong = along, TargetSlid = false };
+            visited.Add((slot.ConnectionIndex, slot.IsSource, face));
+            moved = true;
+        }
+
+        return (ordered.GetRange(front, back - front), moved);
+    }
+
+    /// <summary>
+    /// Places the connectors of one face, in order, inside <paramref name="free"/> (the part of
+    /// <paramref name="region"/> clear of the occupied anchors). Without occupied anchors they are spread
+    /// evenly along the region (the historical behavior); with occupied anchors each keeps the position
+    /// nearest its current anchor that is clear of every anchor already placed, so an anchor that is already
+    /// clear does not move. If the connectors do not fit the required distance apart, they are packed from the
+    /// start of the free space; if they still do not fit (a full face with nowhere to overflow), they are
+    /// spread evenly across the region as a best effort. Anchors outside the clearance-inset
+    /// <paramref name="usable"/> extents are flagged as slid.
+    /// </summary>
+    private static void PlaceOnFace(
+        List<FaceSlot> stayers,
+        FaceAnchors[] anchors,
+        IReadOnlyList<(double Lo, double Hi)> region,
+        List<(double Lo, double Hi)> free,
+        IReadOnlyList<(double Lo, double Hi)> usable,
+        List<double> occupied)
+    {
+        var count = stayers.Count;
+        double[]? positions = null;
+
+        if (occupied.Count > 0 || count == 1)
+        {
+            positions = PlaceNearPreferred(stayers, anchors, free, occupied);
+        }
+        else if (TotalExtentLength(free) > 0.0)
+        {
+            var length = TotalExtentLength(free);
+            var evenly = new double[count];
+            for (var k = 0; k < count; k++)
+            {
+                evenly[k] = CoordinateAtDistance(free, k * length / (count - 1));
+            }
+
+            if (MinSpacing(evenly) >= MinFixedAnchorSeparation - 1e-9)
+            {
+                positions = evenly;
+            }
+        }
+
+        if (positions is null)
+        {
+            var packed = PackPositions(free, count);
+            positions = packed.Count == count ? [.. packed] : null;
+        }
+
+        if (positions is null)
+        {
+            // Over capacity with nowhere to overflow: spread as evenly as the region allows.
+            var length = TotalExtentLength(region);
+            positions = new double[count];
+            for (var k = 0; k < count; k++)
+            {
+                positions[k] = count == 1 ? CoordinateAtDistance(region, length / 2.0) : CoordinateAtDistance(region, k * length / (count - 1));
+            }
+        }
+
+        for (var k = 0; k < count; k++)
+        {
+            var slot = stayers[k];
+            var slid = !WithinExtents(positions[k], usable);
+            var current = anchors[slot.ConnectionIndex];
+            anchors[slot.ConnectionIndex] = slot.IsSource
+                ? current with { SourceAlong = positions[k], SourceSlid = slid }
+                : current with { TargetAlong = positions[k], TargetSlid = slid };
+        }
+    }
+
+    /// <summary>
+    /// Places each connector, in order, at the position inside <paramref name="free"/> nearest its current
+    /// anchor that is at least <see cref="MinFixedAnchorSeparation"/> from every anchor placed so far
+    /// (the occupied ones included). Returns <see langword="null"/> when some connector has no such position.
+    /// </summary>
+    private static double[]? PlaceNearPreferred(
+        List<FaceSlot> stayers,
+        FaceAnchors[] anchors,
+        List<(double Lo, double Hi)> free,
+        List<double> occupied)
+    {
+        var placed = new List<double>(occupied);
+        var positions = new double[stayers.Count];
+        for (var k = 0; k < stayers.Count; k++)
+        {
+            var slot = stayers[k];
+            var current = anchors[slot.ConnectionIndex];
+            var preferred = slot.IsSource ? current.SourceAlong : current.TargetAlong;
+            var candidates = new List<double>();
+            foreach (var (lo, hi) in free)
+            {
+                candidates.Add(Math.Clamp(preferred, lo, hi));
+                candidates.Add(lo);
+                candidates.Add(hi);
+            }
+
+            foreach (var other in placed)
+            {
+                candidates.Add(other - MinFixedAnchorSeparation);
+                candidates.Add(other + MinFixedAnchorSeparation);
+            }
+
+            double? best = null;
+            foreach (var candidate in candidates)
+            {
+                if (!WithinExtents(candidate, free)
+                    || MinDistance(candidate, placed) < MinFixedAnchorSeparation - 1e-9)
+                {
+                    continue;
+                }
+
+                if (best is null || Math.Abs(candidate - preferred) < Math.Abs(best.Value - preferred) - 1e-9)
+                {
+                    best = candidate;
+                }
+            }
+
+            if (best is null)
+            {
+                return null;
+            }
+
+            positions[k] = best.Value;
+            placed.Add(best.Value);
+        }
+
+        return positions;
+    }
+
+    /// <summary>
+    /// Returns up to <paramref name="max"/> positions packed <see cref="MinFixedAnchorSeparation"/> apart,
+    /// from the start of each of the (ascending) free intervals: the most anchors the intervals can hold.
+    /// </summary>
+    private static List<double> PackPositions(IReadOnlyList<(double Lo, double Hi)> free, int max)
+    {
+        var positions = new List<double>();
+        var last = double.NegativeInfinity;
+        foreach (var (lo, hi) in free.OrderBy(interval => interval.Lo))
+        {
+            var position = Math.Max(lo, last + MinFixedAnchorSeparation);
+            while (position <= hi + 1e-9 && positions.Count < max)
+            {
+                positions.Add(Math.Min(position, hi));
+                last = position;
+                position += MinFixedAnchorSeparation;
+            }
+        }
+
+        return positions;
+    }
+
+    /// <summary>Returns whether <paramref name="value"/> lies inside any of the closed <paramref name="extents"/>.</summary>
+    private static bool WithinExtents(double value, IReadOnlyList<(double Lo, double Hi)> extents)
+    {
+        foreach (var (lo, hi) in extents)
+        {
+            if (value >= lo - 1e-9 && value <= hi + 1e-9)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Returns the smallest gap between consecutive values of an ascending array (infinity for fewer than two).</summary>
+    private static double MinSpacing(double[] values)
+    {
+        var min = double.PositiveInfinity;
+        for (var i = 1; i < values.Length; i++)
+        {
+            min = Math.Min(min, values[i] - values[i - 1]);
+        }
+
+        return min;
     }
 
     /// <summary>
@@ -1359,13 +1738,10 @@ public static class ConnectorRouter
     internal readonly record struct FixedAnchor(LayoutBox Box, PortSide Side, double Along);
 
     /// <summary>
-    /// Minimum separation, in logical pixels, kept along a face between a batch anchor and an anchor
-    /// that is already occupied on that face.
+    /// Minimum separation, in logical pixels, kept along a face between any two connector ends on it
+    /// (batch anchors, and batch anchors versus anchors that are already occupied on the face).
     /// </summary>
     private const double MinFixedAnchorSeparation = 16.0;
-
-    /// <summary>Number of evenly spaced candidate positions tried along a face when separating anchors.</summary>
-    private const int FixedAnchorCandidateCount = 24;
 
     /// <summary>
     /// Resolves whether <paramref name="point"/> lies on the bounding-box boundary of
@@ -1410,58 +1786,6 @@ public static class ConnectorRouter
         return true;
     }
 
-    /// <summary>
-    /// Moves each batch anchor claiming a face that already carries occupied anchors to the nearest
-    /// position at least <see cref="MinFixedAnchorSeparation"/> from every occupied anchor (including the
-    /// ones already moved here), leaving anchors that are already clear untouched. When no position
-    /// satisfies the separation, the most separated candidate is used.
-    /// </summary>
-    /// <param name="slots">The batch connectors claiming the face.</param>
-    /// <param name="anchors">The per-connection anchors, updated in place.</param>
-    /// <param name="usableExtents">The usable (connectable) extents of the face, in local coordinates.</param>
-    /// <param name="occupied">The local along-coordinates already occupied on the face; extended in place.</param>
-    private static void SeparateFromFixedAnchors(
-        List<FaceSlot> slots,
-        FaceAnchors[] anchors,
-        IReadOnlyList<(double Lo, double Hi)> usableExtents,
-        List<double> occupied)
-    {
-        var usableLength = TotalExtentLength(usableExtents);
-        foreach (var slot in slots.OrderBy(s => s.Counterpart).ThenBy(s => s.ConnectionIndex))
-        {
-            var current = anchors[slot.ConnectionIndex];
-            var preferred = slot.IsSource ? current.SourceAlong : current.TargetAlong;
-            var chosen = preferred;
-
-            if (MinDistance(preferred, occupied) < MinFixedAnchorSeparation)
-            {
-                var bestClear = false;
-                var bestScore = double.NegativeInfinity;
-                for (var j = 0; j <= FixedAnchorCandidateCount; j++)
-                {
-                    var candidate = CoordinateAtDistance(usableExtents, usableLength * j / FixedAnchorCandidateCount);
-                    var separation = MinDistance(candidate, occupied);
-                    var clear = separation >= MinFixedAnchorSeparation;
-
-                    // A clear candidate always beats an unclear one; among clear candidates the closest to
-                    // the preferred anchor wins, among unclear ones the most separated wins.
-                    var score = clear ? -Math.Abs(candidate - preferred) : separation;
-                    if ((clear && !bestClear) || (clear == bestClear && score > bestScore))
-                    {
-                        bestClear = clear;
-                        bestScore = score;
-                        chosen = candidate;
-                    }
-                }
-            }
-
-            occupied.Add(chosen);
-            anchors[slot.ConnectionIndex] = slot.IsSource
-                ? current with { SourceAlong = chosen }
-                : current with { TargetAlong = chosen };
-        }
-    }
-
     /// <summary>Returns the smallest absolute distance from <paramref name="value"/> to any of <paramref name="others"/>.</summary>
     private static double MinDistance(double value, List<double> others)
     {
@@ -1481,7 +1805,8 @@ public static class ConnectorRouter
         PortSide side,
         int connectionIndex,
         bool isSource,
-        double counterpartCentre)
+        double counterpartCentre,
+        bool reverse = false)
     {
         var key = (box, side);
         if (!groups.TryGetValue(key, out var slots))
@@ -1490,7 +1815,7 @@ public static class ConnectorRouter
             groups[key] = slots;
         }
 
-        slots.Add(new FaceSlot(connectionIndex, isSource, counterpartCentre));
+        slots.Add(new FaceSlot(connectionIndex, isSource, counterpartCentre, reverse));
     }
 
     /// <summary>

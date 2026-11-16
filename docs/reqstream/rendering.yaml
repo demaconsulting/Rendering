@@ -79,6 +79,7 @@ sections:
           - Rendering-Model-Options-Contains
           - Rendering-Model-Options-TryGet
           - Rendering-Model-Options-Cascade
+          - Rendering-Model-Options-CopyOverrides
           - Rendering-Model-Options-MergeParallelEdges
           - Rendering-Model-Options-AssumedFontSize
         tests:

@@ -13,6 +13,30 @@ namespace DemaConsulting.Rendering.Layout.Tests.Engine;
 public sealed class OrthogonalEdgeRouterTests
 {
     /// <summary>
+    ///     Two ends on the same side that are level along the face (two boxes with aligned left edges joined
+    ///     left to left) step off their faces and wrap around, instead of collapsing to a straight segment lying
+    ///     on the faces themselves (issue #53: a connector overflowed to the same side of two aligned boxes).
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_SameSideAlignedEnds_StepOffInsteadOfRunningAlongFaces()
+    {
+        // Arrange: two boxes with their left edges at x = 12, anchors on those left faces.
+        var upper = new Rect(12, 12, 130, 50);
+        var lower = new Rect(12, 86, 130, 242);
+        var source = new Point2D(12, 37);
+        var target = new Point2D(12, 207);
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(source, target, [upper, lower], 12, PortSide.Left, PortSide.Left);
+
+        // Assert: the route leaves to the left of both faces and comes back, rather than running along x = 12.
+        Assert.False(result.Crossed);
+        Assert.True(result.Waypoints.Count >= 4, "Expected a C-shaped route with stubs off both faces.");
+        Assert.True(result.Waypoints[1].X < 12.0, "The first leg must leave the left face, not run along it.");
+        Assert.True(result.Waypoints[^2].X < 12.0, "The last leg must enter the left face from outside.");
+    }
+
+    /// <summary>
     ///     A route with no obstacles still produces a valid orthogonal path from source to target.
     /// </summary>
     [Fact]

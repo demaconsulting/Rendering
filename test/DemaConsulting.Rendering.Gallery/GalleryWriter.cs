@@ -44,6 +44,7 @@ internal static class GalleryWriter
     public static void Svg(string fileName, LayoutGraph graph, Theme theme)
     {
         var tree = LayoutEngine.Layout(graph);
+        AssertMarkedEndsOnBoundaryOrPort(tree, fileName);
         var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
@@ -93,6 +94,7 @@ internal static class GalleryWriter
     public static void Png(string fileName, LayoutGraph graph, Theme theme)
     {
         var tree = LayoutEngine.Layout(graph);
+        AssertMarkedEndsOnBoundaryOrPort(tree, fileName);
         var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
@@ -150,6 +152,88 @@ internal static class GalleryWriter
         }
 
         AssertValidJpeg(path);
+    }
+
+    /// <summary>
+    ///     Asserts the layout invariant behind demaconsulting/Rendering#49: every connector end that carries an
+    ///     end marker lies on a box boundary (the box face the tip must sit on) or on a port. A marker end
+    ///     floating off a face, or inside a box, would make the painted tip overlap or miss its target.
+    /// </summary>
+    /// <param name="tree">The laid-out tree to inspect.</param>
+    /// <param name="fileName">The gallery file the tree is rendered to (for failure messages).</param>
+    private static void AssertMarkedEndsOnBoundaryOrPort(LayoutTree tree, string fileName)
+    {
+        const double tolerance = 0.01;
+        var boxes = new List<LayoutBox>();
+        var lines = new List<LayoutLine>();
+        var ports = new List<LayoutPort>();
+
+        void Collect(IEnumerable<LayoutNode> nodes)
+        {
+            foreach (var node in nodes)
+            {
+                switch (node)
+                {
+                    case LayoutBox box:
+                        boxes.Add(box);
+                        Collect(box.Children);
+                        break;
+                    case LayoutLine line:
+                        lines.Add(line);
+                        break;
+                    case LayoutPort port:
+                        ports.Add(port);
+                        break;
+                }
+            }
+        }
+
+        Collect(tree.Nodes);
+
+        // A connector that leaves the canvas is clipped by every renderer.
+        foreach (var line in lines)
+        {
+            foreach (var point in line.Waypoints)
+            {
+                Assert.True(
+                    point.X >= -tolerance && point.X <= tree.Width + tolerance && point.Y >= -tolerance && point.Y <= tree.Height + tolerance,
+                    $"{fileName}: connector waypoint {point} lies outside the {tree.Width}x{tree.Height} canvas.");
+            }
+        }
+
+        bool OnBoundary(Point2D point) =>
+            ports.Any(port => Math.Abs(port.CentreX - point.X) <= tolerance && Math.Abs(port.CentreY - point.Y) <= tolerance)
+            || boxes.Any(box => OnBoxSurface(box, point, tolerance));
+
+        foreach (var line in lines.Where(line => line.Waypoints.Count >= 2))
+        {
+            if (line.SourceEnd != EndMarkerStyle.None)
+            {
+                Assert.True(OnBoundary(line.Waypoints[0]), $"{fileName}: the {line.SourceEnd} source end {line.Waypoints[0]} is not on a box boundary or port.");
+            }
+
+            if (line.TargetEnd != EndMarkerStyle.None)
+            {
+                Assert.True(OnBoundary(line.Waypoints[^1]), $"{fileName}: the {line.TargetEnd} target end {line.Waypoints[^1]} is not on a box boundary or port.");
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Returns whether <paramref name="point"/> lies on the outline of <paramref name="box"/>. A folder
+    ///     also has its body top (below the tab) as an outline edge, which is where connectors anchor on a
+    ///     folder's top face.
+    /// </summary>
+    private static bool OnBoxSurface(LayoutBox box, Point2D point, double tolerance)
+    {
+        var withinX = point.X >= box.X - tolerance && point.X <= box.X + box.Width + tolerance;
+        var withinY = point.Y >= box.Y - tolerance && point.Y <= box.Y + box.Height + tolerance;
+        var onVerticalEdge = (Math.Abs(point.X - box.X) <= tolerance || Math.Abs(point.X - (box.X + box.Width)) <= tolerance) && withinY;
+        var onHorizontalEdge = (Math.Abs(point.Y - box.Y) <= tolerance || Math.Abs(point.Y - (box.Y + box.Height)) <= tolerance) && withinX;
+        var onFolderBodyTop = box.Shape == BoxShape.Folder
+            && Math.Abs(point.Y - (box.Y + BoxMetrics.ResolveFolderTabHeight(box, Themes.Light))) <= tolerance
+            && withinX;
+        return onVerticalEdge || onHorizontalEdge || onFolderBodyTop;
     }
 
     /// <summary>Asserts that the file exists, is non-empty, and contains a well-formed SVG document.</summary>

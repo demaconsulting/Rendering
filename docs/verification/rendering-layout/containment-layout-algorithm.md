@@ -65,8 +65,12 @@ behavior constitutes a failure.
 - **Vertical stack unaffected by gap widening**
   (`Rendering-Layout-ContainmentAlgorithm-VerticalStackUnaffected`):
   `Apply_VerticalStackWithParallelEdges_LeavesBoxPositionsUnchanged` confirms a vertically stacked
-  source-over-target pair keeps byte-identical box positions whether it carries nine edges or none,
-  proving the widening is horizontal-only.
+  source-over-target pair keeps the same box positions relative to one another whether it carries nine
+  edges or none, proving the widening is horizontal-only.
+- **Connectors kept inside the canvas** (`Rendering-Layout-ContainmentAlgorithm-KeepsConnectorsInsideCanvas`):
+  `Apply_VerticalStackWithNineParallelEdges_KeepsEveryConnectorInsideTheCanvas` lays out the same stack with
+  nine parallel edges (the ninth wraps around the outside of the stack) and asserts every waypoint of every
+  connector lies inside the tree's canvas.
 - **Corridor width formula** (`Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula`): the
   `EdgeCountGapWidener` tests (`Widen_ManyConnectors_ReturnsCorridorWidth`, `Widen_TwoConnectors`,
   `Widen_SingleConnector`, `Widen_ZeroConnectors`, `Widen_BaseGapExceedsCorridor`) confirm the shared
@@ -98,6 +102,8 @@ behavior constitutes a failure.
   Apply_SameRowPeersWithParallelEdges_WidensGapPastNodeSpacing
 - **`Rendering-Layout-ContainmentAlgorithm-VerticalStackUnaffected`**:
   Apply_VerticalStackWithParallelEdges_LeavesBoxPositionsUnchanged
+- **`Rendering-Layout-ContainmentAlgorithm-KeepsConnectorsInsideCanvas`**:
+  Apply_VerticalStackWithNineParallelEdges_KeepsEveryConnectorInsideTheCanvas
 - **`Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula`**:
   Widen_ManyConnectors_ReturnsCorridorWidth, Widen_TwoConnectors, Widen_SingleConnector,
   Widen_ZeroConnectors, Widen_BaseGapExceedsCorridor

@@ -390,19 +390,54 @@ public sealed class ContainmentLayoutAlgorithmTests
         var withEdges = new ContainmentLayoutAlgorithm().ApplyCore(BuildGraph(9), new LayoutOptions());
         var withoutEdges = new ContainmentLayoutAlgorithm().ApplyCore(BuildGraph(0), new LayoutOptions());
 
-        // Assert: the boxes stack (distinct rows) and every box position is byte-identical between the
-        // two runs — the horizontal widening left the vertical gap and the stack untouched.
+        // Assert: the boxes stack (distinct rows) and every box keeps its position RELATIVE to the first box
+        // between the two runs — the horizontal widening left the vertical gap and the stack untouched. (The
+        // whole picture may be shifted uniformly when the ninth connector has to wrap around the outside of
+        // the stack and the canvas is extended to keep it visible; see the wrap-around test below.)
         var edgedBoxes = withEdges.Nodes.OfType<LayoutBox>().ToList();
         var plainBoxes = withoutEdges.Nodes.OfType<LayoutBox>().ToList();
         Assert.Equal(2, edgedBoxes.Count);
         Assert.True(edgedBoxes[1].Y > edgedBoxes[0].Y, "Expected the Target to wrap below the Source.");
         for (var i = 0; i < plainBoxes.Count; i++)
         {
-            Assert.Equal(plainBoxes[i].X, edgedBoxes[i].X);
-            Assert.Equal(plainBoxes[i].Y, edgedBoxes[i].Y);
+            Assert.Equal(plainBoxes[i].X - plainBoxes[0].X, edgedBoxes[i].X - edgedBoxes[0].X, 6);
+            Assert.Equal(plainBoxes[i].Y - plainBoxes[0].Y, edgedBoxes[i].Y - edgedBoxes[0].Y, 6);
             Assert.Equal(plainBoxes[i].Width, edgedBoxes[i].Width);
             Assert.Equal(plainBoxes[i].Height, edgedBoxes[i].Height);
         }
+    }
+
+    /// <summary>
+    ///     Issue #53: nine parallel edges between a stacked Source and Target overflow the 130 px faces (eight
+    ///     anchors fit 16 px apart), so the ninth connector wraps around the outside of the stack. The canvas
+    ///     is extended (and the content shifted) so that connector stays visible: every waypoint of every
+    ///     connector lies inside the tree's canvas.
+    /// </summary>
+    [Fact]
+    public void Apply_VerticalStackWithNineParallelEdges_KeepsEveryConnectorInsideTheCanvas()
+    {
+        // Arrange
+        var graph = new LayoutGraph();
+        var source = graph.AddNode("source", 130, 50);
+        var target = graph.AddNode("target", 130, 242);
+        source.Label = "Source";
+        target.Label = "Target";
+        for (var i = 0; i < 9; i++)
+        {
+            graph.AddEdge($"e{i}", source, target);
+        }
+
+        // Act
+        var tree = new ContainmentLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(9, lines.Count);
+        Assert.All(lines, line => Assert.All(line.Waypoints, point =>
+        {
+            Assert.InRange(point.X, 0.0, tree.Width);
+            Assert.InRange(point.Y, 0.0, tree.Height);
+        }));
     }
 
     /// <summary>

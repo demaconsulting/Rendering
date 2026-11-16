@@ -221,11 +221,68 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
         var routeOptions = new ConnectorRouteOptions(ResolveEdgeRouting(graph, options));
         var routedLines = ConnectorRouter.Route(packedBoxes, connections, routeOptions);
 
-        var nodes = new List<LayoutNode>(packedBoxes.Count + routedLines.Count);
-        nodes.AddRange(packedBoxes);
-        nodes.AddRange(routedLines);
+        return FitCanvasToLines(packedBoxes, routedLines, result.Width, result.Height);
+    }
 
-        return new LayoutTree(result.Width, result.Height, nodes);
+    /// <summary>
+    /// Smallest distance kept between a routed connector and the canvas edge when a connector has to wrap
+    /// around the outside of the packed boxes: room for its stroke and rounded corner.
+    /// </summary>
+    private const double CanvasLinePadding = 4.0;
+
+    /// <summary>
+    /// Builds the layout tree from the packed boxes and routed lines, growing the canvas (and shifting the
+    /// content) when a connector runs outside it. A connector that wraps around the outside of the packed
+    /// boxes (for example when more connectors converge on a short face than it can hold, so the overflow
+    /// uses an adjacent face) can leave the box-based canvas, where it would be clipped; the canvas is
+    /// extended instead so every connector stays visible. When every connector is inside, the canvas is
+    /// exactly the packer's.
+    /// </summary>
+    private static LayoutTree FitCanvasToLines(
+        IReadOnlyList<LayoutBox> packedBoxes,
+        IReadOnlyList<LayoutLine> routedLines,
+        double width,
+        double height)
+    {
+        var minX = double.PositiveInfinity;
+        var minY = double.PositiveInfinity;
+        var maxX = double.NegativeInfinity;
+        var maxY = double.NegativeInfinity;
+        foreach (var line in routedLines)
+        {
+            foreach (var point in line.Waypoints)
+            {
+                minX = Math.Min(minX, point.X);
+                minY = Math.Min(minY, point.Y);
+                maxX = Math.Max(maxX, point.X);
+                maxY = Math.Max(maxY, point.Y);
+            }
+        }
+
+        var dx = Math.Max(0.0, CanvasLinePadding - minX);
+        var dy = Math.Max(0.0, CanvasLinePadding - minY);
+        var fitWidth = Math.Max(width + dx, maxX + dx + CanvasLinePadding);
+        var fitHeight = Math.Max(height + dy, maxY + dy + CanvasLinePadding);
+
+        var nodes = new List<LayoutNode>(packedBoxes.Count + routedLines.Count);
+        if (dx == 0.0 && dy == 0.0)
+        {
+            nodes.AddRange(packedBoxes);
+            nodes.AddRange(routedLines);
+            return new LayoutTree(Math.Max(width, fitWidth), Math.Max(height, fitHeight), nodes);
+        }
+
+        foreach (var box in packedBoxes)
+        {
+            nodes.Add(box with { X = box.X + dx, Y = box.Y + dy });
+        }
+
+        foreach (var line in routedLines)
+        {
+            nodes.Add(line with { Waypoints = line.Waypoints.Select(point => new Point2D(point.X + dx, point.Y + dy)).ToList() });
+        }
+
+        return new LayoutTree(fitWidth, fitHeight, nodes);
     }
 
     /// <summary>

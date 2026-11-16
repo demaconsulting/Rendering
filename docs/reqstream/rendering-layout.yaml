@@ -128,6 +128,8 @@ sections:
           - Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther
           - Rendering-Layout-ConnectorRouter-ShapeAwareAnchors
           - Rendering-Layout-ConnectorRouter-SharedFaceDistribution
+          - Rendering-Layout-ConnectorRouter-MinimumAnchorSeparation
+          - Rendering-Layout-ConnectorRouter-FaceOverflowToAdjacentFace
           - Rendering-Layout-ConnectorRouter-AvoidsObstacles
           - Rendering-Layout-ConnectorRouter-ExcludesEndpoints
           - Rendering-Layout-ConnectorRouter-CarriesStyling
@@ -196,6 +198,7 @@ sections:
           - Rendering-Layout-ContainmentAlgorithm-HonorsScopeEdgeRouting
           - Rendering-Layout-ContainmentAlgorithm-EdgeCountGapWidening
           - Rendering-Layout-ContainmentAlgorithm-VerticalStackUnaffected
+          - Rendering-Layout-ContainmentAlgorithm-KeepsConnectorsInsideCanvas
           - Rendering-Layout-ContainmentAlgorithm-CorridorWidthFormula
           - Rendering-Layout-ContainmentAlgorithm-LayoutOnlyEdges
           - Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly
@@ -302,6 +305,7 @@ sections:
           - Rendering-Layout-LayoutTreePacker-PreservesWarnings
           - Rendering-Layout-LayoutTreePacker-Validation
           - Rendering-Layout-AutoAlgorithm-CascadesOptions
+          - Rendering-Layout-AutoAlgorithm-PreservesNodeOptions
           - Rendering-Layout-AutoAlgorithm-EmptyGraph
           - Rendering-Layout-AutoAlgorithm-Validation
           - Rendering-Layout-AutoAlgorithm-NestedEndpointConnectivity
