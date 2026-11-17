@@ -39,12 +39,11 @@ argument-null validation behavior constitutes a failure.
 - **Identity** (`Rendering-Layout-AutoAlgorithm-Identity`): `Id_IsAuto` asserts the algorithm reports
   the stable `"auto"` identifier.
 - **Routes connected cluster** (`Rendering-Layout-AutoAlgorithm-RoutesConnectedCluster`):
-  `Apply_SingleConnectedComponent_MatchesLayeredAlgorithmDirectly` confirms a single connected,
-  childless component matches the layered algorithm's own output exactly;
-  `Apply_SingleNodeWithSelfLoop_RoutesToLayeredNotContainment` confirms a self-loop-only node is routed
-  to layered rather than folded into the singleton bucket; `Apply_MultipleDisconnectedClusters_PacksEachClusterWithoutOverlap`
-  confirms multiple independent connected clusters are each routed through layered and packed without
-  overlapping.
+  `Apply_SingleConnectedComponent_MatchesLayeredAlgorithmDirectly` confirms a single connected, childless component
+  matches the layered algorithm's own output exactly; `Apply_SingleNodeWithSelfLoop_RoutesToLayeredNotContainment`
+  confirms a self-loop-only node is routed to layered rather than folded into the singleton bucket;
+  `Apply_MultipleDisconnectedClusters_PacksEachClusterWithoutOverlap` confirms multiple independent connected clusters
+  are each routed through layered and packed without overlapping.
 - **Routes container** (`Rendering-Layout-AutoAlgorithm-RoutesContainer`):
   `Apply_IsolatedNodeWithChildren_MatchesHierarchicalAlgorithmDirectly` confirms a single isolated
   container node still routes to hierarchical; `Apply_NestedContainers_RoutesToHierarchical` confirms a

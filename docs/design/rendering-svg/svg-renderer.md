@@ -36,7 +36,7 @@ embeds the same font for pixel-identical rasterization.
 
 Each node type uses a default font weight and style as SVG attributes. The box name, box keyword, and
 compartment title defaults below are the values of the `BoxAppearance` / `LayoutCompartment` resolved
-styles; an explicit style replaces them (see _Text Style Attributes_).
+styles; an explicit style replaces them (see *Text Style Attributes*).
 
 | Node Type | `font-weight` | `font-style` |
 | --- | --- | --- |
@@ -105,7 +105,7 @@ the box.
 Entry point. Validates arguments, then — before rendering or sizing anything — collects every
 `LayoutLine` and every `LayoutBox` (including boxes nested in boxes or bands) and asks
 `ConnectorLabelPlacer.Place(lines, fontSize, boxes)` for collision-aware label positions, including
-each label's final nudged/fallback position and its estimated half-width/half-height. Only _after_
+each label's final nudged/fallback position and its estimated half-width/half-height. Only *after*
 every label's position is known does `Render` compute the final canvas size: it starts from the
 box+routing-geometry extent (clamped to a minimum of 1x1) and grows `width`/`height` further to
 include the full bounding-box extent of every placed connector label, so a label nudged during
@@ -167,7 +167,7 @@ The newer glyphs are:
 
 #### Mirrored start variants (marker-start orientation fix)
 
-An SVG `marker-start` marker with `orient="auto"` has its x axis pointing _into_ the line (along the
+An SVG `marker-start` marker with `orient="auto"` has its x axis pointing *into* the line (along the
 path direction), whereas a `marker-end` marker's x axis points out of the line end along the path
 direction. Earlier versions referenced the same `line-end-…` definition from `marker-start`, so the glyph
 of every source-end marker was drawn pointing inward and sitting outside the line start. This was a
@@ -209,8 +209,8 @@ Selects the fill color from `theme.DepthFillColors[box.Depth % count]` and deleg
 `RenderBoxOutline`, `RenderFolderOutline`, or `RenderNoteOutline` depending on `box.Shape`. The
 rectangle outline adds `rx` / `ry` attributes when `BoxShape.RoundedRectangle` and `LineCornerRadius`
 is greater than zero. Every outline element (including both paths of a note and the folder path)
-appends the `stroke-dasharray` fragment from `OutlineDash` (see _Dashed and Dotted Outlines_). Then
-calls `RenderBoxCornerIcon` to write the optional send/accept icon polygon (see _Box Corner Icons_),
+appends the `stroke-dasharray` fragment from `OutlineDash` (see *Dashed and Dotted Outlines*). Then
+calls `RenderBoxCornerIcon` to write the optional send/accept icon polygon (see *Box Corner Icons*),
 `RenderBoxTitle` to write the keyword and name `<text>` elements with `textLength` from
 `FitTextLength` when `box.Label` is non-null, then `RenderBoxCompartments` for any compartments, then
 recursively calls `RenderNode` for all `box.Children`.
@@ -240,7 +240,7 @@ Writes the keyword line (when `box.Keyword` is non-null) and the name `<text>` l
 horizontally centered on the box's full geometric width (`centerX = box.X + box.Width / 2.0`),
 regardless of any asymmetric `box.ContentInsetLeft`/`ContentInsetRight` the box declares. The
 keyword and name take their `font-weight`/`font-style` from the box appearance's resolved keyword and
-name styles (see _Text Style Attributes_), so a box without an appearance keeps the italic keyword and
+name styles (see *Text Style Attributes*), so a box without an appearance keeps the italic keyword and
 bold name.
 The title occupies its own row above the title area (`ResolveTitleAreaTop`), while left/right port
 labels are drawn at the box's vertical center (`RenderPort`) — a different row — so the title never
@@ -283,7 +283,7 @@ Calls `BuildLinePath` to produce the path `d` attribute, then writes a `<path>` 
 `fill="none"`. Adds `marker-start` or `marker-end` attributes for the non-None `EndMarkerStyle`
 values through `MarkerAttribute`: the `SourceEnd` style references the mirrored
 `line-start-<name>` marker via `marker-start`, and the `TargetEnd` style references the `line-end-<name>`
-marker via `marker-end` (see _Mirrored start variants_). Adds `stroke-dasharray` for
+marker via `marker-end` (see *Mirrored start variants*). Adds `stroke-dasharray` for
 `Dashed` and `Dotted` line styles. `RenderLine` intentionally does not draw `MidpointLabel`; connector
 labels are drawn in the final pass of `Render` so later wires cannot cover earlier labels.
 

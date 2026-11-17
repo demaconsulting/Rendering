@@ -55,15 +55,14 @@ failure.
   a null graph argument is rejected with an argument-null error, and `Apply_NullOptions_Throws`
   confirms a null options argument is likewise rejected with an argument-null error.
 - **Merge parallel edges** (`Rendering-Layout-LayeredAlgorithm-MergeParallelEdges`):
-  `Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_EmitsExactlyOneLine` confirms three parallel
-  edges collapse to exactly one `LayoutLine` at the default; `Apply_ParallelEdges_MergeParallelEdgesFalse_RetainsEveryEdge`
-  confirms setting the option to `false` retains all three as independently-labeled lines;
-  `Apply_MergeParallelEdges_GraphOverridesOptions` confirms a graph-scope value takes precedence over
-  an options-scope value; `Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_OmitsLabelOnCollapse`
-  confirms the merged line's label is `null` (omitted) when 3 labeled parallel edges collapse into
-  it, rather than keeping any single surviving edge's label; and
-  `Apply_SingleEdge_MergeParallelEdgesDefaultTrue_KeepsOwnLabel` confirms a genuinely
-  non-duplicated single edge still keeps its own label.
+  `Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_EmitsExactlyOneLine` confirms three parallel edges collapse to
+  exactly one `LayoutLine` at the default; `Apply_ParallelEdges_MergeParallelEdgesFalse_RetainsEveryEdge` confirms
+  setting the option to `false` retains all three as independently-labeled lines;
+  `Apply_MergeParallelEdges_GraphOverridesOptions` confirms a graph-scope value takes precedence over an options-scope
+  value; `Apply_ParallelEdges_MergeParallelEdgesDefaultTrue_OmitsLabelOnCollapse` confirms the merged line's label is
+  `null` (omitted) when 3 labeled parallel edges collapse into it, rather than keeping any single surviving edge's
+  label; and `Apply_SingleEdge_MergeParallelEdgesDefaultTrue_KeepsOwnLabel` confirms a genuinely non-duplicated single
+  edge still keeps its own label.
 - **Port emission** (`Rendering-Layout-LayeredAlgorithm-PortEmission`):
   `Apply_EdgeWithPortEndpoint_EmitsLayoutPortWithExternalLabel` confirms an edge whose endpoint is a
   named `LayoutGraphPort` emits exactly one `LayoutPort` at the routed anchor, carrying the port's

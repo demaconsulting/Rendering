@@ -239,7 +239,8 @@ and asserts `Keyword`, `HeaderAppearance`, and `HeaderCornerRadius` are `null` a
 - **`Rendering-Model-LayoutTree-ContentInset`**: LayoutBox_ContentInsets_DefaultZero,
   LayoutBox_ContentInsets_IndependentlySettable
 - **`Rendering-Model-LayoutTree-Port`**: LayoutPort_Construction_StoresAllFields
-- **`Rendering-Model-LayoutTree-PortMaxLabelWidth`**: LayoutPort_Construction_DefaultsMaxLabelWidthToPositiveInfinity, LayoutPort_Construction_StoresExplicitMaxLabelWidth
+- **`Rendering-Model-LayoutTree-PortMaxLabelWidth`**: LayoutPort_Construction_DefaultsMaxLabelWidthToPositiveInfinity,
+  LayoutPort_Construction_StoresExplicitMaxLabelWidth
 - **`Rendering-Model-LayoutTree-Line`**: LayoutLine_Construction_StoresAllFields
 - **`Rendering-Model-LayoutTree-Label`**: LayoutLabel_Construction_StoresAllFields
 - **`Rendering-Model-LayoutTree-Badge`**: LayoutBadge_Construction_StoresAllFields

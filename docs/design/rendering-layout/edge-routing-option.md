@@ -50,7 +50,7 @@ The option itself performs no I/O and raises no errors: reads always succeed wit
 caller-set value or the declared default, and writes accept any `EdgeRouting` enum value defined by
 the model. Runtime dispatch errors are surfaced downstream by `ConnectorRouter`, which throws
 `NotSupportedException` if a shipped router is not available for the effective `EdgeRouting` value
-(see _ConnectorRouter Unit Design_).
+(see *ConnectorRouter Unit Design*).
 
 ### EdgeRouting Option Dependencies
 
