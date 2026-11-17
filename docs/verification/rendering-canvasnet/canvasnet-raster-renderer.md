@@ -288,6 +288,16 @@ clear of the box.
 `Rendering-CanvasNet-CanvasNetRasterRenderer-LifelineRoundedHeader`,
 `Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes`.
 
+#### Diamond box outline
+
+`PngDiamond_HasInkAtTheFourVertices` asserts stroke ink at the four vertices,
+`PngDiamond_BoundingBoxCornersAreEmpty` asserts the bounding-box corners stay background,
+`PngDiamond_InteriorIsFilledWithTheDepthFill` asserts the depth fill, and
+`PngDiamond_Dashed_HasLessInkAlongTheEdgeThanSolid` asserts the dash pattern.
+`SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon` proves the outline matches the SVG polygon.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-DiamondShape`.
+
 ### Requirements Coverage
 
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree`**:
@@ -373,3 +383,7 @@ clear of the box.
   PngLifeline_DashedHeaderAppearance_HasGapsAlongTopEdge
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes`**:
   PngLineLabel_MidpointOnLeafBox_DoesNotEraseBoxBorder
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-DiamondShape`**:
+  PngDiamond_HasInkAtTheFourVertices, PngDiamond_BoundingBoxCornersAreEmpty,
+  PngDiamond_InteriorIsFilledWithTheDepthFill, PngDiamond_Dashed_HasLessInkAlongTheEdgeThanSolid,
+  SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon

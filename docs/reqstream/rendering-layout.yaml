@@ -146,6 +146,7 @@ sections:
           - Rendering-Layout-ConnectorRouter-FolderTabResolution
           - Rendering-Layout-ConnectorRouter-PortCornerMargin
           - Rendering-Layout-ConnectorRouter-NewEndMarkerClearance
+          - Rendering-Layout-ConnectorRouter-DiamondOutlineAnchors
         tests:
           - Route_TargetToTheRight_AnchorsFaceEachOther
           - Route_ObstacleBetweenEndpoints_RoutesAroundInterior

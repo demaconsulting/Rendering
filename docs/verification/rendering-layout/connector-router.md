@@ -172,6 +172,22 @@ level rather than introducing a new `ConnectorRouter`-level responsibility:
   DictionaryMark defect (a narrow vertical gap between a small box and a much wider one) and confirm
   that no two distinct connectors' interior segments ride the same grid line for an extended span.
 
+#### Diamond outline anchors
+
+The layered-algorithm tests `LayeredLayout_DiamondSourceTwoTargets_Down_FirstRunStartsOnOutlineAndIsClean`
+(the Rendering#58 reproduction), `LayeredLayout_DiamondSingleEdge_AnchorsOnTheVertex`,
+`LayeredLayout_DiamondSource_AnyDirection_StartsOnOutlinePerpendicular` (all four directions and several
+diamond sizes), `LayeredLayout_DiamondTarget_TwoSources_EndsOnOutlineWithCleanFinalRun`, and
+`LayeredLayout_DiamondDecisionThreeBranches_AnchorsDistinctAndOnOutline` assert that connector ends lie on the
+diamond outline (normalized distance within 0.6 px), leave perpendicular to the face, and keep the connector
+stub and marker run measured from the outline. `ConnectorRouter_Route_DiamondTarget_AnchorsOnOutline` and
+`HierarchicalLayout_DiamondInsideContainer_CrossContainerEdgeStartsOnOutline` cover the router and the
+cross-container path. `DiamondGeometry_ProjectToSurface_IsZeroAtVertexAndLinearToTheCorner` asserts the sloped
+projection and the full connectable extent for square and non-square boxes, and
+`ContainmentAndAutoLayout_DiamondNode_PassesShapeThrough` asserts the shape reaches the placed box.
+
+**Covers**: `Rendering-Layout-ConnectorRouter-DiamondOutlineAnchors`.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`**:
@@ -247,3 +263,14 @@ set is avoided there while another connection stays straight),
 Route_BatchOverload_MatchesInternalBatchWithSharedObstacles (the public batch overload yields the same routes as the
 internal entry point with a shared list), RouteBatch_FixedAnchorOnFace_MovesBatchAnchorClearOfIt (an anchor on an
 occupied face position moves to a free spot), and TryResolveFaceAnchor_PointOnFace_ResolvesFaceAndAlong.
+
+- **`Rendering-Layout-ConnectorRouter-DiamondOutlineAnchors`**:
+  LayeredLayout_DiamondSourceTwoTargets_Down_FirstRunStartsOnOutlineAndIsClean,
+  LayeredLayout_DiamondSingleEdge_AnchorsOnTheVertex,
+  LayeredLayout_DiamondSource_AnyDirection_StartsOnOutlinePerpendicular,
+  LayeredLayout_DiamondTarget_TwoSources_EndsOnOutlineWithCleanFinalRun,
+  LayeredLayout_DiamondDecisionThreeBranches_AnchorsDistinctAndOnOutline,
+  ConnectorRouter_Route_DiamondTarget_AnchorsOnOutline,
+  HierarchicalLayout_DiamondInsideContainer_CrossContainerEdgeStartsOnOutline,
+  DiamondGeometry_ProjectToSurface_IsZeroAtVertexAndLinearToTheCorner,
+  ContainmentAndAutoLayout_DiamondNode_PassesShapeThrough

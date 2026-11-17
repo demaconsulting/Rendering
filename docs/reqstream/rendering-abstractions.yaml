@@ -109,6 +109,7 @@ sections:
           - Rendering-Abstractions-NotationMetrics-ThickBarBadge
           - Rendering-Abstractions-NotationMetrics-CrossedCircleBadge
           - Rendering-Abstractions-NotationMetrics-CornerIcon
+          - Rendering-Abstractions-NotationMetrics-DiamondBoxVertices
         tests:
           - TriangleFamily_HasCanonicalValues
 

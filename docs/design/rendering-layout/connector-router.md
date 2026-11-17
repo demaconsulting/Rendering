@@ -232,6 +232,25 @@ folder's top border follows the tab and the body). The public overloads' behavio
 need no search is unchanged (no
 fixed anchors, shared obstacle list, interior segments only).
 
+#### Diamond outline anchors
+
+`DiamondGeometry` is the shape geometry of `BoxShape.Diamond`. Every face is connectable in full, because a
+diamond has an outline point at every along-face coordinate, but the outline recedes linearly from the
+bounding-box face towards the vertex at the face midpoint. `ProjectToSurface(side, along)` returns that
+distance — `depth / faceLength × |along − faceLength / 2|`, so zero at the vertex and half the box depth at a
+corner — and the existing anchor resolution (`ResolveAnchorPoint`, and the layered pipeline's
+`PortDistributor`/`LongEdgeJoiner` through `ShapeAnchorSupport`) places the connector end on that outline and
+leaves it along the face axis. A single connector on a face therefore lands exactly on the vertex, several
+connectors spread over the face at distinct points of the outline, and the first run is measured from the
+outline instead of from a bounding box the shape does not touch (Rendering#58). Nothing else in the router
+changes: the sloped projection is a property of the geometry, not a new routing mode.
+
+#### Shared-face final runs (Rendering#57)
+
+The router already slides ports on a shared face to a straight run when the facing face spans overlap
+(`IsDefective`/`SearchBetterRoute`), so Rendering#57 needed no change here; the same scenario through the
+layered pipeline is handled by its `PortAligner` stage, and a regression test keeps the router path honest.
+
 ### ConnectorRouter Error Handling
 
 Null `boxes`, `connections`, `connection`, `options`, or a connection's `From`/`To` throw

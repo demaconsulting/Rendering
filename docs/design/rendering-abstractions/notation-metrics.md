@@ -117,6 +117,11 @@ on a marker's length reads it through `RenderedAlongLineLength`, so layout, rout
 placement and both renderers agree. The print theme has a stroke width of 1.0, so its markers are the
 notation size in both formats.
 
+`DiamondBoxVertices(x, y, width, height)` returns the outline of a `BoxShape.Diamond` inscribed in a box: the
+midpoints of the top, right, bottom, and left box edges, in that order. The SVG renderer emits them as a
+polygon and the CanvasNet renderer builds its path from them, so the two outlines are identical by
+construction, and the layout's `DiamondGeometry` describes the same rhombus.
+
 ### Notation Metrics Key Methods
 
 `double AlongLineLength(EndMarkerStyle style)` — returns the along-line length consumed by an

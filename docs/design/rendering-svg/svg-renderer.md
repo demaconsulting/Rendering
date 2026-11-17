@@ -391,6 +391,13 @@ segment midpoints, slides along segments, and perpendicular nudges in turn, and 
 obstacle-free placement when nothing clears. The SVG and PNG renderers use the same overload, so labels
 land at the same positions in both formats.
 
+#### Diamond Box Outline
+
+For `BoxShape.Diamond`, `RenderBoxOutline` emits one `<polygon>` through `NotationMetrics.DiamondBoxVertices`
+with the same depth fill, theme stroke, stroke width, and `OutlineDash` handling as every other box outline.
+The title and compartments use the plain-rectangle metrics (a diamond has no tab or fold), so a label on a
+centered-title diamond is centered on the box. Rectangle boxes keep their `<rect>` markup unchanged.
+
 ### Error Handling
 
 `Render` throws `ArgumentNullException` when `layout`, `options`, or `output` is null. No other

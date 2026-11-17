@@ -352,6 +352,12 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
                 RenderNoteOutline(canvas, box, scale, strokeStyle, fillColor, strokeColor);
                 break;
 
+            case BoxShape.Diamond:
+                var diamondPath = BuildDiamondPath(x, y, width, height);
+                canvas.FillPath(diamondPath, fillColor);
+                canvas.StrokePath(diamondPath, strokeStyle, strokeColor);
+                break;
+
             case BoxShape.RoundedRectangle when ResolveRoundedCornerRadius(box, theme) > 0:
                 var cornerRadius = (float)(ResolveRoundedCornerRadius(box, theme) * scale);
                 canvas.FillRoundRect(x, y, width, height, cornerRadius, fillColor);
@@ -434,6 +440,30 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         if (r > 0f)
         {
             builder.TangentArcTo(new Vector2(x, y), new Vector2(x + r, y), r);
+        }
+
+        builder.Close();
+        return builder.Build();
+    }
+
+    /// <summary>
+    /// Builds the closed diamond outline path through <see cref="NotationMetrics.DiamondBoxVertices"/>,
+    /// starting at the top vertex so a dash pattern begins there. Sharing the vertex helper with the SVG
+    /// renderer keeps the two outlines identical.
+    /// </summary>
+    /// <param name="x">Scaled left edge of the bounding box.</param>
+    /// <param name="y">Scaled top edge of the bounding box.</param>
+    /// <param name="width">Scaled width of the bounding box.</param>
+    /// <param name="height">Scaled height of the bounding box.</param>
+    /// <returns>The closed diamond path.</returns>
+    private static GeometryPath BuildDiamondPath(float x, float y, float width, float height)
+    {
+        var vertices = NotationMetrics.DiamondBoxVertices(x, y, width, height);
+        var builder = new PathBuilder();
+        builder.MoveTo(new Vector2((float)vertices[0].X, (float)vertices[0].Y));
+        for (var i = 1; i < vertices.Count; i++)
+        {
+            builder.LineTo(new Vector2((float)vertices[i].X, (float)vertices[i].Y));
         }
 
         builder.Close();

@@ -364,6 +364,19 @@ leaf box and asserts the label's estimated extent lies entirely left or right of
 `Rendering-Svg-SvgRenderer-BandDashed`, `Rendering-Svg-SvgRenderer-LifelineRoundedHeader`,
 `Rendering-Svg-SvgRenderer-LabelsAvoidBoxes`.
 
+#### Diamond box outline
+
+`SvgRenderer_Diamond_PolygonPointsAreTheFourEdgeMidpoints` asserts the diamond is a polygon whose points are the four
+box-edge midpoints, `SvgRenderer_Diamond_UsesDepthFillAndThemeStroke` asserts the depth fill and theme stroke,
+`SvgRenderer_Diamond_DashedAppearance_AddsDashArray` asserts the dash array,
+`SvgRenderer_Diamond_Scaled_ScalesThePolygonPoints` asserts the render scale, and
+`SvgRenderer_Diamond_Label_IsCenteredOnTheDiamond` asserts a centered title.
+`SvgRenderer_Rectangle_StillRendersAsRectNotPolygon` asserts rectangles keep their `<rect>` markup, and
+`SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon` asserts the PNG outline passes through every vertex and edge
+midpoint of the SVG polygon.
+
+**Covers**: `Rendering-Svg-SvgRenderer-DiamondShape`.
+
 ### Requirements Coverage
 
 - **`Rendering-Svg-SvgRenderer-ImplementsIRenderer`**:
@@ -497,3 +510,8 @@ leaf box and asserts the label's estimated extent lies entirely left or right of
   `LifelineKeyword_DrawsGuillemetLineAboveLabel`,
   `LifelineHeaderAppearance_DashedOutlineAndRegularLabel`, `LifelineDefault_MatchesLegacyMarkup`
 - **`Rendering-Svg-SvgRenderer-LabelsAvoidBoxes`**: `LineLabel_MidpointOnLeafBox_IsPlacedClear`
+- **`Rendering-Svg-SvgRenderer-DiamondShape`**:
+  `SvgRenderer_Diamond_PolygonPointsAreTheFourEdgeMidpoints`, `SvgRenderer_Diamond_UsesDepthFillAndThemeStroke`,
+  `SvgRenderer_Diamond_DashedAppearance_AddsDashArray`, `SvgRenderer_Diamond_Scaled_ScalesThePolygonPoints`,
+  `SvgRenderer_Rectangle_StillRendersAsRectNotPolygon`, `SvgRenderer_Diamond_Label_IsCenteredOnTheDiamond`,
+  `SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon`

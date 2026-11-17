@@ -228,6 +228,15 @@ no vertices.
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-CornerIcon`.
 
+#### Diamond box vertices are the edge midpoints
+
+`NotationMetrics_DiamondBoxVertices_AreTheBoxEdgeMidpointsTopRightBottomLeft` asserts the four vertices of a box
+in order, `NotationMetrics_DiamondBoxVertices_ZeroSizeBox_CollapsesToThePoint` asserts a zero-size box collapses
+without throwing, and `BoxMetrics_TitleCursorTop_Diamond_MatchesARectangle` asserts a diamond's title cursor
+equals a rectangle's.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-DiamondBoxVertices`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-NotationMetrics-TriangleDimensions`**: TriangleFamily_HasCanonicalValues,
@@ -268,3 +277,7 @@ no vertices.
 - **`Rendering-Abstractions-NotationMetrics-CornerIcon`**:
   CornerIconVertices_Send_IsConvexPentagonInsideIconBox, CornerIconVertices_Accept_HasNotchInLeftEdge,
   CornerIconVertices_None_IsEmpty
+- **`Rendering-Abstractions-NotationMetrics-DiamondBoxVertices`**:
+  NotationMetrics_DiamondBoxVertices_AreTheBoxEdgeMidpointsTopRightBottomLeft,
+  NotationMetrics_DiamondBoxVertices_ZeroSizeBox_CollapsesToThePoint,
+  BoxMetrics_TitleCursorTop_Diamond_MatchesARectangle

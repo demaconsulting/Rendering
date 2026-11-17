@@ -14,7 +14,7 @@ namespace DemaConsulting.Rendering.Layout.Engine.Layered;
 ///     <para>
 ///     <see cref="PortDistributor"/> spreads the ports of a face evenly (the k-th of n at
 ///     <c>(k + 0.5) / n</c>) without looking at where the opposite end of each edge sits, and
-///     <see cref="BrandesKopfPlacer"/> aligns node centres rather than ports. Two sources feeding one
+///     <see cref="BrandesKopfPlacer"/> aligns node centers rather than ports. Two sources feeding one
 ///     wide target therefore routinely end up a few pixels apart, and the corridor router turns that
 ///     residual into a short jog right before the marker (Rendering#57). This stage runs between
 ///     <see cref="PortDistributor"/> and <see cref="LayeredCorridorRouter"/> and treats the even
@@ -24,7 +24,7 @@ namespace DemaConsulting.Rendering.Layout.Engine.Layered;
 ///     For every sub-edge it computes, for each end, the window the port may occupy: the face's usable
 ///     extent (the shape's connectable extents, kept <see cref="ConnectorClearance"/> from the corners,
 ///     and below the title reserve on left/right faces) intersected with the span between its
-///     neighbours on the same face kept <see cref="EdgeSpacing"/> away. A long-edge or
+///     neighbors on the same face kept <see cref="EdgeSpacing"/> away. A long-edge or
 ///     hierarchy-crossing dummy end is pinned to its own coordinate. When the two windows intersect both
 ///     ports move to the point of the intersection nearest their mean, so the edge is straight; port
 ///     order, minimum separation, and the face extents are preserved by construction. When they cannot
@@ -62,7 +62,7 @@ internal sealed class PortAligner : ILayoutStage
         var tgtPorts = graph.AugPortYTgt;
 
         // Group the edges of every node face, ordered by their current port coordinate (which is the
-        // order PortDistributor assigned), so a port's neighbours on the same face are known.
+        // order PortDistributor assigned), so a port's neighbors on the same face are known.
         var srcFaces = BuildFaces(count, augEdges, srcPorts, isSource: true);
         var tgtFaces = BuildFaces(count, augEdges, tgtPorts, isSource: false);
 
@@ -145,7 +145,7 @@ internal sealed class PortAligner : ILayoutStage
     /// <summary>
     /// Returns the intervals, in absolute abstract cross-axis coordinates, that the port of edge
     /// <paramref name="edgeIndex"/> may occupy: the node's allowed extents intersected with the span
-    /// between its neighbours on the same face (kept <see cref="EdgeSpacing"/> away). The port's
+    /// between its neighbors on the same face (kept <see cref="EdgeSpacing"/> away). The port's
     /// current position is always included, so a port that already violates a bound is never forced
     /// to move.
     /// </summary>

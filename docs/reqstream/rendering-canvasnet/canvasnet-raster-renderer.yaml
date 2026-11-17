@@ -387,3 +387,19 @@ sections:
           moves the label to a clear position on the line.
         tests:
           - PngLineLabel_MidpointOnLeafBox_DoesNotEraseBoxBorder
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-DiamondShape
+        title: >-
+          CanvasNetRasterRenderer shall draw a diamond-shaped box as a filled and stroked path through
+          the same four bounding-box edge midpoints the SVG renderer uses, honoring the dash pattern,
+          so a diamond looks the same in PNG and SVG.
+        justification: |
+          Connectors anchor on the diamond outline, so the raster outline must pass through the same
+          vertices as the vector one; sharing the vertex helper makes the two identical by
+          construction, and a parity test reads the SVG polygon back against PNG pixels.
+        tests:
+          - PngDiamond_HasInkAtTheFourVertices
+          - PngDiamond_BoundingBoxCornersAreEmpty
+          - PngDiamond_InteriorIsFilledWithTheDepthFill
+          - PngDiamond_Dashed_HasLessInkAlongTheEdgeThanSolid
+          - SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon

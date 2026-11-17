@@ -20,6 +20,13 @@ public enum BoxShape
 
     /// <summary>Note shape (rectangle with a folded-down top-right corner), used for documentation and comments.</summary>
     Note,
+
+    /// <summary>
+    /// Diamond (rhombus) inscribed in the bounding box, its four vertices at the midpoints of the box
+    /// edges. Connectors anchor on the diamond's outline (the vertex for a single connector on a face)
+    /// rather than on the bounding box, so decision and merge nodes read cleanly.
+    /// </summary>
+    Diamond,
 }
 
 /// <summary>

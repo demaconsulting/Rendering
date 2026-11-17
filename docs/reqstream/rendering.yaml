@@ -60,6 +60,7 @@ sections:
           - Rendering-Model-LayoutTree-BadgeCrossedCircle
           - Rendering-Model-LayoutTree-BandOutlineStyle
           - Rendering-Model-LayoutTree-LifelineHeaderStyle
+          - Rendering-Model-LayoutTree-DiamondShape
         tests:
           - LayoutTree_Construction_StoresWidthHeightNodes
           - LayoutBox_Construction_StoresAllFields

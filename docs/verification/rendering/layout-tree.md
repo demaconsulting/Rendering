@@ -228,6 +228,13 @@ and asserts `Keyword`, `HeaderAppearance`, and `HeaderCornerRadius` are `null` a
 
 **Covers**: `Rendering-Model-LayoutTree-LifelineHeaderStyle`.
 
+#### Diamond box shape is appended
+
+Test `BoxShape_LegacyOrdinals_ArePinnedAndDiamondAppended` asserts the original `BoxShape` ordinals and that
+`Diamond` follows them.
+
+**Covers**: `Rendering-Model-LayoutTree-DiamondShape`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-LayoutTree-Canvas`**: LayoutTree_Construction_StoresWidthHeightNodes
@@ -265,3 +272,4 @@ and asserts `Keyword`, `HeaderAppearance`, and `HeaderCornerRadius` are `null` a
   BadgeShape_LegacyOrdinals_ArePinnedAndNewMembersAppended
 - **`Rendering-Model-LayoutTree-BandOutlineStyle`**: LayoutBand_OutlineStyle_DefaultsToSolid
 - **`Rendering-Model-LayoutTree-LifelineHeaderStyle`**: LayoutLifeline_NewMembers_DefaultToLegacyLook
+- **`Rendering-Model-LayoutTree-DiamondShape`**: BoxShape_LegacyOrdinals_ArePinnedAndDiamondAppended

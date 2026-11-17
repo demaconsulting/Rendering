@@ -615,6 +615,14 @@ public sealed class SvgRenderer : IRenderer
                 RenderNoteOutline(sb, box, theme, fillColor, scale);
                 break;
 
+            case BoxShape.Diamond:
+                var vertices = NotationMetrics.DiamondBoxVertices(x, y, w, h);
+                var points = string.Join(" ", vertices.Select(vertex => $"{F(vertex.X)},{F(vertex.Y)}"));
+                sb.Append(
+                    $"""  <polygon points="{points}" fill="{fillColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{OutlineDash(box)}/>""");
+                sb.AppendLine();
+                break;
+
             case BoxShape.RoundedRectangle:
                 var cornerRadius = ResolveRoundedCornerRadius(box, theme);
                 var cornerStr = cornerRadius > 0

@@ -688,3 +688,22 @@ sections:
           obstacle moves the label to a clear position on the line.
         tests:
           - LineLabel_MidpointOnLeafBox_IsPlacedClear
+
+      - id: Rendering-Svg-SvgRenderer-DiamondShape
+        title: >-
+          SvgRenderer shall draw a diamond-shaped box as a polygon through the four bounding-box edge
+          midpoints with the depth fill, theme stroke, and optional dash pattern of every other box
+          outline, while rectangle boxes keep their plain rect markup.
+        justification: |
+          A diamond node (decision, merge) must show its real outline for the connectors anchored on it
+          to touch it. Reusing the box fill, stroke, and dash handling keeps the diamond consistent
+          with the other shapes, and leaving the default shapes untouched keeps existing output
+          byte-identical.
+        tests:
+          - SvgRenderer_Diamond_PolygonPointsAreTheFourEdgeMidpoints
+          - SvgRenderer_Diamond_UsesDepthFillAndThemeStroke
+          - SvgRenderer_Diamond_DashedAppearance_AddsDashArray
+          - SvgRenderer_Diamond_Scaled_ScalesThePolygonPoints
+          - SvgRenderer_Rectangle_StillRendersAsRectNotPolygon
+          - SvgRenderer_Diamond_Label_IsCenteredOnTheDiamond
+          - SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon

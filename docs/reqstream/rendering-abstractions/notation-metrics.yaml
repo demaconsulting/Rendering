@@ -271,3 +271,15 @@ sections:
           - CornerIconVertices_Send_IsConvexPentagonInsideIconBox
           - CornerIconVertices_Accept_HasNotchInLeftEdge
           - CornerIconVertices_None_IsEmpty
+
+      - id: Rendering-Abstractions-NotationMetrics-DiamondBoxVertices
+        title: >-
+          NotationMetrics shall provide the outline vertices of a diamond box, the midpoints of the
+          four bounding-box edges in the order top, right, bottom, left.
+        justification: |
+          Both renderers draw the diamond outline through one helper so the SVG polygon and the raster
+          path cannot drift apart, and the layout's anchor geometry describes the same shape.
+        tests:
+          - NotationMetrics_DiamondBoxVertices_AreTheBoxEdgeMidpointsTopRightBottomLeft
+          - NotationMetrics_DiamondBoxVertices_ZeroSizeBox_CollapsesToThePoint
+          - BoxMetrics_TitleCursorTop_Diamond_MatchesARectangle

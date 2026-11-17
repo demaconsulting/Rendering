@@ -6,7 +6,7 @@ package RenderingLayout {
 
         metadata info : SoftwareInfo {
             sourceFiles = ("src/DemaConsulting.Rendering.Layout/HierarchicalLayoutAlgorithm.cs");
-            testFiles = ("test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/FaceAlignmentTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/DiagramQuality.cs");
+            testFiles = ("test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/FaceAlignmentTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/DiagramQuality.cs", "test/DemaConsulting.Rendering.Layout.Tests/DiamondShapeAnchorTests.cs");
             designFiles = ("docs/design/rendering-layout/hierarchical-layout-algorithm.md");
             verificationFiles = ("docs/verification/rendering-layout/hierarchical-layout-algorithm.md");
             requirementFiles = ("docs/reqstream/rendering-layout/hierarchical-layout-algorithm.yaml");

@@ -275,3 +275,14 @@ sections:
           opt in while a lifeline built with only its legacy members is unchanged.
         tests:
           - LayoutLifeline_NewMembers_DefaultToLegacyLook
+
+      - id: Rendering-Model-LayoutTree-DiamondShape
+        title: >-
+          The box shape enumeration shall provide a diamond member appended after the existing
+          members, so existing shape ordinals are unchanged.
+        justification: |
+          Decision and merge nodes are diamonds whose connectors must attach to the outline rather than
+          the bounding box (Rendering#58); appending the member keeps every existing shape ordinal and
+          default (rectangle) stable for callers that never use it.
+        tests:
+          - BoxShape_LegacyOrdinals_ArePinnedAndDiamondAppended

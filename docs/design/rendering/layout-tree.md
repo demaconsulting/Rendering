@@ -107,6 +107,12 @@ right-pointing pentagon, and the same pentagon with a triangular notch in its le
 they exist so every node record and every layout algorithm expresses coordinates and bounds with one
 consistent, allocation-light vocabulary.
 
+`BoxShape` lists the box outlines the renderers know: `Rectangle`, `RoundedRectangle`, `Folder`, `Note`,
+and — appended last so earlier ordinals never change — `Diamond`, a rhombus inscribed in the bounding box
+with its four vertices at the midpoints of the box edges. A diamond is a plain box for sizing, title, and
+child purposes; only its outline and the way connectors anchor on it differ (see the ConnectorRouter
+`DiamondGeometry`), so a caller that never sets the shape sees no change.
+
 ### Layout Tree Key Methods
 
 N/A - the Layout Tree types are immutable data records with no behavioral methods. Each record type
