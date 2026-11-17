@@ -235,6 +235,15 @@ Test `BoxShape_LegacyOrdinals_ArePinnedAndDiamondAppended` asserts the original 
 
 **Covers**: `Rendering-Model-LayoutTree-DiamondShape`.
 
+#### Line end labels default to none
+
+`LayoutLine_EndLabels_DefaultToNull` constructs a line with only its original members and asserts both end labels
+are `null`. `LayoutLine_EndLabels_AreCarried` constructs one with both and asserts they and the midpoint label
+are carried. `LineEndLabel_Secondary_DefaultsToNull` and `LineEndLabel_IsAValueRecord` assert the record's
+default and value semantics.
+
+**Covers**: `Rendering-Model-LayoutTree-LineEndLabels`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-LayoutTree-Canvas`**: LayoutTree_Construction_StoresWidthHeightNodes
@@ -273,3 +282,6 @@ Test `BoxShape_LegacyOrdinals_ArePinnedAndDiamondAppended` asserts the original 
 - **`Rendering-Model-LayoutTree-BandOutlineStyle`**: LayoutBand_OutlineStyle_DefaultsToSolid
 - **`Rendering-Model-LayoutTree-LifelineHeaderStyle`**: LayoutLifeline_NewMembers_DefaultToLegacyLook
 - **`Rendering-Model-LayoutTree-DiamondShape`**: BoxShape_LegacyOrdinals_ArePinnedAndDiamondAppended
+- **`Rendering-Model-LayoutTree-LineEndLabels`**:
+  LayoutLine_EndLabels_DefaultToNull, LayoutLine_EndLabels_AreCarried, LineEndLabel_Secondary_DefaultsToNull,
+  LineEndLabel_IsAValueRecord

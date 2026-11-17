@@ -138,6 +138,25 @@ a `null` line sequence and asserts each raises `ArgumentNullException`.
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments`.
 
+#### End labels sit near their end, beside the line, clear of everything
+
+`ConnectorLabelPlacerEndLabelTests` drive `PlaceEndLabels` directly. `PlaceEndLabels_NoEndLabels_ReturnsEmpty`
+asserts nothing is returned without labels. `PlaceEndLabels_HorizontalLine_PrimaryAboveSecondaryBelowNearEachEnd`
+and `PlaceEndLabels_VerticalLine_PrimaryRightSecondaryLeft` assert the notation sides and that each label lies in
+the half of the line next to its own end; `PlaceEndLabels_RightToLeftLine_PrimaryStillAbove` asserts a reversed
+line keeps the primary label above. `PlaceEndLabels_LabelsStayClearOfTheBoxAtTheEnd` and
+`PlaceEndLabels_LabelsStayClearOfTheEndMarker` assert the box and marker footprints are never overlapped, and
+`PlaceEndLabels_LabelsDoNotOverlapEachOtherOrOccupiedRectangles` asserts eight labels on two stacked lines and a
+supplied midpoint rectangle never overlap. `PlaceEndLabels_IsDeterministic` asserts repeatable output,
+`PlaceEndLabels_LabelWiderThanTheRun_StillPlacedAtTheNominalPosition` asserts a label that cannot fit is still
+placed, `PlaceEndLabels_NullOrEmptySlots_AreSkipped` asserts blank slots yield nothing, and
+`PlaceEndLabels_NullArguments_Throw` asserts null arguments are rejected.
+`Place_MidpointPlacements_UnchangedByEndLabels` asserts a line's midpoint placement is identical with and without
+end labels.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-EndLabelPlacement`,
+`Rendering-Abstractions-ConnectorLabelPlacer-EndLabelsKeepMidpointPlacementsUnchanged`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled`**: Place_LineWithoutLabel_IsOmitted
@@ -163,3 +182,12 @@ a `null` line sequence and asserts each raises `ArgumentNullException`.
   Place_RunTooShortForLabelAndMarker_KeepsLabelOnItsLine
 - **`Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments`**:
   PlaceWithObstacles_NullArguments_Throw
+- **`Rendering-Abstractions-ConnectorLabelPlacer-EndLabelPlacement`**:
+  PlaceEndLabels_NoEndLabels_ReturnsEmpty, PlaceEndLabels_HorizontalLine_PrimaryAboveSecondaryBelowNearEachEnd,
+  PlaceEndLabels_VerticalLine_PrimaryRightSecondaryLeft, PlaceEndLabels_RightToLeftLine_PrimaryStillAbove,
+  PlaceEndLabels_LabelsStayClearOfTheBoxAtTheEnd, PlaceEndLabels_LabelsStayClearOfTheEndMarker,
+  PlaceEndLabels_LabelsDoNotOverlapEachOtherOrOccupiedRectangles, PlaceEndLabels_IsDeterministic,
+  PlaceEndLabels_LabelWiderThanTheRun_StillPlacedAtTheNominalPosition, PlaceEndLabels_NullOrEmptySlots_AreSkipped,
+  PlaceEndLabels_NullArguments_Throw
+- **`Rendering-Abstractions-ConnectorLabelPlacer-EndLabelsKeepMidpointPlacementsUnchanged`**:
+  Place_MidpointPlacements_UnchangedByEndLabels

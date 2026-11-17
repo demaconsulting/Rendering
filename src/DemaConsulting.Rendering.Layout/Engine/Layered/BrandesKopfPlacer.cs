@@ -15,12 +15,52 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
     public void Apply(LayeredGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
+        var (sourceLabelAlong, targetLabelAlong) = CorridorLabelAlong(graph);
         var (augX, augY, columnX, maxColWidth) = AssignCoordinatesAug(
-            graph.AugNodes, graph.Groups, graph.AugEdges, graph.NodeSpacing);
+            graph.AugNodes, graph.Groups, graph.AugEdges, graph.NodeSpacing, sourceLabelAlong, targetLabelAlong);
+        graph.CorridorSourceLabelAlong = sourceLabelAlong;
         graph.AugX = augX;
         graph.AugY = augY;
         graph.ColumnX = columnX;
         graph.MaxColWidth = maxColWidth;
+    }
+
+    /// <summary>
+    /// Computes, per corridor (index = source layer), the widest source-end and target-end label space
+    /// any connector crossing it asks for (<see cref="LayerEdge.SourceLabelAlong"/> and
+    /// <see cref="LayerEdge.TargetLabelAlong"/>). The source space belongs to the corridor the connector
+    /// leaves its real source node through (its first sub-edge); the target space to the corridor it
+    /// enters its real target node through (its last sub-edge). All zero — and so a no-op — unless an
+    /// edge carries end labels.
+    /// </summary>
+    /// <param name="graph">The graph whose acyclic edges and augmented sub-edges are read.</param>
+    /// <returns>The per-corridor source and target label space.</returns>
+    private static (double[] Source, double[] Target) CorridorLabelAlong(LayeredGraph graph)
+    {
+        var corridors = Math.Max(1, graph.Groups.Count - 1);
+        var source = new double[corridors];
+        var target = new double[corridors];
+        foreach (var ae in graph.AugEdges)
+        {
+            var corridor = graph.AugNodes[ae.Source].Layer;
+            if (corridor < 0 || corridor >= corridors || ae.OrigEdgeIndex < 0 || ae.OrigEdgeIndex >= graph.Acyclic.Count)
+            {
+                continue;
+            }
+
+            var edge = graph.Acyclic[ae.OrigEdgeIndex];
+            if (!graph.AugNodes[ae.Source].IsDummy)
+            {
+                source[corridor] = Math.Max(source[corridor], edge.SourceLabelAlong);
+            }
+
+            if (!graph.AugNodes[ae.Target].IsDummy)
+            {
+                target[corridor] = Math.Max(target[corridor], edge.TargetLabelAlong);
+            }
+        }
+
+        return (source, target);
     }
 
     /// <summary>
@@ -43,7 +83,9 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
         List<AugNode> augNodes,
         List<List<int>> groups,
         List<AugEdge> augEdges,
-        double nodeSpacing)
+        double nodeSpacing,
+        double[] sourceLabelAlong,
+        double[] targetLabelAlong)
     {
         var layerCount = groups.Count;
         var numAug = augNodes.Count;
@@ -78,6 +120,10 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
             var corridorWidth = cnt > 0
                 ? Math.Max(CorridorMinWidth, (2.0 * ConnectorClearance) + ((cnt - 1) * EdgeSpacing))
                 : CorridorMinWidth;
+
+            // End labels need straight run on both sides of the jog: widen the corridor by the space
+            // they ask for (zero, and so byte-identical, when no edge has end labels).
+            corridorWidth += sourceLabelAlong[l - 1] + targetLabelAlong[l - 1];
             columnX[l] = columnX[l - 1] + maxColWidth[l - 1] + corridorWidth;
         }
 

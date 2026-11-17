@@ -169,6 +169,17 @@ runs directly — adding `ComponentPacker` only inside the hierarchical recursio
 disconnected flat graph. Wiring `ComponentPacker` into `InterconnectionLayoutEngine.Place` itself keeps
 both call paths consistent without special-casing the hierarchical recursion.
 
+#### Layered Pipeline End-Label Reservation
+
+`LayerEdge` has two optional members, `SourceLabelAlong` and `TargetLabelAlong`: the space, along the flow
+axis, that end labels beside the source and the target end of the connector need on the straight end run. They
+default to zero, which keeps every existing graph byte-identical. `CycleBreaker` swaps them with the endpoints
+when it reverses an edge, so each request stays with its node. `BrandesKopfPlacer` takes, per corridor, the
+widest source request among the connectors leaving a real source node into it and the widest target request
+among those entering a real target node from it, and adds both to the corridor width (and records the source
+share in `LayeredGraph.CorridorSourceLabelAlong`); `LayeredCorridorRouter` keeps the first bend slot that far
+beyond the usual connector clearance. Long-edge dummies request nothing, since a label belongs to a real end.
+
 #### Layered Pipeline Back-Edge Entry Approach
 
 A reversed (back) edge is stored flipped, so the consumer draws the end marker at the first sub-edge's

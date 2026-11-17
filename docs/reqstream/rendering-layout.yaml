@@ -50,6 +50,8 @@ sections:
           - Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproach
           - Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproachLegacyPreserved
           - Rendering-Layout-LayeredAlgorithm-LabelsClearOfNodeBorders
+          - Rendering-Layout-LayeredAlgorithm-EndLabelPassThrough
+          - Rendering-Layout-LayeredAlgorithm-EndLabelSpace
         tests:
           - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
           - Id_IsLayered
@@ -109,6 +111,7 @@ sections:
           - Rendering-Layout-LayeredPipeline-ShapeAwareAnchors
           - Rendering-Layout-LayeredPipeline-PortAlignment
           - Rendering-Layout-LayeredPipeline-PortAlignmentOnlyMovesPorts
+          - Rendering-Layout-LayeredPipeline-EndLabelReservation
         tests:
           - LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing
           - Pipeline_MatchesLegacyOracle_OnRandomGraphs
@@ -147,6 +150,7 @@ sections:
           - Rendering-Layout-ConnectorRouter-PortCornerMargin
           - Rendering-Layout-ConnectorRouter-NewEndMarkerClearance
           - Rendering-Layout-ConnectorRouter-DiamondOutlineAnchors
+          - Rendering-Layout-ConnectorRouter-EndLabelPropagation
         tests:
           - Route_TargetToTheRight_AnchorsFaceEachOther
           - Route_ObstacleBetweenEndpoints_RoutesAroundInterior
@@ -206,6 +210,7 @@ sections:
           - Rendering-Layout-ContainmentAlgorithm-LayoutOnlyEdges
           - Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly
           - Rendering-Layout-ContainmentAlgorithm-AppearancePassThrough
+          - Rendering-Layout-ContainmentAlgorithm-EndLabelPassThrough
         tests:
           - Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas
           - Id_IsContainment
@@ -250,6 +255,7 @@ sections:
           - Rendering-Layout-HierarchicalLayout-ValidatesRegistry
           - Rendering-Layout-HierarchicalLayout-AppearancePassThrough
           - Rendering-Layout-HierarchicalLayout-FolderTabTitleReserve
+          - Rendering-Layout-HierarchicalLayout-EndLabelPassThrough
         tests:
           - Id_IsHierarchical
           - Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly
@@ -315,6 +321,7 @@ sections:
           - Rendering-Layout-AutoAlgorithm-PreservesInputBoxOrder
           - Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker
           - Rendering-Layout-AutoAlgorithm-AppearancePassThrough
+          - Rendering-Layout-AutoAlgorithm-EndLabelPassThrough
         tests:
           - Id_IsAuto
           - Apply_ClusterPlusIsolatedSingletons_PacksBothGroupsWithoutOverlap

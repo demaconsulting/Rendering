@@ -469,3 +469,19 @@ sections:
           - Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab
           - Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone
           - Apply_RectangleChain_MatchesPreShapeAwarenessOutput
+
+      - id: Rendering-Layout-LayeredPipeline-EndLabelReservation
+        title: >-
+          The layered pipeline shall widen a corridor by the end-label space its connectors request,
+          shall keep the first bend of connectors leaving that corridor's source column that far out,
+          and shall move a reversed edge's reservations with its endpoints, while leaving every layout
+          without requested space byte-identical.
+        justification: |
+          End labels sit on the straight runs beside each end of a connector, so the run on either
+          side of the bend must be long enough; carrying the request on the edge and applying it in
+          the placement and routing stages keeps the reservation with the stage that owns each
+          dimension and is a no-op for every existing caller.
+        tests:
+          - InterconnectionLayoutEngine_Place_EdgeLabelAlong_WidensCorridorAndPushesFirstBend
+          - CycleBreaker_ReversedEdge_SwapsEndLabelReservations
+          - Pipeline_MatchesLegacyOracle_OnRandomGraphs

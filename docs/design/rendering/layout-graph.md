@@ -134,6 +134,13 @@ bundled algorithm (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`,
 onto the placed `LayoutBox.Appearance`. It is carried only on nodes: ports have no appearance, and
 edge end decorations ride `LayoutGraphEdge.TargetEnd`.
 
+`LayoutGraphEdge` has two properties, `SourceEndLabel` and `TargetEndLabel`, both `null` by default, that the
+layout algorithms copy onto the placed `LayoutLine`: the layered algorithm (omitting them, like the midpoint
+label, when parallel edges collapse into one line, and keeping each with its semantic end when it reverses a
+back edge), the hierarchical algorithm (leaf scopes and cross-container edges), the containment algorithm, the
+auto algorithm's cloned sub-graphs, and `ConnectorRouter` through the optional `SourceEndLabel` and
+`TargetEndLabel` members of `Connection`.
+
 ### Layout Graph Error Handling
 
 Invalid inputs are rejected at their entry point rather than deferred to layout time. The

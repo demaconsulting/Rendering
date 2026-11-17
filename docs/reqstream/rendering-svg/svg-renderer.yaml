@@ -707,3 +707,23 @@ sections:
           - SvgRenderer_Rectangle_StillRendersAsRectNotPolygon
           - SvgRenderer_Diamond_Label_IsCenteredOnTheDiamond
           - SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon
+
+      - id: Rendering-Svg-SvgRenderer-EndLabels
+        title: >-
+          SvgRenderer shall draw each non-empty end-label slot of a line as a centered text element,
+          with the midpoint label's font and background, at the position the end-label placer chose
+          after the midpoint labels, escape its text, grow the canvas to include it, and draw nothing
+          for a line without end labels.
+        justification: |
+          Using the shared placer and the midpoint label's style makes the end labels look like the
+          other connector text and identical to the PNG output; placing them after the midpoint
+          labels leaves existing diagrams unchanged.
+        tests:
+          - SvgRenderer_EndLabels_DrawnAtThePlacersPositions
+          - SvgRenderer_EndLabels_UseTheMidpointLabelStyle
+          - SvgRenderer_NullOrEmptyEndLabelSlots_ProduceNoText
+          - SvgRenderer_LineWithoutEndLabels_ProducesNoLabelText
+          - SvgRenderer_EndLabelText_IsXmlEscaped
+          - SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas
+          - SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize
+          - SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor

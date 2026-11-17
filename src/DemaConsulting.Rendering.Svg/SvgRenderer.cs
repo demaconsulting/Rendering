@@ -89,12 +89,27 @@ public sealed class SvgRenderer : IRenderer
         var lines = CollectLines(layout.Nodes).ToList();
         var labelPositions = ConnectorLabelPlacer.Place(lines, theme.FontSizeBody, CollectBoxes(layout.Nodes), NotationMetrics.MarkerScale(theme));
 
+        // Connection end labels (role name, multiplicity) are placed after the midpoint labels, which they
+        // yield to, so midpoint placement is identical with or without them.
+        var endLabelPlacements = ConnectorLabelPlacer.PlaceEndLabels(
+            lines,
+            theme.FontSizeBody,
+            CollectBoxes(layout.Nodes),
+            NotationMetrics.MarkerScale(theme),
+            labelPositions.Values);
+
         // Compute canvas dimensions, ensuring a minimum 1×1 canvas, then grow to fully include every
         // placed label's bounding box (a label can be nudged beyond the box/routing geometry's
         // extent that layout.Width/Height was computed from).
         var width = Math.Max(1.0, layout.Width * options.Scale);
         var height = Math.Max(1.0, layout.Height * options.Scale);
         foreach (var placement in labelPositions.Values)
+        {
+            width = Math.Max(width, (placement.X + placement.HalfWidth) * options.Scale);
+            height = Math.Max(height, (placement.Y + placement.HalfHeight) * options.Scale);
+        }
+
+        foreach (var placement in endLabelPlacements)
         {
             width = Math.Max(width, (placement.X + placement.HalfWidth) * options.Scale);
             height = Math.Max(height, (placement.Y + placement.HalfHeight) * options.Scale);
@@ -127,6 +142,11 @@ public sealed class SvgRenderer : IRenderer
             {
                 RenderLineLabel(sb, line, theme, options.Scale, pos.X, pos.Y);
             }
+        }
+
+        foreach (var placement in endLabelPlacements)
+        {
+            RenderEndLabel(sb, placement, theme, options.Scale);
         }
 
         // Close SVG root
@@ -1031,6 +1051,23 @@ public sealed class SvgRenderer : IRenderer
 
         sb.Append(
             $"""  <text x="{F(midX * scale)}" y="{F(midY * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">{EscapeXml(line.MidpointLabel)}</text>""");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// Renders one connection end label (a role name or multiplicity slot) as a centered text element
+    /// with the same auto-sizing background and font as a midpoint label, at the position
+    /// <see cref="ConnectorLabelPlacer.PlaceEndLabels"/> chose. Called in the final label pass so no wire
+    /// draws over it.
+    /// </summary>
+    /// <param name="sb">String builder receiving the SVG markup.</param>
+    /// <param name="placement">The resolved end-label placement.</param>
+    /// <param name="theme">Visual theme providing font and color settings.</param>
+    /// <param name="scale">Uniform scale factor.</param>
+    private static void RenderEndLabel(StringBuilder sb, EndLabelPlacement placement, Theme theme, double scale)
+    {
+        sb.Append(
+            $"""  <text x="{F(placement.X * scale)}" y="{F(placement.Y * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">{EscapeXml(placement.Text)}</text>""");
         sb.AppendLine();
     }
 

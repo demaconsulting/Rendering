@@ -80,6 +80,9 @@ behavior constitutes a failure.
   `ContainmentLayout_NodeAppearance_ReachesPlacedBox` confirms a node's `BoxAppearance` is the very
   instance carried by the placed box.
 
+- **End label pass-through** (`Rendering-Layout-ContainmentAlgorithm-EndLabelPassThrough`):
+  `ContainmentLayout_EdgeEndLabels_ReachPlacedLine` asserts the labels reach the routed line.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-ContainmentAlgorithm-Identity`**:
@@ -115,3 +118,5 @@ behavior constitutes a failure.
   the literal former reserved prefix `"\u0001layout-only:"` plus a suffix is routed and drawn)
 - **`Rendering-Layout-ContainmentAlgorithm-AppearancePassThrough`**:
   ContainmentLayout_NodeAppearance_ReachesPlacedBox
+- **`Rendering-Layout-ContainmentAlgorithm-EndLabelPassThrough`**:
+  ContainmentLayout_EdgeEndLabels_ReachPlacedLine

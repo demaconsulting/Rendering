@@ -251,7 +251,13 @@ failure.
   `Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone`, and
   `Apply_RectangleChain_MatchesPreShapeAwarenessOutput`.
 
-#### Requirements Coverage
+#- **End label reservation** (`Rendering-Layout-LayeredPipeline-EndLabelReservation`):
+  `InterconnectionLayoutEngine_Place_EdgeLabelAlong_WidensCorridorAndPushesFirstBend` asserts the next column moves
+  right by exactly the requested source plus target space and the first bend by the source share;
+  `CycleBreaker_ReversedEdge_SwapsEndLabelReservations` asserts a reversed edge swaps its reservations with its
+  endpoints; `Pipeline_MatchesLegacyOracle_OnRandomGraphs` proves a layout without requests is unchanged.
+
+### Requirements Coverage
 
 - **`Rendering-Layout-LayeredPipeline-StagedPipeline`**:
   LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing,
@@ -380,3 +386,6 @@ failure.
   Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab,
   Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone,
   Apply_RectangleChain_MatchesPreShapeAwarenessOutput
+- **`Rendering-Layout-LayeredPipeline-EndLabelReservation`**:
+  InterconnectionLayoutEngine_Place_EdgeLabelAlong_WidensCorridorAndPushesFirstBend,
+  CycleBreaker_ReversedEdge_SwapsEndLabelReservations, Pipeline_MatchesLegacyOracle_OnRandomGraphs

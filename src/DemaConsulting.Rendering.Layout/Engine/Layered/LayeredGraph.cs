@@ -290,6 +290,13 @@ internal sealed class LayeredGraph
     /// <summary>Gets or sets the target-side (left face) port Y for each augmented sub-edge.</summary>
     public double[] AugPortYTgt { get; set; } = [];
 
+    /// <summary>
+    /// Gets or sets, per corridor (index = source layer), the extra space the first bend of every
+    /// connector leaving that layer is kept away from the source column so source end labels fit on the
+    /// straight run. All zero unless an edge carries <see cref="LayerEdge.SourceLabelAlong"/>.
+    /// </summary>
+    public double[] CorridorSourceLabelAlong { get; set; } = [];
+
     /// <summary>Gets or sets the orthogonal bend points for each augmented sub-edge.</summary>
     public List<Point2D>[] AugBendPoints { get; set; } = [];
 

@@ -298,6 +298,17 @@ clear of the box.
 
 **Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-DiamondShape`.
 
+#### Connection end labels
+
+`PngEndLabels_HaveInkInsideEachPlacedRectangle` asserts text ink inside every placed label rectangle,
+`PngEndLabels_InkIsCenteredOnThePlacement` asserts the ink centroid is on the placement,
+`PngLineWithoutEndLabels_HasNoInkBesideTheLine` asserts a line without labels leaves the space beside it blank,
+and `PngEndLabelBeyondTheSurface_GrowsTheSurface` asserts the surface grows to include a label past the declared
+width. `SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor` asserts the PNG label is centered on the SVG
+anchor.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels`.
+
 ### Requirements Coverage
 
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree`**:
@@ -387,3 +398,7 @@ clear of the box.
   PngDiamond_HasInkAtTheFourVertices, PngDiamond_BoundingBoxCornersAreEmpty,
   PngDiamond_InteriorIsFilledWithTheDepthFill, PngDiamond_Dashed_HasLessInkAlongTheEdgeThanSolid,
   SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels`**:
+  PngEndLabels_HaveInkInsideEachPlacedRectangle, PngEndLabels_InkIsCenteredOnThePlacement,
+  PngLineWithoutEndLabels_HasNoInkBesideTheLine, PngEndLabelBeyondTheSurface_GrowsTheSurface,
+  SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor

@@ -83,5 +83,6 @@ sections:
           - Rendering-Svg-SvgRenderer-LifelineRoundedHeader
           - Rendering-Svg-SvgRenderer-LabelsAvoidBoxes
           - Rendering-Svg-SvgRenderer-DiamondShape
+          - Rendering-Svg-SvgRenderer-EndLabels
         tests:
           - SvgRenderer_Render_SingleBox_ProducesSvgDocument

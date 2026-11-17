@@ -94,9 +94,23 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var lines = CollectLines(layout.Nodes).ToList();
         var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody, CollectBoxes(layout.Nodes), NotationMetrics.MarkerScale(options.Theme));
 
+        // Connection end labels are placed after the midpoint labels, which they yield to.
+        var endLabelPlacements = ConnectorLabelPlacer.PlaceEndLabels(
+            lines,
+            options.Theme.FontSizeBody,
+            CollectBoxes(layout.Nodes),
+            NotationMetrics.MarkerScale(options.Theme),
+            labelPositions.Values);
+
         var width = Math.Max(1, (int)Math.Ceiling(layout.Width * options.Scale));
         var height = Math.Max(1, (int)Math.Ceiling(layout.Height * options.Scale));
         foreach (var placement in labelPositions.Values)
+        {
+            width = Math.Max(width, (int)Math.Ceiling((placement.X + placement.HalfWidth) * options.Scale));
+            height = Math.Max(height, (int)Math.Ceiling((placement.Y + placement.HalfHeight) * options.Scale));
+        }
+
+        foreach (var placement in endLabelPlacements)
         {
             width = Math.Max(width, (int)Math.Ceiling((placement.X + placement.HalfWidth) * options.Scale));
             height = Math.Max(height, (int)Math.Ceiling((placement.Y + placement.HalfHeight) * options.Scale));
@@ -120,6 +134,11 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
             {
                 RenderLineLabel(canvas, line, options, position.X, position.Y);
             }
+        }
+
+        foreach (var placement in endLabelPlacements)
+        {
+            RenderEndLabel(canvas, placement, options);
         }
 
         return surface;
@@ -1028,6 +1047,46 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var scale = (float)options.Scale;
         var strokeColor = ParseColor(theme.StrokeColor);
         RenderLineMidpointLabel(canvas, midX, midY, line.MidpointLabel, theme, scale, strokeColor);
+    }
+
+    /// <summary>
+    /// Draws one connection end label (a role name or multiplicity slot) centered on the position
+    /// <see cref="ConnectorLabelPlacer.PlaceEndLabels"/> chose, on a background-colored rectangle like a
+    /// midpoint label. The text is centered vertically on the placement, which is where the SVG renderer
+    /// anchors it (<c>dominant-baseline="middle"</c>), so the two formats agree.
+    /// </summary>
+    /// <param name="canvas">Canvas to draw on.</param>
+    /// <param name="placement">The resolved end-label placement.</param>
+    /// <param name="options">Render options providing theme and scale.</param>
+    private static void RenderEndLabel(CanvasRenderer canvas, EndLabelPlacement placement, RenderOptions options)
+    {
+        var theme = options.Theme;
+        var scale = (float)options.Scale;
+        var centreX = (float)(placement.X * scale);
+        var centreY = (float)(placement.Y * scale);
+
+        var font = CreateFont(bold: false, italic: false);
+        var textSize = (float)theme.FontSizeBody * scale;
+        var metrics = MeasureText(placement.Text, font, textSize);
+        var padding = (float)theme.LabelPadding * scale * 0.5f;
+        var backgroundWidth = metrics.Width + (2f * padding);
+        var backgroundHeight = textSize + (2f * padding);
+        canvas.FillRect(
+            centreX - (backgroundWidth / 2f),
+            centreY - (backgroundHeight / 2f),
+            backgroundWidth,
+            backgroundHeight,
+            ParseColor(theme.BackgroundColor));
+
+        // The baseline sits about 0.35 em below the vertical centre of the text.
+        canvas.DrawText(
+            placement.Text,
+            centreX,
+            centreY + (0.35f * textSize),
+            CanvasTextAlign.Center,
+            font,
+            textSize,
+            ParseColor(theme.StrokeColor));
     }
 
     /// <summary>

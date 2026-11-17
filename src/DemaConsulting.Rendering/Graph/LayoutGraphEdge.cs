@@ -50,4 +50,16 @@ public sealed class LayoutGraphEdge : PropertyHolder
 
     /// <summary>Gets or sets an optional text label rendered at the midpoint of the edge.</summary>
     public string? Label { get; set; }
+
+    /// <summary>
+    /// Gets or sets the optional labels (role name, multiplicity) drawn near the source end of the edge,
+    /// copied onto the placed <see cref="LayoutLine.SourceEndLabel"/>. <see langword="null"/> by default.
+    /// </summary>
+    public LineEndLabel? SourceEndLabel { get; set; }
+
+    /// <summary>
+    /// Gets or sets the optional labels (role name, multiplicity) drawn near the target end of the edge,
+    /// copied onto the placed <see cref="LayoutLine.TargetEndLabel"/>. <see langword="null"/> by default.
+    /// </summary>
+    public LineEndLabel? TargetEndLabel { get; set; }
 }

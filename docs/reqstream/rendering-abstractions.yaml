@@ -149,6 +149,8 @@ sections:
           - Rendering-Abstractions-ConnectorLabelPlacer-AvoidBoxes
           - Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration
           - Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments
+          - Rendering-Abstractions-ConnectorLabelPlacer-EndLabelPlacement
+          - Rendering-Abstractions-ConnectorLabelPlacer-EndLabelsKeepMidpointPlacementsUnchanged
         tests:
           - Place_SingleLine_UsesLongestSegmentMidpoint
 

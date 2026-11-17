@@ -254,6 +254,11 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   top and at exactly the same offset as the body-titled keyword folder's child (the default reserve is
   kept).
 
+- **End label pass-through** (`Rendering-Layout-HierarchicalLayout-EndLabelPassThrough`):
+  `HierarchicalLayout_LeafEdgeEndLabels_ReachPlacedLine` and
+  `HierarchicalLayout_CrossContainerEdgeEndLabels_ReachPlacedLine` assert the labels reach the placed line for a
+  leaf-scope edge and for an edge between nodes of two different containers.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-HierarchicalLayout-Identity`**:
@@ -326,3 +331,5 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   HierarchicalLayout_FolderNameInTab_ReservesNoBodyTitleBand,
   HierarchicalLayout_FolderNameInTabWithExplicitTitleHeight_KeepsReserve,
   HierarchicalLayout_FolderNameInTabWithKeyword_ChildClearsKeywordLine
+- **`Rendering-Layout-HierarchicalLayout-EndLabelPassThrough`**:
+  HierarchicalLayout_LeafEdgeEndLabels_ReachPlacedLine, HierarchicalLayout_CrossContainerEdgeEndLabels_ReachPlacedLine

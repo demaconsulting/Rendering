@@ -81,7 +81,21 @@ internal readonly record struct LayerNode(
 /// </summary>
 /// <param name="Source">Index of the source node.</param>
 /// <param name="Target">Index of the target node.</param>
-internal readonly record struct LayerEdge(int Source, int Target);
+/// <param name="SourceLabelAlong">
+/// Space, in logical pixels along the flow axis (the abstract X axis), that end labels beside the
+/// connector at the source node need between that node and the first bend of the connector; zero (the
+/// default) when the edge has no source end label. The corridor router keeps the first bend this far out
+/// and the placer widens the corridor, so the labels fit on the straight end run.
+/// </param>
+/// <param name="TargetLabelAlong">
+/// The same space for end labels (plus the end marker) at the target node, between the last bend and
+/// that node; zero (the default) when the edge has no target end label.
+/// </param>
+internal readonly record struct LayerEdge(
+    int Source,
+    int Target,
+    double SourceLabelAlong = 0.0,
+    double TargetLabelAlong = 0.0);
 
 /// <summary>
 /// The result of an interconnection layout pass.

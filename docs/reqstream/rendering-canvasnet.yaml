@@ -65,6 +65,7 @@ sections:
           - Rendering-CanvasNet-CanvasNetRasterRenderer-LifelineRoundedHeader
           - Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes
           - Rendering-CanvasNet-CanvasNetRasterRenderer-DiamondShape
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels
           - Rendering-CanvasNet-PngRenderer-EmitsPng
           - Rendering-CanvasNet-JpegRenderer-EmitsJpeg
         tests:

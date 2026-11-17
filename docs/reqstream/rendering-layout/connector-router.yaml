@@ -312,3 +312,12 @@ sections:
           - HierarchicalLayout_DiamondInsideContainer_CrossContainerEdgeStartsOnOutline
           - DiamondGeometry_ProjectToSurface_IsZeroAtVertexAndLinearToTheCorner
           - ContainmentAndAutoLayout_DiamondNode_PassesShapeThrough
+
+      - id: Rendering-Layout-ConnectorRouter-EndLabelPropagation
+        title: >-
+          ConnectorRouter shall carry a connection's source and target end labels onto the routed line.
+        justification: |
+          Cross-container connectors are routed here rather than by the layered pipeline, so the router
+          must copy the labels or they would be lost for every hierarchical diagram.
+        tests:
+          - ConnectorRouter_Connection_EndLabelsReachRoutedLine

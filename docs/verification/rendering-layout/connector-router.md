@@ -188,6 +188,13 @@ projection and the full connectable extent for square and non-square boxes, and
 
 **Covers**: `Rendering-Layout-ConnectorRouter-DiamondOutlineAnchors`.
 
+#### End labels reach the routed line
+
+`ConnectorRouter_Connection_EndLabelsReachRoutedLine` routes a connection carrying both end labels and asserts
+the routed line carries them.
+
+**Covers**: `Rendering-Layout-ConnectorRouter-EndLabelPropagation`.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`**:
@@ -274,3 +281,4 @@ occupied face position moves to a free spot), and TryResolveFaceAnchor_PointOnFa
   HierarchicalLayout_DiamondInsideContainer_CrossContainerEdgeStartsOnOutline,
   DiamondGeometry_ProjectToSurface_IsZeroAtVertexAndLinearToTheCorner,
   ContainmentAndAutoLayout_DiamondNode_PassesShapeThrough
+- **`Rendering-Layout-ConnectorRouter-EndLabelPropagation`**: ConnectorRouter_Connection_EndLabelsReachRoutedLine

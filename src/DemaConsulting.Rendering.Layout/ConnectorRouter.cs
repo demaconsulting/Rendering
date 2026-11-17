@@ -26,6 +26,8 @@ namespace DemaConsulting.Rendering.Layout;
 /// <param name="TargetEnd">End-marker style drawn at the target (arrival) end of the connector.</param>
 /// <param name="LineStyle">Stroke style (solid, dashed, dotted) applied to the routed connector.</param>
 /// <param name="Label">Optional midpoint label carried onto the routed line; <see langword="null"/> for an unlabelled connector.</param>
+/// <param name="SourceEndLabel">Optional end labels (role name, multiplicity) carried onto the routed line's source end; <see langword="null"/> for none.</param>
+/// <param name="TargetEndLabel">Optional end labels carried onto the routed line's target end; <see langword="null"/> for none.</param>
 /// <remarks>
 /// A <see cref="Connection"/> carries no geometry of its own: source and target anchors are chosen by
 /// <see cref="ConnectorRouter"/> from the boxes' current placement. The record intentionally models
@@ -36,7 +38,9 @@ public sealed record Connection(
     LayoutBox To,
     EndMarkerStyle TargetEnd = EndMarkerStyle.None,
     LineStyle LineStyle = LineStyle.Solid,
-    string? Label = null);
+    string? Label = null,
+    LineEndLabel? SourceEndLabel = null,
+    LineEndLabel? TargetEndLabel = null);
 
 /// <summary>
 /// Options controlling how <see cref="ConnectorRouter"/> routes connectors among placed boxes.
@@ -363,7 +367,9 @@ public static class ConnectorRouter
             SourceEnd: EndMarkerStyle.None,
             TargetEnd: connection.TargetEnd,
             LineStyle: connection.LineStyle,
-            MidpointLabel: connection.Label);
+            MidpointLabel: connection.Label,
+            SourceEndLabel: connection.SourceEndLabel,
+            TargetEndLabel: connection.TargetEndLabel);
     }
 
     /// <summary>

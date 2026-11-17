@@ -97,6 +97,7 @@ public sealed class LayeredGraphTests
             nameof(LayeredGraph.MaxColWidth),
             nameof(LayeredGraph.AugPortYSrc),
             nameof(LayeredGraph.AugPortYTgt),
+            nameof(LayeredGraph.CorridorSourceLabelAlong),
             nameof(LayeredGraph.AugBendPoints),
             nameof(LayeredGraph.Waypoints),
         ];

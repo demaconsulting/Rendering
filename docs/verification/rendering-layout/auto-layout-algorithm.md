@@ -143,3 +143,6 @@ argument-null validation behavior constitutes a failure.
   plus a suffix: both edges are drawn)
 - **`Rendering-Layout-AutoAlgorithm-AppearancePassThrough`**:
   AutoLayout_NodeAppearance_SurvivesClone
+- **`Rendering-Layout-AutoAlgorithm-EndLabelPassThrough`**:
+  AutoLayout_EdgeEndLabels_SurviveClone (an edge with both end labels laid out through `auto` yields a line
+  carrying them)

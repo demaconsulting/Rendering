@@ -346,3 +346,33 @@ sections:
           machine that reproduced the defect now demonstrates.
         tests:
           - LayeredLayout_ElevatorLabels_DoNotCrossNodeBorders
+
+      - id: Rendering-Layout-LayeredAlgorithm-EndLabelPassThrough
+        title: >-
+          LayeredLayoutAlgorithm shall copy each edge's source and target end labels onto its placed
+          line, keeping each label with its semantic end when the algorithm reverses a back edge for
+          layering, and shall omit them (as it omits the midpoint label) when parallel edges collapse
+          into one line.
+        justification: |
+          A reversed back edge is stored flipped for layering but must still carry its labels at the
+          ends the caller declared; a collapsed line cannot honestly carry the ends of several edges.
+        tests:
+          - LayeredLayout_EdgeEndLabels_ReachPlacedLine
+          - LayeredLayout_EdgeWithoutEndLabels_StaysNull
+          - LayeredLayout_BackEdge_EndLabelsStayWithTheirSemanticEnds
+          - LayeredLayout_MergedParallelEdges_DropEndLabels
+
+      - id: Rendering-Layout-LayeredAlgorithm-EndLabelSpace
+        title: >-
+          LayeredLayoutAlgorithm shall reserve room for end labels: the corridor an end label's
+          connector crosses shall be widened and its first bend pushed out by the label space, and a
+          face with two or more labeled connectors shall be sized so adjacent connectors' labels
+          overlap no box, no other label, and no connector segment.
+        justification: |
+          A role name and a multiplicity beside each end need a straight run to sit on and a row or
+          column of their own; without reserving them a label would collide with a neighbor or sit
+          across a bend. The reservation is zero, and the layout unchanged, for edges without end
+          labels.
+        tests:
+          - LayeredLayout_OwnershipDiagramWithEndLabels_LabelsOverlapNothing
+          - LayeredLayout_ChainWithEndLabels_LabelsOverlapNothing

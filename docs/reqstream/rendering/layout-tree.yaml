@@ -286,3 +286,17 @@ sections:
           default (rectangle) stable for callers that never use it.
         tests:
           - BoxShape_LegacyOrdinals_ArePinnedAndDiamondAppended
+
+      - id: Rendering-Model-LayoutTree-LineEndLabels
+        title: >-
+          A line node shall carry optional end labels for its source and target ends, each with a
+          primary and a secondary text slot, defaulting to none.
+        justification: |
+          A SysML connection shows a role name and a multiplicity near each end of the line.
+          Appending optional end-label members to the line, each a value record of two slots, lets a
+          caller supply them while a line built with only its original members is unchanged.
+        tests:
+          - LayoutLine_EndLabels_DefaultToNull
+          - LayoutLine_EndLabels_AreCarried
+          - LineEndLabel_Secondary_DefaultsToNull
+          - LineEndLabel_IsAValueRecord

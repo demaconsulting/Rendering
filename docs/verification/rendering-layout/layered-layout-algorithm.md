@@ -157,6 +157,17 @@ failure.
   connector labels with the obstacle-aware `ConnectorLabelPlacer.Place` given the placed boxes, and
   asserts every label rectangle is disjoint from every box.
 
+- **End label pass-through** (`Rendering-Layout-LayeredAlgorithm-EndLabelPassThrough`):
+  `LayeredLayout_EdgeEndLabels_ReachPlacedLine` and `LayeredLayout_EdgeWithoutEndLabels_StaysNull` assert the labels
+  are copied (and stay null when absent); `LayeredLayout_BackEdge_EndLabelsStayWithTheirSemanticEnds` asserts a
+  reversed back edge's labeled line still starts on the semantic source box and ends on the semantic target box;
+  `LayeredLayout_MergedParallelEdges_DropEndLabels` asserts collapsed parallel edges carry none.
+- **End label space** (`Rendering-Layout-LayeredAlgorithm-EndLabelSpace`):
+  `LayeredLayout_OwnershipDiagramWithEndLabels_LabelsOverlapNothing` (right and down flows, three labeled
+  connections fanning out of one owner) and `LayeredLayout_ChainWithEndLabels_LabelsOverlapNothing` place the end
+  labels of the laid-out tree and assert no label overlaps a box, another label, or a connector segment other than
+  the end segment it sits beside.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-LayeredAlgorithm-Identity`**:
@@ -230,3 +241,9 @@ failure.
   LayeredLayout_UndecoratedBackEdge_KeepsLegacyApproach
 - **`Rendering-Layout-LayeredAlgorithm-LabelsClearOfNodeBorders`**:
   LayeredLayout_ElevatorLabels_DoNotCrossNodeBorders
+- **`Rendering-Layout-LayeredAlgorithm-EndLabelPassThrough`**:
+  LayeredLayout_EdgeEndLabels_ReachPlacedLine, LayeredLayout_EdgeWithoutEndLabels_StaysNull,
+  LayeredLayout_BackEdge_EndLabelsStayWithTheirSemanticEnds, LayeredLayout_MergedParallelEdges_DropEndLabels
+- **`Rendering-Layout-LayeredAlgorithm-EndLabelSpace`**:
+  LayeredLayout_OwnershipDiagramWithEndLabels_LabelsOverlapNothing,
+  LayeredLayout_ChainWithEndLabels_LabelsOverlapNothing

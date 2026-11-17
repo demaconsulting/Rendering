@@ -398,6 +398,13 @@ with the same depth fill, theme stroke, stroke width, and `OutlineDash` handling
 The title and compartments use the plain-rectangle metrics (a diamond has no tab or fold), so a label on a
 centered-title diamond is centered on the box. Rectangle boxes keep their `<rect>` markup unchanged.
 
+#### Connection End Labels
+
+After the midpoint labels are placed, `Render` calls `ConnectorLabelPlacer.PlaceEndLabels` with the midpoint
+placements as occupied rectangles, grows the canvas to include every end-label box, and in the final label pass
+draws each placement as a centered `<text>` with the midpoint label's font, fill, middle baseline, and `label-bg`
+filter (the text is XML-escaped). A line without end labels adds nothing, so existing output is unchanged.
+
 ### Error Handling
 
 `Render` throws `ArgumentNullException` when `layout`, `options`, or `output` is null. No other

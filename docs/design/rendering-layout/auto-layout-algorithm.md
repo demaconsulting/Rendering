@@ -100,6 +100,9 @@ An empty graph yields an empty `LayoutTree` because the containment fast path ha
 single-group) empty case and `ContainmentLayoutAlgorithm.ApplyCore` returns an empty `LayoutTree` for
 an empty node list.
 
+When it clones an edge into a leaf algorithm's sub-graph, the algorithm copies the end labels
+(`SourceEndLabel`, `TargetEndLabel`) with the target marker, line style, and label, so they survive the split.
+
 ### AutoLayoutAlgorithm Interactions
 
 `AutoLayoutAlgorithm` depends on `LayoutGraph`, `LayoutTree`, and related model types from

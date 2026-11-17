@@ -403,3 +403,19 @@ sections:
           - PngDiamond_InteriorIsFilledWithTheDepthFill
           - PngDiamond_Dashed_HasLessInkAlongTheEdgeThanSolid
           - SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels
+        title: >-
+          CanvasNetRasterRenderer shall draw each non-empty end-label slot of a line as text centered
+          on the position the end-label placer chose, on a background-colored rectangle, and grow the
+          surface to include it, so end labels look the same in PNG and SVG.
+        justification: |
+          The raster output must show the same labels in the same places as the vector output; the
+          shared placer fixes the positions and centering the text on the placement matches the SVG
+          anchor.
+        tests:
+          - PngEndLabels_HaveInkInsideEachPlacedRectangle
+          - PngEndLabels_InkIsCenteredOnThePlacement
+          - PngLineWithoutEndLabels_HasNoInkBesideTheLine
+          - PngEndLabelBeyondTheSurface_GrowsTheSurface
+          - SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor

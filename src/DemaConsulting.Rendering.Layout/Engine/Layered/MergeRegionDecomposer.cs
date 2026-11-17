@@ -413,7 +413,7 @@ internal static class MergeRegionDecomposer
     /// <param name="edge">The originating input edge supplying the target marker, stroke style, and label.</param>
     /// <returns>The styled connector line.</returns>
     private static LayoutLine StyledLine(IReadOnlyList<Point2D> waypoints, LayoutGraphEdge edge) =>
-        new(waypoints, EndMarkerStyle.None, edge.TargetEnd, edge.LineStyle, edge.Label);
+        new(waypoints, EndMarkerStyle.None, edge.TargetEnd, edge.LineStyle, edge.Label, edge.SourceEndLabel, edge.TargetEndLabel);
 
     /// <summary>
     /// Concatenates two orthogonal polylines end-to-start, dropping the duplicated shared point so the

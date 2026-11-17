@@ -211,6 +211,10 @@ from the `effective` options it is invoked with (optionally preferring its own g
 as `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm` do); a leaf algorithm that reads only its
 input graph and ignores the supplied options would silently break cascading for that algorithm.
 
+Edge end labels (`SourceEndLabel`, `TargetEndLabel`) are copied onto the placed lines for leaf-scope edges (through
+the layered algorithm) and for cross-container edges (through the `Connection` handed to `ConnectorRouter`).
+Cross-container connectors reserve no room for their labels.
+
 ### HierarchicalLayoutAlgorithm Design Constraints
 
 - The flat-graph equivalence guarantee is load-bearing: the fast path must delegate directly to the

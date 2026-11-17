@@ -113,6 +113,15 @@ with its four vertices at the midpoints of the box edges. A diamond is a plain b
 child purposes; only its outline and the way connectors anchor on it differ (see the ConnectorRouter
 `DiamondGeometry`), so a caller that never sets the shape sees no change.
 
+`LayoutLine` carries two optional, appended members, `SourceEndLabel` and `TargetEndLabel`, each a
+`LineEndLabel`: a value record of a `Primary` and a `Secondary` text slot that sit on opposite sides of the
+line near that end, following the SysML v2 notation — the role name (`Primary`) above a horizontal end run or
+to the right of a vertical one, and the multiplicity with its adornments (`Secondary`) below a horizontal end
+run or to the left of a vertical one. A null slot is not drawn and both members default to `null`, so a line
+built with only its original members renders exactly as before. The source label belongs at `Waypoints[0]`
+and the target label at `Waypoints[^1]`; the renderers place and draw them (see
+`ConnectorLabelPlacer.PlaceEndLabels`).
+
 ### Layout Tree Key Methods
 
 N/A - the Layout Tree types are immutable data records with no behavioral methods. Each record type

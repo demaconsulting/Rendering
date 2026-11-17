@@ -399,3 +399,14 @@ sections:
           - HierarchicalLayout_FolderNameInTab_ReservesNoBodyTitleBand
           - HierarchicalLayout_FolderNameInTabWithExplicitTitleHeight_KeepsReserve
           - HierarchicalLayout_FolderNameInTabWithKeyword_ChildClearsKeywordLine
+
+      - id: Rendering-Layout-HierarchicalLayout-EndLabelPassThrough
+        title: >-
+          HierarchicalLayoutAlgorithm shall carry each edge's source and target end labels onto its
+          placed line, for leaf-scope and cross-container edges alike.
+        justification: |
+          Hierarchical diagrams route cross-container edges through the connector router and leaf
+          scopes through the layered algorithm; both paths must keep the labels.
+        tests:
+          - HierarchicalLayout_LeafEdgeEndLabels_ReachPlacedLine
+          - HierarchicalLayout_CrossContainerEdgeEndLabels_ReachPlacedLine

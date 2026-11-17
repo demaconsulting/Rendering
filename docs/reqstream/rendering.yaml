@@ -61,6 +61,7 @@ sections:
           - Rendering-Model-LayoutTree-BandOutlineStyle
           - Rendering-Model-LayoutTree-LifelineHeaderStyle
           - Rendering-Model-LayoutTree-DiamondShape
+          - Rendering-Model-LayoutTree-LineEndLabels
         tests:
           - LayoutTree_Construction_StoresWidthHeightNodes
           - LayoutBox_Construction_StoresAllFields
@@ -109,6 +110,7 @@ sections:
           - Rendering-Model-LayoutGraph-PortLabels
           - Rendering-Model-LayoutGraph-ShapeGeometryHints
           - Rendering-Model-LayoutGraph-NodeAppearance
+          - Rendering-Model-LayoutGraph-EdgeEndLabels
         tests:
           - AddNode_AppendsNodeAndReturnsIt
           - AddEdge_AppendsEdgeWithEndpoints

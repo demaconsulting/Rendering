@@ -188,3 +188,13 @@ sections:
           look.
         tests:
           - AutoLayout_NodeAppearance_SurvivesClone
+
+      - id: Rendering-Layout-AutoAlgorithm-EndLabelPassThrough
+        title: >-
+          AutoLayoutAlgorithm shall carry each edge's source and target end labels through the
+          sub-graphs it builds for its leaf algorithms.
+        justification: |
+          The auto algorithm lays out cloned sub-graphs; an end label not copied onto the clone would
+          silently disappear for every diagram laid out through it.
+        tests:
+          - AutoLayout_EdgeEndLabels_SurviveClone

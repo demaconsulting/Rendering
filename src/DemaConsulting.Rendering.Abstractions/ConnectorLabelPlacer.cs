@@ -43,7 +43,7 @@ public readonly record struct LabelPlacement(double X, double Y, double HalfWidt
 /// result is deterministic. Both the SVG and PNG renderers share this logic so their label layouts
 /// match.
 /// </remarks>
-public static class ConnectorLabelPlacer
+public static partial class ConnectorLabelPlacer
 {
     /// <summary>Approximate width of one character as a fraction of the font size.</summary>
     private const double CharWidthFactor = 0.6;

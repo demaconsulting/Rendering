@@ -158,6 +158,13 @@ box's depth fill, the theme stroke, and the box appearance's dash pattern. It is
 SVG renderer uses, so the PNG and SVG diamonds are the same shape; a parity test in the gallery project reads
 the SVG polygon back against PNG pixels.
 
+#### Connection End Labels
+
+`RenderToSurface` places end labels with `ConnectorLabelPlacer.PlaceEndLabels` after the midpoint labels (which
+they yield to), grows the surface to include them, and draws each as text centered on the placement, with a
+background-colored rectangle behind it. The text is centered vertically on the placement (baseline about 0.35 em
+below it), the same anchor the SVG renderer's `dominant-baseline="middle"` text uses, so the two formats agree.
+
 ### CanvasNetRasterRenderer Design Constraints
 
 - The rasterizer shall enforce a minimum surface size of one by one pixels before allocating the

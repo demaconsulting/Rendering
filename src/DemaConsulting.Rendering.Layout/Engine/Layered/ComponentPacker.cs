@@ -360,7 +360,7 @@ internal sealed class ComponentPacker : ILayoutStage
             if (origToLocal.TryGetValue(edge.Source, out var localSource) &&
                 origToLocal.TryGetValue(edge.Target, out var localTarget))
             {
-                localEdges.Add(new LayerEdge(localSource, localTarget));
+                localEdges.Add(edge with { Source = localSource, Target = localTarget });
                 localToParentEdge.Add(e);
             }
         }
@@ -384,7 +384,7 @@ internal sealed class ComponentPacker : ILayoutStage
         for (var k = 0; k < child.Acyclic.Count; k++)
         {
             var edge = child.Acyclic[k];
-            acyclicEdges[k] = new LayerEdge(members[edge.Source], members[edge.Target]);
+            acyclicEdges[k] = edge with { Source = members[edge.Source], Target = members[edge.Target] };
             acyclicOriginalIndex[k] = localToParentEdge[child.AcyclicOriginalIndex[k]];
         }
 

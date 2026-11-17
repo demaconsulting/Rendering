@@ -251,6 +251,12 @@ The router already slides ports on a shared face to a straight run when the faci
 (`IsDefective`/`SearchBetterRoute`), so Rendering#57 needed no change here; the same scenario through the
 layered pipeline is handled by its `PortAligner` stage, and a regression test keeps the router path honest.
 
+#### End labels
+
+`Connection` has two optional appended members, `SourceEndLabel` and `TargetEndLabel`, which `RouteConnection`
+copies onto the routed `LayoutLine`. The router does not place or reserve room for the labels (placement is the
+renderers' job, through `ConnectorLabelPlacer.PlaceEndLabels`).
+
 ### ConnectorRouter Error Handling
 
 Null `boxes`, `connections`, `connection`, `options`, or a connection's `From`/`To` throw

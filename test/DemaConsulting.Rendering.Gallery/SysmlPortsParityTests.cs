@@ -54,6 +54,57 @@ public sealed class SysmlPortsParityTests
         }
     }
 
+    /// <summary>
+    ///     The PNG ink of an end label is centered on the anchor the SVG text element carries (both renderers
+    ///     draw the same placement), within the glyph-shape tolerance of centering text by its x-height.
+    /// </summary>
+    [Fact]
+    public void SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor()
+    {
+        // Arrange: a horizontal connector with a role-name label above its source end.
+        var line = new LayoutLine(
+            [new Point2D(60, 80), new Point2D(260, 80)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.None,
+            LineStyle.Solid,
+            null,
+            new LineEndLabel("owner", null),
+            null);
+        var tree = new LayoutTree(320, 120, [line]);
+        var options = new RenderOptions(Themes.Light);
+
+        // Act
+        var svg = RenderSvg(tree, options);
+        using var surface = RenderPng(tree, options);
+
+        // Assert
+        var match = Regex.Match(svg, "<text x=\"([0-9.]+)\" y=\"([0-9.]+)\"[^>]*>owner</text>");
+        Assert.True(match.Success, "Expected the end label text element in the SVG.");
+        var anchorX = double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+        var anchorY = double.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+
+        double sumX = 0;
+        double sumY = 0;
+        var count = 0;
+        for (var y = (int)(anchorY - 12); y <= 77; y++)
+        {
+            for (var x = (int)(anchorX - 30); x <= (int)(anchorX + 30); x++)
+            {
+                var color = surface[x, y];
+                if (color.A > 32 && (color.R + color.G + color.B) < 450)
+                {
+                    sumX += x;
+                    sumY += y;
+                    count++;
+                }
+            }
+        }
+
+        Assert.True(count > 10, "Expected the label's ink in the PNG.");
+        Assert.True(Math.Abs((sumX / count) - anchorX) <= 3.0, $"x centroid {sumX / count:0.0} vs anchor {anchorX:0.0}");
+        Assert.True(Math.Abs((sumY / count) - anchorY) <= 3.5, $"y centroid {sumY / count:0.0} vs anchor {anchorY:0.0}");
+    }
+
     private static Surface RenderPng(LayoutTree tree, RenderOptions options)
     {
         using var stream = new MemoryStream();
