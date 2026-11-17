@@ -22,7 +22,8 @@ the standard node spacing, instead of inheriting the dummy's unrelated port-alig
 Several connectors ending on one face of a box used to step a few pixels sideways right before their end marker whenever
 the source box's face covered the target's port position, because the even port spacing ignored where the other end sat.
 The layered pipeline now slides the ports onto a common coordinate when both faces allow it, so those runs are straight.
-The before rendering is in the pull request, not in the repository.
+This is on by default and changes the geometry of existing diagrams whose connectors shared a face. The before rendering
+is in the pull request, not in the repository.
 
 ![Subclasses joined to wider superclasses by straight hollow-triangle connectors](shared-face-straight-runs.svg)
 
@@ -37,12 +38,15 @@ The same diagram through the CanvasNet raster renderer.
 
 Connectors to or from a diamond node used to attach to its bounding box, leaving a gap and a hook between the shape and
 the line. The diamond shape now anchors connectors on its outline — the vertex for a single connector on a face — and
-they leave it along the axis. The before rendering is in the pull request, not in the repository.
+they leave it along the axis. When several connectors share a face they spread along the outline at least a marker width
+plus 4 px apart, so arrowheads never touch (the diamond grows to make room). The before rendering is in the pull
+request, not in the repository.
 
 ![An action flow with a decision diamond and a merge diamond](diamond-outline-anchors.svg)
 
 Regression coverage for Rendering#58: every connector to or from the two diamonds starts or ends on the diamond outline
-and leaves it perpendicular to its face, with no gap or hook.
+and leaves it perpendicular to its face, with no gap or hook. The Fast path, Slow path, and Retry arrowheads on the
+merge diamond are separate, a marker width plus 4 px apart.
 
 ![The diamond action flow rendered through the raster path](diamond-outline-anchors.png)
 

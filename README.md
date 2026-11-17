@@ -37,8 +37,10 @@ extensible property system, and new algorithms, renderers, and options are added
   rounded lifeline headers.
 - **SysML ports and connection ends** — port glyphs (direction arrows, dashed reference ports, proxy circles)
   with outside `name : Type` labels, role-name and multiplicity labels at either end of a connector, diamond
-  boxes whose connectors anchor on the outline, and straight final runs where ports share a face. All of it is
-  opt-in and additive; existing diagrams keep their output.
+  boxes whose connectors anchor on the outline. These new features are opt-in: they only apply when you set a
+  port appearance, an end label, or `BoxShape.Diamond`. Separately, connectors that share one face of a box now
+  line up into straight final runs by default (Rendering#57), which changes the geometry of some existing
+  diagrams; the gallery shows the new output.
 
 ## Algorithm capabilities
 

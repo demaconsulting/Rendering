@@ -173,7 +173,8 @@ unit, in `Engine/Layered`): a container's port is a boundary port when an edge i
 own `Children` references it — the inward delegation edge is the structural signal, detected
 transitively and to unbounded depth by a recursive collect. *Only when at least one boundary port is
 detected* does the engine take the combined-pass path; a scope with no boundary port takes the
-identical existing code path, so flat and ordinary port-edge graphs are byte-for-byte unchanged. On
+identical existing code path, so for flat and ordinary port-edge graphs the hierarchical algorithm adds nothing
+to the leaf layered result (that result itself now includes the default-on port alignment of Rendering#57). On
 the combined path the engine assembles the container and all of its nested descendants into one
 `AssembledMergeRegion` (`MergeRegionGraphAssembler`), runs it through the recursive layered pipeline
 (`LayeredLayoutPipeline.RunRecursive` — recursive layer assignment and crossing minimization across

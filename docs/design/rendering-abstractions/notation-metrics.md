@@ -137,7 +137,12 @@ right port's left, a top port's down, a bottom port's up), `Out` points away, `I
 right port the text is above the connector line, ending at (left) or starting at (right) a point one glyph half
 size plus the label padding beyond the face; on a top or bottom port it is beside the connector, to its right,
 just outside the face. The label is lifted off the connector axis by the half width of the widest end marker at
-the theme's marker scale (`PortLabelConnectorGap`), so it never touches an arrowhead on that connector.
+the theme's marker scale plus a 4 px clearance (`PortLabelConnectorGap`), so it never touches an arrowhead on that
+connector.
+`PortEndRetraction(end, adjacent, style, ports)` is the single rule for how far a marker end that sits on a port
+centre (within 0.5 px) is painted back along its end segment: the glyph half size when the end carries a marker and
+the segment is longer than that, otherwise zero. Both renderers shorten lines by it and the end-label placer measures
+from it, so the drawn marker and the label beside it always agree.
 `PortGlyphBounds` gives the glyph rectangle. The bounds feed canvas growth, the end-label placer's occupied
 rectangles, and the layout's overlap tests.
 

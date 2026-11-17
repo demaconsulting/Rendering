@@ -245,6 +245,16 @@ connectors spread over the face at distinct points of the outline, and the first
 outline instead of from a bounding box the shape does not touch (Rendering#58). Nothing else in the router
 changes: the sloped projection is a property of the geometry, not a new routing mode.
 
+A shaped node spreads the ports of a face over its *usable extent* (the face less `ConnectorClearance` at each
+end; `PortDistributor.BuildUsableExtents`), so the pitch between k ports is `(length − 2 × ConnectorClearance) / k`,
+not `length / k` as for a plain rectangle. When several connectors end on a diamond face the layered algorithm
+therefore grows the diamond (Diamond only, never a rectangle, folder, or note) so the pitch it hands to
+`PortDistributor` is at least `LayeredLayoutMetrics.MarkerFacePitch(style)` — the marker's painted width
+(`2 × AcrossHalfWidth × MarkerScale + MarkerStrokeWidth`) plus a 4 px `MarkerGap`, never less than `EdgeSpacing` —
+by requiring a face length of `Total × pitch + 2 × ConnectorClearance` (see the layered layout algorithm design).
+Adjacent end markers on one diamond face then keep a marker width plus 4 px apart; a single connector on a face
+is unaffected and still lands on the vertex.
+
 #### Shared-face final runs (Rendering#57)
 
 The router already slides ports on a shared face to a straight run when the facing face spans overlap

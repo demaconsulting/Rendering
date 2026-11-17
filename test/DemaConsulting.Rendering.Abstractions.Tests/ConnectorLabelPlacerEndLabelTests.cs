@@ -38,6 +38,151 @@ public sealed class ConnectorLabelPlacerEndLabelTests
     private static bool Overlaps(EndLabelPlacement a, EndLabelPlacement b) =>
         Math.Abs(a.X - b.X) < a.HalfWidth + b.HalfWidth && Math.Abs(a.Y - b.Y) < a.HalfHeight + b.HalfHeight;
 
+    /// <summary>Gap, in logical pixels, the placer's label box keeps around its text (<c>ConnectorLabelPlacer.Gap</c>).</summary>
+    private const double BoxGap = 2.0;
+
+    /// <summary>Minimum clearance, in logical pixels, an end label's text keeps from anything drawn near it.</summary>
+    private const double MinClearance = 4.0;
+
+    private static readonly PortAppearance OutlinedIn = new(PortDirection.In, LabelPlacement: PortLabelPlacement.Outward);
+
+    /// <summary>The text rectangle (label box less the placer's built-in gap) as left, top, right, bottom.</summary>
+    private static (double L, double T, double R, double B) TextRect(EndLabelPlacement p) =>
+        (p.X - p.HalfWidth + BoxGap, p.Y - p.HalfHeight + BoxGap, p.X + p.HalfWidth - BoxGap, p.Y + p.HalfHeight - BoxGap);
+
+    /// <summary>The clear distance between two rectangles (negative when they overlap).</summary>
+    private static double RectGap((double L, double T, double R, double B) a, (double L, double T, double R, double B) b) =>
+        Math.Max(Math.Max(b.L - a.R, a.L - b.R), Math.Max(b.T - a.B, a.T - b.B));
+
+    /// <summary>
+    ///     A target marker end on a port centre is drawn retracted by the glyph half size, so the label
+    ///     keeps at least 4 px from the retracted marker's painted extent, not from the port centre.
+    /// </summary>
+    [Fact]
+    public void PlaceEndLabels_VerticalTargetEndOnPort_KeepsFourPixelsFromRetractedMarker()
+    {
+        // Arrange: a downward line whose target end sits on an outlined port centre at (100, 360).
+        var port = new LayoutPort(100, 360, PortSide.Top, null, Appearance: OutlinedIn);
+        var line = new LayoutLine(
+            [new Point2D(100, 40), new Point2D(100, 360)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.OpenChevron,
+            LineStyle.Solid,
+            null,
+            null,
+            new LineEndLabel("sink", "1..*"));
+
+        // Act
+        var result = ConnectorLabelPlacer.PlaceEndLabels([line], FontSize, [], Scale, null, [port]);
+
+        // Assert: the marker is painted from the retracted tip (360 - glyph half size) back along the line.
+        var retraction = NotationMetrics.PortGlyphHalfSizeFor(OutlinedIn);
+        var tip = 360 - retraction;
+        var across = (NotationMetrics.AcrossHalfWidth(EndMarkerStyle.OpenChevron) * Scale) + (NotationMetrics.MarkerStrokeWidth(Themes.Light) / 2.0);
+        var marker = (L: 100 - across, T: tip - (NotationMetrics.AlongLineLength(EndMarkerStyle.OpenChevron) * Scale), R: 100 + across, B: tip);
+        Assert.Equal(2, result.Count);
+        foreach (var placement in result)
+        {
+            var gap = RectGap(TextRect(placement), marker);
+            Assert.True(gap >= MinClearance - 1e-6, $"'{placement.Text}' is only {gap:0.##} px from the retracted marker");
+        }
+    }
+
+    /// <summary>
+    ///     On a vertical run both slots keep at least 4 px between their text and the connector they sit
+    ///     beside.
+    /// </summary>
+    [Fact]
+    public void PlaceEndLabels_VerticalRun_SecondaryKeepsFourPixelsFromConnector()
+    {
+        // Arrange
+        var line = Vertical(100, 40, 360, new LineEndLabel("owner", "1"), null);
+
+        // Act
+        var result = ConnectorLabelPlacer.PlaceEndLabels([line], FontSize, [], Scale);
+
+        // Assert
+        var primary = TextRect(Find(result, LineEnd.Source, EndLabelSlot.Primary));
+        var secondary = TextRect(Find(result, LineEnd.Source, EndLabelSlot.Secondary));
+        Assert.True(primary.L - 100 >= MinClearance - 1e-6, $"primary text is {primary.L - 100:0.##} px from the connector");
+        Assert.True(100 - secondary.R >= MinClearance - 1e-6, $"secondary text is {100 - secondary.R:0.##} px from the connector");
+    }
+
+    /// <summary>
+    ///     An occupied rectangle that touches the nominal slot is treated as 4 px of clearance wide: the
+    ///     placed label's text keeps at least 4 px from it.
+    /// </summary>
+    [Fact]
+    public void PlaceEndLabels_OccupiedRectangle_KeepsFourPixelsOfClearance()
+    {
+        // Arrange: find the nominal slot, then occupy the rectangle that touches its right edge.
+        var line = Horizontal(40, 360, 100, new LineEndLabel("owner", null), null);
+        var nominal = Assert.Single(ConnectorLabelPlacer.PlaceEndLabels([line], FontSize, [], Scale));
+        var occupied = new LabelPlacement(nominal.X + nominal.HalfWidth + 10, nominal.Y, 10, nominal.HalfHeight);
+
+        // Act
+        var placed = Assert.Single(ConnectorLabelPlacer.PlaceEndLabels([line], FontSize, [], Scale, [occupied]));
+
+        // Assert
+        var rect = (L: occupied.X - occupied.HalfWidth, T: occupied.Y - occupied.HalfHeight, R: occupied.X + occupied.HalfWidth, B: occupied.Y + occupied.HalfHeight);
+        var gap = RectGap(TextRect(placed), rect);
+        Assert.True(gap >= MinClearance - 1e-6, $"the label text is only {gap:0.##} px from the occupied rectangle");
+    }
+
+    /// <summary>
+    ///     An end label stacked beside a port glyph and a port label keeps 4 px from both.
+    /// </summary>
+    [Fact]
+    public void PlaceEndLabels_StackedEndAndPortLabel_KeepFourPixelGap()
+    {
+        // Arrange: a downward line ending on a port with an outward label beside it.
+        var port = new LayoutPort(100, 360, PortSide.Top, "in : Fuel", Appearance: OutlinedIn);
+        var line = new LayoutLine(
+            [new Point2D(100, 40), new Point2D(100, 360)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.OpenChevron,
+            LineStyle.Solid,
+            null,
+            null,
+            new LineEndLabel("feeds", "0..* {ordered}"));
+        var label = NotationMetrics.PortOutwardLabelBounds(port, "in : Fuel", Themes.Light);
+        var glyph = NotationMetrics.PortGlyphBounds(port);
+
+        // Act
+        var result = ConnectorLabelPlacer.PlaceEndLabels([line], FontSize, [], Scale, [label, glyph], [port]);
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        foreach (var placement in result)
+        {
+            foreach (var other in new[] { label, glyph })
+            {
+                var rect = (L: other.X - other.HalfWidth, T: other.Y - other.HalfHeight, R: other.X + other.HalfWidth, B: other.Y + other.HalfHeight);
+                var gap = RectGap(TextRect(placement), rect);
+                Assert.True(gap >= MinClearance - 1e-6, $"'{placement.Text}' is only {gap:0.##} px from a port rectangle");
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Without ports the placement is the nominal one: just beyond the marker along the run and
+    ///     <c>half height + 2</c> px beside the line.
+    /// </summary>
+    [Fact]
+    public void PlaceEndLabels_NoPorts_PositionsUnchanged()
+    {
+        // Arrange
+        var line = Horizontal(40, 360, 100, new LineEndLabel("owner", "1"), null);
+
+        // Act
+        var result = ConnectorLabelPlacer.PlaceEndLabels([line], FontSize, [], Scale, null, null);
+
+        // Assert: the label box starts 4 px beyond the (marker-less) end point; 2 px line clearance.
+        var primary = Find(result, LineEnd.Source, EndLabelSlot.Primary);
+        Assert.Equal(40 + 4 + primary.HalfWidth, primary.X, 6);
+        Assert.Equal(100 - primary.HalfHeight - 2.0, primary.Y, 6);
+    }
+
     /// <summary>With no end labels the result is empty.</summary>
     [Fact]
     public void PlaceEndLabels_NoEndLabels_ReturnsEmpty()

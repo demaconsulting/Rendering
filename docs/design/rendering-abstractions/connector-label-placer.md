@@ -104,12 +104,12 @@ face (where anchors are spread horizontally) are spaced far enough apart for `Pl
 
 #### End labels
 
-`PlaceEndLabels(lines, fontSize, obstacles, markerScale, occupied)` places the role name and multiplicity
+`PlaceEndLabels(lines, fontSize, obstacles, markerScale, occupied, ports)` places the role name and multiplicity
 labels of each connector end (`LayoutLine.SourceEndLabel` / `TargetEndLabel`) and returns one
 `EndLabelPlacement` (line, end, slot, text, centre, half-extents) per non-empty slot. It lives in a partial
 class file of its own and does not touch `Place`, so midpoint placements are byte-identical with or without end
 labels; the renderers pass the midpoint placements (and, for ports, their glyph and label rectangles) in
-`occupied` so end labels yield to them.
+`occupied` so end labels yield to them, and every port of the tree in `ports`.
 
 For each label, in the fixed order lines, source end before target end, primary slot before secondary slot (which makes
 the result deterministic), the placer takes the end segment, the unit direction into the line, and the label box
@@ -117,11 +117,19 @@ the result deterministic), the placer takes the end segment, the unit direction 
 with `PortLabelWidthEstimator` plus the label gap on both sides, the same estimate the layered layout uses to reserve
 room for stacked end labels). The nominal position starts beyond the end marker (`AlongLineLength × markerScale`) plus a
 small offset; the primary slot sits above a horizontal run or to the right of a vertical one, the secondary slot on the
-opposite side, offset across the line by half the label plus a half pixel of clearance. Candidates are the nominal
-position, then slides along the segment in half-label steps, then the same on the opposite side. A candidate is rejected
-when it overlaps a leaf box, straddles a container border, overlaps the footprint of the line's own end decorations,
-overlaps an `occupied` rectangle or an earlier end label, or runs past the end of the segment. When nothing clears, the
-nominal position is used: a label is never dropped and the method never throws for a crowded diagram.
+opposite side, offset across the line by half the label plus `EndLabelLineClearance` (2 px, which with the box's own
+2 px gap keeps the text 4 px from its connector). A marker end that sits on a port centre is painted by both renderers
+retracted along the end segment by the port glyph's half size, so the placer takes `ports`, asks
+`NotationMetrics.PortEndRetraction` for that retraction (the same rule the renderers shorten lines by), and measures
+both the first label offset and the end decoration's footprint from the retracted tip; with `ports` null nothing
+retracts. Every `occupied` rectangle and every end decoration footprint is inflated by
+`EndLabelClearanceMargin` (2 px) for the collision test, which with the box gap guarantees at least 4 px between label
+text and a port glyph, port label, midpoint label, or marker; two end labels keep the two box gaps (4 px) between
+their texts. Candidates are the nominal position, then slides along the segment in half-label steps, then the same on
+the opposite side. A candidate is rejected when it overlaps a leaf box, straddles a container border, overlaps the
+(inflated) footprint of the line's own end decorations, overlaps an (inflated) `occupied` rectangle or an earlier end
+label, or runs past the end of the segment. When nothing clears, the nominal position is used: a label is never
+dropped and the method never throws for a crowded diagram.
 
 ### Connector Label Placer Error Handling
 

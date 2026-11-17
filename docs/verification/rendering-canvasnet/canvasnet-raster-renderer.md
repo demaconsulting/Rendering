@@ -302,10 +302,11 @@ clear of the box.
 
 `PngEndLabels_HaveInkInsideEachPlacedRectangle` asserts text ink inside every placed label rectangle,
 `PngEndLabels_InkIsCenteredOnThePlacement` asserts the ink centroid is on the placement,
-`PngLineWithoutEndLabels_HasNoInkBesideTheLine` asserts a line without labels leaves the space beside it blank,
-and `PngEndLabelBeyondTheSurface_GrowsTheSurface` asserts the surface grows to include a label past the declared
-width. `SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor` asserts the PNG label is centered on the SVG
-anchor.
+`PngLineWithoutEndLabels_HasNoInkBesideTheLine` asserts a line without labels leaves the space beside it blank, and
+`PngEndLabelBeyondTheSurface_GrowsTheSurface` asserts the surface grows to include a label past the declared width.
+`PngPortEnd_LabelClearOfRetractedMarker` asserts a label at a marker end on a port has ink at the port-aware placement,
+at least 4 px from the retracted marker. `SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor` asserts the PNG
+label is centered on the SVG anchor.
 
 **Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels`.
 
@@ -412,9 +413,9 @@ and outline style), `SysmlPortsParity_ProxyPort_PngCircleMatchesSvgCircle`,
   PngDiamond_HasInkAtTheFourVertices, PngDiamond_BoundingBoxCornersAreEmpty,
   PngDiamond_InteriorIsFilledWithTheDepthFill, PngDiamond_Dashed_HasLessInkAlongTheEdgeThanSolid,
   SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon
-- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels`**:
-  PngEndLabels_HaveInkInsideEachPlacedRectangle, PngEndLabels_InkIsCenteredOnThePlacement,
-  PngLineWithoutEndLabels_HasNoInkBesideTheLine, PngEndLabelBeyondTheSurface_GrowsTheSurface,
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels`**: PngEndLabels_HaveInkInsideEachPlacedRectangle,
+  PngEndLabels_InkIsCenteredOnThePlacement, PngLineWithoutEndLabels_HasNoInkBesideTheLine,
+  PngEndLabelBeyondTheSurface_GrowsTheSurface, PngPortEnd_LabelClearOfRetractedMarker,
   SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphs`**:
   PngLegacyPort_IsAFilledEightPixelSquare, PngOutlinedPort_HasABackgroundInteriorAndAnInkOutline,

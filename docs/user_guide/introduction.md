@@ -412,10 +412,12 @@ edge.TargetEnd = EndMarkerStyle.FilledDiamond;
 ```
 
 `ConnectorLabelPlacer.PlaceEndLabels` positions the labels beyond the end marker, clear of boxes, ports, and the
-midpoint label, and both renderers draw them in the midpoint label's font with no background. The layered layout
-reserves room for them beside the end; an edge without end labels is unchanged, and when parallel edges are merged
-into one connector their end labels are dropped, as the merged line has no single end to describe. Connectors
-that `ConnectorRouter` routes across container boundaries do not reserve extra room for end labels.
+midpoint label, and both renderers draw them in the midpoint label's font with no background. A label keeps at least 4
+px between its text and the end marker, its connector, port glyphs and labels, and other end labels; a marker that sits
+on a port is measured from where it is painted, at the edge of the port glyph. The layered layout reserves room for them
+beside the end; an edge without end labels is unchanged, and when parallel edges are merged into one connector their end
+labels are dropped, as the merged line has no single end to describe. Connectors that `ConnectorRouter` routes across
+container boundaries do not reserve extra room for end labels.
 
 ## Boundary (delegation) ports
 
@@ -570,8 +572,10 @@ placed so that their background does not cut through box borders.
 connectors to or from it start and end on the diamond's outline rather than on its bounding box, leaving each
 corner along the axis. Separately, where several connectors share one face of a box, the layered layout now
 slides their ports so the two ends of an edge line up whenever both faces allow it, giving a straight final run
-into the marker; a residual step is never shorter than a marker is long. Both changes need no configuration and
-only affect connectors that previously kinked or floated off a diamond's bounding box.
+into the marker; a residual step is never shorter than a marker is long. `BoxShape.Diamond` is opt-in (set the
+shape). Port alignment is on by default and changes existing output wherever connectors that share a face used to
+step sideways next to their marker. When several connectors end on one diamond face the diamond grows so their end
+markers stay a marker width plus 4 px apart.
 
 Other primitives follow the same pattern of optional, default-preserving members:
 

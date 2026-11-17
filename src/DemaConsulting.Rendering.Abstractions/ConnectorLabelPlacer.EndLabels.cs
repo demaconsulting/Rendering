@@ -61,7 +61,18 @@ public static partial class ConnectorLabelPlacer
     private const double EndLabelOffset = 4.0;
 
     /// <summary>Clearance, in logical pixels, kept between an end label's box and the line it sits beside.</summary>
-    private const double EndLabelLineClearance = 0.5;
+    /// <remarks>
+    /// The label box already includes <c>Gap</c> around its text, so with this value the text sits at least
+    /// 4 px from its own connector.
+    /// </remarks>
+    private const double EndLabelLineClearance = 2.0;
+
+    /// <summary>
+    /// Extra margin, in logical pixels, an end label keeps from every occupied rectangle (port glyphs, port
+    /// labels, midpoint labels) and from the line's own end decorations; with the label box's own
+    /// <c>Gap</c> the text stays at least 4 px away.
+    /// </summary>
+    private const double EndLabelClearanceMargin = 2.0;
 
     /// <summary>
     /// Computes a position for every <see cref="LayoutLine.SourceEndLabel"/> and
@@ -98,6 +109,11 @@ public static partial class ConnectorLabelPlacer
     /// port glyph and port label rectangles — that end labels must not overlap; <see langword="null"/>
     /// for none.
     /// </param>
+    /// <param name="ports">
+    /// Every port in the tree, or <see langword="null"/> for none. A marker end that sits on a port centre is
+    /// drawn retracted by the port glyph's half size (<see cref="NotationMetrics.PortEndRetraction"/>), so
+    /// the placer measures that end's marker footprint and first label slot from the retracted tip.
+    /// </param>
     /// <returns>One placement per non-empty end-label slot, in the deterministic order described above.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="lines"/> or <paramref name="obstacles"/> is <see langword="null"/>.</exception>
     public static IReadOnlyList<EndLabelPlacement> PlaceEndLabels(
@@ -105,7 +121,8 @@ public static partial class ConnectorLabelPlacer
         double fontSize,
         IEnumerable<LayoutBox> obstacles,
         double markerScale,
-        IEnumerable<LabelPlacement>? occupied = null)
+        IEnumerable<LabelPlacement>? occupied = null,
+        IEnumerable<LayoutPort>? ports = null)
     {
         ArgumentNullException.ThrowIfNull(lines);
         ArgumentNullException.ThrowIfNull(obstacles);
@@ -114,12 +131,19 @@ public static partial class ConnectorLabelPlacer
         var placed = new List<Bounds>();
         if (occupied is not null)
         {
+            // Occupied rectangles are inflated by the clearance margin, so an end label's text (which
+            // already keeps its own box gap) stays at least 4 px from a glyph, port label, or midpoint label.
             foreach (var rect in occupied)
             {
-                placed.Add(new Bounds(rect.X - rect.HalfWidth, rect.Y - rect.HalfHeight, rect.X + rect.HalfWidth, rect.Y + rect.HalfHeight));
+                placed.Add(new Bounds(
+                    rect.X - rect.HalfWidth - EndLabelClearanceMargin,
+                    rect.Y - rect.HalfHeight - EndLabelClearanceMargin,
+                    rect.X + rect.HalfWidth + EndLabelClearanceMargin,
+                    rect.Y + rect.HalfHeight + EndLabelClearanceMargin));
             }
         }
 
+        var portList = ports as IReadOnlyCollection<LayoutPort> ?? ports?.ToList();
         var result = new List<EndLabelPlacement>();
         foreach (var line in lines)
         {
@@ -128,9 +152,18 @@ public static partial class ConnectorLabelPlacer
                 continue;
             }
 
-            // The line's own end decorations are obstacles too, so a label never sits on an arrowhead.
+            // The line's own end decorations are obstacles too, so a label never sits on an arrowhead; a
+            // marker retracted onto a port glyph is measured from where it is actually painted.
             var obstaclesForLine = new List<Obstacle>(blocking);
-            obstaclesForLine.AddRange(DecorationZones(line, markerScale));
+            foreach (var zone in DecorationZones(line, markerScale, portList))
+            {
+                obstaclesForLine.Add(new Obstacle(
+                    zone.Left - EndLabelClearanceMargin,
+                    zone.Top - EndLabelClearanceMargin,
+                    zone.Right + EndLabelClearanceMargin,
+                    zone.Bottom + EndLabelClearanceMargin,
+                    zone.IsContainer));
+            }
 
             foreach (var end in new[] { LineEnd.Source, LineEnd.Target })
             {
@@ -148,7 +181,7 @@ public static partial class ConnectorLabelPlacer
                         continue;
                     }
 
-                    var placement = PlaceEndLabel(line, end, slot, text, fontSize, markerScale, placed, obstaclesForLine);
+                    var placement = PlaceEndLabel(line, end, slot, text, fontSize, markerScale, placed, obstaclesForLine, portList);
                     placed.Add(new Bounds(
                         placement.X - placement.HalfWidth,
                         placement.Y - placement.HalfHeight,
@@ -188,6 +221,7 @@ public static partial class ConnectorLabelPlacer
     /// <param name="markerScale">Pixels per notation unit of end-marker geometry.</param>
     /// <param name="placed">Rectangles already taken (occupied rectangles and earlier labels).</param>
     /// <param name="obstacles">The obstacles for this line (boxes plus the line's own end decorations).</param>
+    /// <param name="ports">Every port in the tree, or <see langword="null"/> for none.</param>
     /// <returns>The placement.</returns>
     private static EndLabelPlacement PlaceEndLabel(
         LayoutLine line,
@@ -197,7 +231,8 @@ public static partial class ConnectorLabelPlacer
         double fontSize,
         double markerScale,
         List<Bounds> placed,
-        List<Obstacle> obstacles)
+        List<Obstacle> obstacles,
+        IReadOnlyCollection<LayoutPort>? ports)
     {
         var waypoints = line.Waypoints;
         var origin = end == LineEnd.Source ? waypoints[0] : waypoints[^1];
@@ -217,8 +252,10 @@ public static partial class ConnectorLabelPlacer
         var alongHalf = horizontal ? halfWidth : halfHeight;
         var crossHalf = horizontal ? halfHeight : halfWidth;
 
-        // First usable distance along the segment: beyond the end marker plus a small clearance.
-        var startOffset = (NotationMetrics.AlongLineLength(style) * markerScale) + EndLabelOffset;
+        // First usable distance along the segment: beyond the end marker (painted from the port glyph's edge
+        // when the end sits on a port) plus a small clearance.
+        var retraction = NotationMetrics.PortEndRetraction(origin, inward, style, ports);
+        var startOffset = retraction + (NotationMetrics.AlongLineLength(style) * markerScale) + EndLabelOffset;
         var crossOffset = crossHalf + EndLabelLineClearance;
 
         // Notation side of the slot: primary above (horizontal) or right (vertical).

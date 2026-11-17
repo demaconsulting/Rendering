@@ -110,7 +110,8 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
             options.Theme.FontSizeBody,
             CollectBoxes(layout.Nodes),
             NotationMetrics.MarkerScale(options.Theme),
-            labelPositions.Values.Concat(portRects));
+            labelPositions.Values.Concat(portRects),
+            allPorts);
 
         var width = Math.Max(1, (int)Math.Ceiling(layout.Width * options.Scale));
         var height = Math.Max(1, (int)Math.Ceiling(layout.Height * options.Scale));
@@ -1240,8 +1241,8 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
             return line;
         }
 
-        var first = line.SourceEnd == EndMarkerStyle.None ? null : RetreatFromPort(waypoints[0], waypoints[1], ports);
-        var last = line.TargetEnd == EndMarkerStyle.None ? null : RetreatFromPort(waypoints[^1], waypoints[^2], ports);
+        var first = RetreatFromPort(waypoints[0], waypoints[1], line.SourceEnd, ports);
+        var last = RetreatFromPort(waypoints[^1], waypoints[^2], line.TargetEnd, ports);
         if (first is null && last is null)
         {
             return line;
@@ -1262,33 +1263,27 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     }
 
     /// <summary>
-    /// Moves <paramref name="end"/> toward <paramref name="adjacent"/> by <see cref="NotationMetrics.PortHalfSize"/>
-    /// when it coincides with a port centre and the end segment is longer than that.
+    /// Moves <paramref name="end"/> toward <paramref name="adjacent"/> by the shared port-end retraction
+    /// (<see cref="NotationMetrics.PortEndRetraction"/>) when it carries a marker, coincides with a port
+    /// centre, and the end segment is longer than that.
     /// </summary>
     /// <param name="end">The line end point.</param>
     /// <param name="adjacent">The adjacent waypoint.</param>
+    /// <param name="style">The end marker drawn at <paramref name="end"/>.</param>
     /// <param name="ports">Every port in the tree.</param>
-    /// <returns>The retreated point, or <see langword="null"/> when the end is not on a port.</returns>
-    private static Point2D? RetreatFromPort(Point2D end, Point2D adjacent, List<LayoutPort> ports)
+    /// <returns>The retreated point, or <see langword="null"/> when the end is not retracted.</returns>
+    private static Point2D? RetreatFromPort(Point2D end, Point2D adjacent, EndMarkerStyle style, List<LayoutPort> ports)
     {
-        const double portTolerance = 0.5;
-        var onPort = ports.Find(port => Math.Abs(port.CentreX - end.X) <= portTolerance && Math.Abs(port.CentreY - end.Y) <= portTolerance);
-        if (onPort is null)
+        // The retreat is the glyph's own half size, so the painted tip lands on the glyph's outer edge.
+        var halfSize = NotationMetrics.PortEndRetraction(end, adjacent, style, ports);
+        if (halfSize <= 0.0)
         {
             return null;
         }
-
-        // The retreat is the glyph's own half size, so the painted tip lands on the glyph's outer edge.
-        var halfSize = NotationMetrics.PortGlyphHalfSizeFor(onPort.Appearance);
 
         var dx = adjacent.X - end.X;
         var dy = adjacent.Y - end.Y;
         var length = Math.Sqrt((dx * dx) + (dy * dy));
-        if (length <= halfSize)
-        {
-            return null;
-        }
-
         var fraction = halfSize / length;
         return new Point2D(end.X + (dx * fraction), end.Y + (dy * fraction));
     }

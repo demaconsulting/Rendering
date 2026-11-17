@@ -408,7 +408,9 @@ sections:
         title: >-
           CanvasNetRasterRenderer shall draw each non-empty end-label slot of a line as text centered
           on the position the end-label placer chose, without a background rectangle, and grow the
-          surface to include it, so end labels look the same in PNG and SVG.
+          surface to include it, so end labels look the same in PNG and SVG; a marker end on a port
+          shall be passed to the placer with the tree's ports so the label is measured from the
+          retracted marker.
         justification: |
           The raster output must show the same labels in the same places as the vector output; the
           shared placer fixes the positions and centering the text on the placement matches the SVG
@@ -418,6 +420,7 @@ sections:
           - PngEndLabels_InkIsCenteredOnThePlacement
           - PngLineWithoutEndLabels_HasNoInkBesideTheLine
           - PngEndLabelBeyondTheSurface_GrowsTheSurface
+          - PngPortEnd_LabelClearOfRetractedMarker
           - SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor
 
       - id: Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphs

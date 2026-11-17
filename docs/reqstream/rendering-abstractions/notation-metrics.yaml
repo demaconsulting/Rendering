@@ -287,16 +287,18 @@ sections:
       - id: Rendering-Abstractions-NotationMetrics-PortGlyphGeometry
         title: >-
           NotationMetrics shall provide the half size of each port glyph (the legacy 4 px for no
-          appearance or a filled square, 6 px for an outlined glyph, 5 px for a proxy circle) and the
-          bounds of a port glyph.
+          appearance or a filled square, 6 px for an outlined glyph, 5 px for a proxy circle), the
+          bounds of a port glyph, and the retraction of a marker end that sits on a port centre.
         justification: |
           The glyph half size is the single source for how far a marker end is shortened and how far an
           inward label is offset in both renderers; keeping the legacy value for the legacy look leaves
-          every existing diagram unchanged.
+          every existing diagram unchanged. One retraction rule shared by both renderers and the end-label
+          placer keeps the drawn marker and the label measured from it in agreement.
         tests:
           - NotationMetrics_PortGlyphHalfSizeFor_NullAndFilled_AreTheLegacyHalfSize
           - NotationMetrics_PortGlyphHalfSizeFor_OutlinedAndProxy_UseTheirOwnSizes
           - NotationMetrics_PortGlyphBounds_AreCenteredOnThePortWithTheGlyphHalfSize
+          - NotationMetrics_PortEndRetraction_OnPortWithMarker_IsTheGlyphHalfSizeElseZero
 
       - id: Rendering-Abstractions-NotationMetrics-PortArrowOrientation
         title: >-

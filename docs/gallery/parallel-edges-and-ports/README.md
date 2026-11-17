@@ -114,7 +114,7 @@ labels.
 ![The fuel-system interconnection flowing top to bottom](ports-sysml-glyphs-vertical.svg)
 
 The companion downward flow: the ports sit on the top and bottom faces, the arrows turn to match, and the outward labels
-sit beside the vertical connectors.
+sit beside the vertical connectors. End labels keep at least 4 px from markers, port glyphs, connectors, and each other.
 
 ![The downward fuel-system interconnection rendered through the raster path](ports-sysml-glyphs-vertical.png)
 

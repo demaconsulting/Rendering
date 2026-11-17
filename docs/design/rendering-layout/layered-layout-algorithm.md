@@ -187,6 +187,18 @@ for edges without end labels. The hierarchical algorithm's cross-container conne
 `ConnectorRouter` and reserve no room: their end labels are placed clear of boxes but may slide or flip in a
 crowded diagram.
 
+A diamond (`BoxShape.Diamond`) that has two or more connector ends on one face also records a marker pitch for
+that face: for each emitted line whose target end carries a marker, `MarkerFacePitch(TargetEnd)` (the marker's
+painted width plus a 4 px gap, at least the 16 px edge spacing; zero for `EndMarkerStyle.None`, and source ends
+carry no marker) joins the end-label pitches in the per-node, per-face pitch map. Because `PortDistributor` spreads
+a shaped node's ports over the face less `ConnectorClearance` at each end, the face-floor for such a diamond face
+is `Total × pitch + 2 × ConnectorClearance` rather than `Total × pitch` (the same trim also applies to a diamond's
+end-label pitches). The per-node maximum pitch then flows to `MinPortPitch` so `PortAligner` keeps the same spacing
+between slid ports. A single-connector face, a face whose ends have no marker, and every non-diamond shape take
+the unchanged path, so rectangle and legacy-oracle output is byte-identical. A marker end on a port also reserves
+the port glyph's half size on the straight run (`EndLabelAlong`), because both renderers paint that marker
+retracted onto the glyph's edge.
+
 ### LayeredLayoutAlgorithm Port Appearance
 
 Both emitted `LayoutPort`s of an edge (source and target) carry the `Appearance` of their `LayoutGraphPort`. For

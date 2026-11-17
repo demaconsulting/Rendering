@@ -110,6 +110,44 @@ public sealed class CanvasNetEndLabelTests
         Assert.True(Math.Abs((sumY / count) - placement.Y) <= 3, $"centroid {sumX / count:0.00},{sumY / count:0.00} vs placement {placement.X:0.00},{placement.Y:0.00}");
     }
 
+    /// <summary>
+    ///     An end label at a marker end on a port is placed from the marker's retracted tip: the PNG renderer
+    ///     passes its ports to the placer, so there is ink at the port-aware placement and the label keeps at
+    ///     least 4 px from the retracted marker.
+    /// </summary>
+    [Fact]
+    public void PngPortEnd_LabelClearOfRetractedMarker()
+    {
+        // Arrange
+        var appearance = new PortAppearance(PortDirection.In);
+        var port = new LayoutPort(100, 60, PortSide.Right, null, Appearance: appearance);
+        var line = new LayoutLine(
+            [new Point2D(300, 60), new Point2D(100, 60)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            null,
+            null,
+            new LineEndLabel("feeds", "0..*"));
+        var tree = new LayoutTree(400, 120, [new LayoutBox(20, 30, 80, 60, null, 0, BoxShape.Rectangle, [], []), port, line]);
+        var scale = NotationMetrics.MarkerScale(Themes.Light);
+        var boxes = tree.Nodes.OfType<LayoutBox>();
+        var withPorts = ConnectorLabelPlacer.PlaceEndLabels([line], Themes.Light.FontSizeBody, boxes, scale, null, [port]);
+
+        // Act
+        using var surface = Render(tree);
+
+        // Assert
+        var markerEnd = 100 + NotationMetrics.PortGlyphHalfSizeFor(appearance) + (NotationMetrics.AlongLineLength(EndMarkerStyle.FilledArrow) * scale);
+        Assert.Equal(2, withPorts.Count);
+        foreach (var placement in withPorts)
+        {
+            Assert.True(placement.X - placement.HalfWidth + 2.0 - markerEnd >= 4.0 - 1e-6, $"'{placement.Text}' is too close to the retracted marker");
+            var ink = CountInk(surface, placement.X - placement.HalfWidth, placement.Y - placement.HalfHeight, placement.X + placement.HalfWidth, placement.Y + placement.HalfHeight);
+            Assert.True(ink >= 6, $"label '{placement.Text}' has only {ink} ink pixels at the port-aware position");
+        }
+    }
+
     /// <summary>A line with no end labels has no ink above it, where the labels would otherwise sit.</summary>
     [Fact]
     public void PngLineWithoutEndLabels_HasNoInkBesideTheLine()

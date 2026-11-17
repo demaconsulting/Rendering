@@ -385,8 +385,10 @@ and font size and the absence of the background filter, `SvgRenderer_NullOrEmpty
 `SvgRenderer_LineWithoutEndLabels_ProducesNoLabelText` assert nothing is drawn for blank or absent labels,
 `SvgRenderer_EndLabelText_IsXmlEscaped` asserts escaping, `SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas` asserts
 the canvas includes a label that extends past the declared width, and
-`SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize` asserts the render scale. The gallery-project parity test
-`SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor` asserts the PNG label is centered on the SVG anchor.
+`SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize` asserts the render scale.
+`SvgRenderer_PortEnd_LabelClearOfRetractedMarker` asserts a label at a marker end on a port is drawn at the port-aware
+placement, shifted outward by the retraction, and at least 4 px from the retracted marker. The gallery-project parity
+test `SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor` asserts the PNG label is centered on the SVG anchor.
 
 **Covers**: `Rendering-Svg-SvgRenderer-EndLabels`.
 
@@ -548,7 +550,7 @@ asserts the canvas grows.
   `SvgRenderer_EndLabels_UseTheMidpointLabelFontWithoutABackground`,
   `SvgRenderer_NullOrEmptyEndLabelSlots_ProduceNoText`, `SvgRenderer_LineWithoutEndLabels_ProducesNoLabelText`,
   `SvgRenderer_EndLabelText_IsXmlEscaped`, `SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas`,
-  `SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize`,
+  `SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize`, `SvgRenderer_PortEnd_LabelClearOfRetractedMarker`,
   `SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor`
 - **`Rendering-Svg-SvgRenderer-PortGlyphs`**:
   `SvgRenderer_LegacyPort_IsTheHistoricalFilledSquare`, `SvgRenderer_OutlinedPort_IsARoundedBackgroundFilledSquare`,

@@ -251,6 +251,163 @@ public sealed class DiamondShapeAnchorTests
         }
     }
 
+    /// <summary>
+    ///     Several connectors ending on one diamond face keep their end markers a marker width plus 4 px
+    ///     apart in every flow direction and for every marker style, so arrowheads never touch.
+    /// </summary>
+    /// <param name="direction">The flow direction.</param>
+    /// <param name="style">The end-marker style.</param>
+    [Theory]
+    [InlineData(LayoutFlowDirection.Down, EndMarkerStyle.FilledArrow)]
+    [InlineData(LayoutFlowDirection.Down, EndMarkerStyle.HollowTriangle)]
+    [InlineData(LayoutFlowDirection.Down, EndMarkerStyle.FilledDiamond)]
+    [InlineData(LayoutFlowDirection.Down, EndMarkerStyle.Bar)]
+    [InlineData(LayoutFlowDirection.Up, EndMarkerStyle.FilledArrow)]
+    [InlineData(LayoutFlowDirection.Up, EndMarkerStyle.FilledDiamond)]
+    [InlineData(LayoutFlowDirection.Right, EndMarkerStyle.FilledArrow)]
+    [InlineData(LayoutFlowDirection.Right, EndMarkerStyle.Bar)]
+    [InlineData(LayoutFlowDirection.Left, EndMarkerStyle.HollowTriangle)]
+    [InlineData(LayoutFlowDirection.Left, EndMarkerStyle.FilledArrow)]
+    public void LayeredLayout_DiamondTarget_ThreeSources_MarkerHeadsKeepClearOfEachOther(
+        LayoutFlowDirection direction,
+        EndMarkerStyle style)
+    {
+        // Arrange
+        var graph = MergeGraph(direction, sources: 3, style);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        AssertMarkerHeadsKeepApart(tree, direction, style);
+    }
+
+    /// <summary>
+    ///     A narrow (44 px) merge diamond with two sources also keeps its two heads apart; the face used to
+    ///     give them a 12 px pitch.
+    /// </summary>
+    [Fact]
+    public void LayeredLayout_DiamondTarget_TwoSources_MarkerHeadsKeepClear()
+    {
+        // Arrange
+        var graph = MergeGraph(LayoutFlowDirection.Down, sources: 2, EndMarkerStyle.FilledArrow, size: 44);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        AssertMarkerHeadsKeepApart(tree, LayoutFlowDirection.Down, EndMarkerStyle.FilledArrow);
+    }
+
+    /// <summary>
+    ///     A decision diamond's source ends carry no marker, so its three branches keep the existing
+    ///     connector-clearance growth only (width 60, height unchanged), not a marker pitch.
+    /// </summary>
+    [Fact]
+    public void LayeredLayout_DiamondDecisionThreeBranches_SourceEndsWithoutMarker_KeepClearanceGrowthOnly()
+    {
+        // Arrange
+        var graph = DecisionGraph(LayoutFlowDirection.Down, branches: 3);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert: no marker pitch applies at a marker-less source end, so only the existing growth holds.
+        var diamond = DiamondBox(tree);
+        Assert.Equal(60.0, diamond.Width, 6);
+        Assert.Equal(40.0, diamond.Height, 6);
+    }
+
+    /// <summary>
+    ///     A single connector on a diamond face never grows the diamond and still ends on the vertex.
+    /// </summary>
+    [Fact]
+    public void LayeredLayout_DiamondSingleEdge_KeepsRequestedSizeAndVertexAnchor()
+    {
+        // Arrange
+        var graph = MergeGraph(LayoutFlowDirection.Down, sources: 1, EndMarkerStyle.FilledArrow, size: 44);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        var diamond = DiamondBox(tree);
+        Assert.Equal(44.0, diamond.Width, 6);
+        Assert.Equal(44.0, diamond.Height, 6);
+        var line = Assert.Single(DiagramQuality.Lines(tree));
+        Assert.Equal(diamond.X + (diamond.Width / 2.0), line.Waypoints[^1].X, 6);
+        Assert.Equal(diamond.Y, line.Waypoints[^1].Y, 6);
+    }
+
+    /// <summary>
+    ///     The growth is diamond-only: a rectangle with three sources keeps its 60 px clearance-based width
+    ///     and its evenly spread anchors.
+    /// </summary>
+    [Fact]
+    public void LayeredLayout_RectangleTarget_ThreeSources_SizeAndAnchorsUnchanged()
+    {
+        // Arrange
+        var graph = MergeGraph(LayoutFlowDirection.Down, sources: 3, EndMarkerStyle.FilledArrow, size: 44, diamond: false);
+
+        // Act
+        var tree = new LayeredLayoutAlgorithm().ApplyCore(graph, new LayoutOptions());
+
+        // Assert
+        var merge = AllBoxes(tree.Nodes).Single(box => box.Label is null && box.Width < 80);
+        Assert.Equal(60.0, merge.Width, 6);
+        var ends = DiagramQuality.Lines(tree).Select(line => line.Waypoints[^1].X).Order().ToList();
+        var pitch = merge.Width / 3.0;
+        Assert.Equal(merge.X + (pitch / 2.0), ends[0], 6);
+        Assert.Equal(merge.X + (pitch * 2.5), ends[2], 6);
+    }
+
+    /// <summary>Builds a merge node (diamond unless <paramref name="diamond"/> is false) with several sources.</summary>
+    private static LayoutGraph MergeGraph(
+        LayoutFlowDirection direction,
+        int sources,
+        EndMarkerStyle style,
+        double size = 44,
+        bool diamond = true)
+    {
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Direction, direction);
+        var merge = graph.AddNode("merge", size, size);
+        if (diamond)
+        {
+            merge.Shape = BoxShape.Diamond;
+        }
+
+        for (var i = 0; i < sources; i++)
+        {
+            var source = graph.AddNode($"s{i}", 100, 40);
+            graph.AddEdge($"e{i}", source, merge).TargetEnd = style;
+        }
+
+        return graph;
+    }
+
+    /// <summary>
+    ///     Asserts that adjacent end points of the lines ending on the single diamond keep a marker width
+    ///     plus the 4 px gap along the face axis.
+    /// </summary>
+    private static void AssertMarkerHeadsKeepApart(LayoutTree tree, LayoutFlowDirection direction, EndMarkerStyle style)
+    {
+        var vertical = direction is LayoutFlowDirection.Down or LayoutFlowDirection.Up;
+        var ends = DiagramQuality.Lines(tree)
+            .Select(line => vertical ? line.Waypoints[^1].X : line.Waypoints[^1].Y)
+            .Order()
+            .ToList();
+        Assert.True(ends.Count >= 2);
+        var required = (2.0 * NotationMetrics.AcrossHalfWidth(style) * NotationMetrics.MarkerScale(Themes.Light))
+            + NotationMetrics.MarkerStrokeWidth(Themes.Light) + 4.0;
+        for (var i = 1; i < ends.Count; i++)
+        {
+            Assert.True(
+                ends[i] - ends[i - 1] >= required - 1e-6,
+                $"adjacent {style} heads are {ends[i] - ends[i - 1]:0.##} px apart, need {required:0.##}");
+        }
+    }
+
     /// <summary>Builds a decision diamond with <paramref name="branches"/> wide targets.</summary>
     private static LayoutGraph DecisionGraph(LayoutFlowDirection direction, int branches, double size = 40)
     {

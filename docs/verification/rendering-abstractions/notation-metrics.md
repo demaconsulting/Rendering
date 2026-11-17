@@ -240,16 +240,18 @@ equals a rectangle's.
 #### Port glyph sizes, arrow orientation, and outward label
 
 `NotationMetrics_PortGlyphHalfSizeFor_NullAndFilled_AreTheLegacyHalfSize` and
-`NotationMetrics_PortGlyphHalfSizeFor_OutlinedAndProxy_UseTheirOwnSizes` assert the glyph half sizes (4, 6, and 5
-px) and the automatic resolution; `NotationMetrics_PortGlyphBounds_AreCenteredOnThePortWithTheGlyphHalfSize`
-asserts the glyph rectangle. `NotationMetrics_PortArrowSegments_None_IsEmpty`,
+`NotationMetrics_PortGlyphHalfSizeFor_OutlinedAndProxy_UseTheirOwnSizes` assert the glyph half sizes (4, 6, and 5 px)
+and the automatic resolution; `NotationMetrics_PortGlyphBounds_AreCenteredOnThePortWithTheGlyphHalfSize` asserts the
+glyph rectangle. `NotationMetrics_PortEndRetraction_OnPortWithMarker_IsTheGlyphHalfSizeElseZero` asserts a marker end on
+a port centre retracts by the glyph half size (legacy, outlined, proxy) and by nothing when off a port, without a
+marker, on a too-short segment, or with no ports. `NotationMetrics_PortArrowSegments_None_IsEmpty`,
 `NotationMetrics_PortArrowSegments_InAndOut_PointIntoAndAwayFromThePart` (all four sides),
 `NotationMetrics_PortArrowSegments_InOut_IsSymmetricAndDoubleHeaded`, and
 `NotationMetrics_PortArrowSegments_StayInsideTheGlyph` assert the arrow orientation table.
 `NotationMetrics_IsOutwardLabel_RequiresOutwardPlacementAndALabel`,
 `NotationMetrics_PortOutwardLabelBounds_LieOutsideTheBoxAndClearOfTheConnector` (every face), and
-`NotationMetrics_PortOutwardLabelAnchor_LiesInsideTheBounds` assert the outward label lies outside the box,
-beyond the glyph, and off the connector axis.
+`NotationMetrics_PortOutwardLabelAnchor_LiesInsideTheBounds` assert the outward label lies outside the box, beyond the
+glyph, and off the connector axis.
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-PortGlyphGeometry`,
 `Rendering-Abstractions-NotationMetrics-PortArrowOrientation`,
@@ -302,7 +304,8 @@ beyond the glyph, and off the connector axis.
 - **`Rendering-Abstractions-NotationMetrics-PortGlyphGeometry`**:
   NotationMetrics_PortGlyphHalfSizeFor_NullAndFilled_AreTheLegacyHalfSize,
   NotationMetrics_PortGlyphHalfSizeFor_OutlinedAndProxy_UseTheirOwnSizes,
-  NotationMetrics_PortGlyphBounds_AreCenteredOnThePortWithTheGlyphHalfSize
+  NotationMetrics_PortGlyphBounds_AreCenteredOnThePortWithTheGlyphHalfSize,
+  NotationMetrics_PortEndRetraction_OnPortWithMarker_IsTheGlyphHalfSizeElseZero
 - **`Rendering-Abstractions-NotationMetrics-PortArrowOrientation`**: NotationMetrics_PortArrowSegments_None_IsEmpty,
   NotationMetrics_PortArrowSegments_InAndOut_PointIntoAndAwayFromThePart,
   NotationMetrics_PortArrowSegments_InOut_IsSymmetricAndDoubleHeaded,

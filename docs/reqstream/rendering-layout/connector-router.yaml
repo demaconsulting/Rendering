@@ -295,13 +295,17 @@ sections:
           its bounding box: the shape geometry shall report the full face as connectable and project an
           along-face coordinate onto the sloped outline (zero at the vertex), and every layout path
           (ConnectorRouter, layered, hierarchical) shall leave the outline perpendicular to the face with
-          the connector stub measured from the outline.
+          the connector stub measured from the outline. When several connectors end on one diamond face
+          the diamond shall grow so adjacent end markers keep a marker width plus 4 px apart.
         justification: |
           A diamond's outline recedes from its bounding box towards each vertex, so anchoring on the
           bounding box left a gap and a hook between the shape and its connectors (Rendering#58). The
           shape-aware anchor machinery already projects folder tabs inward; giving the diamond a sloped
           projection fixes every algorithm through the same path while a single connector on a face still
-          lands exactly on the vertex.
+          lands exactly on the vertex. A shaped node spreads its ports over the face less the connector
+          clearance at each end, so several ends on one diamond face would otherwise land closer together
+          than the marker is wide; the diamond grows by that trim and keeps the marker heads a marker
+          width plus 4 px apart.
         tests:
           - LayeredLayout_DiamondSourceTwoTargets_Down_FirstRunStartsOnOutlineAndIsClean
           - LayeredLayout_DiamondSingleEdge_AnchorsOnTheVertex
@@ -312,6 +316,11 @@ sections:
           - HierarchicalLayout_DiamondInsideContainer_CrossContainerEdgeStartsOnOutline
           - DiamondGeometry_ProjectToSurface_IsZeroAtVertexAndLinearToTheCorner
           - ContainmentAndAutoLayout_DiamondNode_PassesShapeThrough
+          - LayeredLayout_DiamondTarget_ThreeSources_MarkerHeadsKeepClearOfEachOther
+          - LayeredLayout_DiamondTarget_TwoSources_MarkerHeadsKeepClear
+          - LayeredLayout_DiamondDecisionThreeBranches_SourceEndsWithoutMarker_KeepClearanceGrowthOnly
+          - LayeredLayout_DiamondSingleEdge_KeepsRequestedSizeAndVertexAnchor
+          - LayeredLayout_RectangleTarget_ThreeSources_SizeAndAnchorsUnchanged
 
       - id: Rendering-Layout-ConnectorRouter-EndLabelPropagation
         title: >-

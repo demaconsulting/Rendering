@@ -186,6 +186,18 @@ cross-container path. `DiamondGeometry_ProjectToSurface_IsZeroAtVertexAndLinearT
 projection and the full connectable extent for square and non-square boxes, and
 `ContainmentAndAutoLayout_DiamondNode_PassesShapeThrough` asserts the shape reaches the placed box.
 
+Several connectors on one diamond face keep their markers apart:
+`LayeredLayout_DiamondTarget_ThreeSources_MarkerHeadsKeepClearOfEachOther` (theory over four flow directions and the
+filled arrow, hollow triangle, filled diamond, and bar markers) and
+`LayeredLayout_DiamondTarget_TwoSources_MarkerHeadsKeepClear` (a 44 px diamond) assert that adjacent end points are at
+least a marker's painted width plus 4 px apart;
+`LayeredLayout_DiamondDecisionThreeBranches_SourceEndsWithoutMarker_KeepClearanceGrowthOnly` asserts a marker-less
+source face only keeps the existing growth, `LayeredLayout_DiamondSingleEdge_KeepsRequestedSizeAndVertexAnchor` asserts
+a single connector neither grows the diamond nor leaves the vertex, and
+`LayeredLayout_RectangleTarget_ThreeSources_SizeAndAnchorsUnchanged` asserts the growth is diamond-only. The gallery
+test `Gallery_Regression58_DiamondOutlineAnchors_MarkerHeadsKeepApart` repeats the check for the showcase scene in the
+laid-out tree and in the rendered SVG's `marker-end` paths.
+
 **Covers**: `Rendering-Layout-ConnectorRouter-DiamondOutlineAnchors`.
 
 #### End labels reach the routed line
@@ -280,5 +292,10 @@ occupied face position moves to a free spot), and TryResolveFaceAnchor_PointOnFa
   ConnectorRouter_Route_DiamondTarget_AnchorsOnOutline,
   HierarchicalLayout_DiamondInsideContainer_CrossContainerEdgeStartsOnOutline,
   DiamondGeometry_ProjectToSurface_IsZeroAtVertexAndLinearToTheCorner,
-  ContainmentAndAutoLayout_DiamondNode_PassesShapeThrough
+  ContainmentAndAutoLayout_DiamondNode_PassesShapeThrough,
+  LayeredLayout_DiamondTarget_ThreeSources_MarkerHeadsKeepClearOfEachOther,
+  LayeredLayout_DiamondTarget_TwoSources_MarkerHeadsKeepClear,
+  LayeredLayout_DiamondDecisionThreeBranches_SourceEndsWithoutMarker_KeepClearanceGrowthOnly,
+  LayeredLayout_DiamondSingleEdge_KeepsRequestedSizeAndVertexAnchor,
+  LayeredLayout_RectangleTarget_ThreeSources_SizeAndAnchorsUnchanged
 - **`Rendering-Layout-ConnectorRouter-EndLabelPropagation`**: ConnectorRouter_Connection_EndLabelsReachRoutedLine

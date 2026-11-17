@@ -292,6 +292,7 @@ labels are drawn in the final pass of `Render` so later wires cannot cover earli
 Before the nodes are rendered, a line end that carries an end marker and coincides (within 0.5 px) with a
 `LayoutPort` centre is moved `NotationMetrics.PortHalfSize` along its end segment, away from the port
 (`RewriteForPorts` / `ShortenLineForPorts` / `RetreatFromPort`, recursing through boxes and bands). The
+amount is the shared `NotationMetrics.PortEndRetraction` (the glyph half size). The
 port square is painted after the connector and would otherwise hide the last half port size of the
 marker; shortening the drawn end puts the painted tip on the port square's outer edge. The end segment
 must be longer than the port half size; the layout tree, the connector label placement and an end
@@ -401,7 +402,9 @@ centered-title diamond is centered on the box. Rectangle boxes keep their `<rect
 #### Connection End Labels
 
 After the midpoint labels are placed, `Render` calls `ConnectorLabelPlacer.PlaceEndLabels` with the midpoint
-placements as occupied rectangles, grows the canvas to include every end-label box, and in the final label pass
+placements and the port glyph and label rectangles as occupied rectangles and every port of the tree as `ports`
+(so a marker end retracted onto a port glyph is measured from where it is painted), grows the canvas to include
+every end-label box, and in the final label pass
 draws each placement as a centered `<text>` with the midpoint label's font, fill, and middle baseline but **no**
 `label-bg` filter, because an end label sits beside its own line and a background could only erase a neighboring
 connector (the text is XML-escaped). A line without end labels adds nothing, so existing output is unchanged.

@@ -217,6 +217,30 @@ public sealed class PortGlyphMetricsTests
         Assert.Equal(new LabelPlacement(30, 40, 6, 6), outlinedBounds);
     }
 
+    /// <summary>
+    ///     A marker end on a port centre retracts by the glyph's own half size (legacy square, outlined,
+    ///     proxy), and by nothing when the end is off a port, has no marker, the segment is too short, or
+    ///     there are no ports.
+    /// </summary>
+    [Fact]
+    public void NotationMetrics_PortEndRetraction_OnPortWithMarker_IsTheGlyphHalfSizeElseZero()
+    {
+        // Arrange
+        var legacy = new LayoutPort(100, 100, PortSide.Top, null);
+        var outlined = new LayoutPort(200, 100, PortSide.Top, null, Appearance: new PortAppearance(PortDirection.In));
+        var proxy = new LayoutPort(300, 100, PortSide.Top, null, Appearance: new PortAppearance(Glyph: PortGlyph.Proxy));
+        LayoutPort[] ports = [legacy, outlined, proxy];
+
+        // Act / Assert
+        Assert.Equal(NotationMetrics.PortHalfSize, NotationMetrics.PortEndRetraction(new Point2D(100, 100), new Point2D(100, 40), EndMarkerStyle.OpenChevron, ports));
+        Assert.Equal(NotationMetrics.PortGlyphHalfSize, NotationMetrics.PortEndRetraction(new Point2D(200.3, 99.8), new Point2D(200, 40), EndMarkerStyle.FilledArrow, ports));
+        Assert.Equal(NotationMetrics.PortProxyRadius, NotationMetrics.PortEndRetraction(new Point2D(300, 100), new Point2D(300, 40), EndMarkerStyle.FilledDiamond, ports));
+        Assert.Equal(0.0, NotationMetrics.PortEndRetraction(new Point2D(150, 100), new Point2D(150, 40), EndMarkerStyle.OpenChevron, ports));
+        Assert.Equal(0.0, NotationMetrics.PortEndRetraction(new Point2D(200, 100), new Point2D(200, 40), EndMarkerStyle.None, ports));
+        Assert.Equal(0.0, NotationMetrics.PortEndRetraction(new Point2D(200, 100), new Point2D(200, 95), EndMarkerStyle.OpenChevron, ports));
+        Assert.Equal(0.0, NotationMetrics.PortEndRetraction(new Point2D(200, 100), new Point2D(200, 40), EndMarkerStyle.OpenChevron, null));
+    }
+
     private static (double Min, double Max) TipExtent(IReadOnlyList<IReadOnlyList<Point2D>> segments, int axisX, int axisY)
     {
         var values = segments.SelectMany(segment => segment).Select(point => (point.X * axisX) + (point.Y * axisY)).ToList();

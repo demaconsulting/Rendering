@@ -89,6 +89,47 @@ public sealed class SvgEndLabelTests
         Assert.Contains($"font-size=\"{F(Themes.Light.FontSizeBody)}\"", text, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    ///     An end label at a marker end on a port is placed from the marker's retracted (painted) tip, not
+    ///     the port centre: the renderer passes its ports to the placer, and the text keeps at least 4 px
+    ///     from the retracted marker.
+    /// </summary>
+    [Fact]
+    public void SvgRenderer_PortEnd_LabelClearOfRetractedMarker()
+    {
+        // Arrange: a line arriving at a port on the right face of box A, with a target end label.
+        var appearance = new PortAppearance(PortDirection.In);
+        var port = new LayoutPort(100, 60, PortSide.Right, null, Appearance: appearance);
+        var line = new LayoutLine(
+            [new Point2D(300, 60), new Point2D(100, 60)],
+            EndMarkerStyle.None,
+            EndMarkerStyle.FilledArrow,
+            LineStyle.Solid,
+            null,
+            null,
+            new LineEndLabel("feeds", "0..*"));
+        var tree = new LayoutTree(400, 120, [new LayoutBox(20, 30, 80, 60, "A", 0, BoxShape.Rectangle, [], []), port, line]);
+
+        // Act
+        var svg = Render(tree);
+
+        // Assert
+        var boxes = tree.Nodes.OfType<LayoutBox>();
+        var scale = NotationMetrics.MarkerScale(Themes.Light);
+        var withPorts = ConnectorLabelPlacer.PlaceEndLabels([line], Themes.Light.FontSizeBody, boxes, scale, null, [port]);
+        var without = ConnectorLabelPlacer.PlaceEndLabels([line], Themes.Light.FontSizeBody, boxes, scale);
+        Assert.Equal(2, withPorts.Count);
+        var markerEnd = 100 + NotationMetrics.PortGlyphHalfSizeFor(appearance) + (NotationMetrics.AlongLineLength(EndMarkerStyle.FilledArrow) * scale);
+        foreach (var placement in withPorts)
+        {
+            var (x, y) = TextPosition(svg, placement.Text);
+            Assert.Equal(F(placement.X), x);
+            Assert.Equal(F(placement.Y), y);
+            Assert.True(placement.X - placement.HalfWidth + 2.0 - markerEnd >= 4.0 - 1e-6, $"'{placement.Text}' is too close to the retracted marker");
+            Assert.True(placement.X > without.Single(w => w.Text == placement.Text).X, "the port retraction must shift the label outward");
+        }
+    }
+
     /// <summary>Null and empty slots produce no text element.</summary>
     [Fact]
     public void SvgRenderer_NullOrEmptyEndLabelSlots_ProduceNoText()

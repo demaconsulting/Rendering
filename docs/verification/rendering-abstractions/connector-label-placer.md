@@ -140,19 +140,28 @@ a `null` line sequence and asserts each raises `ArgumentNullException`.
 
 #### End labels sit near their end, beside the line, clear of everything
 
-`ConnectorLabelPlacerEndLabelTests` drive `PlaceEndLabels` directly. `PlaceEndLabels_NoEndLabels_ReturnsEmpty`
-asserts nothing is returned without labels. `PlaceEndLabels_HorizontalLine_PrimaryAboveSecondaryBelowNearEachEnd`
-and `PlaceEndLabels_VerticalLine_PrimaryRightSecondaryLeft` assert the notation sides and that each label lies in
-the half of the line next to its own end; `PlaceEndLabels_RightToLeftLine_PrimaryStillAbove` asserts a reversed
-line keeps the primary label above. `PlaceEndLabels_LabelsStayClearOfTheBoxAtTheEnd` and
-`PlaceEndLabels_LabelsStayClearOfTheEndMarker` assert the box and marker footprints are never overlapped, and
+`ConnectorLabelPlacerEndLabelTests` drive `PlaceEndLabels` directly. `PlaceEndLabels_NoEndLabels_ReturnsEmpty` asserts
+nothing is returned without labels. `PlaceEndLabels_HorizontalLine_PrimaryAboveSecondaryBelowNearEachEnd` and
+`PlaceEndLabels_VerticalLine_PrimaryRightSecondaryLeft` assert the notation sides and that each label lies in the half
+of the line next to its own end; `PlaceEndLabels_RightToLeftLine_PrimaryStillAbove` asserts a reversed line keeps the
+primary label above. `PlaceEndLabels_LabelsStayClearOfTheBoxAtTheEnd` and `PlaceEndLabels_LabelsStayClearOfTheEndMarker`
+assert the box and marker footprints are never overlapped, and
 `PlaceEndLabels_LabelsDoNotOverlapEachOtherOrOccupiedRectangles` asserts eight labels on two stacked lines and a
 supplied midpoint rectangle never overlap. `PlaceEndLabels_IsDeterministic` asserts repeatable output,
-`PlaceEndLabels_LabelWiderThanTheRun_StillPlacedAtTheNominalPosition` asserts a label that cannot fit is still
-placed, `PlaceEndLabels_NullOrEmptySlots_AreSkipped` asserts blank slots yield nothing, and
-`PlaceEndLabels_NullArguments_Throw` asserts null arguments are rejected.
-`Place_MidpointPlacements_UnchangedByEndLabels` asserts a line's midpoint placement is identical with and without
-end labels.
+`PlaceEndLabels_LabelWiderThanTheRun_StillPlacedAtTheNominalPosition` asserts a label that cannot fit is still placed,
+`PlaceEndLabels_NullOrEmptySlots_AreSkipped` asserts blank slots yield nothing, and `PlaceEndLabels_NullArguments_Throw`
+asserts null arguments are rejected. `PlaceEndLabels_VerticalTargetEndOnPort_KeepsFourPixelsFromRetractedMarker` asserts
+a marker end on a port is measured from its retracted tip and both slots keep 4 px from it,
+`PlaceEndLabels_VerticalRun_SecondaryKeepsFourPixelsFromConnector` asserts both vertical slots keep 4 px from their own
+connector, `PlaceEndLabels_OccupiedRectangle_KeepsFourPixelsOfClearance` asserts a rectangle touching the nominal slot
+is kept 4 px clear, `PlaceEndLabels_StackedEndAndPortLabel_KeepFourPixelGap` asserts both slots keep 4 px from a port
+glyph and port label, and `PlaceEndLabels_NoPorts_PositionsUnchanged` pins the nominal position when no ports are given.
+The gallery tests `Gallery_SysmlPortsHorizontal_RendersSvgAndPngWithoutLabelOverlaps`,
+`Gallery_SysmlPortsVertical_RendersSvgAndPngWithoutLabelOverlaps`, and
+`Gallery_ConnectionEndLabels_RendersSvgAndPngWithoutLabelOverlaps` assert at least 3.5 px (4 px less estimate tolerance)
+between every end label and port glyph, port label, connector segment, retracted end marker, and other end label.
+`Place_MidpointPlacements_UnchangedByEndLabels` asserts a line's midpoint placement is identical with and without end
+labels.
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-EndLabelPlacement`,
 `Rendering-Abstractions-ConnectorLabelPlacer-EndLabelsKeepMidpointPlacementsUnchanged`.
@@ -188,6 +197,10 @@ end labels.
   PlaceEndLabels_LabelsStayClearOfTheBoxAtTheEnd, PlaceEndLabels_LabelsStayClearOfTheEndMarker,
   PlaceEndLabels_LabelsDoNotOverlapEachOtherOrOccupiedRectangles, PlaceEndLabels_IsDeterministic,
   PlaceEndLabels_LabelWiderThanTheRun_StillPlacedAtTheNominalPosition, PlaceEndLabels_NullOrEmptySlots_AreSkipped,
-  PlaceEndLabels_NullArguments_Throw
+  PlaceEndLabels_NullArguments_Throw,
+  PlaceEndLabels_VerticalTargetEndOnPort_KeepsFourPixelsFromRetractedMarker,
+  PlaceEndLabels_VerticalRun_SecondaryKeepsFourPixelsFromConnector,
+  PlaceEndLabels_OccupiedRectangle_KeepsFourPixelsOfClearance,
+  PlaceEndLabels_StackedEndAndPortLabel_KeepFourPixelGap, PlaceEndLabels_NoPorts_PositionsUnchanged
 - **`Rendering-Abstractions-ConnectorLabelPlacer-EndLabelsKeepMidpointPlacementsUnchanged`**:
   Place_MidpointPlacements_UnchangedByEndLabels

@@ -50,7 +50,7 @@ public static partial class NotationMetrics
     public const double PortArrowHeadSize = 2.0;
 
     /// <summary>Clearance, in logical pixels, kept between an outward label and the widest end marker beside it.</summary>
-    private const double PortLabelConnectorClearance = 1.0;
+    private const double PortLabelConnectorClearance = 4.0;
 
     /// <summary>Half the height of a port label's text box, as a fraction of the body font size.</summary>
     private const double PortLabelHalfHeightFactor = 0.65;
@@ -85,6 +85,38 @@ public static partial class NotationMetrics
             PortGlyph.Proxy => PortProxyRadius,
             _ => PortHalfSize,
         };
+
+    /// <summary>
+    /// Returns how far, in logical pixels, a renderer retracts a connector's marker end from a port centre
+    /// along the end segment so the painted marker tip lands on the port glyph's outer edge: the glyph half
+    /// size (<see cref="PortGlyphHalfSizeFor"/>) when the end carries a marker, coincides with a port centre
+    /// (within 0.5 px), and the end segment is longer than that; zero otherwise. It is the single rule the
+    /// renderers shorten lines by and the end-label placer measures from, so the two never disagree.
+    /// </summary>
+    /// <param name="end">The connector end point.</param>
+    /// <param name="adjacent">The adjacent waypoint, which gives the end segment's length.</param>
+    /// <param name="style">The end marker drawn at <paramref name="end"/>.</param>
+    /// <param name="ports">Every port in the tree, or <see langword="null"/> for none.</param>
+    /// <returns>The retraction distance; zero when the end is not retracted.</returns>
+    public static double PortEndRetraction(Point2D end, Point2D adjacent, EndMarkerStyle style, IEnumerable<LayoutPort>? ports)
+    {
+        const double portTolerance = 0.5;
+        if (style == EndMarkerStyle.None || ports is null)
+        {
+            return 0.0;
+        }
+
+        var onPort = ports.FirstOrDefault(port => Math.Abs(port.CentreX - end.X) <= portTolerance && Math.Abs(port.CentreY - end.Y) <= portTolerance);
+        if (onPort is null)
+        {
+            return 0.0;
+        }
+
+        var halfSize = PortGlyphHalfSizeFor(onPort.Appearance);
+        var dx = adjacent.X - end.X;
+        var dy = adjacent.Y - end.Y;
+        return Math.Sqrt((dx * dx) + (dy * dy)) > halfSize ? halfSize : 0.0;
+    }
 
     /// <summary>
     /// Returns the polylines of a port's direction arrow in glyph-local coordinates (offsets from the port
