@@ -141,6 +141,16 @@ with the midpoint placements plus those port rectangles as `occupied` and the po
 canvas fitting (`CanvasFitter`) all call it, so they always agree on where a label lands; none of them keeps its own
 copy of the obstacle rules.
 
+#### Leading overhang
+
+`MeasureLeadingOverhang(boxes, lines, ports, labels, theme)` returns the translation (non-negative X and Y) that makes
+everything the renderers draw lie right of and below the origin, measured with the caller's theme: box corners,
+connector waypoints, half the across width of each end marker at a line end, every resolved label rectangle, and every
+port glyph and outward port label. It is zero on both axes when everything is already inside, so a tree that fits
+renders byte-identically. The layout's canvas fit assumes the light theme's metrics; both renderers call this method
+after `ResolveLabels` with the actual theme and, when the result is non-zero, grow the canvas and translate all content
+by it.
+
 ### Connector Label Placer Error Handling
 
 `Place` validates its `lines` argument with `ArgumentNullException.ThrowIfNull` and propagates the
@@ -216,3 +226,4 @@ is called by the renderers (SVG and PNG systems) before drawing connector labels
 | Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration | Box-aware `Place` footprints |
 | Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments | Box-aware `Place` guards |
 | Rendering-Abstractions-ConnectorLabelPlacer-SharedLabelResolution | `ResolveLabels`, `PortOccupiedRects` |
+| Rendering-Abstractions-ConnectorLabelPlacer-LeadingOverhang | `MeasureLeadingOverhang` |

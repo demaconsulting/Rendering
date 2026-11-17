@@ -752,3 +752,16 @@ sections:
           - SvgRenderer_InwardLabelOfOutlinedPort_IsOffsetByTheGlyphHalfSize
           - SvgRenderer_MarkerEndOnPort_IsShortenedByTheGlyphHalfSize
           - SvgRenderer_OutwardLabelBeyondTheCanvas_GrowsTheCanvas
+
+      - id: Rendering-Svg-SvgRenderer-CustomThemeContainment
+        title: >-
+          SvgRenderer shall measure the content it draws with the caller's theme and, when any label, port
+          glyph, port label or marker would extend left of or above the origin, grow the canvas and translate
+          all content so nothing is clipped, adding no translation when everything already fits.
+        justification: |
+          The layout fits its canvas with the light theme's metrics, so a theme with a larger font or label
+          padding can push labels past the left or top edge, which a canvas that only grows right and down
+          would clip; leaving fitting content untouched keeps existing output byte-identical.
+        tests:
+          - RenderedSvg_LargeTheme_LabelsAtLeftAndTopEdge_AreInsideCanvas
+          - RenderedSvg_DefaultTheme_ContentInsideCanvas_HasNoTranslationGroup

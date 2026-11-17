@@ -180,6 +180,15 @@ port label and end label of the rendered output is inside the canvas.
 
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-SharedLabelResolution`.
 
+#### Leading overhang
+
+`MeasureLeadingOverhang_ContentInside_ReturnsZero` asserts content inside the canvas yields no translation.
+`MeasureLeadingOverhang_LabelsPastOrigin_ReturnsOverhangForTheTheme` asserts a midpoint label and an outward port label
+past the left edge produce a positive overhang and that a larger body font overhangs further, and
+`MeasureLeadingOverhang_NullArguments_Throw` asserts null arguments are rejected.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-LeadingOverhang`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled`**: Place_LineWithoutLabel_IsOmitted
@@ -222,3 +231,6 @@ port label and end label of the rendered output is inside the canvas.
   ResolveLabels_PortsAndLabels_MatchesManualComposition,
   PortOccupiedRects_OutwardLabeledPort_ReturnsGlyphAndPaddedLabel, ResolveLabels_NullArguments_Throw,
   RenderedSvg_EndLabels_AreAtThePositionsTheLayoutPredicted, RenderedSvg_OutwardPortLabelsAndEndLabels_AreInsideCanvas
+- **`Rendering-Abstractions-ConnectorLabelPlacer-LeadingOverhang`**:
+  MeasureLeadingOverhang_ContentInside_ReturnsZero, MeasureLeadingOverhang_LabelsPastOrigin_ReturnsOverhangForTheTheme,
+  MeasureLeadingOverhang_NullArguments_Throw

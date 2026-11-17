@@ -422,6 +422,14 @@ glyph's own half size, and the canvas grows to include every outward label; the 
 are also passed to the end-label placer as occupied rectangles (the outward-label rectangle padded by 5 px on
 each side so an end label never sits flush against a port label).
 
+#### Content outside the canvas for a custom theme
+
+After resolving labels with the actual theme, `Render` calls `ConnectorLabelPlacer.MeasureLeadingOverhang` for the
+boxes, lines, ports, and resolved labels. When the overhang is non-zero (a theme with a larger font, label padding or
+marker scale pushed something past the left or top edge, which the layout's light-theme canvas fit cannot know), the
+canvas width and height grow by it and every node and label is drawn inside one `<g transform="translate(...)">`
+wrapper; when it is zero no wrapper is written, so existing output is byte-identical.
+
 ### Error Handling
 
 `Render` throws `ArgumentNullException` when `layout`, `options`, or `output` is null. No other
@@ -505,3 +513,4 @@ Any consumer of the rendering library that selects vector output constructs an `
 | Rendering-Svg-SvgRenderer-BandDashed | `RenderBand` appends `DashAttribute(band.OutlineStyle)` |
 | Rendering-Svg-SvgRenderer-LifelineRoundedHeader | `RenderLifeline` rounded header, keyword line, appearance |
 | Rendering-Svg-SvgRenderer-LabelsAvoidBoxes | `Render` passes `CollectBoxes` to `ConnectorLabelPlacer.Place` |
+| Rendering-Svg-SvgRenderer-CustomThemeContainment | `Render` overhang translate group |

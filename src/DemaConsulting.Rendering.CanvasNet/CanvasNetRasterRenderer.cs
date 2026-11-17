@@ -97,36 +97,50 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         // Port glyphs and outward port labels are drawn content too, so end labels keep clear of them.
         var allPorts = new List<LayoutPort>();
         CollectPorts(layout.Nodes, allPorts);
-        var labelLayout = ConnectorLabelPlacer.ResolveLabels(lines, CollectBoxes(layout.Nodes).ToList(), allPorts, options.Theme);
+        var allBoxes = CollectBoxes(layout.Nodes).ToList();
+        var labelLayout = ConnectorLabelPlacer.ResolveLabels(lines, allBoxes, allPorts, options.Theme);
         var labelPositions = labelLayout.Midpoints;
         var endLabelPlacements = labelLayout.EndLabels;
 
-        var width = Math.Max(1, (int)Math.Ceiling(layout.Width * options.Scale));
-        var height = Math.Max(1, (int)Math.Ceiling(layout.Height * options.Scale));
+        // The layout fits its canvas with the light theme's metrics; a different theme (larger font, label
+        // padding, marker scale) can push a label, port glyph, or marker past the left or top edge, which a
+        // surface that only grows right and down would clip. Measure with the actual theme and, when anything
+        // overhangs, translate all content by the overhang (a no-op otherwise).
+        var (shiftX, shiftY) = ConnectorLabelPlacer.MeasureLeadingOverhang(allBoxes, lines, allPorts, labelLayout, options.Theme);
+
+        var width = Math.Max(1, (int)Math.Ceiling((layout.Width + shiftX) * options.Scale));
+        var height = Math.Max(1, (int)Math.Ceiling((layout.Height + shiftY) * options.Scale));
         foreach (var placement in labelPositions.Values)
         {
-            width = Math.Max(width, (int)Math.Ceiling((placement.X + placement.HalfWidth) * options.Scale));
-            height = Math.Max(height, (int)Math.Ceiling((placement.Y + placement.HalfHeight) * options.Scale));
+            width = Math.Max(width, (int)Math.Ceiling((placement.X + shiftX + placement.HalfWidth) * options.Scale));
+            height = Math.Max(height, (int)Math.Ceiling((placement.Y + shiftY + placement.HalfHeight) * options.Scale));
         }
 
         foreach (var placement in endLabelPlacements)
         {
-            width = Math.Max(width, (int)Math.Ceiling((placement.X + placement.HalfWidth) * options.Scale));
-            height = Math.Max(height, (int)Math.Ceiling((placement.Y + placement.HalfHeight) * options.Scale));
+            width = Math.Max(width, (int)Math.Ceiling((placement.X + shiftX + placement.HalfWidth) * options.Scale));
+            height = Math.Max(height, (int)Math.Ceiling((placement.Y + shiftY + placement.HalfHeight) * options.Scale));
         }
 
         // An outward port label hangs outside its box and can extend past the declared surface.
         foreach (var port in allPorts.Where(NotationMetrics.IsOutwardLabel))
         {
             var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, options.Theme);
-            width = Math.Max(width, (int)Math.Ceiling((bounds.X + bounds.HalfWidth) * options.Scale));
-            height = Math.Max(height, (int)Math.Ceiling((bounds.Y + bounds.HalfHeight) * options.Scale));
+            width = Math.Max(width, (int)Math.Ceiling((bounds.X + shiftX + bounds.HalfWidth) * options.Scale));
+            height = Math.Max(height, (int)Math.Ceiling((bounds.Y + shiftY + bounds.HalfHeight) * options.Scale));
         }
 
         var surface = new Surface(width, height);
         surface.Clear(ParseColor(options.Theme.BackgroundColor));
 
         var canvas = new CanvasRenderer(surface);
+
+        // Everything is drawn translated by the overhang, so it all lands inside the surface.
+        var shifted = shiftX > 0.0 || shiftY > 0.0;
+        if (shifted)
+        {
+            canvas.Translate((float)(shiftX * options.Scale), (float)(shiftY * options.Scale));
+        }
 
         // A marker end that sits on a port glyph is shortened to the glyph's outer edge first, so the
         // arrowhead is not hidden under the (later-drawn) port square.

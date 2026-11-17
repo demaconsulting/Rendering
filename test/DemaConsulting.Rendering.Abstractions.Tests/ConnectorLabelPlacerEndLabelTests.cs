@@ -455,6 +455,54 @@ public sealed class ConnectorLabelPlacerEndLabelTests
         Assert.Equal(rects, resolved.PortRects);
     }
 
+    /// <summary>Content entirely inside the canvas needs no translation.</summary>
+    [Fact]
+    public void MeasureLeadingOverhang_ContentInside_ReturnsZero()
+    {
+        // Arrange
+        var line = Horizontal(60, 360, 100, null, null, EndMarkerStyle.OpenChevron) with { MidpointLabel = "mid" };
+        var box = new LayoutBox(40, 80, 20, 40, "A", 0, BoxShape.Rectangle, [], []);
+        var layout = ConnectorLabelPlacer.ResolveLabels([line], [box], [], Themes.Light);
+
+        // Act
+        var overhang = ConnectorLabelPlacer.MeasureLeadingOverhang([box], [line], [], layout, Themes.Light);
+
+        // Assert
+        Assert.Equal((0.0, 0.0), overhang);
+    }
+
+    /// <summary>
+    ///     A label, an outward port label, and an end marker past the left and top edges produce the overhang
+    ///     of the furthest one, measured with the supplied theme (a larger font overhangs further).
+    /// </summary>
+    [Fact]
+    public void MeasureLeadingOverhang_LabelsPastOrigin_ReturnsOverhangForTheTheme()
+    {
+        // Arrange: a vertical line at x = 8 with a midpoint label centered on it, and an outward-labeled port.
+        var line = Vertical(8, 30, 250, null, null) with { MidpointLabel = "keyword label" };
+        var port = new LayoutPort(20, 60, PortSide.Left, "port : Type", Appearance: OutlinedIn);
+        var large = Themes.Light with { FontSizeBody = 24.0, LabelPadding = 12.0 };
+
+        // Act
+        var small = ConnectorLabelPlacer.MeasureLeadingOverhang([], [line], [port], ConnectorLabelPlacer.ResolveLabels([line], [], [port], Themes.Light), Themes.Light);
+        var big = ConnectorLabelPlacer.MeasureLeadingOverhang([], [line], [port], ConnectorLabelPlacer.ResolveLabels([line], [], [port], large), large);
+
+        // Assert
+        Assert.True(small.X > 0.0);
+        Assert.True(big.X > small.X);
+    }
+
+    /// <summary>Null arguments to the overhang measurement are rejected.</summary>
+    [Fact]
+    public void MeasureLeadingOverhang_NullArguments_Throw()
+    {
+        var layout = ConnectorLabelPlacer.ResolveLabels([], [], [], Themes.Light);
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.MeasureLeadingOverhang(null!, [], [], layout, Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.MeasureLeadingOverhang([], null!, [], layout, Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.MeasureLeadingOverhang([], [], null!, layout, Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.MeasureLeadingOverhang([], [], [], layout, null!));
+    }
+
     /// <summary>Null arguments to the shared resolver and the port rectangles are rejected.</summary>
     [Fact]
     public void ResolveLabels_NullArguments_Throw()

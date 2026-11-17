@@ -109,6 +109,100 @@ public static partial class ConnectorLabelPlacer
     }
 
     /// <summary>
+    /// Returns the translation a renderer must apply so that nothing it draws lies left of or above the
+    /// origin: how far the drawn content (boxes, connector waypoints, the width of the end markers at line
+    /// ends, every resolved label rectangle, and every port glyph and outward port label) extends past the
+    /// left and top edges, measured with the caller's <paramref name="theme"/>. Both axes are zero when
+    /// everything is inside, so the common case is untouched. Both renderers call this after
+    /// <see cref="ResolveLabels"/> and then grow and translate their canvas identically.
+    /// </summary>
+    /// <param name="boxes">Every box of the tree, at every nesting depth.</param>
+    /// <param name="lines">Every line of the tree, in render order.</param>
+    /// <param name="ports">Every port of the tree.</param>
+    /// <param name="labels">The labels resolved for the same tree and theme by <see cref="ResolveLabels"/>.</param>
+    /// <param name="theme">The theme the tree is drawn with.</param>
+    /// <returns>The non-negative X and Y translation to apply to all content.</returns>
+    /// <exception cref="ArgumentNullException">Any argument is <see langword="null"/>.</exception>
+    public static (double X, double Y) MeasureLeadingOverhang(
+        IReadOnlyList<LayoutBox> boxes,
+        IReadOnlyList<LayoutLine> lines,
+        IReadOnlyList<LayoutPort> ports,
+        ConnectorLabelLayout labels,
+        Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(boxes);
+        ArgumentNullException.ThrowIfNull(lines);
+        ArgumentNullException.ThrowIfNull(ports);
+        ArgumentNullException.ThrowIfNull(theme);
+
+        var minX = 0.0;
+        var minY = 0.0;
+        void Include(double left, double top)
+        {
+            minX = Math.Min(minX, left);
+            minY = Math.Min(minY, top);
+        }
+
+        void IncludePlacement(LabelPlacement p) => Include(p.X - p.HalfWidth, p.Y - p.HalfHeight);
+
+        foreach (var box in boxes)
+        {
+            Include(box.X, box.Y);
+        }
+
+        var markerScale = NotationMetrics.MarkerScale(theme);
+        foreach (var line in lines)
+        {
+            foreach (var point in line.Waypoints)
+            {
+                Include(point.X, point.Y);
+            }
+
+            // An end marker reaches half its across width to either side of the line at the end point.
+            AddMarkerReach(line, line.SourceEnd, 0, markerScale, Include);
+            AddMarkerReach(line, line.TargetEnd, line.Waypoints.Count - 1, markerScale, Include);
+        }
+
+        foreach (var placement in labels.Midpoints.Values)
+        {
+            IncludePlacement(placement);
+        }
+
+        foreach (var placement in labels.EndLabels)
+        {
+            Include(placement.X - placement.HalfWidth, placement.Y - placement.HalfHeight);
+        }
+
+        foreach (var port in ports)
+        {
+            IncludePlacement(NotationMetrics.PortGlyphBounds(port));
+            if (NotationMetrics.IsOutwardLabel(port))
+            {
+                IncludePlacement(NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme));
+            }
+        }
+
+        return (-minX, -minY);
+    }
+
+    private static void AddMarkerReach(
+        LayoutLine line,
+        EndMarkerStyle style,
+        int index,
+        double markerScale,
+        Action<double, double> include)
+    {
+        if (style == EndMarkerStyle.None || index < 0 || index >= line.Waypoints.Count)
+        {
+            return;
+        }
+
+        var reach = NotationMetrics.AcrossHalfWidth(style) * markerScale;
+        var point = line.Waypoints[index];
+        include(point.X - reach, point.Y - reach);
+    }
+
+    /// <summary>
     /// Returns the rectangles the ports occupy — each glyph plus each outward label (padded along the text) —
     /// that end labels must keep clear of.
     /// </summary>
