@@ -379,7 +379,7 @@ of preference:
   and the opposite-port squeeze above solves the cross-face collision. This keeps the feature
   focused and defers a general same-face "text fitting" concern to a separate, dedicated roadmap
   entry.
-  
+
   **Update — real-world evidence for prioritizing this.** A SysML2Tools diagram (`LBO3AxisGantry`,
   9 ports on one face, ~12.4px between 12px-font labels) surfaced actual same-face crowding in
   practice, arguing for moving "widen port spacing to fit the widest label" (below) up in

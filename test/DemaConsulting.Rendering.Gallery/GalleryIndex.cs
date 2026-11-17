@@ -10,13 +10,13 @@ namespace DemaConsulting.Rendering.Gallery;
 /// <summary>
 ///     Generates the browsable <c>README.md</c> pages from the <see cref="GalleryCatalog"/>: a short
 ///     top-level index (<c>docs/gallery/README.md</c>) linking to one full page per topology-based group
-///     (<c>docs/gallery/&lt;group&gt;/README.md</c>). The output is kept markdownlint-clean (blank-line-
+///     (<c>docs/gallery/&lt;group&gt;/README.md</c>). The output is kept LintMark-clean (blank-line-
 ///     separated headings and paragraphs, lines wrapped to 120 columns, alt text on every image) so the
 ///     committed pages pass the repository's lint gate.
 /// </summary>
 internal static class GalleryIndex
 {
-    /// <summary>Maximum line length permitted by the repository markdownlint configuration (MD013).</summary>
+    /// <summary>Maximum line length permitted by the repository LintMark configuration.</summary>
     private const int MaxLineLength = 120;
 
     /// <summary>Builds the short, marketing-style top-level <c>README.md</c> index from the catalog.</summary>

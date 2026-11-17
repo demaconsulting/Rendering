@@ -78,7 +78,7 @@ implementations are:
 
 The batch overload first computes those naive per-connection face coordinates, then groups any shared
 box face claims (and any face that already carries an occupied anchor) and assigns the claims
-(`DistributeSharedFaceAnchors`, see _Anchor separation and face overflow_ below) across the **union of that
+(`DistributeSharedFaceAnchors`, see *Anchor separation and face overflow* below) across the **union of that
 face's connectable extents** rather than across the full bounding-box span. It still orders the claims by
 counterpart-box centre so the
 visual left-to-right or top-to-bottom order of the connectors tracks the order of their counterparts.
@@ -104,11 +104,11 @@ of connectors routed in a child scope, passed to the batch as fixed anchors) inc
 2. If that region holds all the face's connectors, they are spread evenly along it (no occupied anchor:
    exactly the historical result) or each takes the position nearest its current anchor that is clear of
    every anchor already placed (occupied anchors present), so an anchor that already satisfies the rule does
-   not move. Otherwise the wider _corner-margin_ region is used: the extents inset by the marker-aware
+   not move. Otherwise the wider *corner-margin* region is used: the extents inset by the marker-aware
    `PortCornerMargin` (8 px; `PortCornerMarginFor` of the target end, 10 px for a circled plus). A 50 px
    face therefore holds three anchors (at 8, 25 and 42) instead of two, and a centered interior anchor
    still leaves room for an external anchor at 9 or 41 (16 px away), instead of the old "most separated"
-   fallback of 12 to 13 px. An anchor placed outside the clearance inset is flagged _slid_, so the
+   fallback of 12 to 13 px. An anchor placed outside the clearance inset is flagged *slid*, so the
    clearance clamp and the later sliding stage keep it there.
 3. If even the corner-margin region cannot hold them, the connectors nearest the middle of the face keep it
    and the overflow is peeled from the ends of the ordering (the claim whose counterpart sits farthest from
@@ -128,13 +128,13 @@ pipeline is unaffected: its `PortDistributor` grows a node until every face hold
 **Port sliding (straight-lane alignment).** The anchors above are fixed before any obstacle is
 considered, so a connector whose straight line is blocked used to step off its face, jog around the
 obstacle and jog back right before its arrowhead although a free lane existed inside both faces. After
-the first route (computed exactly as before) each connection is checked for being _defective_:
+the first route (computed exactly as before) each connection is checked for being *defective*:
 outside the cross-hierarchy profile, a route between two facing, opposite faces with two or more bends;
 in the profile, also any route with three or more bends, a leg shorter than the comfort minimum, a tiny
 interior jog (any interior segment shorter than twice the clearance, not only the first), a run along a
 container wall, a crossing of another connector's end zone, or an
 obstacle-crossing fallback. Only a defective connection is searched again, with the ports left to the
-router: each end becomes a _port range_ (`PortRange`) — the face, the face outline coordinate, the
+router: each end becomes a *port range* (`PortRange`) — the face, the face outline coordinate, the
 permitted along-face intervals and a preferred position. The permitted intervals are the face's
 connectable extents inset by `PortCornerMargin`, and a face too short for that inset (under twice the
 margin) keeps its centre. The margin is derived, not chosen: both renderers draw end markers at the shared marker
@@ -150,7 +150,7 @@ across half-width (`NotationMetrics.AcrossHalfWidth`): every legacy style, and t
 styles, keep exactly 8 px (so no existing route moves), while the circled plus gets 10 px so its circle
 never overhangs a corner. `PortCornerMargin` itself is `PortCornerMarginFor(EndMarkerStyle.None)` (8 px)
 and is used at a connector's source end and by the straight-lane and clearance clamps; the slid-port
-extents of the _target_ end use `PortCornerMarginFor(connection.TargetEnd)`, because the end marker is
+extents of the *target* end use `PortCornerMarginFor(connection.TargetEnd)`, because the end marker is
 drawn at the target. The ports are
 restricted so a
 slid port stays between its neighbors on the same face (other batch connectors at their planned or
@@ -162,7 +162,7 @@ target port, charging a small cost per pixel of displacement (so the centered an
 port only moves to remove a bend). Outside the profile the search result replaces the first route only
 when it has fewer bends, does not double back, does not overlap an earlier connector's lane for more
 than a trivial stretch and was found at a clearance level no smaller than the first route's. The
-accepted ports are written back to the batch's anchors (flagged _slid_, so later neighbors see their true
+accepted ports are written back to the batch's anchors (flagged *slid*, so later neighbors see their true
 position and the clearance clamp no longer pulls them back inward) before the next connector is routed.
 
 **Minimum end legs.** The search passes `RouteHints` so the first leg is at least the connector stub
@@ -216,7 +216,7 @@ margin (for example only a few pixels) cannot carry a straight lane and takes th
 **Internal per-connection batch (`RouteBatch`).** The public batch overload delegates to an internal
 entry point, `RouteBatch(connections, options, obstaclesFor, fixedAnchors, penalizeLongEndSegments, profile)`,
 that is otherwise the same algorithm but (a) takes each connection's hard-obstacle list from the
-`obstaclesFor` callback instead of one shared box list, (b) accepts _fixed anchors_ — end points already
+`obstaclesFor` callback instead of one shared box list, (b) accepts *fixed anchors* — end points already
 occupied on a box face by connectors routed elsewhere — and moves any batch anchor that would land within
 a minimum separation of one to the nearest free position on the face's usable extent (an anchor that is
 already clear is left untouched), (c) can optionally also turn the long runs of the first and last
@@ -246,8 +246,8 @@ this is unreachable today because `Orthogonal` is the only enum value, but guard
   `PortSide`, `EndMarkerStyle`, `LineStyle`, and `EdgeRouting` value types used to describe placed
   boxes and produced route lines.
 - **Engine subsystem** (`OrthogonalEdgeRouter` unit) — the internal orthogonal path-finding engine
-  invoked by `RouteWithStatus` for the `EdgeRouting.Orthogonal` style. See _OrthogonalEdgeRouter Unit
-  Design_.
+  invoked by `RouteWithStatus` for the `EdgeRouting.Orthogonal` style. See *OrthogonalEdgeRouter Unit
+  Design*.
 - **`NotationMetrics`** — the note-fold and folder-tab sizing constants (`NoteFoldFraction`,
   `NoteFoldMaxSize`, `FolderTabMaxWidthFraction`, `FolderTabMinWidth`, `FolderLabelCharWidthFactor`)
   consumed by `NoteGeometry` and `FolderGeometry` to compute each shape's connectable-extent cutouts
@@ -270,7 +270,7 @@ them:
 
 - **HierarchicalLayoutAlgorithm** — calls `ConnectorRouter.Route` at each hierarchical scope to route
   cross-container edges around sibling containers after the leaf algorithms have placed the
-  containers themselves. See _HierarchicalLayoutAlgorithm Unit Design_.
+  containers themselves. See *HierarchicalLayoutAlgorithm Unit Design*.
 - **External application code** — any caller that supplies its own placed `LayoutBox` list (for
   example from a containment or free-form placement produced outside the layered pipeline) and needs
   routed `LayoutLine` connectors to drop into a `LayoutTree`.
@@ -279,7 +279,7 @@ them:
   (`ResolveShapeGeometry` and its supporting extent-math helpers) for same-scope (leaf) edges routed
   through `LayeredLayoutAlgorithm`'s own pipeline, so a shaped node gets the same connectable-extent
   restriction and inward surface projection whether it is routed by `ConnectorRouter` (cross-container
-  edges) or by the layered pipeline (same-scope edges). See _Layered Pipeline Unit Design_'s
+  edges) or by the layered pipeline (same-scope edges). See *Layered Pipeline Unit Design*'s
   "Layered Pipeline Dependencies" section for the reverse-direction documentation of this cross-unit
   dependency.
 

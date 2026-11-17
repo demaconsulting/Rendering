@@ -109,7 +109,8 @@ paddings plus the body font size, and that a keyword adds one body font size plu
 - **`Rendering-Abstractions-BoxMetrics-FolderTabHeight`**: BoxMetrics_FolderTabHeight_DerivesFromThemeBodyFontAndPadding
 - **`Rendering-Abstractions-BoxMetrics-TitleAreaHeight`**: BoxMetrics_TitleAreaHeight_NoLabelNoKeyword_IsZero,
   BoxMetrics_TitleAreaHeight_LabelOnly_ReservesTitleLine, BoxMetrics_TitleAreaHeight_LabelAndKeyword_ReservesBothLines
-- **`Rendering-Abstractions-BoxMetrics-RejectNullTheme`**: BoxMetrics_FolderTabHeight_NullTheme_ThrowsArgumentNullException,
+- **`Rendering-Abstractions-BoxMetrics-RejectNullTheme`**:
+  BoxMetrics_FolderTabHeight_NullTheme_ThrowsArgumentNullException,
   BoxMetrics_TitleAreaHeight_NullTheme_ThrowsArgumentNullException
 - **`Rendering-Abstractions-BoxMetrics-FolderTabResolution`**:
   ResolveFolderTabWidth_BodyTitle_MatchesLegacyFormula, ResolveFolderTabWidth_ExplicitWidth_IsHonored,

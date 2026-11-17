@@ -135,7 +135,8 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
 - **`Rendering-Layout-OrthogonalEdgeRouter-NoWaypointRevisit`**:
   RouteWithStatus_SoftObstacleDetour_DoesNotRevisitWaypoint
 - **`Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap`**:
-  RouteWithStatus_LongSoftObstacleOverlap_PrefersAlternateLane, RouteWithStatus_ShortSoftObstacleOverlap_KeepsStraightRoute,
+  RouteWithStatus_LongSoftObstacleOverlap_PrefersAlternateLane,
+  RouteWithStatus_ShortSoftObstacleOverlap_KeepsStraightRoute,
   RouteWithStatus_SaturatedNarrowGapSoftObstacles_StaysWithinEnvelope
 - **`Rendering-Layout-OrthogonalEdgeRouter-AvoidsConnectorCrossing`**:
   RouteWithStatus_VerticalOrientedSoftObstacleAcrossOneLRoute_PrefersNonCrossingAlternative,

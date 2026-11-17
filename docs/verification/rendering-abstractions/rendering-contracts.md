@@ -13,13 +13,12 @@ coverage also appears in `DemaConsulting.Rendering.CanvasNet.Tests`
 
 ### Verification Approach
 
-The rendering-contracts unit is verified indirectly through the registry tests: because
-`LayoutAlgorithmBase` and `IRenderer` are abstractions whose behavior is supplied by implementations, their identity members
-(`Id`, `MediaType`, `DefaultExtension`, `FileExtensions`) are exercised by round-tripping them
-through the two registries. The tests use test-local `FakeAlgorithm` and `FakeRenderer`
-implementations for that round-trip, and additionally exercise the concrete `PngRenderer` to prove
-that a real renderer honors the extension-advertising portion of the contract. `RenderOptions`
-and `RenderOutput` are `sealed record` types whose behavior is limited to their compiler-generated
+The rendering-contracts unit is verified indirectly through the registry tests: because `LayoutAlgorithmBase` and
+`IRenderer` are abstractions whose behavior is supplied by implementations, their identity members (`Id`, `MediaType`,
+`DefaultExtension`, `FileExtensions`) are exercised by round-tripping them through the two registries. The tests use
+test-local `FakeAlgorithm` and `FakeRenderer` implementations for that round-trip, and additionally exercise the
+concrete `PngRenderer` to prove that a real renderer honors the extension-advertising portion of the contract.
+`RenderOptions` and `RenderOutput` are `sealed record` types whose behavior is limited to their compiler-generated
 members and needs no dedicated test scenarios beyond compilation.
 
 ### Test Environment
@@ -82,7 +81,8 @@ registry round-trip.
 
 ### Requirements Coverage
 
-- **`Rendering-Abstractions-Contracts-AlgorithmIdentifier`**: LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
+- **`Rendering-Abstractions-Contracts-AlgorithmIdentifier`**:
+  LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
 - **`Rendering-Abstractions-Contracts-AlgorithmApply`**: LayoutAlgorithmRegistry_RegisterThenResolve_ReturnsAlgorithm
 - **`Rendering-Abstractions-Contracts-RendererIdentity`**: RendererRegistry_RegisterThenResolve_ReturnsRenderer,
   PngRenderer_FileExtensions_ContainsDefault

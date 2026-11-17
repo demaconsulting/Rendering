@@ -81,5 +81,6 @@ argument and asserts that an `ArgumentNullException` is thrown.
 - **`Rendering-Abstractions-PortLabelWidthEstimator-MeasureWidth`**: MeasureWidth_ScalesLinearlyWithFontSize,
   MeasureWidth_LongerText_MeasuresWider, MeasureWidth_KnownCharacter_MatchesMappedWidth
 - **`Rendering-Abstractions-PortLabelWidthEstimator-EmptyText`**: MeasureWidth_EmptyString_ReturnsZero
-- **`Rendering-Abstractions-PortLabelWidthEstimator-UnknownCharacterFallback`**: MeasureWidth_UnmappedCharacter_UsesMedianFallback
+- **`Rendering-Abstractions-PortLabelWidthEstimator-UnknownCharacterFallback`**:
+  MeasureWidth_UnmappedCharacter_UsesMedianFallback
 - **`Rendering-Abstractions-PortLabelWidthEstimator-RejectNullText`**: MeasureWidth_NullText_ThrowsArgumentNullException

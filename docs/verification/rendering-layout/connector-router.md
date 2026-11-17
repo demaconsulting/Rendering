@@ -163,7 +163,7 @@ The following tests guard against a reported defect but are not linked to a requ
 the actual behavior change they exercise (the length-proportional soft-obstacle cost) is owned by, and
 already covered under, `OrthogonalEdgeRouter`'s own
 `Rendering-Layout-OrthogonalEdgeRouter-AvoidsExtendedSoftOverlap` requirement (see
-_OrthogonalEdgeRouter Unit Verification_); these end-to-end tests add confidence at the batch-API
+*OrthogonalEdgeRouter Unit Verification*); these end-to-end tests add confidence at the batch-API
 level rather than introducing a new `ConnectorRouter`-level responsibility:
 
 - `Route_ThreeConnectorsNarrowGap_InteriorCorridorsDoNotOverlapAlongLength`,
@@ -239,12 +239,11 @@ level rather than introducing a new `ConnectorRouter`-level responsibility:
 - **`Rendering-Layout-ConnectorRouter-NewEndMarkerClearance`**:
   ConnectorRouter_NewEndMarker_ReservesCleanEndLeg
 
-The internal per-connection batch entry point used by the hierarchical engine is verified without a
-dedicated requirement (the public contract is unchanged): RouteBatch_EndpointAncestorOmittedFromObstacles_RouteCrossesAncestorWall
-(a nested endpoint's route crosses its enclosing container's wall when that container is omitted from the
-connection's obstacles), RouteBatch_PerConnectionObstacles_AreHonoredIndependently (a blocker present in
-one connection's obstacle set is avoided there while another connection stays straight),
-Route_BatchOverload_MatchesInternalBatchWithSharedObstacles (the public batch overload yields the same
-routes as the internal entry point with a shared list), RouteBatch_FixedAnchorOnFace_MovesBatchAnchorClearOfIt
-(an anchor on an occupied face position moves to a free spot), and
-TryResolveFaceAnchor_PointOnFace_ResolvesFaceAndAlong.
+The internal per-connection batch entry point used by the hierarchical engine is verified without a dedicated
+requirement (the public contract is unchanged): RouteBatch_EndpointAncestorOmittedFromObstacles_RouteCrossesAncestorWall
+(a nested endpoint's route crosses its enclosing container's wall when that container is omitted from the connection's
+obstacles), RouteBatch_PerConnectionObstacles_AreHonoredIndependently (a blocker present in one connection's obstacle
+set is avoided there while another connection stays straight),
+Route_BatchOverload_MatchesInternalBatchWithSharedObstacles (the public batch overload yields the same routes as the
+internal entry point with a shared list), RouteBatch_FixedAnchorOnFace_MovesBatchAnchorClearOfIt (an anchor on an
+occupied face position moves to a free spot), and TryResolveFaceAnchor_PointOnFace_ResolvesFaceAndAlong.

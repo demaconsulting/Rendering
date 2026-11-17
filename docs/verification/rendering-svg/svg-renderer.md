@@ -41,21 +41,21 @@ written when unused; a source-end marker that does not reference its mirrored `l
 missing or spurious `stroke-dasharray`; a `font-weight`/`font-style` that does not match the resolved
 style (including a default style whose markup differs from the legacy markup); or a title, tab name,
 corner icon, badge, band, lifeline, or connector label positioned differently from the documented rule.
-Requirements coverage is enforced by the mapping in the _Requirements Coverage_ section below:
+Requirements coverage is enforced by the mapping in the *Requirements Coverage* section below:
 every `Rendering-Svg-SvgRenderer-*` requirement must map to at least one named scenario, and
 every mapped scenario must exist in `DemaConsulting.Rendering.Svg.Tests` and pass.
 
 ### Test Scenarios
 
 The named scenarios that satisfy each unit requirement are enumerated below under
-_SvgRenderer Unit Scenarios_, grouped by rendering concern (renderer contract and metadata,
+*SvgRenderer Unit Scenarios*, grouped by rendering concern (renderer contract and metadata,
 SVG document root and empty tree, box rectangle and compartments, label text and styling and
 escaping, connector path and corners and dash pattern and label, additional node kinds, connector end
 markers, and the SysML notation primitives: dotted-triangle and circled-plus markers with on-demand
 definitions and mirrored start variants, box outline and text styles, folder name in tab, corner icons,
 thick-bar and crossed-circle badges, dashed bands, lifeline headers, and obstacle-aware connector labels).
 Every `Rendering-Svg-SvgRenderer-*` requirement is traced to at least
-one named scenario in the _Requirements Coverage_ table at the end of this document.
+one named scenario in the *Requirements Coverage* table at the end of this document.
 
 ### SvgRenderer Unit Scenarios
 
@@ -243,8 +243,8 @@ reference itself — `marker-start="url(#line-start-hollow-diamond)"` for the so
 `marker-end="url(#line-end-hollow-triangle-crossbar)"` for the target end — rather than only that the
 marker id appears somewhere in the document. This prevents a false pass if the marker is defined in
 `<defs>` but no longer referenced by the connector. The source-end references use the mirrored
-`line-start-…` variant (see _Dotted-triangle and circled-plus markers, on-demand definitions, and start
-variants_ below); the filled-diamond scenario likewise asserts `marker-start="url(#line-start-filled-diamond)"`.
+`line-start-…` variant (see *Dotted-triangle and circled-plus markers, on-demand definitions, and start
+variants* below); the filled-diamond scenario likewise asserts `marker-start="url(#line-start-filled-diamond)"`.
 
 **Covers**: `Rendering-Svg-SvgRenderer-EndMarkers`,
 `Rendering-Svg-SvgRenderer-EndMarkersOpenChevronReference`,
