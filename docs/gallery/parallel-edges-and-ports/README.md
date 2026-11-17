@@ -91,3 +91,41 @@ distinct lanes rather than crowding a fixed-width channel.
 The hierarchical engine places two peer containers side by side and widens the gap between them for the eight
 cross-container connectors that fan child-to-child through it — spacing the per-scope leaf algorithm alone cannot
 reserve, because those edges never appear in the sized view it lays out.
+
+## SysML ports & connection ends
+
+A port's PortAppearance selects a direction arrow (in, out, inout), a dashed outline for a reference port, a proxy
+circle, and a label placed outside the owning part (name : Type), while a connection's end labels carry a role name
+above and a multiplicity below the line at each end. The layered algorithm reserves room for both: it widens the
+corridor, keeps the first bend clear of the labels, and sizes a face by its labels, so nothing overlaps. The glyph
+defaults are unchanged: a port with no appearance is still the small filled square.
+
+![A fuel-system interconnection with SysML port glyphs and end labels](ports-sysml-glyphs-horizontal.svg)
+
+Five parts joined through ports: out-to-in fuel connections with a role name and multiplicity (one with an ordered
+adornment) at each end, an inout status port joined to a dashed reference port, and a proxy port driven by a controller;
+every port label reads name : Type outside its part.
+
+![The same fuel-system interconnection rendered through the raster path](ports-sysml-glyphs-horizontal.png)
+
+The same diagram through the CanvasNet raster renderer, which draws the identical glyphs, arrows, labels, and end
+labels.
+
+![The fuel-system interconnection flowing top to bottom](ports-sysml-glyphs-vertical.svg)
+
+The companion downward flow: the ports sit on the top and bottom faces, the arrows turn to match, and the outward labels
+sit beside the vertical connectors.
+
+![The downward fuel-system interconnection rendered through the raster path](ports-sysml-glyphs-vertical.png)
+
+The downward flow through the CanvasNet raster renderer.
+
+![Ownership diagram with role names and multiplicities at each end](connection-end-labels.svg)
+
+Composite connections from a vehicle's parts, each with a role name above and a multiplicity below the line at both ends
+(one with an ordered adornment), plus an association with an open arrowhead. The n-ary connection dot is not drawn by
+the engine yet; see the roadmap.
+
+![The vehicle ownership diagram rendered through the raster path](connection-end-labels.png)
+
+The same diagram through the CanvasNet raster renderer.

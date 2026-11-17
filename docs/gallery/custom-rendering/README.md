@@ -63,3 +63,18 @@ a keyword line beside a legacy sharp one.
 ![The notation-primitives sheet rendered through the raster path](sysml-notation-primitives.png)
 
 The same notation-primitives sheet through the CanvasNet raster renderer.
+
+## SysML port glyph matrix
+
+A hand-built sheet that puts one port on every face of a box for each glyph: the layered algorithm only places ports on
+the faces the flow direction runs along, so this is the one place all four faces and all glyphs can be checked at once.
+
+![Every port glyph on all four faces of a box](sysml-port-glyph-matrix.svg)
+
+An in arrow points into the part and an out arrow away from it on every face; inout is double-headed; a reference port
+has a dashed outline; a proxy port is a filled circle; and the legacy port with no appearance is the small filled square
+with an inward label.
+
+![The port glyph matrix rendered through the raster path](sysml-port-glyph-matrix.png)
+
+The same matrix through the CanvasNet raster renderer.

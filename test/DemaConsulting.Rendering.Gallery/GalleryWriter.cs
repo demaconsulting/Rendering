@@ -222,7 +222,7 @@ internal static class GalleryWriter
     /// <summary>
     ///     Returns whether <paramref name="point"/> lies on the outline of <paramref name="box"/>. A folder
     ///     also has its body top (below the tab) as an outline edge, which is where connectors anchor on a
-    ///     folder's top face.
+    ///     folder's top face, and a diamond's outline is the rhombus through the box edge midpoints.
     /// </summary>
     private static bool OnBoxSurface(LayoutBox box, Point2D point, double tolerance)
     {
@@ -233,7 +233,10 @@ internal static class GalleryWriter
         var onFolderBodyTop = box.Shape == BoxShape.Folder
             && Math.Abs(point.Y - (box.Y + BoxMetrics.ResolveFolderTabHeight(box, Themes.Light))) <= tolerance
             && withinX;
-        return onVerticalEdge || onHorizontalEdge || onFolderBodyTop;
+        var onDiamond = box.Shape == BoxShape.Diamond && withinX && withinY
+            && Math.Abs((Math.Abs(point.X - (box.X + (box.Width / 2.0))) / (box.Width / 2.0)) + (Math.Abs(point.Y - (box.Y + (box.Height / 2.0))) / (box.Height / 2.0)) - 1.0)
+                * (Math.Min(box.Width, box.Height) / 2.0) <= 0.6;
+        return onVerticalEdge || onHorizontalEdge || onFolderBodyTop || onDiamond;
     }
 
     /// <summary>Asserts that the file exists, is non-empty, and contains a well-formed SVG document.</summary>

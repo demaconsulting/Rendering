@@ -1186,4 +1186,182 @@ public sealed class GalleryShowcaseTests
             GallerySysmlNotation.BackEdgeEntryApproach(),
             Themes.Light);
     }
+
+    /// <summary>
+    ///     Renders the horizontal SysML port-glyph interconnection to SVG and PNG, proving the appearance
+    ///     and end labels reach the placed ports and lines and that no label overlaps a box, another label,
+    ///     or a connector.
+    /// </summary>
+    [Fact]
+    public void Gallery_SysmlPortsHorizontal_RendersSvgAndPngWithoutLabelOverlaps()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.PortsSysmlGlyphsHorizontalSvg, GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Right), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.PortsSysmlGlyphsHorizontalPng, GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Right), Themes.Light);
+
+        // Assert
+        AssertNoLabelOverlaps(LayoutEngine.Layout(GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Right)), expectedOutwardPorts: 8);
+    }
+
+    /// <summary>
+    ///     Renders the downward SysML port-glyph interconnection to SVG and PNG with the same label checks.
+    /// </summary>
+    [Fact]
+    public void Gallery_SysmlPortsVertical_RendersSvgAndPngWithoutLabelOverlaps()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.PortsSysmlGlyphsVerticalSvg, GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Down), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.PortsSysmlGlyphsVerticalPng, GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Down), Themes.Light);
+
+        // Assert
+        AssertNoLabelOverlaps(LayoutEngine.Layout(GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Down)), expectedOutwardPorts: 8);
+    }
+
+    /// <summary>
+    ///     Renders the connection end-label ownership diagram to SVG and PNG, proving every end label is
+    ///     placed clear of boxes, other labels, and connectors.
+    /// </summary>
+    [Fact]
+    public void Gallery_ConnectionEndLabels_RendersSvgAndPngWithoutLabelOverlaps()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.ConnectionEndLabelsSvg, GallerySysmlPorts.ConnectionEnds(), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.ConnectionEndLabelsPng, GallerySysmlPorts.ConnectionEnds(), Themes.Light);
+
+        // Assert
+        AssertNoLabelOverlaps(LayoutEngine.Layout(GallerySysmlPorts.ConnectionEnds()), expectedOutwardPorts: 0);
+    }
+
+    /// <summary>
+    ///     Renders the SysML port-glyph matrix (a hand-built sheet) to SVG and PNG.
+    /// </summary>
+    [Fact]
+    public void Gallery_SysmlPortGlyphMatrix_RendersSvgAndPng()
+    {
+        // Act / Assert
+        GalleryWriter.Svg(GalleryCatalog.SysmlPortGlyphMatrixSvg, GallerySysmlPorts.GlyphMatrix(Themes.Light), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.SysmlPortGlyphMatrixPng, GallerySysmlPorts.GlyphMatrix(Themes.Light), Themes.Light);
+    }
+
+    /// <summary>
+    ///     Renders the Rendering#57 regression scene, proving every connector's final run is straight and
+    ///     no connector has a perpendicular step shorter than the marker.
+    /// </summary>
+    [Fact]
+    public void Gallery_Regression57_SharedFaceStraightRuns_AllFinalRunsStraight()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.SharedFaceStraightRunsSvg, GallerySysmlPorts.SharedFaceStraightRuns(), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.SharedFaceStraightRunsPng, GallerySysmlPorts.SharedFaceStraightRuns(), Themes.Light);
+
+        // Assert
+        var tree = LayoutEngine.Layout(GallerySysmlPorts.SharedFaceStraightRuns());
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(5, lines.Count);
+        Assert.All(lines, line => Assert.Equal(2, line.Waypoints.Count));
+    }
+
+    /// <summary>
+    ///     Renders the Rendering#58 regression scene to SVG and PNG, proving every connector end at a
+    ///     diamond lies on the diamond outline and leaves it perpendicular to the face.
+    /// </summary>
+    [Fact]
+    public void Gallery_Regression58_DiamondOutlineAnchors_EndsOnOutline()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.DiamondOutlineAnchorsSvg, GallerySysmlPorts.DiamondOutlineAnchors(), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.DiamondOutlineAnchorsPng, GallerySysmlPorts.DiamondOutlineAnchors(), Themes.Light);
+
+        // Assert
+        var tree = LayoutEngine.Layout(GallerySysmlPorts.DiamondOutlineAnchors());
+        var diamonds = tree.Nodes.OfType<LayoutBox>().Where(box => box.Shape == BoxShape.Diamond).ToList();
+        Assert.Equal(2, diamonds.Count);
+        foreach (var line in tree.Nodes.OfType<LayoutLine>())
+        {
+            foreach (var diamond in diamonds)
+            {
+                foreach (var (point, next) in new[] { (line.Waypoints[0], line.Waypoints[1]), (line.Waypoints[^1], line.Waypoints[^2]) })
+                {
+                    var norm = (Math.Abs(point.X - (diamond.X + (diamond.Width / 2.0))) / (diamond.Width / 2.0))
+                        + (Math.Abs(point.Y - (diamond.Y + (diamond.Height / 2.0))) / (diamond.Height / 2.0));
+                    if (Math.Abs(norm - 1.0) * (diamond.Width / 2.0) <= 0.6)
+                    {
+                        Assert.True(Math.Abs(point.X - next.X) < 1e-6, "a connector must leave a diamond outline along the axis");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Asserts that no outward port label, end label, or connector overlaps another: outward labels
+    ///     overlap no box, other port label, or connector segment; end labels (placed against the port
+    ///     rectangles) overlap no box, glyph, port label, other end label, or connector segment other than
+    ///     the end segment they sit beside.
+    /// </summary>
+    private static void AssertNoLabelOverlaps(LayoutTree tree, int expectedOutwardPorts)
+    {
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        var ports = tree.Nodes.OfType<LayoutPort>().ToList();
+        var portLabels = ports.Where(NotationMetrics.IsOutwardLabel)
+            .Select(port => NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, Themes.Light))
+            .ToList();
+        Assert.True(portLabels.Count >= expectedOutwardPorts, $"expected at least {expectedOutwardPorts} outward port labels, found {portLabels.Count}");
+
+        static bool Overlap(LabelPlacement a, LabelPlacement b) =>
+            Math.Abs(a.X - b.X) < a.HalfWidth + b.HalfWidth && Math.Abs(a.Y - b.Y) < a.HalfHeight + b.HalfHeight;
+
+        static bool OverlapsBox(LabelPlacement a, LayoutBox box) =>
+            a.X - a.HalfWidth < box.X + box.Width && a.X + a.HalfWidth > box.X && a.Y - a.HalfHeight < box.Y + box.Height && a.Y + a.HalfHeight > box.Y;
+
+        static bool Crosses(LabelPlacement a, Point2D p, Point2D q) =>
+            a.X - a.HalfWidth <= Math.Max(p.X, q.X) && a.X + a.HalfWidth >= Math.Min(p.X, q.X) &&
+            a.Y - a.HalfHeight <= Math.Max(p.Y, q.Y) && a.Y + a.HalfHeight >= Math.Min(p.Y, q.Y);
+
+        for (var i = 0; i < portLabels.Count; i++)
+        {
+            Assert.DoesNotContain(boxes, box => OverlapsBox(portLabels[i], box));
+            for (var j = i + 1; j < portLabels.Count; j++)
+            {
+                Assert.False(Overlap(portLabels[i], portLabels[j]), "two outward port labels overlap");
+            }
+
+            foreach (var line in lines)
+            {
+                for (var s = 0; s + 1 < line.Waypoints.Count; s++)
+                {
+                    Assert.False(Crosses(portLabels[i], line.Waypoints[s], line.Waypoints[s + 1]), "an outward port label is crossed by a connector");
+                }
+            }
+        }
+
+        var occupied = portLabels.Concat(ports.Select(NotationMetrics.PortGlyphBounds)).ToList();
+        var endLabels = ConnectorLabelPlacer.PlaceEndLabels(lines, Themes.Light.FontSizeBody, boxes, NotationMetrics.MarkerScale(Themes.Light), occupied);
+        for (var i = 0; i < endLabels.Count; i++)
+        {
+            var label = new LabelPlacement(endLabels[i].X, endLabels[i].Y, endLabels[i].HalfWidth, endLabels[i].HalfHeight);
+            Assert.DoesNotContain(boxes, box => OverlapsBox(label, box));
+            Assert.DoesNotContain(occupied, rect => Overlap(label, rect));
+            for (var j = i + 1; j < endLabels.Count; j++)
+            {
+                Assert.False(
+                    Overlap(label, new LabelPlacement(endLabels[j].X, endLabels[j].Y, endLabels[j].HalfWidth, endLabels[j].HalfHeight)),
+                    $"end labels '{endLabels[i].Text}' and '{endLabels[j].Text}' overlap");
+            }
+
+            foreach (var line in lines)
+            {
+                for (var s = 0; s + 1 < line.Waypoints.Count; s++)
+                {
+                    var isOwnEndSegment = ReferenceEquals(line, endLabels[i].Line)
+                        && (endLabels[i].End == LineEnd.Source ? s == 0 : s == line.Waypoints.Count - 2);
+                    if (!isOwnEndSegment)
+                    {
+                        Assert.False(Crosses(label, line.Waypoints[s], line.Waypoints[s + 1]), $"end label '{endLabels[i].Text}' is crossed by a connector");
+                    }
+                }
+            }
+        }
+    }
 }

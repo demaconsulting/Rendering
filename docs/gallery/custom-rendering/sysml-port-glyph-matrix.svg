@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="850.00" height="400.00" viewBox="0 0 850.00 400.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="14.747763" markerHeight="7" refX="14.747763" refY="3.5" orient="auto">
+      <polygon points="4.5 0, 14.5 3.5, 4.5 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+      <line x1="1" y1="0" x2="1" y2="7" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9.75" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2.75" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#FFFFFF"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <text x="20.00" y="22.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">SysML v2 port glyphs on every face</text>
+  <text x="45.00" y="46.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">in: arrow points into the part</text>
+  <rect x="85.00" y="90.00" width="120.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="145.00" y="125.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">part</text>
+  <rect x="79.00" y="119.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="82.00,125.00 88.00,125.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="86.00,127.00 88.00,125.00 86.00,123.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="73.00" y="110.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">left : T</text>
+  <rect x="199.00" y="119.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="208.00,125.00 202.00,125.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="204.00,123.00 202.00,125.00 204.00,127.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="217.00" y="110.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">right : T</text>
+  <rect x="139.00" y="84.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="145.00,87.00 145.00,93.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="143.00,91.00 145.00,93.00 147.00,91.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="152.00" y="70.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">top : T</text>
+  <rect x="139.00" y="154.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="145.00,163.00 145.00,157.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="147.00,159.00 145.00,157.00 143.00,159.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="152.00" y="179.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">bottom : T</text>
+  <text x="315.00" y="46.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">out: arrow points out of the part</text>
+  <rect x="355.00" y="90.00" width="120.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="415.00" y="125.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">part</text>
+  <rect x="349.00" y="119.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="352.00,125.00 358.00,125.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="354.00,127.00 352.00,125.00 354.00,123.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="343.00" y="110.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">left : T</text>
+  <rect x="469.00" y="119.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="478.00,125.00 472.00,125.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="476.00,123.00 478.00,125.00 476.00,127.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="487.00" y="110.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">right : T</text>
+  <rect x="409.00" y="84.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="415.00,87.00 415.00,93.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="413.00,89.00 415.00,87.00 417.00,89.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="422.00" y="70.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">top : T</text>
+  <rect x="409.00" y="154.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="415.00,163.00 415.00,157.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="417.00,161.00 415.00,163.00 413.00,161.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="422.00" y="179.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">bottom : T</text>
+  <text x="585.00" y="46.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">inout: double-headed arrow</text>
+  <rect x="625.00" y="90.00" width="120.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="685.00" y="125.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">part</text>
+  <rect x="619.00" y="119.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="622.00,125.00 628.00,125.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="626.00,127.00 628.00,125.00 626.00,123.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="624.00,127.00 622.00,125.00 624.00,123.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="613.00" y="110.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">left : T</text>
+  <rect x="739.00" y="119.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="748.00,125.00 742.00,125.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="744.00,123.00 742.00,125.00 744.00,127.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="746.00,123.00 748.00,125.00 746.00,127.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="757.00" y="110.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">right : T</text>
+  <rect x="679.00" y="84.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="685.00,87.00 685.00,93.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="683.00,91.00 685.00,93.00 687.00,91.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="683.00,89.00 685.00,87.00 687.00,89.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="692.00" y="70.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">top : T</text>
+  <rect x="679.00" y="154.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="685.00,163.00 685.00,157.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="687.00,159.00 685.00,157.00 683.00,159.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="687.00,161.00 685.00,163.00 683.00,161.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="692.00" y="179.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">bottom : T</text>
+  <text x="45.00" y="236.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">reference port: dashed outline</text>
+  <rect x="85.00" y="280.00" width="120.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="145.00" y="315.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">part</text>
+  <rect x="79.00" y="309.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-dasharray="6 3"/>
+  <polyline points="82.00,315.00 88.00,315.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="86.00,317.00 88.00,315.00 86.00,313.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="84.00,317.00 82.00,315.00 84.00,313.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="73.00" y="300.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">left : T</text>
+  <rect x="199.00" y="309.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-dasharray="6 3"/>
+  <polyline points="208.00,315.00 202.00,315.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="204.00,313.00 202.00,315.00 204.00,317.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="206.00,313.00 208.00,315.00 206.00,317.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="217.00" y="300.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">right : T</text>
+  <rect x="139.00" y="274.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-dasharray="6 3"/>
+  <polyline points="145.00,277.00 145.00,283.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="143.00,281.00 145.00,283.00 147.00,281.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="143.00,279.00 145.00,277.00 147.00,279.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="152.00" y="260.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">top : T</text>
+  <rect x="139.00" y="344.00" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-dasharray="6 3"/>
+  <polyline points="145.00,353.00 145.00,347.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="147.00,349.00 145.00,347.00 143.00,349.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="147.00,351.00 145.00,353.00 143.00,351.00" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="152.00" y="369.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">bottom : T</text>
+  <text x="315.00" y="236.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">proxy port: filled circle</text>
+  <rect x="355.00" y="280.00" width="120.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="415.00" y="315.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">part</text>
+  <circle cx="355.00" cy="315.00" r="5.00" fill="#1A1A2E" stroke="#FFFFFF" stroke-width="1.00"/>
+  <text x="344.00" y="300.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">left : T</text>
+  <circle cx="475.00" cy="315.00" r="5.00" fill="#1A1A2E" stroke="#FFFFFF" stroke-width="1.00"/>
+  <text x="486.00" y="300.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">right : T</text>
+  <circle cx="415.00" cy="280.00" r="5.00" fill="#1A1A2E" stroke="#FFFFFF" stroke-width="1.00"/>
+  <text x="422.00" y="261.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">top : T</text>
+  <circle cx="415.00" cy="350.00" r="5.00" fill="#1A1A2E" stroke="#FFFFFF" stroke-width="1.00"/>
+  <text x="422.00" y="368.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">bottom : T</text>
+  <text x="585.00" y="236.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="normal" font-style="normal" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">legacy: no appearance</text>
+  <rect x="625.00" y="280.00" width="120.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="685.00" y="315.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">part</text>
+  <rect x="621.00" y="311.00" width="8.00" height="8.00" fill="#1A1A2E" stroke="#FFFFFF" stroke-width="1.00"/>
+  <rect x="741.00" y="311.00" width="8.00" height="8.00" fill="#1A1A2E" stroke="#FFFFFF" stroke-width="1.00"/>
+  <rect x="681.00" y="276.00" width="8.00" height="8.00" fill="#1A1A2E" stroke="#FFFFFF" stroke-width="1.00"/>
+  <rect x="681.00" y="346.00" width="8.00" height="8.00" fill="#1A1A2E" stroke="#FFFFFF" stroke-width="1.00"/>
+</svg>

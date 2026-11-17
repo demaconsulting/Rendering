@@ -46,10 +46,10 @@
   <path d="M 296.00 70.00 L 296.00 136.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <rect x="292.00" y="136.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
   <text x="296.00" y="162.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">alert</text>
-  <path d="M 112.00 244.00 L 112.00 254.00 A 0.00 0.00 0 0 1 112.00 254.00 L 112.00 254.00 A 0.00 0.00 0 0 0 112.00 254.00 L 112.00 314.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 112.00 244.00 L 112.00 314.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <rect x="108.00" y="240.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
   <text x="112.00" y="234.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">primary control command</text>
-  <path d="M 296.00 244.00 L 296.00 254.00 A 0.00 0.00 0 0 1 296.00 254.00 L 296.00 254.00 A 0.00 0.00 0 0 0 296.00 254.00 L 296.00 314.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 296.00 244.00 L 296.00 314.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <rect x="292.00" y="240.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
   <text x="296.00" y="234.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">backup</text>
 </svg>

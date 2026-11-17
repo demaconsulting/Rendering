@@ -35,6 +35,10 @@ extensible property system, and new algorithms, renderers, and options are added
   including dotted triangles and the circled plus, dashed and styled boxes, centered compartment titles,
   in-tab folder titles, thick fork/join and terminate badges, send/accept corner icons, dashed bands, and
   rounded lifeline headers.
+- **SysML ports and connection ends** — port glyphs (direction arrows, dashed reference ports, proxy circles)
+  with outside `name : Type` labels, role-name and multiplicity labels at either end of a connector, diamond
+  boxes whose connectors anchor on the outline, and straight final runs where ports share a face. All of it is
+  opt-in and additive; existing diagrams keep their output.
 
 ## Algorithm capabilities
 

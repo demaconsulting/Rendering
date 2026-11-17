@@ -153,6 +153,18 @@ internal static class GalleryCatalog
     public const string ThemePrintPng = "appearance-and-themes/theme-print.png";
     public const string BoxAppearanceGraphSvg = "appearance-and-themes/box-appearance-graph.svg";
 
+    public const string PortsSysmlGlyphsHorizontalSvg = "parallel-edges-and-ports/ports-sysml-glyphs-horizontal.svg";
+    public const string PortsSysmlGlyphsHorizontalPng = "parallel-edges-and-ports/ports-sysml-glyphs-horizontal.png";
+    public const string PortsSysmlGlyphsVerticalSvg = "parallel-edges-and-ports/ports-sysml-glyphs-vertical.svg";
+    public const string PortsSysmlGlyphsVerticalPng = "parallel-edges-and-ports/ports-sysml-glyphs-vertical.png";
+    public const string ConnectionEndLabelsSvg = "parallel-edges-and-ports/connection-end-labels.svg";
+    public const string ConnectionEndLabelsPng = "parallel-edges-and-ports/connection-end-labels.png";
+
+    public const string SharedFaceStraightRunsSvg = "layout-regressions/shared-face-straight-runs.svg";
+    public const string SharedFaceStraightRunsPng = "layout-regressions/shared-face-straight-runs.png";
+    public const string DiamondOutlineAnchorsSvg = "layout-regressions/diamond-outline-anchors.svg";
+    public const string DiamondOutlineAnchorsPng = "layout-regressions/diamond-outline-anchors.png";
+
     public const string IsolatedNodeLayerGapSvg = "layout-regressions/isolated-node-layer-gap.svg";
     public const string BackEdgeEntryApproachSvg = "layout-regressions/back-edge-entry-approach.svg";
 
@@ -160,6 +172,8 @@ internal static class GalleryCatalog
     public const string SysmlEndMarkersPng = "custom-rendering/sysml-end-markers.png";
     public const string SysmlNotationPrimitivesSvg = "custom-rendering/sysml-notation-primitives.svg";
     public const string SysmlNotationPrimitivesPng = "custom-rendering/sysml-notation-primitives.png";
+    public const string SysmlPortGlyphMatrixSvg = "custom-rendering/sysml-port-glyph-matrix.svg";
+    public const string SysmlPortGlyphMatrixPng = "custom-rendering/sysml-port-glyph-matrix.png";
 
     /// <summary>Shared "Layout algorithms" section intro, reused by every topology-based group.</summary>
     private const string LayoutAlgorithmsIntro =
@@ -596,6 +610,51 @@ internal static class GalleryCatalog
                             + "cannot reserve, because those edges never appear in the sized view it "
                             + "lays out."),
                     ]),
+                new GallerySection(
+                    "SysML ports & connection ends",
+                    "A port's PortAppearance selects a direction arrow (in, out, inout), a dashed outline "
+                    + "for a reference port, a proxy circle, and a label placed outside the owning part "
+                    + "(name : Type), while a connection's end labels carry a role name above and a "
+                    + "multiplicity below the line at each end. The layered algorithm reserves room for "
+                    + "both: it widens the corridor, keeps the first bend clear of the labels, and sizes "
+                    + "a face by its labels, so nothing overlaps. The glyph defaults are unchanged: a "
+                    + "port with no appearance is still the small filled square.",
+                    [
+                        new GalleryImage(
+                            PortsSysmlGlyphsHorizontalSvg,
+                            "A fuel-system interconnection with SysML port glyphs and end labels",
+                            "Five parts joined through ports: out-to-in fuel connections with a role name "
+                            + "and multiplicity (one with an ordered adornment) at each end, an inout "
+                            + "status port joined to a dashed reference port, and a proxy port driven by "
+                            + "a controller; every port label reads name : Type outside its part.",
+                            IsTopIndexHighlight: true),
+                        new GalleryImage(
+                            PortsSysmlGlyphsHorizontalPng,
+                            "The same fuel-system interconnection rendered through the raster path",
+                            "The same diagram through the CanvasNet raster renderer, which draws the "
+                            + "identical glyphs, arrows, labels, and end labels."),
+                        new GalleryImage(
+                            PortsSysmlGlyphsVerticalSvg,
+                            "The fuel-system interconnection flowing top to bottom",
+                            "The companion downward flow: the ports sit on the top and bottom faces, the "
+                            + "arrows turn to match, and the outward labels sit beside the vertical "
+                            + "connectors."),
+                        new GalleryImage(
+                            PortsSysmlGlyphsVerticalPng,
+                            "The downward fuel-system interconnection rendered through the raster path",
+                            "The downward flow through the CanvasNet raster renderer."),
+                        new GalleryImage(
+                            ConnectionEndLabelsSvg,
+                            "Ownership diagram with role names and multiplicities at each end",
+                            "Composite connections from a vehicle's parts, each with a role name above "
+                            + "and a multiplicity below the line at both ends (one with an ordered "
+                            + "adornment), plus an association with an open arrowhead. The n-ary "
+                            + "connection dot is not drawn by the engine yet; see the roadmap."),
+                        new GalleryImage(
+                            ConnectionEndLabelsPng,
+                            "The vehicle ownership diagram rendered through the raster path",
+                            "The same diagram through the CanvasNet raster renderer."),
+                    ]),
             ]),
         new GalleryGroup(
             "appearance-and-themes",
@@ -702,6 +761,46 @@ internal static class GalleryCatalog
                             + "port-alignment floor as an inflated gap."),
                     ]),
                 new GallerySection(
+                    "Straight final runs on a shared face (#57)",
+                    "Several connectors ending on one face of a box used to step a few pixels sideways "
+                    + "right before their end marker whenever the source box's face covered the target's "
+                    + "port position, because the even port spacing ignored where the other end sat. The "
+                    + "layered pipeline now slides the ports onto a common coordinate when both faces "
+                    + "allow it, so those runs are straight. The before rendering is in the pull "
+                    + "request, not in the repository.",
+                    [
+                        new GalleryImage(
+                            SharedFaceStraightRunsSvg,
+                            "Subclasses joined to wider superclasses by straight hollow-triangle connectors",
+                            "Regression coverage for Rendering#57: every specialization connector runs "
+                            + "straight into its hollow triangle, with no sideways step before the "
+                            + "marker, while the ports on the shared face stay apart and in order."),
+                        new GalleryImage(
+                            SharedFaceStraightRunsPng,
+                            "The straight specialization connectors rendered through the raster path",
+                            "The same diagram through the CanvasNet raster renderer."),
+                    ]),
+                new GallerySection(
+                    "Diamond outline anchors (#58)",
+                    "Connectors to or from a diamond node used to attach to its bounding box, leaving a "
+                    + "gap and a hook between the shape and the line. The diamond shape now anchors "
+                    + "connectors on its outline — the vertex for a single connector on a face — and "
+                    + "they leave it along the axis. The before rendering is in the pull request, not "
+                    + "in the repository.",
+                    [
+                        new GalleryImage(
+                            DiamondOutlineAnchorsSvg,
+                            "An action flow with a decision diamond and a merge diamond",
+                            "Regression coverage for Rendering#58: every connector to or from the two "
+                            + "diamonds starts or ends on the diamond outline and leaves it "
+                            + "perpendicular to its face, with no gap or hook."),
+                        new GalleryImage(
+                            DiamondOutlineAnchorsPng,
+                            "The diamond action flow rendered through the raster path",
+                            "The same diagram through the CanvasNet raster renderer, whose diamond "
+                            + "outline matches the SVG polygon."),
+                    ]),
+                new GallerySection(
                     "Back-edge entry approach",
                     "A state machine whose reversed (back) edges end in a wrap-around corridor and whose "
                     + "edges all end in an open chevron. The final straight approach of a back edge is "
@@ -805,6 +904,24 @@ internal static class GalleryCatalog
                             SysmlNotationPrimitivesPng,
                             "The notation-primitives sheet rendered through the raster path",
                             "The same notation-primitives sheet through the CanvasNet raster renderer."),
+                    ]),
+                new GallerySection(
+                    "SysML port glyph matrix",
+                    "A hand-built sheet that puts one port on every face of a box for each glyph: the "
+                    + "layered algorithm only places ports on the faces the flow direction runs along, so "
+                    + "this is the one place all four faces and all glyphs can be checked at once.",
+                    [
+                        new GalleryImage(
+                            SysmlPortGlyphMatrixSvg,
+                            "Every port glyph on all four faces of a box",
+                            "An in arrow points into the part and an out arrow away from it on every face; "
+                            + "inout is double-headed; a reference port has a dashed outline; a proxy port "
+                            + "is a filled circle; and the legacy port with no appearance is the small "
+                            + "filled square with an inward label."),
+                        new GalleryImage(
+                            SysmlPortGlyphMatrixPng,
+                            "The port glyph matrix rendered through the raster path",
+                            "The same matrix through the CanvasNet raster renderer."),
                     ]),
             ]),
     ];

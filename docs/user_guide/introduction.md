@@ -208,7 +208,7 @@ harmlessly until a hierarchical engine consumes it.
 ## Selecting box appearance
 
 A `LayoutGraphNode` also carries the appearance of the box it will be placed as: `Shape` (the
-`BoxShape` outline — `Rectangle`, `RoundedRectangle`, `Folder`, or `Note`), `Keyword` (an optional
+`BoxShape` outline — `Rectangle`, `RoundedRectangle`, `Folder`, `Note`, or `Diamond`), `Keyword` (an optional
 italicized keyword line shown above the title, e.g. `«part def»`), and `Compartments` (an ordered
 list of `LayoutCompartment` feature sections, each with its own title and rows, rendered below the
 title with a divider line). This is generic block-diagram notation — useful for any node-and-edge
@@ -374,6 +374,49 @@ horizontally) the box's **width** grows to fit each label's actual rendered widt
 examples of preserved vs. merged parallel edges, horizontal vs. vertical port placement, and the
 horizontal- vs. vertical-flow parallel-edge auto-grow behavior.
 
+### SysML-style port glyphs and outside labels
+
+A `LayoutGraphPort` (or a hand-built `LayoutPort`) may carry an optional `Appearance` — a `PortAppearance` — that
+changes how the port is drawn. `Direction` (`In`, `Out`, `InOut`) adds an arrow inside the glyph that is
+oriented for the port's face, `OutlineStyle = LineStyle.Dashed` draws the dashed outline of a reference port,
+`Glyph = PortGlyph.Proxy` draws a filled proxy circle, and `LabelPlacement = PortLabelPlacement.Outward` puts the
+label outside the box instead of inside it, where it can carry a full `name : Type` without growing the box.
+The layered layout reserves the room an outside label needs on the corridor beside its port:
+
+```csharp
+var pump = graph.AddNode("fuelPump", width: 150, height: 70);
+var inlet = pump.Ports.AddPort("in");
+inlet.ExternalLabel = "in : Fuel";
+inlet.Appearance = new PortAppearance(PortDirection.In, LabelPlacement: PortLabelPlacement.Outward);
+
+var monitor = graph.AddNode("monitor", width: 150, height: 70).Ports.AddPort("state");
+monitor.Appearance = new PortAppearance(PortDirection.InOut, OutlineStyle: LineStyle.Dashed);
+```
+
+A port with no `Appearance` (the default) is the legacy filled square with its label inside the box, so existing
+diagrams render exactly as before. The [gallery's "SysML ports & connection ends" diagrams](../gallery/README.md)
+show the glyphs in both flow directions, and its "SysML port glyph matrix" shows every form on every face.
+
+### Connection end labels
+
+An edge can carry a role name and a multiplicity at each end. Set `LayoutGraphEdge.SourceEndLabel` and
+`TargetEndLabel` (a `LineEndLabel`, whose `Primary` slot is the role name drawn above a horizontal run and
+`Secondary` slot is the multiplicity drawn below it), or pass the same values to the `Connection` constructor
+when routing among placed boxes:
+
+```csharp
+var edge = graph.AddEdge("wheels", wheel, vehicle);
+edge.SourceEndLabel = new LineEndLabel("wheels", "4 {ordered}");
+edge.TargetEndLabel = new LineEndLabel("owner", "1");
+edge.TargetEnd = EndMarkerStyle.FilledDiamond;
+```
+
+`ConnectorLabelPlacer.PlaceEndLabels` positions the labels beyond the end marker, clear of boxes, ports, and the
+midpoint label, and both renderers draw them in the midpoint label's font with no background. The layered layout
+reserves room for them beside the end; an edge without end labels is unchanged, and when parallel edges are merged
+into one connector their end labels are dropped, as the merged line has no single end to describe. Connectors
+that `ConnectorRouter` routes across container boundaries do not reserve extra room for end labels.
+
 ## Boundary (delegation) ports
 
 A *boundary (delegation) port* is a named port on a **container** node that relays a connection from
@@ -522,6 +565,13 @@ backwards around a cycle through a wrap-around corridor. Without it the layout c
 decoration, and a wide marker such as an open chevron can crowd the corner of a back edge. Edges
 with no decoration keep the original approach, so existing diagrams are unchanged. Edge labels are
 placed so that their background does not cut through box borders.
+
+`BoxShape.Diamond` draws a node as a rhombus through the four edge midpoints (a decision or merge node), and
+connectors to or from it start and end on the diamond's outline rather than on its bounding box, leaving each
+corner along the axis. Separately, where several connectors share one face of a box, the layered layout now
+slides their ports so the two ends of an edge line up whenever both faces allow it, giving a straight final run
+into the marker; a residual step is never shorter than a marker is long. Both changes need no configuration and
+only affect connectors that previously kinked or floated off a diamond's bounding box.
 
 Other primitives follow the same pattern of optional, default-preserving members:
 

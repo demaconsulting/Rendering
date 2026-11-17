@@ -696,18 +696,24 @@ against port labels, not arbitrary externally-supplied connector geometry.
 
 The SysML-agnostic notation primitives (dotted-triangle and circled-plus end markers, `BoxAppearance`,
 compartment title styling, in-tab folder titles, thick-bar and crossed-circle badges, lifeline header
-styling, dashed bands) are implemented. The following follow-on primitives were identified while
-scoping that work and are **not** implemented; none of them has any API, requirement, or design
+styling, dashed bands, diamond boxes, port glyphs with direction and proxy forms, outward port labels,
+and connection end labels) are implemented. The following follow-on work was identified while
+scoping that work and is **not** implemented; none of it has any API, requirement, or design
 presence yet:
 
 - **Rich-text compartment rows.** Rows that mix styled spans (for example a bold-span row such as
   a bold feature name followed by regular text) instead of a single plain string per row.
-- **Port glyph, direction, and proxy.** A port drawn as a glyph with a direction indicator (in or
-  out) and a proxy-port form, beyond the current port marker.
-- **Edge end labels.** Labels anchored at the source or target end of a line (for example
-  multiplicities), distinct from the single mid-line label.
-- **Port outward label.** A dedicated label placed outward of a port, beyond the existing per-side
-  port label placement.
+- **N-ary connection dot.** The filled dot where three or more connection ends meet (the SysML
+  n-ary connection) needs a junction primitive and routing that merges the legs; binary connections
+  with end labels are done.
+- **Unconnected-port emission and a port side hint.** A port with no connector is only drawn when the
+  consumer places it; the layered layout does not yet emit unconnected ports on its own or accept a
+  preferred-side hint for them.
+- **Edge source/target end styling on `LayoutGraphEdge`.** An end adornment other than the existing
+  marker styles (for example a per-end glyph) is not modeled; end labels are.
+- **End-label room across containers.** Connectors routed across container boundaries by
+  `ConnectorRouter` reserve no extra room for end labels or outward port labels, so a crowded crossing
+  can still place a label close to a neighboring line.
 
 ## Process note
 

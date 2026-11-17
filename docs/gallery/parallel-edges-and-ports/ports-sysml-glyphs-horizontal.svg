@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1523.72" height="219.60" viewBox="0 0 1523.72 219.60">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="14.747763" markerHeight="7" refX="14.747763" refY="3.5" orient="auto">
+      <polygon points="4.5 0, 14.5 3.5, 4.5 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+      <line x1="1" y1="0" x2="1" y2="7" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9.75" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2.75" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#FFFFFF"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="20.00" y="24.80" width="150.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="95.00" y="37.80" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" textLength="138.00" lengthAdjust="spacingAndGlyphs">fuelTank : FuelTank</text>
+  <rect x="467.24" y="20.00" width="150.00" height="179.60" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="542.24" y="33.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">fuelPump : Pump</text>
+  <rect x="960.68" y="74.80" width="150.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="1035.68" y="87.80" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">engine : Engine</text>
+  <rect x="20.00" y="124.80" width="150.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="95.00" y="137.80" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" textLength="138.00" lengthAdjust="spacingAndGlyphs">controller : Controller</text>
+  <rect x="1353.72" y="74.80" width="150.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="1428.72" y="87.80" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" textLength="138.00" lengthAdjust="spacingAndGlyphs">monitor : Monitor</text>
+  <path d="M 170.00 82.35 L 461.24 82.35" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <rect x="164.00" y="76.35" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="173.00,82.35 167.00,82.35" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="171.00,80.35 173.00,82.35 171.00,84.35" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="182.00" y="67.55" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">out : Fuel</text>
+  <rect x="461.24" y="76.35" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="464.24,82.35 470.24,82.35" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="468.24,84.35 470.24,82.35 468.24,80.35" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="455.24" y="67.55" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">in : Fuel</text>
+  <path d="M 617.24 125.80 L 954.68 125.80" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <rect x="611.24" y="119.80" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="620.24,125.80 614.24,125.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="618.24,123.80 620.24,125.80 618.24,127.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="629.24" y="111.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">out : Fuel</text>
+  <rect x="954.68" y="119.80" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="957.68,125.80 963.68,125.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="961.68,127.80 963.68,125.80 961.68,123.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="948.68" y="111.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">in : Fuel</text>
+  <path d="M 170.00 169.25 L 462.24 169.25" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <rect x="164.00" y="163.25" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="173.00,169.25 167.00,169.25" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="171.00,167.25 173.00,169.25 171.00,171.25" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="182.00" y="154.45" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">cmd : Cmd</text>
+  <circle cx="467.24" cy="169.25" r="5.00" fill="#1A1A2E" stroke="#FFFFFF" stroke-width="1.00"/>
+  <text x="456.24" y="154.45" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">ctrl : Cmd</text>
+  <path d="M 1110.68 125.80 L 1353.72 125.80" fill="none" stroke="#1A1A2E" stroke-width="1.50"/>
+  <rect x="1104.68" y="119.80" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="1113.68,125.80 1107.68,125.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1109.68,123.80 1107.68,125.80 1109.68,127.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1111.68,123.80 1113.68,125.80 1111.68,127.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1122.68" y="111.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">state : Mode</text>
+  <rect x="1347.72" y="119.80" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-dasharray="6 3"/>
+  <polyline points="1350.72,125.80 1356.72,125.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1354.72,127.80 1356.72,125.80 1354.72,123.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1352.72,127.80 1350.72,125.80 1352.72,123.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1341.72" y="111.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">state : Mode</text>
+  <text x="278.50" y="72.05" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">source</text>
+  <text x="185.20" y="92.65" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+  <text x="382.14" y="72.05" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">sink</text>
+  <text x="437.24" y="92.65" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1..*</text>
+  <text x="711.34" y="115.50" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">pump</text>
+  <text x="632.44" y="136.10" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+  <text x="872.96" y="115.50" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">feeds</text>
+  <text x="902.48" y="136.10" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">0..* {ordered}</text>
+</svg>
