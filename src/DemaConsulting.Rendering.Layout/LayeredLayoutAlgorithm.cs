@@ -583,7 +583,20 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             var desiredWidth = Math.Max(engineNodes[i].Width, minWidth);
             var desiredHeight = Math.Max(engineNodes[i].Height, minHeight);
 
-            if (desiredWidth <= engineNodes[i].Width && desiredHeight <= engineNodes[i].Height)
+            // The widest label stack on any face of this node is the spacing PortAligner must keep between
+            // its ports, so aligning a port with the far end of its edge never packs two connectors'
+            // labels together. Zero (no change, no second pass) when the node has no end or outward labels.
+            var minPitch = 0.0;
+            foreach (var ((pitchNode, _), pitch) in endLabelPitch)
+            {
+                if (pitchNode == i)
+                {
+                    minPitch = Math.Max(minPitch, pitch);
+                }
+            }
+
+            var needsPitch = minPitch > engineNodes[i].MinPortPitch + 1e-9;
+            if (!needsPitch && desiredWidth <= engineNodes[i].Width && desiredHeight <= engineNodes[i].Height)
             {
                 continue;
             }
@@ -595,6 +608,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 Height = desiredHeight,
                 RealWidth = desiredWidth,
                 RealHeight = desiredHeight,
+                MinPortPitch = Math.Max(minPitch, grownNodes[i].MinPortPitch),
             };
         }
 
@@ -725,7 +739,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         var extent = 0.0;
         foreach (var text in new[] { label?.Primary, label?.Secondary })
         {
-            if (string.IsNullOrEmpty(text))
+            if (text is null || text.Length == 0)
             {
                 continue;
             }
@@ -734,7 +748,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 extent,
                 verticalFlow
                     ? ConnectorLabelPlacer.EstimateLabelHeight(fontSize)
-                    : ConnectorLabelPlacer.EstimateLabelWidth(text, fontSize));
+                    : ConnectorLabelPlacer.EstimateEndLabelWidth(text, fontSize));
         }
 
         return extent <= 0.0
@@ -756,14 +770,14 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         var pitch = 0.0;
         foreach (var text in new[] { label?.Primary, label?.Secondary })
         {
-            if (string.IsNullOrEmpty(text))
+            if (text is null || text.Length == 0)
             {
                 continue;
             }
 
             pitch += side is PortSide.Left or PortSide.Right
                 ? ConnectorLabelPlacer.EstimateLabelHeight(fontSize)
-                : ConnectorLabelPlacer.EstimateLabelWidth(text, fontSize);
+                : ConnectorLabelPlacer.EstimateEndLabelWidth(text, fontSize);
         }
 
         // Slack for the clearance the placer keeps between a label and the line it sits beside (on both

@@ -379,12 +379,12 @@ midpoint of the SVG polygon.
 
 #### Connection end labels
 
-`SvgRenderer_EndLabels_DrawnAtThePlacersPositions` asserts each of four slots is a `<text>` at the position the
-placer chose, `SvgRenderer_EndLabels_UseTheMidpointLabelStyle` asserts the midpoint label's anchor, baseline,
-filter and font size, `SvgRenderer_NullOrEmptyEndLabelSlots_ProduceNoText` and
+`SvgRenderer_EndLabels_DrawnAtThePlacersPositions` asserts each of four slots is a `<text>` at the position the placer
+chose, `SvgRenderer_EndLabels_UseTheMidpointLabelFontWithoutABackground` asserts the midpoint label's anchor, baseline
+and font size and the absence of the background filter, `SvgRenderer_NullOrEmptyEndLabelSlots_ProduceNoText` and
 `SvgRenderer_LineWithoutEndLabels_ProducesNoLabelText` assert nothing is drawn for blank or absent labels,
-`SvgRenderer_EndLabelText_IsXmlEscaped` asserts escaping, `SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas`
-asserts the canvas includes a label that extends past the declared width, and
+`SvgRenderer_EndLabelText_IsXmlEscaped` asserts escaping, `SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas` asserts
+the canvas includes a label that extends past the declared width, and
 `SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize` asserts the render scale. The gallery-project parity test
 `SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor` asserts the PNG label is centered on the SVG anchor.
 
@@ -545,9 +545,10 @@ asserts the canvas grows.
   `SvgRenderer_Rectangle_StillRendersAsRectNotPolygon`, `SvgRenderer_Diamond_Label_IsCenteredOnTheDiamond`,
   `SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon`
 - **`Rendering-Svg-SvgRenderer-EndLabels`**: `SvgRenderer_EndLabels_DrawnAtThePlacersPositions`,
-  `SvgRenderer_EndLabels_UseTheMidpointLabelStyle`, `SvgRenderer_NullOrEmptyEndLabelSlots_ProduceNoText`,
-  `SvgRenderer_LineWithoutEndLabels_ProducesNoLabelText`, `SvgRenderer_EndLabelText_IsXmlEscaped`,
-  `SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas`, `SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize`,
+  `SvgRenderer_EndLabels_UseTheMidpointLabelFontWithoutABackground`,
+  `SvgRenderer_NullOrEmptyEndLabelSlots_ProduceNoText`, `SvgRenderer_LineWithoutEndLabels_ProducesNoLabelText`,
+  `SvgRenderer_EndLabelText_IsXmlEscaped`, `SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas`,
+  `SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize`,
   `SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor`
 - **`Rendering-Svg-SvgRenderer-PortGlyphs`**:
   `SvgRenderer_LegacyPort_IsTheHistoricalFilledSquare`, `SvgRenderer_OutlinedPort_IsARoundedBackgroundFilledSquare`,

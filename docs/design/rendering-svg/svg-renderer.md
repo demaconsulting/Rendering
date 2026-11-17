@@ -402,8 +402,9 @@ centered-title diamond is centered on the box. Rectangle boxes keep their `<rect
 
 After the midpoint labels are placed, `Render` calls `ConnectorLabelPlacer.PlaceEndLabels` with the midpoint
 placements as occupied rectangles, grows the canvas to include every end-label box, and in the final label pass
-draws each placement as a centered `<text>` with the midpoint label's font, fill, middle baseline, and `label-bg`
-filter (the text is XML-escaped). A line without end labels adds nothing, so existing output is unchanged.
+draws each placement as a centered `<text>` with the midpoint label's font, fill, and middle baseline but **no**
+`label-bg` filter, because an end label sits beside its own line and a background could only erase a neighboring
+connector (the text is XML-escaped). A line without end labels adds nothing, so existing output is unchanged.
 
 #### Port Glyphs
 
@@ -415,7 +416,8 @@ proxy port is a `<circle>` of `PortProxyRadius` filled with the stroke color. An
 glyph's own half size; an outward label is a `<text>` at `NotationMetrics.PortOutwardLabelAnchor` with
 `text-anchor` start or end and no width squeeze. The marker end shortening (`RetreatFromPort`) retreats by the
 glyph's own half size, and the canvas grows to include every outward label; the port glyph and label rectangles
-are also passed to the end-label placer as occupied rectangles.
+are also passed to the end-label placer as occupied rectangles (the outward-label rectangle padded by 5 px on
+each side so an end label never sits flush against a port label).
 
 ### Error Handling
 

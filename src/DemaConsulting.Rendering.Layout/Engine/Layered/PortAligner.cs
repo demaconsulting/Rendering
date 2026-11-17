@@ -166,8 +166,11 @@ internal sealed class PortAligner : ILayoutStage
 
         var current = ports[edgeIndex];
         var position = face.IndexOf(edgeIndex);
-        var lowBound = position > 0 ? ports[face[position - 1]] + EdgeSpacing : double.NegativeInfinity;
-        var highBound = position < face.Count - 1 ? ports[face[position + 1]] - EdgeSpacing : double.PositiveInfinity;
+        // The separation kept from a neighbor is the standard edge spacing, widened by the node's own
+        // minimum port pitch (end-label and outward port-label room) for a real node.
+        var separation = node < graph.N ? Math.Max(EdgeSpacing, graph.Nodes[node].MinPortPitch) : EdgeSpacing;
+        var lowBound = position > 0 ? ports[face[position - 1]] + separation : double.NegativeInfinity;
+        var highBound = position < face.Count - 1 ? ports[face[position + 1]] - separation : double.PositiveInfinity;
 
         var window = new List<(double Lo, double Hi)>();
         var containsCurrent = false;

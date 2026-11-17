@@ -68,9 +68,12 @@ public sealed class SvgEndLabelTests
         }
     }
 
-    /// <summary>End labels are drawn with the same text style as a connector midpoint label.</summary>
+    /// <summary>
+    ///     End labels use the connector midpoint label's text style (font, fill, centering) but no background
+    ///     filter: they sit beside their line, so a background could only erase a neighboring connector.
+    /// </summary>
     [Fact]
-    public void SvgRenderer_EndLabels_UseTheMidpointLabelStyle()
+    public void SvgRenderer_EndLabels_UseTheMidpointLabelFontWithoutABackground()
     {
         // Arrange
         var tree = Tree(Line(new LineEndLabel("owner"), null));
@@ -82,7 +85,7 @@ public sealed class SvgEndLabelTests
         var text = Regex.Match(svg, "<text [^>]*>owner</text>").Value;
         Assert.Contains("text-anchor=\"middle\"", text, StringComparison.Ordinal);
         Assert.Contains("dominant-baseline=\"middle\"", text, StringComparison.Ordinal);
-        Assert.Contains("filter=\"url(#label-bg)\"", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("filter=", text, StringComparison.Ordinal);
         Assert.Contains($"font-size=\"{F(Themes.Light.FontSizeBody)}\"", text, StringComparison.Ordinal);
     }
 

@@ -407,7 +407,7 @@ sections:
       - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels
         title: >-
           CanvasNetRasterRenderer shall draw each non-empty end-label slot of a line as text centered
-          on the position the end-label placer chose, on a background-colored rectangle, and grow the
+          on the position the end-label placer chose, without a background rectangle, and grow the
           surface to include it, so end labels look the same in PNG and SVG.
         justification: |
           The raster output must show the same labels in the same places as the vector output; the

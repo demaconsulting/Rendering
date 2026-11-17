@@ -711,7 +711,7 @@ sections:
       - id: Rendering-Svg-SvgRenderer-EndLabels
         title: >-
           SvgRenderer shall draw each non-empty end-label slot of a line as a centered text element,
-          with the midpoint label's font and background, at the position the end-label placer chose
+          with the midpoint label's font and no background, at the position the end-label placer chose
           after the midpoint labels, escape its text, grow the canvas to include it, and draw nothing
           for a line without end labels.
         justification: |
@@ -720,7 +720,7 @@ sections:
           labels leaves existing diagrams unchanged.
         tests:
           - SvgRenderer_EndLabels_DrawnAtThePlacersPositions
-          - SvgRenderer_EndLabels_UseTheMidpointLabelStyle
+          - SvgRenderer_EndLabels_UseTheMidpointLabelFontWithoutABackground
           - SvgRenderer_NullOrEmptyEndLabelSlots_ProduceNoText
           - SvgRenderer_LineWithoutEndLabels_ProducesNoLabelText
           - SvgRenderer_EndLabelText_IsXmlEscaped

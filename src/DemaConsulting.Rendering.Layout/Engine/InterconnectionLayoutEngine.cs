@@ -55,6 +55,12 @@ namespace DemaConsulting.Rendering.Layout.Engine;
 /// The caller's true, never-swapped bounding-box height in logical pixels. See the
 /// <see cref="RealWidth"/> remarks.
 /// </param>
+/// <param name="MinPortPitch">
+/// The smallest spacing, in logical pixels, <see cref="Layered.PortAligner"/> keeps between two ports on
+/// one face of this node, on top of the standard edge spacing: the room the labels beside each connector
+/// (end labels, outward port labels) need, so aligning a port with the other end of its edge never packs
+/// the labels of neighboring connectors together. Zero (the default) leaves the standard spacing.
+/// </param>
 /// <param name="TitleReserveTop">
 /// The vertical band, in logical pixels, that this node's title (keyword line, if any, then the name
 /// line) occupies at the top of the box, or 0 when the node has no title. <see cref="Layered.PortDistributor"/>
@@ -74,7 +80,8 @@ internal readonly record struct LayerNode(
     string? Label = null,
     double RealWidth = 0.0,
     double RealHeight = 0.0,
-    double TitleReserveTop = 0.0);
+    double TitleReserveTop = 0.0,
+    double MinPortPitch = 0.0);
 
 /// <summary>
 /// A directed edge (from a source node to a target node, by index) used for layering.

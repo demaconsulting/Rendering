@@ -61,6 +61,12 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     private const float PortGlyphStrokeWidth = 1.0f;
 
     /// <summary>
+    /// Extra width, in logical pixels, added to each side of an outward port label's rectangle when it is
+    /// handed to the end-label placer, so an end label on the same run keeps a visible gap from it.
+    /// </summary>
+    private const double OutwardLabelEndLabelGap = 5.0;
+
+    /// <summary>
     /// Opaque white fill used by shapes whose semantics are intentionally theme-independent in the
     /// CanvasNet renderer: activation bars and the inner bullseye circle.
     /// </summary>
@@ -1063,8 +1069,8 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
 
     /// <summary>
     /// Draws one connection end label (a role name or multiplicity slot) centered on the position
-    /// <see cref="ConnectorLabelPlacer.PlaceEndLabels"/> chose, on a background-colored rectangle like a
-    /// midpoint label. The text is centered vertically on the placement, which is where the SVG renderer
+    /// <see cref="ConnectorLabelPlacer.PlaceEndLabels"/> chose, with no background (it sits beside its line, clear of it by construction, so a background could only
+    /// erase a neighboring connector). The text is centered vertically on the placement, which is where the SVG renderer
     /// anchors it (<c>dominant-baseline="middle"</c>), so the two formats agree.
     /// </summary>
     /// <param name="canvas">Canvas to draw on.</param>
@@ -1079,16 +1085,6 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
 
         var font = CreateFont(bold: false, italic: false);
         var textSize = (float)theme.FontSizeBody * scale;
-        var metrics = MeasureText(placement.Text, font, textSize);
-        var padding = (float)theme.LabelPadding * scale * 0.5f;
-        var backgroundWidth = metrics.Width + (2f * padding);
-        var backgroundHeight = textSize + (2f * padding);
-        canvas.FillRect(
-            centreX - (backgroundWidth / 2f),
-            centreY - (backgroundHeight / 2f),
-            backgroundWidth,
-            backgroundHeight,
-            ParseColor(theme.BackgroundColor));
 
         // The baseline sits about 0.35 em below the vertical centre of the text.
         canvas.DrawText(
@@ -1756,7 +1752,9 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
             rects.Add(NotationMetrics.PortGlyphBounds(port));
             if (NotationMetrics.IsOutwardLabel(port))
             {
-                rects.Add(NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme));
+                // Padded along the text so an end label keeps a visible gap from the port label beside it.
+                var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
+                rects.Add(bounds with { HalfWidth = bounds.HalfWidth + OutwardLabelEndLabelGap });
             }
         }
 

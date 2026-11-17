@@ -104,6 +104,7 @@ public sealed class SvgPortGlyphTests
         var segments = NotationMetrics.PortArrowSegments(direction, side);
         var body = svg[svg.IndexOf("</defs>", StringComparison.Ordinal)..];
         var polylines = Regex.Matches(body, "<polyline points=\"([^\"]*)\"[^>]*/>")
+            .Cast<Match>()
             .Select(match => match.Groups[1].Value)
             .ToList();
         Assert.Equal(segments.Count, polylines.Count);

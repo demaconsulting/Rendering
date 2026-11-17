@@ -120,7 +120,9 @@ The default stage sequence added by `AddDefaultStages` runs in this order:
    small step the even port spacing leaves next to it (Rendering#57). For each sub-edge it computes each
    end's window — the face's usable extent (the shape's connectable extents, kept `ConnectorClearance`
    from the corners and below the title reserve on left/right faces) intersected with the gap to its
-   neighbors on the same face (kept `EdgeSpacing` away) — and a long-edge or hierarchy-crossing dummy
+   neighbors on the same face (kept `EdgeSpacing` away, or `LayerNode.MinPortPitch` when that is larger,
+   which is how the layout reserves room for stacked end labels and outward port labels) — and a
+   long-edge or hierarchy-crossing dummy
    end is pinned to its own coordinate. When the two windows intersect, both ports move to the point of
    the intersection nearest their mean; when they cannot meet, a residual step shorter than
    `PortAligner.MinPortStep` (12 px, longer than every end marker) is pushed out to that minimum where

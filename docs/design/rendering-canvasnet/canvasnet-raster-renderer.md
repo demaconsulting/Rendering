@@ -161,8 +161,9 @@ the SVG polygon back against PNG pixels.
 #### Connection End Labels
 
 `RenderToSurface` places end labels with `ConnectorLabelPlacer.PlaceEndLabels` after the midpoint labels (which
-they yield to), grows the surface to include them, and draws each as text centered on the placement, with a
-background-colored rectangle behind it. The text is centered vertically on the placement (baseline about 0.35 em
+they yield to), grows the surface to include them, and draws each as text centered on the placement, with no
+background rectangle (an end label sits beside its own line, and a background could only erase a neighboring
+connector). The text is centered vertically on the placement (baseline about 0.35 em
 below it), the same anchor the SVG renderer's `dominant-baseline="middle"` text uses, so the two formats agree.
 
 #### Port Glyphs

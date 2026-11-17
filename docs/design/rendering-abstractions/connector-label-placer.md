@@ -111,16 +111,17 @@ class file of its own and does not touch `Place`, so midpoint placements are byt
 labels; the renderers pass the midpoint placements (and, for ports, their glyph and label rectangles) in
 `occupied` so end labels yield to them.
 
-For each label, in the fixed order lines, source end before target end, primary slot before secondary slot
-(which makes the result deterministic), the placer takes the end segment, the unit direction into the line, and
-the label box (`EstimateLabelWidth` by `EstimateLabelHeight`). The nominal position starts beyond the end
-marker (`AlongLineLength × markerScale`) plus a small offset; the primary slot sits above a horizontal run or to
-the right of a vertical one, the secondary slot on the opposite side, offset across the line by half the label
-plus a half pixel of clearance. Candidates are the nominal position, then slides along the segment in
-half-label steps, then the same on the opposite side. A candidate is rejected when it overlaps a leaf box,
-straddles a container border, overlaps the footprint of the line's own end decorations, overlaps an `occupied`
-rectangle or an earlier end label, or runs past the end of the segment. When nothing clears, the nominal
-position is used: a label is never dropped and the method never throws for a crowded diagram.
+For each label, in the fixed order lines, source end before target end, primary slot before secondary slot (which makes
+the result deterministic), the placer takes the end segment, the unit direction into the line, and the label box
+(`EstimateLabelWidth` by `EstimateLabelHeight`; the width comes from `EstimateEndLabelWidth`, which measures the text
+with `PortLabelWidthEstimator` plus the label gap on both sides, the same estimate the layered layout uses to reserve
+room for stacked end labels). The nominal position starts beyond the end marker (`AlongLineLength × markerScale`) plus a
+small offset; the primary slot sits above a horizontal run or to the right of a vertical one, the secondary slot on the
+opposite side, offset across the line by half the label plus a half pixel of clearance. Candidates are the nominal
+position, then slides along the segment in half-label steps, then the same on the opposite side. A candidate is rejected
+when it overlaps a leaf box, straddles a container border, overlaps the footprint of the line's own end decorations,
+overlaps an `occupied` rectangle or an earlier end label, or runs past the end of the segment. When nothing clears, the
+nominal position is used: a label is never dropped and the method never throws for a crowded diagram.
 
 ### Connector Label Placer Error Handling
 

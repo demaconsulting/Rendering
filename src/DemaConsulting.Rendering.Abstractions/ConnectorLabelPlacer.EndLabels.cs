@@ -143,7 +143,7 @@ public static partial class ConnectorLabelPlacer
                 foreach (var slot in new[] { EndLabelSlot.Primary, EndLabelSlot.Secondary })
                 {
                     var text = slot == EndLabelSlot.Primary ? label.Primary : label.Secondary;
-                    if (string.IsNullOrEmpty(text))
+                    if (text is null || text.Length == 0)
                     {
                         continue;
                     }
@@ -161,6 +161,20 @@ public static partial class ConnectorLabelPlacer
 
         return result;
     }
+
+    /// <summary>
+    /// Estimates the full width of an end label's bounding box, including the clearance the placer keeps
+    /// around it, from the same glyph-width table the port labels use (<see cref="PortLabelWidthEstimator"/>),
+    /// which tracks the rendered width of the body font far more closely than the character-count estimate
+    /// of <see cref="EstimateLabelWidth"/>. An end label is drawn beside its line without a background, so
+    /// the estimate decides whether the text stays clear of the line, the box, and its neighbors. Exposed so
+    /// the layout can reserve room with the same formula the placer uses.
+    /// </summary>
+    /// <param name="text">The label text.</param>
+    /// <param name="fontSize">Body font size, in logical pixels.</param>
+    /// <returns>The estimated full label bounding-box width, in logical pixels.</returns>
+    public static double EstimateEndLabelWidth(string text, double fontSize) =>
+        PortLabelWidthEstimator.MeasureWidth(text, fontSize) + (2.0 * Gap);
 
     /// <summary>
     /// Chooses the position of one end-label slot: the nominal spot beyond the end marker on the
@@ -198,7 +212,7 @@ public static partial class ConnectorLabelPlacer
         var dirY = length > 1e-9 ? dy / length : 0.0;
         var horizontal = Math.Abs(dirX) >= Math.Abs(dirY);
 
-        var halfWidth = (EstimateTextWidth(text, fontSize) / 2.0) + Gap;
+        var halfWidth = EstimateEndLabelWidth(text, fontSize) / 2.0;
         var halfHeight = (fontSize * HeightFactor / 2.0) + Gap;
         var alongHalf = horizontal ? halfWidth : halfHeight;
         var crossHalf = horizontal ? halfHeight : halfWidth;

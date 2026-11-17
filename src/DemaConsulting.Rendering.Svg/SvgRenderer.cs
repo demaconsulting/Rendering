@@ -57,6 +57,12 @@ public sealed class SvgRenderer : IRenderer
     /// </summary>
     private const double PortGlyphStrokeWidth = 1.0;
 
+    /// <summary>
+    /// Extra width, in logical pixels, added to each side of an outward port label's rectangle when it is
+    /// handed to the end-label placer, so an end label on the same run keeps a visible gap from it.
+    /// </summary>
+    private const double OutwardLabelEndLabelGap = 5.0;
+
     /// <inheritdoc/>
     public string MediaType => "image/svg+xml";
 
@@ -1068,7 +1074,7 @@ public sealed class SvgRenderer : IRenderer
 
     /// <summary>
     /// Renders one connection end label (a role name or multiplicity slot) as a centered text element
-    /// with the same auto-sizing background and font as a midpoint label, at the position
+    /// with the same font as a midpoint label but no background (it sits beside its line, clear of it by construction, so a background could only erase a neighboring connector), at the position
     /// <see cref="ConnectorLabelPlacer.PlaceEndLabels"/> chose. Called in the final label pass so no wire
     /// draws over it.
     /// </summary>
@@ -1079,7 +1085,7 @@ public sealed class SvgRenderer : IRenderer
     private static void RenderEndLabel(StringBuilder sb, EndLabelPlacement placement, Theme theme, double scale)
     {
         sb.Append(
-            $"""  <text x="{F(placement.X * scale)}" y="{F(placement.Y * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">{EscapeXml(placement.Text)}</text>""");
+            $"""  <text x="{F(placement.X * scale)}" y="{F(placement.Y * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="middle" dominant-baseline="middle">{EscapeXml(placement.Text)}</text>""");
         sb.AppendLine();
     }
 
@@ -1582,7 +1588,9 @@ public sealed class SvgRenderer : IRenderer
             rects.Add(NotationMetrics.PortGlyphBounds(port));
             if (NotationMetrics.IsOutwardLabel(port))
             {
-                rects.Add(NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme));
+                // Padded along the text so an end label keeps a visible gap from the port label beside it.
+                var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
+                rects.Add(bounds with { HalfWidth = bounds.HalfWidth + OutwardLabelEndLabelGap });
             }
         }
 
