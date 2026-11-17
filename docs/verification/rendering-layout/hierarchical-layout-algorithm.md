@@ -126,7 +126,7 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   asserted against the strict criteria that exposed the original defects. For the `auto` diagram (Storage declared
   before API): `Apply_GalleryCrossHierarchyAuto_UiToDb_LongLegsAndNoBorderHugging` (first and final legs at least 24,
   first leg at least 36, at most two bends, no run within 24 px of a Client / Server / Storage border),
-  `Apply_GalleryCrossHierarchyAuto_SessionToApi_IsStraight` (one two- waypoint segment) and
+  `Apply_GalleryCrossHierarchyAuto_SessionToApi_IsStraight` (one two-waypoint segment) and
   `Apply_GalleryCrossHierarchyAuto_ConnectorsDoNotCrossEachOther` (zero crossings, so Auth to Storage's arrowhead is not
   crossed). For the downward diagram: `Apply_GalleryCrossHierarchyDown_CustomerEdges_CleanAndDirect` (Customer to Cart
   overlaps its target's face by only 13 px, too narrow to draw straight without the arrowhead overhanging a corner, so
