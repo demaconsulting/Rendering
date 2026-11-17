@@ -216,6 +216,17 @@ Cross-container connectors reserve no room for their labels.
 A port's `Appearance` is copied onto the placed port for leaf-scope edges (through the layered algorithm) and for
 a boundary port projected onto its container boundary (`MergeRegionDecomposer.ProjectPorts`).
 
+**Canvas fit.** A cross-container connector is routed around the outside of a container wall, so for a
+container near the origin its lane can lie at a negative coordinate, and a connector label (for example an
+`«import»` keyword label) can extend past the canvas; renderers only grow a canvas to the right and down, so
+both were clipped. Each scope's finished tree — at both return sites of `LayoutScope` (the leaf/no-boundary-port
+path and the boundary-port combined path) — is therefore passed through `CanvasFitter.Fit` with that scope's
+resolved `CoreOptions.AssumedFontSize`. Because every enclosing scope fits the nested result it receives, the
+root tree's canvas contains every connector and label at every depth. A scope that already fits is returned as
+the same instance, so existing output is byte-identical. The leaf layered algorithm packs isolated nodes by
+their on-screen extents for every direction (see the layered pipeline design), so isolated nodes inside and
+outside a container do not overlap.
+
 ### HierarchicalLayoutAlgorithm Design Constraints
 
 - The flat-graph equivalence guarantee is load-bearing: the fast path must delegate directly to the
@@ -262,7 +273,8 @@ would be in a flat graph.
 - **Layout units** — `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm` as bundled leaf
   algorithms registered in the default registry, `ConnectorRouter` for LCA cross-container edge
   routing, `EdgeCountGapWidener` (internal engine helper) for the shared connector-corridor width the
-  no-boundary-port sibling-gap widening pass reserves, and `HierarchyMergeRegionBuilder`,
+  no-boundary-port sibling-gap widening pass reserves, `CanvasFitter` (internal engine helper) to keep
+  every connector and connector label inside each scope's canvas, and `HierarchyMergeRegionBuilder`,
   `MergeRegionGraphAssembler`, the recursive
   `LayeredLayoutPipeline`, `MergeRegionDecomposer`, and `BoundaryPortResolver.FaceForDirection`
   (layered-pipeline unit, `Engine/Layered`) for boundary-port detection, the combined recursive pass,
@@ -325,3 +337,5 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-ValidatesRegistry | HierarchicalLayoutAlgorithm behavior described above |
 | Rendering-Layout-HierarchicalLayout-AppearancePassThrough | Sized view (step 3), appearance copy |
 | Rendering-Layout-HierarchicalLayout-FolderTabTitleReserve | Data model, `ResolveTitleHeight` in-tab rule |
+| Rendering-Layout-HierarchicalLayout-IsolatedNodesNoOverlap | Per-scope leaf layout, on-screen component extents |
+| Rendering-Layout-HierarchicalLayout-ContentInsideCanvas | Canvas fit of each scope result, `CanvasFitter.Fit` |

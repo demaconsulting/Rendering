@@ -154,6 +154,8 @@ sections:
           - Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments
           - Rendering-Abstractions-ConnectorLabelPlacer-EndLabelPlacement
           - Rendering-Abstractions-ConnectorLabelPlacer-EndLabelsKeepMidpointPlacementsUnchanged
+          - Rendering-Abstractions-ConnectorLabelPlacer-SharedLabelResolution
+          - Rendering-Abstractions-ConnectorLabelPlacer-LeadingOverhang
         tests:
           - Place_SingleLine_UsesLongestSegmentMidpoint
 

@@ -131,6 +131,26 @@ the opposite side. A candidate is rejected when it overlaps a leaf box, straddle
 label, or runs past the end of the segment. When nothing clears, the nominal position is used: a label is never
 dropped and the method never throws for a crowded diagram.
 
+#### Shared label resolution
+
+`ResolveLabels(lines, boxes, ports, theme)` resolves every connector label of a tree in the one order and with the one
+obstacle set the renderers use: `Place` for the midpoint labels (avoiding the boxes), `PortOccupiedRects` for the port
+glyph rectangles and the outward port label rectangles (the latter padded by 5 px along the text), then `PlaceEndLabels`
+with the midpoint placements plus those port rectangles as `occupied` and the ports as `ports`. It returns a
+`ConnectorLabelLayout` (midpoints, end labels, port rectangles). The SVG renderer, the raster renderer, and the layout's
+canvas fitting (`CanvasFitter`) all call it, so they always agree on where a label lands; none of them keeps its own
+copy of the obstacle rules.
+
+#### Leading overhang
+
+`MeasureLeadingOverhang(boxes, lines, ports, labels, theme)` returns the translation (non-negative X and Y) that makes
+everything the renderers draw lie right of and below the origin, measured with the caller's theme: box corners,
+connector waypoints, half the across width of each end marker at a line end, every resolved label rectangle, and every
+port glyph and outward port label. It is zero on both axes when everything is already inside, so a tree that fits
+renders byte-identically. The layout's canvas fit assumes the light theme's metrics; both renderers call this method
+after `ResolveLabels` with the actual theme and, when the result is non-zero, grow the canvas and translate all content
+by it.
+
 ### Connector Label Placer Error Handling
 
 `Place` validates its `lines` argument with `ArgumentNullException.ThrowIfNull` and propagates the
@@ -205,3 +225,5 @@ is called by the renderers (SVG and PNG systems) before drawing connector labels
 | Rendering-Abstractions-ConnectorLabelPlacer-AvoidBoxes | Box-aware `Place` leaf/container rule and fallback |
 | Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration | Box-aware `Place` footprints |
 | Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments | Box-aware `Place` guards |
+| Rendering-Abstractions-ConnectorLabelPlacer-SharedLabelResolution | `ResolveLabels`, `PortOccupiedRects` |
+| Rendering-Abstractions-ConnectorLabelPlacer-LeadingOverhang | `MeasureLeadingOverhang` |

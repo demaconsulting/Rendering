@@ -446,3 +446,15 @@ sections:
           - SysmlPortsParity_ProxyPort_PngCircleMatchesSvgCircle
           - SysmlPortsParity_OutwardLabel_PngTextMatchesSvgAnchor
           - SysmlPortsParity_PortGlyph_MarkerEndShortenedIdenticallyInBothRenderers
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-CustomThemeContainment
+        title: >-
+          CanvasNetRasterRenderer shall measure the content it draws with the caller's theme and, when any
+          label, port glyph, port label or marker would extend left of or above the origin, allocate the
+          larger surface and translate all content so nothing is clipped, exactly as the SVG renderer does.
+        justification: |
+          The layout fits its canvas with the light theme's metrics, so a theme with a larger font or label
+          padding can push labels past the left or top edge, which a surface that only grows right and down
+          would clip.
+        tests:
+          - RenderedPng_LargeTheme_LabelsAtLeftAndTopEdge_AreNotClipped

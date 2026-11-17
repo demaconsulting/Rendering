@@ -166,6 +166,29 @@ labels.
 **Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-EndLabelPlacement`,
 `Rendering-Abstractions-ConnectorLabelPlacer-EndLabelsKeepMidpointPlacementsUnchanged`.
 
+#### Shared label resolution
+
+`PortOccupiedRects_OutwardLabeledPort_ReturnsGlyphAndPaddedLabel` asserts an outward-labeled port yields its glyph
+rectangle plus its label rectangle padded by 5 px along the text, and a plain port only its glyph.
+`ResolveLabels_PortsAndLabels_MatchesManualComposition` asserts the resolver returns exactly the midpoint placements,
+port rectangles and end labels (placed around the midpoints and port rectangles) a manual composition of `Place`,
+`PortOccupiedRects` and `PlaceEndLabels` gives, and `ResolveLabels_NullArguments_Throw` asserts null arguments are
+rejected. The rendered-output tests `RenderedSvg_EndLabels_AreAtThePositionsTheLayoutPredicted` and
+`RenderedSvg_OutwardPortLabelsAndEndLabels_AreInsideCanvas` (gallery project, `RenderedLabelContainmentTests`) assert
+that the end-label text elements of a rendered SVG sit where the shared resolver predicts and that every port glyph,
+port label and end label of the rendered output is inside the canvas.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-SharedLabelResolution`.
+
+#### Leading overhang
+
+`MeasureLeadingOverhang_ContentInside_ReturnsZero` asserts content inside the canvas yields no translation.
+`MeasureLeadingOverhang_LabelsPastOrigin_ReturnsOverhangForTheTheme` asserts a midpoint label and an outward port label
+past the left edge produce a positive overhang and that a larger body font overhangs further, and
+`MeasureLeadingOverhang_NullArguments_Throw` asserts null arguments are rejected.
+
+**Covers**: `Rendering-Abstractions-ConnectorLabelPlacer-LeadingOverhang`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-ConnectorLabelPlacer-OmitUnlabelled`**: Place_LineWithoutLabel_IsOmitted
@@ -204,3 +227,10 @@ labels.
   PlaceEndLabels_StackedEndAndPortLabel_KeepFourPixelGap, PlaceEndLabels_NoPorts_PositionsUnchanged
 - **`Rendering-Abstractions-ConnectorLabelPlacer-EndLabelsKeepMidpointPlacementsUnchanged`**:
   Place_MidpointPlacements_UnchangedByEndLabels
+- **`Rendering-Abstractions-ConnectorLabelPlacer-SharedLabelResolution`**:
+  ResolveLabels_PortsAndLabels_MatchesManualComposition,
+  PortOccupiedRects_OutwardLabeledPort_ReturnsGlyphAndPaddedLabel, ResolveLabels_NullArguments_Throw,
+  RenderedSvg_EndLabels_AreAtThePositionsTheLayoutPredicted, RenderedSvg_OutwardPortLabelsAndEndLabels_AreInsideCanvas
+- **`Rendering-Abstractions-ConnectorLabelPlacer-LeadingOverhang`**:
+  MeasureLeadingOverhang_ContentInside_ReturnsZero, MeasureLeadingOverhang_LabelsPastOrigin_ReturnsOverhangForTheTheme,
+  MeasureLeadingOverhang_NullArguments_Throw

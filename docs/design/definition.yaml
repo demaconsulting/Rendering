@@ -28,6 +28,7 @@ input-files:
   - docs/design/rendering-layout/engine/layered-pipeline.md
   - docs/design/rendering-layout/engine/layout-tree-packer.md
   - docs/design/rendering-layout/engine/edge-count-gap-widener.md
+  - docs/design/rendering-layout/engine/canvas-fitter.md
   - docs/design/rendering-layout/layered-layout-algorithm.md
   - docs/design/rendering-layout/containment-layout-algorithm.md
   - docs/design/rendering-layout/hierarchical-layout-algorithm.md

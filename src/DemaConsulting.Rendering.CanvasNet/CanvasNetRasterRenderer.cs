@@ -61,12 +61,6 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     private const float PortGlyphStrokeWidth = 1.0f;
 
     /// <summary>
-    /// Extra width, in logical pixels, added to each side of an outward port label's rectangle when it is
-    /// handed to the end-label placer, so an end label on the same run keeps a visible gap from it.
-    /// </summary>
-    private const double OutwardLabelEndLabelGap = 5.0;
-
-    /// <summary>
     /// Opaque white fill used by shapes whose semantics are intentionally theme-independent in the
     /// CanvasNet renderer: activation bars and the inner bullseye circle.
     /// </summary>
@@ -98,47 +92,55 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         ArgumentNullException.ThrowIfNull(options);
 
         var lines = CollectLines(layout.Nodes).ToList();
-        var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody, CollectBoxes(layout.Nodes), NotationMetrics.MarkerScale(options.Theme));
 
         // Connection end labels are placed after the midpoint labels, which they yield to.
         // Port glyphs and outward port labels are drawn content too, so end labels keep clear of them.
         var allPorts = new List<LayoutPort>();
         CollectPorts(layout.Nodes, allPorts);
-        var portRects = PortOccupiedRects(allPorts, options.Theme);
-        var endLabelPlacements = ConnectorLabelPlacer.PlaceEndLabels(
-            lines,
-            options.Theme.FontSizeBody,
-            CollectBoxes(layout.Nodes),
-            NotationMetrics.MarkerScale(options.Theme),
-            labelPositions.Values.Concat(portRects),
-            allPorts);
+        var allBoxes = CollectBoxes(layout.Nodes).ToList();
+        var labelLayout = ConnectorLabelPlacer.ResolveLabels(lines, allBoxes, allPorts, options.Theme);
+        var labelPositions = labelLayout.Midpoints;
+        var endLabelPlacements = labelLayout.EndLabels;
 
-        var width = Math.Max(1, (int)Math.Ceiling(layout.Width * options.Scale));
-        var height = Math.Max(1, (int)Math.Ceiling(layout.Height * options.Scale));
+        // The layout fits its canvas with the light theme's metrics; a different theme (larger font, label
+        // padding, marker scale) can push a label, port glyph, or marker past the left or top edge, which a
+        // surface that only grows right and down would clip. Measure with the actual theme and, when anything
+        // overhangs, translate all content by the overhang (a no-op otherwise).
+        var (shiftX, shiftY) = ConnectorLabelPlacer.MeasureLeadingOverhang(allBoxes, lines, allPorts, labelLayout, options.Theme);
+
+        var width = Math.Max(1, (int)Math.Ceiling((layout.Width + shiftX) * options.Scale));
+        var height = Math.Max(1, (int)Math.Ceiling((layout.Height + shiftY) * options.Scale));
         foreach (var placement in labelPositions.Values)
         {
-            width = Math.Max(width, (int)Math.Ceiling((placement.X + placement.HalfWidth) * options.Scale));
-            height = Math.Max(height, (int)Math.Ceiling((placement.Y + placement.HalfHeight) * options.Scale));
+            width = Math.Max(width, (int)Math.Ceiling((placement.X + shiftX + placement.HalfWidth) * options.Scale));
+            height = Math.Max(height, (int)Math.Ceiling((placement.Y + shiftY + placement.HalfHeight) * options.Scale));
         }
 
         foreach (var placement in endLabelPlacements)
         {
-            width = Math.Max(width, (int)Math.Ceiling((placement.X + placement.HalfWidth) * options.Scale));
-            height = Math.Max(height, (int)Math.Ceiling((placement.Y + placement.HalfHeight) * options.Scale));
+            width = Math.Max(width, (int)Math.Ceiling((placement.X + shiftX + placement.HalfWidth) * options.Scale));
+            height = Math.Max(height, (int)Math.Ceiling((placement.Y + shiftY + placement.HalfHeight) * options.Scale));
         }
 
         // An outward port label hangs outside its box and can extend past the declared surface.
         foreach (var port in allPorts.Where(NotationMetrics.IsOutwardLabel))
         {
             var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, options.Theme);
-            width = Math.Max(width, (int)Math.Ceiling((bounds.X + bounds.HalfWidth) * options.Scale));
-            height = Math.Max(height, (int)Math.Ceiling((bounds.Y + bounds.HalfHeight) * options.Scale));
+            width = Math.Max(width, (int)Math.Ceiling((bounds.X + shiftX + bounds.HalfWidth) * options.Scale));
+            height = Math.Max(height, (int)Math.Ceiling((bounds.Y + shiftY + bounds.HalfHeight) * options.Scale));
         }
 
         var surface = new Surface(width, height);
         surface.Clear(ParseColor(options.Theme.BackgroundColor));
 
         var canvas = new CanvasRenderer(surface);
+
+        // Everything is drawn translated by the overhang, so it all lands inside the surface.
+        var shifted = shiftX > 0.0 || shiftY > 0.0;
+        if (shifted)
+        {
+            canvas.Translate((float)(shiftX * options.Scale), (float)(shiftY * options.Scale));
+        }
 
         // A marker end that sits on a port glyph is shortened to the glyph's outer edge first, so the
         // arrowhead is not hidden under the (later-drawn) port square.
@@ -1730,30 +1732,6 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var baselineY = (float)(anchor.Y * scale) + ((metrics.Ascent - metrics.Descent) / 2.0f);
         var align = anchor.Align == PortLabelAlign.End ? CanvasTextAlign.Right : CanvasTextAlign.Left;
         canvas.DrawText(port.ExternalLabel!, (float)(anchor.X * scale), baselineY, align, font, fontSize, ParseColor(theme.StrokeColor));
-    }
-
-    /// <summary>
-    /// Returns the rectangles the ports occupy — each glyph plus each outward label — that end labels must
-    /// keep clear of.
-    /// </summary>
-    /// <param name="ports">Every port in the tree.</param>
-    /// <param name="theme">Theme providing font settings.</param>
-    /// <returns>The occupied rectangles.</returns>
-    private static List<LabelPlacement> PortOccupiedRects(List<LayoutPort> ports, Theme theme)
-    {
-        var rects = new List<LabelPlacement>(ports.Count);
-        foreach (var port in ports)
-        {
-            rects.Add(NotationMetrics.PortGlyphBounds(port));
-            if (NotationMetrics.IsOutwardLabel(port))
-            {
-                // Padded along the text so an end label keeps a visible gap from the port label beside it.
-                var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
-                rects.Add(bounds with { HalfWidth = bounds.HalfWidth + OutwardLabelEndLabelGap });
-            }
-        }
-
-        return rects;
     }
 
     /// <summary>

@@ -184,3 +184,35 @@ sections:
           existing diagrams render identically whether or not a caller adds end labels elsewhere.
         tests:
           - Place_MidpointPlacements_UnchangedByEndLabels
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-SharedLabelResolution
+        title: >-
+          ConnectorLabelPlacer shall resolve every connector label of a tree (midpoint labels, then end labels
+          that yield to the midpoints, the port glyphs and the outward port labels) through one shared
+          resolver, so every consumer gets identical placements.
+        justification: |
+          The SVG renderer, the raster renderer and the layout's canvas fitting must agree on where an end
+          label lands; computing the obstacle set (port glyph and outward port label rectangles) separately in
+          each let the fitter decide a canvas was large enough while a renderer drew a label elsewhere,
+          outside it. One resolver removes the possibility of disagreement.
+        tests:
+          - ResolveLabels_PortsAndLabels_MatchesManualComposition
+          - PortOccupiedRects_OutwardLabeledPort_ReturnsGlyphAndPaddedLabel
+          - ResolveLabels_NullArguments_Throw
+          - RenderedSvg_EndLabels_AreAtThePositionsTheLayoutPredicted
+          - RenderedSvg_OutwardPortLabelsAndEndLabels_AreInsideCanvas
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-LeadingOverhang
+        title: >-
+          ConnectorLabelPlacer shall report how far the drawn content (boxes, connector waypoints, end marker
+          reach, resolved labels, port glyphs and outward port labels), measured with the supplied theme,
+          extends left of and above the origin, and shall report zero when everything is inside.
+        justification: |
+          A canvas that only grows right and down clips anything that overhangs the left or top edge; a custom
+          theme (larger font, label padding, marker scale) moves labels and glyphs relative to what the layout
+          assumed, so the renderers need the real overhang to grow and translate their canvas, while a tree that
+          fits must stay byte-identical.
+        tests:
+          - MeasureLeadingOverhang_ContentInside_ReturnsZero
+          - MeasureLeadingOverhang_LabelsPastOrigin_ReturnsOverhangForTheTheme
+          - MeasureLeadingOverhang_NullArguments_Throw

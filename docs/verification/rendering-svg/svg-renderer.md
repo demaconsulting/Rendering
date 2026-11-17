@@ -408,6 +408,16 @@ asserts the canvas grows.
 
 **Covers**: `Rendering-Svg-SvgRenderer-PortGlyphs`.
 
+#### Custom theme keeps left and top content inside the canvas
+
+`RenderedSvg_LargeTheme_LabelsAtLeftAndTopEdge_AreInsideCanvas` renders a hand-built tree with labels, a port label and
+markers against the left and top edges using a theme with a much larger body font and label padding, and asserts every
+text, port glyph and port label (after the translate group) is inside the SVG canvas.
+`RenderedSvg_DefaultTheme_ContentInsideCanvas_HasNoTranslationGroup` asserts content that fits is written without any
+translate group.
+
+**Covers**: `Rendering-Svg-SvgRenderer-CustomThemeContainment`.
+
 ### Requirements Coverage
 
 - **`Rendering-Svg-SvgRenderer-ImplementsIRenderer`**:
@@ -559,3 +569,5 @@ asserts the canvas grows.
   `SvgRenderer_OutwardLabel_IsDrawnAtTheSharedAnchorOutsideTheBox`,
   `SvgRenderer_InwardLabelOfOutlinedPort_IsOffsetByTheGlyphHalfSize`,
   `SvgRenderer_MarkerEndOnPort_IsShortenedByTheGlyphHalfSize`, `SvgRenderer_OutwardLabelBeyondTheCanvas_GrowsTheCanvas`
+- **`Rendering-Svg-SvgRenderer-CustomThemeContainment`**: RenderedSvg_LargeTheme_LabelsAtLeftAndTopEdge_AreInsideCanvas,
+  RenderedSvg_DefaultTheme_ContentInsideCanvas_HasNoTranslationGroup

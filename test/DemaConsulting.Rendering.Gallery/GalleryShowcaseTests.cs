@@ -4,6 +4,7 @@
 
 using DemaConsulting.Rendering.Abstractions;
 using DemaConsulting.Rendering.Layout;
+using DemaConsulting.Rendering.Layout.Tests;
 
 namespace DemaConsulting.Rendering.Gallery;
 
@@ -1235,6 +1236,39 @@ public sealed class GalleryShowcaseTests
             GalleryCatalog.BackEdgeEntryApproachSvg,
             GallerySysmlNotation.BackEdgeEntryApproach(),
             Themes.Light);
+    }
+
+    /// <summary>
+    ///     Renders the SysML General View with <see cref="LayoutFlowDirection.Up"/> (Rendering#59) to SVG
+    ///     and PNG, proving unconnected definitions do not overlap and every connector, folder connector and
+    ///     label lies inside the canvas.
+    /// </summary>
+    [Fact]
+    public void Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.UpDirectionGeneralViewSvg, DirectionScenes.GeneralView(LayoutFlowDirection.Up), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.UpDirectionGeneralViewPng, DirectionScenes.GeneralView(LayoutFlowDirection.Up), Themes.Light);
+
+        // Assert
+        LayoutGeometryAssert.AssertClean(LayoutEngine.Layout(DirectionScenes.GeneralView(LayoutFlowDirection.Up)));
+    }
+
+    /// <summary>
+    ///     Renders the keyword-labeled view (Rendering#61) to SVG and PNG, proving every edge keyword label
+    ///     is fully inside the canvas and clear of boxes and other labels, and parallel arrowheads keep apart.
+    /// </summary>
+    [Fact]
+    public void Gallery_EdgeKeywordLabels_RendersSvgAndPngWithLabelsInsideCanvas()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.EdgeKeywordLabelsSvg, DirectionScenes.KeywordLabels(LayoutFlowDirection.Down), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.EdgeKeywordLabelsPng, DirectionScenes.KeywordLabels(LayoutFlowDirection.Down), Themes.Light);
+
+        // Assert
+        var tree = LayoutEngine.Layout(DirectionScenes.KeywordLabels(LayoutFlowDirection.Down));
+        LayoutGeometryAssert.AssertClean(tree);
+        LayoutGeometryAssert.AssertArrowheadsApart(tree, 16.0);
     }
 
     /// <summary>

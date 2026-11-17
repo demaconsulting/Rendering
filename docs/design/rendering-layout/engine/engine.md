@@ -16,7 +16,10 @@ Engine (Subsystem)
 ├── OrthogonalEdgeRouter (Unit)
 ├── ContainmentPacker (Unit)
 ├── InterconnectionLayoutEngine (Unit)
-└── LayeredPipeline (Unit)
+├── LayeredPipeline (Unit)
+├── LayoutTreePacker (Unit)
+├── EdgeCountGapWidener (Unit)
+└── CanvasFitter (Unit)
 ```
 
 - **OrthogonalEdgeRouter** — routes individual orthogonal connectors. Detailed in
@@ -27,6 +30,12 @@ Engine (Subsystem)
   Detailed in InterconnectionLayoutEngine Unit Design.
 - **LayeredPipeline** — the whole `Engine/Layered` staged layout pipeline. Detailed in
   Layered Pipeline Unit Design.
+- **LayoutTreePacker** — shelf-packs independently placed layout trees into one combined tree. Detailed
+  in LayoutTreePacker Unit Design.
+- **EdgeCountGapWidener** — computes the connector-corridor width for a gap that carries several
+  connectors. Detailed in EdgeCountGapWidener Unit Design.
+- **CanvasFitter** — grows a placed layout tree's canvas (translating the tree when needed) so every
+  connector and connector label lies inside it. Detailed in CanvasFitter Unit Design.
 
 This subsystem design intentionally does not restate unit internals; those details live in the unit
 design documents listed above.

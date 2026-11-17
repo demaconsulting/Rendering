@@ -54,6 +54,9 @@ sections:
           - Rendering-Layout-LayeredAlgorithm-EndLabelSpace
           - Rendering-Layout-LayeredAlgorithm-PortAppearancePassThrough
           - Rendering-Layout-LayeredAlgorithm-OutwardPortLabelSpace
+          - Rendering-Layout-LayeredAlgorithm-IsolatedNodesNoOverlap
+          - Rendering-Layout-LayeredAlgorithm-ContentInsideCanvas
+          - Rendering-Layout-LayeredAlgorithm-ParallelKeywordEdgeSeparation
         tests:
           - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
           - Id_IsLayered
@@ -61,8 +64,8 @@ sections:
       - id: Rendering-Layout-GeometricEngines
         title: >-
           The rendering layout system shall be built from reusable, model-agnostic geometric engines
-          that provide orthogonal connector routing, containment row-packing, and layered
-          interconnection placement as independently verifiable capabilities.
+          that provide orthogonal connector routing, containment row-packing, layered
+          interconnection placement, and canvas fitting as independently verifiable capabilities.
         tags: [system]
         justification: |
           Grouping the geometric engines into a single subsystem keeps the layout algorithm free of
@@ -72,6 +75,12 @@ sections:
           - Rendering-Layout-OrthogonalRouting
           - Rendering-Layout-Containment
           - Rendering-Layout-Interconnection
+          - Rendering-Layout-CanvasFitter-LeavesContainedTreeUnchanged
+          - Rendering-Layout-CanvasFitter-TranslatesWhenContentBeforeOrigin
+          - Rendering-Layout-CanvasFitter-GrowsCanvasForFarContent
+          - Rendering-Layout-CanvasFitter-IncludesConnectorLabels
+          - Rendering-Layout-CanvasFitter-UnrecognizedNodeUnchanged
+          - Rendering-Layout-CanvasFitter-Validation
         tests:
           - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
 
@@ -105,6 +114,7 @@ sections:
           - Rendering-Layout-LayeredPipeline-BackEdgeApproach
           - Rendering-Layout-LayeredPipeline-LongEdgeJoining
           - Rendering-Layout-LayeredPipeline-ComponentPacking
+          - Rendering-Layout-LayeredPipeline-ComponentPackingDownUp
           - Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach
           - Rendering-Layout-LayeredPipeline-ComponentPackingWiredIntoPlace
           - Rendering-Layout-LayeredPipeline-ComponentPackerIdempotentNormalization
@@ -259,6 +269,8 @@ sections:
           - Rendering-Layout-HierarchicalLayout-FolderTabTitleReserve
           - Rendering-Layout-HierarchicalLayout-EndLabelPassThrough
           - Rendering-Layout-HierarchicalLayout-PortAppearancePassThrough
+          - Rendering-Layout-HierarchicalLayout-IsolatedNodesNoOverlap
+          - Rendering-Layout-HierarchicalLayout-ContentInsideCanvas
         tests:
           - Id_IsHierarchical
           - Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly

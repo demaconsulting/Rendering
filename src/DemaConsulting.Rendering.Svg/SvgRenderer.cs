@@ -57,12 +57,6 @@ public sealed class SvgRenderer : IRenderer
     /// </summary>
     private const double PortGlyphStrokeWidth = 1.0;
 
-    /// <summary>
-    /// Extra width, in logical pixels, added to each side of an outward port label's rectangle when it is
-    /// handed to the end-label placer, so an end label on the same run keeps a visible gap from it.
-    /// </summary>
-    private const double OutwardLabelEndLabelGap = 5.0;
-
     /// <inheritdoc/>
     public string MediaType => "image/svg+xml";
 
@@ -93,45 +87,46 @@ public sealed class SvgRenderer : IRenderer
         // label nudged to avoid colliding with another can land outside the box/routing geometry's
         // extent, so the canvas must be sized only after label placement is known, not before.
         var lines = CollectLines(layout.Nodes).ToList();
-        var labelPositions = ConnectorLabelPlacer.Place(lines, theme.FontSizeBody, CollectBoxes(layout.Nodes), NotationMetrics.MarkerScale(theme));
 
         // Connection end labels (role name, multiplicity) are placed after the midpoint labels, which they
         // yield to, so midpoint placement is identical with or without them.
         // Port glyphs and outward port labels are drawn content too, so end labels keep clear of them.
         var allPorts = new List<LayoutPort>();
         CollectPorts(layout.Nodes, allPorts);
-        var portRects = PortOccupiedRects(allPorts, theme);
-        var endLabelPlacements = ConnectorLabelPlacer.PlaceEndLabels(
-            lines,
-            theme.FontSizeBody,
-            CollectBoxes(layout.Nodes),
-            NotationMetrics.MarkerScale(theme),
-            labelPositions.Values.Concat(portRects),
-            allPorts);
+        var allBoxes = CollectBoxes(layout.Nodes).ToList();
+        var labelLayout = ConnectorLabelPlacer.ResolveLabels(lines, allBoxes, allPorts, theme);
+        var labelPositions = labelLayout.Midpoints;
+        var endLabelPlacements = labelLayout.EndLabels;
+
+        // The layout fits its canvas with the light theme's metrics; a different theme (larger font, label
+        // padding, marker scale) can push a label, port glyph, or marker past the left or top edge, which a
+        // canvas that only grows right and down would clip. Measure with the actual theme and, when anything
+        // overhangs, translate all content by the overhang (a no-op, and no wrapper group, otherwise).
+        var (shiftX, shiftY) = ConnectorLabelPlacer.MeasureLeadingOverhang(allBoxes, lines, allPorts, labelLayout, theme);
 
         // Compute canvas dimensions, ensuring a minimum 1×1 canvas, then grow to fully include every
         // placed label's bounding box (a label can be nudged beyond the box/routing geometry's
         // extent that layout.Width/Height was computed from).
-        var width = Math.Max(1.0, layout.Width * options.Scale);
-        var height = Math.Max(1.0, layout.Height * options.Scale);
+        var width = Math.Max(1.0, (layout.Width + shiftX) * options.Scale);
+        var height = Math.Max(1.0, (layout.Height + shiftY) * options.Scale);
         foreach (var placement in labelPositions.Values)
         {
-            width = Math.Max(width, (placement.X + placement.HalfWidth) * options.Scale);
-            height = Math.Max(height, (placement.Y + placement.HalfHeight) * options.Scale);
+            width = Math.Max(width, (placement.X + shiftX + placement.HalfWidth) * options.Scale);
+            height = Math.Max(height, (placement.Y + shiftY + placement.HalfHeight) * options.Scale);
         }
 
         foreach (var placement in endLabelPlacements)
         {
-            width = Math.Max(width, (placement.X + placement.HalfWidth) * options.Scale);
-            height = Math.Max(height, (placement.Y + placement.HalfHeight) * options.Scale);
+            width = Math.Max(width, (placement.X + shiftX + placement.HalfWidth) * options.Scale);
+            height = Math.Max(height, (placement.Y + shiftY + placement.HalfHeight) * options.Scale);
         }
 
         // An outward port label hangs outside its box and can extend past the declared canvas.
         foreach (var port in allPorts.Where(NotationMetrics.IsOutwardLabel))
         {
             var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
-            width = Math.Max(width, (bounds.X + bounds.HalfWidth) * options.Scale);
-            height = Math.Max(height, (bounds.Y + bounds.HalfHeight) * options.Scale);
+            width = Math.Max(width, (bounds.X + shiftX + bounds.HalfWidth) * options.Scale);
+            height = Math.Max(height, (bounds.Y + shiftY + bounds.HalfHeight) * options.Scale);
         }
 
         // Write SVG root element with explicit namespace and viewBox
@@ -142,6 +137,13 @@ public sealed class SvgRenderer : IRenderer
         // Write defs section with all line-end markers (the dotted-triangle and circled-plus markers
         // are emitted only when a line in the tree actually uses them)
         WriteEndMarkerDefs(sb, theme, CollectLazyMarkers(lines));
+
+        // Everything drawn from here on moves by the overhang, so it all lands inside the canvas.
+        var shifted = shiftX > 0.0 || shiftY > 0.0;
+        if (shifted)
+        {
+            sb.AppendLine($"""<g transform="translate({F(shiftX * options.Scale)} {F(shiftY * options.Scale)})">""");
+        }
 
         // Render all top-level nodes recursively (wires are drawn without their labels here). A marker end that
         // sits on a port glyph is shortened to the glyph's outer edge first, so the arrowhead is not hidden
@@ -166,6 +168,11 @@ public sealed class SvgRenderer : IRenderer
         foreach (var placement in endLabelPlacements)
         {
             RenderEndLabel(sb, placement, theme, options.Scale);
+        }
+
+        if (shifted)
+        {
+            sb.AppendLine("</g>");
         }
 
         // Close SVG root
@@ -1566,30 +1573,6 @@ public sealed class SvgRenderer : IRenderer
         sb.Append(
             $"""  <text x="{F(anchor.X * scale)}" y="{F(anchor.Y * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{textAnchor}" dominant-baseline="middle">{EscapeXml(port.ExternalLabel!)}</text>""");
         sb.AppendLine();
-    }
-
-    /// <summary>
-    /// Returns the rectangles the ports occupy — each glyph plus each outward label — that end labels must
-    /// keep clear of.
-    /// </summary>
-    /// <param name="ports">Every port in the tree.</param>
-    /// <param name="theme">Visual theme providing font settings.</param>
-    /// <returns>The occupied rectangles.</returns>
-    private static List<LabelPlacement> PortOccupiedRects(List<LayoutPort> ports, Theme theme)
-    {
-        var rects = new List<LabelPlacement>(ports.Count);
-        foreach (var port in ports)
-        {
-            rects.Add(NotationMetrics.PortGlyphBounds(port));
-            if (NotationMetrics.IsOutwardLabel(port))
-            {
-                // Padded along the text so an end label keeps a visible gap from the port label beside it.
-                var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
-                rects.Add(bounds with { HalfWidth = bounds.HalfWidth + OutwardLabelEndLabelGap });
-            }
-        }
-
-        return rects;
     }
 
     /// <summary>Returns the box edge opposite <paramref name="side"/>, used to place an outward label.</summary>

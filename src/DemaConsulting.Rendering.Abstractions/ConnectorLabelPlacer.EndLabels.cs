@@ -52,11 +52,184 @@ public readonly record struct EndLabelPlacement(
     double HalfWidth,
     double HalfHeight);
 
+/// <summary>
+/// The connector labels a renderer draws for one tree, resolved together so every consumer (the SVG
+/// renderer, the raster renderer, and the layout's canvas fitting) agrees on where each label goes.
+/// </summary>
+/// <param name="Midpoints">The midpoint label placement of every labeled line.</param>
+/// <param name="EndLabels">The placement of every connection end label.</param>
+/// <param name="PortRects">
+/// The rectangles occupied by port glyphs and outward port labels (padded the way end labels keep clear of
+/// them), which the end labels were placed around.
+/// </param>
+public readonly record struct ConnectorLabelLayout(
+    IReadOnlyDictionary<LayoutLine, LabelPlacement> Midpoints,
+    IReadOnlyList<EndLabelPlacement> EndLabels,
+    IReadOnlyList<LabelPlacement> PortRects);
+
 /// <content>
 /// Placement of connection end labels (role name and multiplicity) near each end of a connector.
 /// </content>
 public static partial class ConnectorLabelPlacer
 {
+    /// <summary>
+    /// Extra width, in logical pixels, added to each side of an outward port label's rectangle when it is
+    /// handed to the end-label placer, so an end label on the same run keeps a visible gap from it.
+    /// </summary>
+    private const double OutwardLabelEndLabelGap = 5.0;
+
+    /// <summary>
+    /// Resolves every connector label of a tree in the one order and with the one obstacle set the renderers
+    /// use: midpoint labels first (avoiding the boxes), then end labels, which yield to the midpoint labels,
+    /// the port glyphs and the outward port labels. Both renderers and the layout's canvas fitting call this
+    /// method so they never disagree about where a label lands.
+    /// </summary>
+    /// <param name="lines">Every line of the tree, in render order.</param>
+    /// <param name="boxes">Every box of the tree, at every nesting depth.</param>
+    /// <param name="ports">Every port of the tree.</param>
+    /// <param name="theme">The theme supplying the body font size and marker scale.</param>
+    /// <returns>The resolved midpoint labels, end labels, and port rectangles.</returns>
+    /// <exception cref="ArgumentNullException">Any argument is <see langword="null"/>.</exception>
+    public static ConnectorLabelLayout ResolveLabels(
+        IReadOnlyList<LayoutLine> lines,
+        IReadOnlyList<LayoutBox> boxes,
+        IReadOnlyList<LayoutPort> ports,
+        Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        ArgumentNullException.ThrowIfNull(boxes);
+        ArgumentNullException.ThrowIfNull(ports);
+        ArgumentNullException.ThrowIfNull(theme);
+
+        var markerScale = NotationMetrics.MarkerScale(theme);
+        var midpoints = Place(lines, theme.FontSizeBody, boxes, markerScale);
+        var portRects = PortOccupiedRects(ports, theme);
+        var endLabels = PlaceEndLabels(lines, theme.FontSizeBody, boxes, markerScale, midpoints.Values.Concat(portRects), ports);
+        return new ConnectorLabelLayout(midpoints, endLabels, portRects);
+    }
+
+    /// <summary>
+    /// Returns the translation a renderer must apply so that nothing it draws lies left of or above the
+    /// origin: how far the drawn content (boxes, connector waypoints, the width of the end markers at line
+    /// ends, every resolved label rectangle, and every port glyph and outward port label) extends past the
+    /// left and top edges, measured with the caller's <paramref name="theme"/>. Both axes are zero when
+    /// everything is inside, so the common case is untouched. Both renderers call this after
+    /// <see cref="ResolveLabels"/> and then grow and translate their canvas identically.
+    /// </summary>
+    /// <param name="boxes">Every box of the tree, at every nesting depth.</param>
+    /// <param name="lines">Every line of the tree, in render order.</param>
+    /// <param name="ports">Every port of the tree.</param>
+    /// <param name="labels">The labels resolved for the same tree and theme by <see cref="ResolveLabels"/>.</param>
+    /// <param name="theme">The theme the tree is drawn with.</param>
+    /// <returns>The non-negative X and Y translation to apply to all content.</returns>
+    /// <exception cref="ArgumentNullException">Any argument is <see langword="null"/>.</exception>
+    public static (double X, double Y) MeasureLeadingOverhang(
+        IReadOnlyList<LayoutBox> boxes,
+        IReadOnlyList<LayoutLine> lines,
+        IReadOnlyList<LayoutPort> ports,
+        ConnectorLabelLayout labels,
+        Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(boxes);
+        ArgumentNullException.ThrowIfNull(lines);
+        ArgumentNullException.ThrowIfNull(ports);
+        ArgumentNullException.ThrowIfNull(theme);
+
+        var minX = 0.0;
+        var minY = 0.0;
+        void Include(double left, double top)
+        {
+            minX = Math.Min(minX, left);
+            minY = Math.Min(minY, top);
+        }
+
+        void IncludePlacement(LabelPlacement p) => Include(p.X - p.HalfWidth, p.Y - p.HalfHeight);
+
+        foreach (var box in boxes)
+        {
+            Include(box.X, box.Y);
+        }
+
+        var markerScale = NotationMetrics.MarkerScale(theme);
+        foreach (var line in lines)
+        {
+            foreach (var point in line.Waypoints)
+            {
+                Include(point.X, point.Y);
+            }
+
+            // An end marker reaches half its across width to either side of the line at the end point.
+            AddMarkerReach(line, line.SourceEnd, 0, markerScale, Include);
+            AddMarkerReach(line, line.TargetEnd, line.Waypoints.Count - 1, markerScale, Include);
+        }
+
+        foreach (var placement in labels.Midpoints.Values)
+        {
+            IncludePlacement(placement);
+        }
+
+        foreach (var placement in labels.EndLabels)
+        {
+            Include(placement.X - placement.HalfWidth, placement.Y - placement.HalfHeight);
+        }
+
+        foreach (var port in ports)
+        {
+            IncludePlacement(NotationMetrics.PortGlyphBounds(port));
+            if (NotationMetrics.IsOutwardLabel(port))
+            {
+                IncludePlacement(NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme));
+            }
+        }
+
+        return (-minX, -minY);
+    }
+
+    private static void AddMarkerReach(
+        LayoutLine line,
+        EndMarkerStyle style,
+        int index,
+        double markerScale,
+        Action<double, double> include)
+    {
+        if (style == EndMarkerStyle.None || index < 0 || index >= line.Waypoints.Count)
+        {
+            return;
+        }
+
+        var reach = NotationMetrics.AcrossHalfWidth(style) * markerScale;
+        var point = line.Waypoints[index];
+        include(point.X - reach, point.Y - reach);
+    }
+
+    /// <summary>
+    /// Returns the rectangles the ports occupy — each glyph plus each outward label (padded along the text) —
+    /// that end labels must keep clear of.
+    /// </summary>
+    /// <param name="ports">Every port in the tree.</param>
+    /// <param name="theme">The theme providing font settings.</param>
+    /// <returns>The occupied rectangles.</returns>
+    /// <exception cref="ArgumentNullException">Any argument is <see langword="null"/>.</exception>
+    public static IReadOnlyList<LabelPlacement> PortOccupiedRects(IEnumerable<LayoutPort> ports, Theme theme)
+    {
+        ArgumentNullException.ThrowIfNull(ports);
+        ArgumentNullException.ThrowIfNull(theme);
+
+        var rects = new List<LabelPlacement>();
+        foreach (var port in ports)
+        {
+            rects.Add(NotationMetrics.PortGlyphBounds(port));
+            if (NotationMetrics.IsOutwardLabel(port))
+            {
+                // Padded along the text so an end label keeps a visible gap from the port label beside it.
+                var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
+                rects.Add(bounds with { HalfWidth = bounds.HalfWidth + OutwardLabelEndLabelGap });
+            }
+        }
+
+        return rects;
+    }
+
     /// <summary>Clearance, in logical pixels, kept between an end label and the end point or marker it follows.</summary>
     private const double EndLabelOffset = 4.0;
 

@@ -168,6 +168,12 @@ background rectangle (an end label sits beside its own line, and a background co
 connector). The text is centered vertically on the placement (baseline about 0.35 em
 below it), the same anchor the SVG renderer's `dominant-baseline="middle"` text uses, so the two formats agree.
 
+#### Content outside the surface for a custom theme
+
+After resolving labels with the actual theme, `RenderToSurface` calls `ConnectorLabelPlacer.MeasureLeadingOverhang` and,
+when the overhang is non-zero, allocates the larger surface and translates the canvas by it before drawing, exactly as
+the SVG renderer does; when it is zero nothing changes, so existing output is byte-identical.
+
 #### Port Glyphs
 
 `RenderPort` draws the legacy filled 8 × 8 square unchanged for a port without an appearance. An outlined glyph is
@@ -276,3 +282,4 @@ step.
 | Rendering-CanvasNet-CanvasNetRasterRenderer-BandDashed | `RenderBand` dashed stroke |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-LifelineRoundedHeader | `RenderLifeline` header and keyword |
 | Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes | `RenderToSurface` passes `CollectBoxes` to the placer |
+| Rendering-CanvasNet-CanvasNetRasterRenderer-CustomThemeContainment | `RenderToSurface` overhang translate |

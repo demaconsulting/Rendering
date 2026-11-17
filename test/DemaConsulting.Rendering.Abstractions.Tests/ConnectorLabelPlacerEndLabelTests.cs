@@ -404,4 +404,114 @@ public sealed class ConnectorLabelPlacerEndLabelTests
         // Assert
         Assert.Equal(without[plain], with[labeled]);
     }
+
+    /// <summary>
+    ///     The occupied rectangles of a port are its glyph and, for an outward label, the label rectangle
+    ///     padded along the text, so an end label keeps a gap from both.
+    /// </summary>
+    [Fact]
+    public void PortOccupiedRects_OutwardLabeledPort_ReturnsGlyphAndPaddedLabel()
+    {
+        // Arrange
+        var port = new LayoutPort(100, 50, PortSide.Right, "state : Mode", Appearance: OutlinedIn);
+        var plain = new LayoutPort(200, 50, PortSide.Left, null);
+
+        // Act
+        var rects = ConnectorLabelPlacer.PortOccupiedRects([port, plain], Themes.Light);
+
+        // Assert: glyph + padded label for the outward port, glyph only for the plain one.
+        Assert.Equal(3, rects.Count);
+        Assert.Equal(NotationMetrics.PortGlyphBounds(port), rects[0]);
+        var label = NotationMetrics.PortOutwardLabelBounds(port, "state : Mode", Themes.Light);
+        Assert.Equal(label.HalfWidth + 5.0, rects[1].HalfWidth, 6);
+        Assert.Equal(label.X, rects[1].X, 6);
+        Assert.Equal(NotationMetrics.PortGlyphBounds(plain), rects[2]);
+    }
+
+    /// <summary>
+    ///     <see cref="ConnectorLabelPlacer.ResolveLabels"/> returns exactly the placements the renderers
+    ///     compute by hand: midpoint labels first, then end labels that yield to the midpoints and to every
+    ///     port rectangle.
+    /// </summary>
+    [Fact]
+    public void ResolveLabels_PortsAndLabels_MatchesManualComposition()
+    {
+        // Arrange: a labeled connector ending on an outward-labeled port.
+        var port = new LayoutPort(360, 100, PortSide.Right, "in : Fuel", Appearance: OutlinedIn);
+        var line = Horizontal(40, 360, 100, new LineEndLabel("src", "1"), new LineEndLabel("dst", "0..*"), EndMarkerStyle.OpenChevron)
+            with
+        { MidpointLabel = "mid" };
+        var box = new LayoutBox(0, 80, 40, 40, "A", 0, BoxShape.Rectangle, [], []);
+
+        // Act
+        var resolved = ConnectorLabelPlacer.ResolveLabels([line], [box], [port], Themes.Light);
+
+        // Assert
+        var midpoints = ConnectorLabelPlacer.Place([line], FontSize, [box], Scale);
+        var rects = ConnectorLabelPlacer.PortOccupiedRects([port], Themes.Light);
+        var ends = ConnectorLabelPlacer.PlaceEndLabels([line], FontSize, [box], Scale, midpoints.Values.Concat(rects), [port]);
+        Assert.Equal(midpoints[line], resolved.Midpoints[line]);
+        Assert.Equal(ends, resolved.EndLabels);
+        Assert.Equal(rects, resolved.PortRects);
+    }
+
+    /// <summary>Content entirely inside the canvas needs no translation.</summary>
+    [Fact]
+    public void MeasureLeadingOverhang_ContentInside_ReturnsZero()
+    {
+        // Arrange
+        var line = Horizontal(60, 360, 100, null, null, EndMarkerStyle.OpenChevron) with { MidpointLabel = "mid" };
+        var box = new LayoutBox(40, 80, 20, 40, "A", 0, BoxShape.Rectangle, [], []);
+        var layout = ConnectorLabelPlacer.ResolveLabels([line], [box], [], Themes.Light);
+
+        // Act
+        var overhang = ConnectorLabelPlacer.MeasureLeadingOverhang([box], [line], [], layout, Themes.Light);
+
+        // Assert
+        Assert.Equal((0.0, 0.0), overhang);
+    }
+
+    /// <summary>
+    ///     A label, an outward port label, and an end marker past the left and top edges produce the overhang
+    ///     of the furthest one, measured with the supplied theme (a larger font overhangs further).
+    /// </summary>
+    [Fact]
+    public void MeasureLeadingOverhang_LabelsPastOrigin_ReturnsOverhangForTheTheme()
+    {
+        // Arrange: a vertical line at x = 8 with a midpoint label centered on it, and an outward-labeled port.
+        var line = Vertical(8, 30, 250, null, null) with { MidpointLabel = "keyword label" };
+        var port = new LayoutPort(20, 60, PortSide.Left, "port : Type", Appearance: OutlinedIn);
+        var large = Themes.Light with { FontSizeBody = 24.0, LabelPadding = 12.0 };
+
+        // Act
+        var small = ConnectorLabelPlacer.MeasureLeadingOverhang([], [line], [port], ConnectorLabelPlacer.ResolveLabels([line], [], [port], Themes.Light), Themes.Light);
+        var big = ConnectorLabelPlacer.MeasureLeadingOverhang([], [line], [port], ConnectorLabelPlacer.ResolveLabels([line], [], [port], large), large);
+
+        // Assert
+        Assert.True(small.X > 0.0);
+        Assert.True(big.X > small.X);
+    }
+
+    /// <summary>Null arguments to the overhang measurement are rejected.</summary>
+    [Fact]
+    public void MeasureLeadingOverhang_NullArguments_Throw()
+    {
+        var layout = ConnectorLabelPlacer.ResolveLabels([], [], [], Themes.Light);
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.MeasureLeadingOverhang(null!, [], [], layout, Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.MeasureLeadingOverhang([], null!, [], layout, Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.MeasureLeadingOverhang([], [], null!, layout, Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.MeasureLeadingOverhang([], [], [], layout, null!));
+    }
+
+    /// <summary>Null arguments to the shared resolver and the port rectangles are rejected.</summary>
+    [Fact]
+    public void ResolveLabels_NullArguments_Throw()
+    {
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.ResolveLabels(null!, [], [], Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.ResolveLabels([], null!, [], Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.ResolveLabels([], [], null!, Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.ResolveLabels([], [], [], null!));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.PortOccupiedRects(null!, Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.PortOccupiedRects([], null!));
+    }
 }

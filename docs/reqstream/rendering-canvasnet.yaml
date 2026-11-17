@@ -66,6 +66,7 @@ sections:
           - Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes
           - Rendering-CanvasNet-CanvasNetRasterRenderer-DiamondShape
           - Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels
+          - Rendering-CanvasNet-CanvasNetRasterRenderer-CustomThemeContainment
           - Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphs
           - Rendering-CanvasNet-PngRenderer-EmitsPng
           - Rendering-CanvasNet-JpegRenderer-EmitsJpeg

@@ -1,0 +1,82 @@
+---
+# DemaConsulting.Rendering.Layout - CanvasFitter Unit Requirements
+#
+# PURPOSE:
+# - Unit-level requirements for the canvas-fitter unit.
+# - This file is part of the split Rendering.Layout requirements set.
+
+sections:
+  - title: CanvasFitter Requirements
+    requirements:
+      - id: Rendering-Layout-CanvasFitter-LeavesContainedTreeUnchanged
+        title: >-
+          CanvasFitter shall return the same layout tree instance, with no translation and no change of
+          size, when every connector waypoint and every connector label already lies inside the tree's
+          canvas.
+        justification: |
+          Almost every layout already fits its canvas; returning the input instance untouched guarantees
+          that fitting the canvas can never perturb a well-behaved layout, so every existing output stays
+          byte-identical and only a genuinely clipped diagram changes.
+        tests:
+          - CanvasFitter_Fit_ContentInsideCanvas_ReturnsSameTree
+
+      - id: Rendering-Layout-CanvasFitter-TranslatesWhenContentBeforeOrigin
+        title: >-
+          CanvasFitter shall, when a connector waypoint lies before the origin on an axis, translate every
+          box, line, and port of the tree on that axis so the content starts a fixed margin inside the
+          origin, and shall widen the canvas by the same amount.
+        justification: |
+          Renderers can only grow a canvas to the right and down, so content at a negative coordinate is
+          clipped (for example a connector detouring around the outer wall of a container that sits near
+          the origin). Shifting the whole tree rigidly brings the content back inside without changing any
+          relative geometry.
+        tests:
+          - CanvasFitter_Fit_WaypointLeftOfOrigin_TranslatesTreeAndWidensCanvas
+
+      - id: Rendering-Layout-CanvasFitter-GrowsCanvasForFarContent
+        title: >-
+          CanvasFitter shall, when connector content extends beyond the canvas width or height, enlarge the
+          canvas on that axis to the far content plus a fixed margin without translating the tree.
+        justification: |
+          A connector or label that runs past the right or bottom edge of the canvas computed from the
+          boxes is clipped by every renderer; growing the canvas, rather than moving content, keeps the
+          placed geometry exactly where the algorithm put it.
+        tests:
+          - CanvasFitter_Fit_WaypointBeyondFarEdges_GrowsCanvasWithoutTranslating
+
+      - id: Rendering-Layout-CanvasFitter-IncludesConnectorLabels
+        title: >-
+          CanvasFitter shall resolve midpoint and end labels through the shared connector label resolver the
+          renderers use and shall include every label rectangle, port glyph and outward port label in the
+          extent it fits the canvas to.
+        justification: |
+          A connector label (for example a keyword label such as «import» beside a line at the edge of the
+          diagram) extends beyond its line, so fitting only the waypoints would still clip the label.
+          Measuring the labels the way the renderers place them keeps the fit and the drawn output in
+          agreement.
+        tests:
+          - CanvasFitter_Fit_LabelLeftOfOrigin_BringsLabelInsideCanvas
+          - CanvasFitter_Fit_OutwardPortLabelLeftOfOrigin_TranslatesTreeToHoldLabel
+          - CanvasFitter_Fit_PortGlyphAboveOrigin_TranslatesTree
+          - RenderedSvg_OutwardPortLabelsAndEndLabels_AreInsideCanvas
+          - RenderedSvg_EndLabels_AreAtThePositionsTheLayoutPredicted
+
+      - id: Rendering-Layout-CanvasFitter-UnrecognizedNodeUnchanged
+        title: >-
+          CanvasFitter shall return a tree that contains a node type outside the closed set (LayoutBox,
+          LayoutLine, LayoutPort) unchanged.
+        justification: |
+          The bundled algorithms emit only the three known node types; a tree with an unknown node cannot
+          be measured or translated safely, and leaving it alone is safer than mis-placing part of it
+          (unlike the tree packer, fitting is an optional correction, so it never needs to fail loudly).
+        tests:
+          - CanvasFitter_Fit_UnrecognizedNode_ReturnsSameTree
+
+      - id: Rendering-Layout-CanvasFitter-Validation
+        title: >-
+          CanvasFitter shall reject a null tree argument with an argument-null error.
+        justification: |
+          Failing fast on a null argument prevents undefined behavior and surfaces caller errors at the
+          engine boundary.
+        tests:
+          - CanvasFitter_Fit_NullTree_Throws

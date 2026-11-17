@@ -16,5 +16,6 @@ package RenderingLayout {
         part layeredPipeline : LayeredPipeline;
         part layoutTreePacker : LayoutTreePacker;
         part edgeCountGapWidener : EdgeCountGapWidener;
+        part canvasFitter : CanvasFitter;
     }
 }

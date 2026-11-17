@@ -406,3 +406,46 @@ sections:
           - LayeredLayout_OutwardPortLabels_OverlapNothing
           - LayeredLayout_NoOutwardLabels_BoxesIdenticalWithAndWithoutAnInwardAppearance
           - LayeredLayout_OutwardLabels_WidenTheCorridorBetweenParts
+
+      - id: Rendering-Layout-LayeredAlgorithm-IsolatedNodesNoOverlap
+        title: >-
+          LayeredLayoutAlgorithm shall place nodes that are not connected to the rest of the graph without
+          overlapping any other node, for every flow direction (Right, Left, Down, and Up).
+        justification: |
+          Isolated nodes are packed beside the connected component. For a Down or Up flow the engine swaps
+          each node's axes internally, and measuring the packed components with the swapped sizes placed
+          non-square isolated nodes on the wrong pitch, so they overlapped each other or the connected
+          tree. The direction must not change whether the diagram is overlap-free.
+        tests:
+          - LayeredLayout_IsolatedNodesBesideConnectedTree_DoNotOverlap
+          - LayeredLayout_UpDirection_PlacesGeneralAboveSpecificsAndKeepsIsolatedNodesApart
+          - Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps
+
+      - id: Rendering-Layout-LayeredAlgorithm-ContentInsideCanvas
+        title: >-
+          LayeredLayoutAlgorithm shall return a tree whose canvas contains every connector waypoint and
+          every connector label (midpoint and end labels, placed as the renderers place them), growing the
+          canvas, and translating the tree when content reaches before the origin, when necessary.
+        justification: |
+          The canvas is sized from the boxes, but a connector label (for example a keyword label such as
+          «satisfy» or «import») can extend past the diagram edge, and renderers only grow a canvas to the
+          right and down, so such a label was clipped. Fitting the canvas to the connectors and labels
+          (through the canvas fitter) makes the canvas a true bound of the drawn content, and leaves a
+          layout that already fits byte-identical.
+        tests:
+          - LayeredLayout_UpDirection_PlacesGeneralAboveSpecificsAndKeepsIsolatedNodesApart
+          - Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps
+          - Gallery_EdgeKeywordLabels_RendersSvgAndPngWithLabelsInsideCanvas
+
+      - id: Rendering-Layout-LayeredAlgorithm-ParallelKeywordEdgeSeparation
+        title: >-
+          LayeredLayoutAlgorithm shall keep the connector anchors of several keyword-labeled edges that
+          enter one node apart on the shared face and shall keep their labels clear of each other and of
+          every box.
+        justification: |
+          Several relationships of the same kind into one node (for example many «satisfy» arrows into one
+          requirement) crowded their arrowheads onto one spot and stacked their keyword labels. The face
+          minimum anchor separation and the label placer keep every arrowhead distinct and every label
+          readable.
+        tests:
+          - LayeredLayout_ParallelKeywordLabeledEdgesIntoOneNode_KeepAnchorsApartAndLabelsClear

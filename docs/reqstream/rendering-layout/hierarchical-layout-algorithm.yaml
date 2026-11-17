@@ -425,3 +425,36 @@ sections:
           - HierarchicalLayout_LeafPortAppearance_ReachesPlacedPorts
           - HierarchicalLayout_SizedViewPortAppearance_ReachesPlacedPorts
           - HierarchicalLayout_BoundaryPortAppearance_ReachesTheSharedAnchor
+
+      - id: Rendering-Layout-HierarchicalLayout-IsolatedNodesNoOverlap
+        title: >-
+          HierarchicalLayoutAlgorithm shall place nodes that are not connected to the rest of a scope,
+          inside and outside a container, without overlapping any other node, for every flow direction.
+        justification: |
+          Each scope is laid out by the layered algorithm, whose component packing must measure nodes by
+          their on-screen extents for a Down or Up flow. A nested diagram with isolated nodes beside a
+          connected folder must be overlap-free whichever direction the caller selects.
+        tests:
+          - HierarchicalLayout_IsolatedNodesInsideAndOutsideFolder_DoNotOverlap
+
+      - id: Rendering-Layout-HierarchicalLayout-ContentInsideCanvas
+        title: >-
+          HierarchicalLayoutAlgorithm shall return a tree whose canvas contains every connector waypoint
+          and every connector label (midpoint and end labels), including cross-container connectors routed
+          around the outer wall of a container, growing the canvas and translating the tree when content
+          reaches before the origin.
+        justification: |
+          A cross-container connector detours around the outside of a container wall and can lie at a
+          negative coordinate when the container sits near the origin, and a keyword label such as
+          «import» beside a connector at the diagram edge extends past the canvas. Renderers only grow a
+          canvas to the right and down, so both were clipped. Fitting each scope's result to its
+          connectors and labels keeps every connector and label visible, and leaves a layout that already
+          fits byte-identical.
+        tests:
+          - HierarchicalLayout_GeneralView_IsOverlapFreeAndInsideCanvas
+          - HierarchicalLayout_RootFolderConnectors_StayInsideCanvas
+          - HierarchicalLayout_ImportLabels_AreInsideCanvasAndClear
+          - HierarchicalLayout_ManyImportLabelsBetweenRootFolders_AreInsideCanvasAndClear
+          - HierarchicalLayout_KeywordLabeledView_LabelsInsideCanvasAndAnchorsApart
+          - Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps
+          - Gallery_EdgeKeywordLabels_RendersSvgAndPngWithLabelsInsideCanvas

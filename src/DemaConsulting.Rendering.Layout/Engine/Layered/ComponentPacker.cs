@@ -388,7 +388,13 @@ internal sealed class ComponentPacker : ILayoutStage
             acyclicOriginalIndex[k] = localToParentEdge[child.AcyclicOriginalIndex[k]];
         }
 
-        // Compute the content bounding box over the real nodes only (dummies are excluded).
+        // Compute the content bounding box over the real nodes only (dummies are excluded). The child's
+        // coordinates are already screen coordinates (its AxisTransform stage has run), so the extent of
+        // each node must be its on-screen width and height. For Down/Up the input node axes were swapped
+        // (LayeredGraph.SwapNodeAxes) so the stages space layers by height, which means a stored
+        // LayerNode.Width is the on-screen height and vice versa; measuring the bounding box with the
+        // stored values would pack components on the wrong pitch and let them overlap.
+        var transposed = graph.Direction is LayoutDirection.Down or LayoutDirection.Up;
         var minX = double.PositiveInfinity;
         var minY = double.PositiveInfinity;
         var maxX = double.NegativeInfinity;
@@ -405,8 +411,8 @@ internal sealed class ComponentPacker : ILayoutStage
             localLayers[local] = child.NodeLayers[local];
             minX = Math.Min(minX, x);
             minY = Math.Min(minY, y);
-            maxX = Math.Max(maxX, x + localNodes[local].Width);
-            maxY = Math.Max(maxY, y + localNodes[local].Height);
+            maxX = Math.Max(maxX, x + (transposed ? localNodes[local].Height : localNodes[local].Width));
+            maxY = Math.Max(maxY, y + (transposed ? localNodes[local].Width : localNodes[local].Height));
         }
 
         return new ComponentLayout

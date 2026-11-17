@@ -84,6 +84,7 @@ sections:
           - Rendering-Svg-SvgRenderer-LabelsAvoidBoxes
           - Rendering-Svg-SvgRenderer-DiamondShape
           - Rendering-Svg-SvgRenderer-EndLabels
+          - Rendering-Svg-SvgRenderer-CustomThemeContainment
           - Rendering-Svg-SvgRenderer-PortGlyphs
         tests:
           - SvgRenderer_Render_SingleBox_ProducesSvgDocument

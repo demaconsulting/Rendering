@@ -324,6 +324,14 @@ and outline style), `SysmlPortsParity_ProxyPort_PngCircleMatchesSvgCircle`,
 
 **Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphs`.
 
+#### Custom theme keeps left and top content inside the surface
+
+`RenderedPng_LargeTheme_LabelsAtLeftAndTopEdge_AreNotClipped` renders the same hand-built tree once against the origin
+and once moved 300 px inside, with a large-font theme, and asserts both PNGs show the same ink bounding-box size, so
+nothing is clipped at the left or top edge.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-CustomThemeContainment`.
+
 ### Requirements Coverage
 
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree`**:
@@ -424,3 +432,5 @@ and outline style), `SysmlPortsParity_ProxyPort_PngCircleMatchesSvgCircle`,
   PngOutwardLabel_HasInkOutsideTheBoxAndNoneInsideIt, SysmlPortsParity_OutlinedGlyph_PngFootprintAndArrowMatchSvg,
   SysmlPortsParity_ProxyPort_PngCircleMatchesSvgCircle, SysmlPortsParity_OutwardLabel_PngTextMatchesSvgAnchor,
   SysmlPortsParity_PortGlyph_MarkerEndShortenedIdenticallyInBothRenderers
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-CustomThemeContainment`**:
+  RenderedPng_LargeTheme_LabelsAtLeftAndTopEdge_AreNotClipped

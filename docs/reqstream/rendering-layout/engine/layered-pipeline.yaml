@@ -376,6 +376,19 @@ sections:
           - ComponentPacker_Apply_SingleComponent_ParallelAndSelfEdges_ProducesAlignedWaypoints
           - ComponentPacker_Apply_MultiComponent_ParallelAndSelfEdges_MergesAlignedWaypoints
 
+      - id: Rendering-Layout-LayeredPipeline-ComponentPackingDownUp
+        title: >-
+          The component-packing stage shall measure each component with its on-screen node extents (the
+          height as the width for a Down or Up flow, whose node axes are swapped internally) so disconnected
+          components never overlap in any direction.
+        justification: |
+          For a Down or Up flow the layered engine stores each node with its width and height swapped. A
+          component bounding box measured from those stored sizes is transposed relative to what is drawn,
+          so isolated non-square nodes were packed on the wrong pitch and overlapped. Measuring the
+          on-screen extents makes the packing correct, and identical for every direction.
+        tests:
+          - ComponentPacker_Apply_DisconnectedNonSquareNodes_DoNotOverlapInAnyDirection
+
       - id: Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach
         title: >-
           The component-packing stage shall propagate the parent graph's configured back-edge entry

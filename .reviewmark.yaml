@@ -431,6 +431,20 @@ reviews:
       - "docs/reqstream/rendering-layout.yaml"
       - "docs/reqstream/rendering-layout/engine/engine.yaml"
 
+  - id: Rendering-Layout-Engine-CanvasFitter
+    title: Review that Rendering Layout Engine CanvasFitter Implementation is Correct
+    paths:
+      - "docs/reqstream/rendering-layout/engine/canvas-fitter.yaml"
+      - "docs/design/rendering-layout/engine/canvas-fitter.md"
+      - "docs/verification/rendering-layout/engine/canvas-fitter.md"
+      - "src/DemaConsulting.Rendering.Layout/Engine/CanvasFitter.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/Engine/CanvasFitterTests.cs"
+    context:
+      - "docs/design/rendering-layout.md"
+      - "docs/design/rendering-layout/engine/engine.md"
+      - "docs/reqstream/rendering-layout.yaml"
+      - "docs/reqstream/rendering-layout/engine/engine.yaml"
+
   # Rendering.Layout system-level units
   - id: Rendering-Layout-LayeredLayoutAlgorithm
     title: Review that Rendering Layout LayeredLayoutAlgorithm Implementation is Correct
@@ -449,6 +463,10 @@ reviews:
       - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/AlgorithmNotationPassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/BackEdgeEntryApproachTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/DirectionLayoutGeometryTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/EdgeKeywordLabelLayoutTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/DirectionScenes.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutGeometryAssert.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
@@ -524,6 +542,10 @@ reviews:
       - "test/DemaConsulting.Rendering.Layout.Tests/DiagramQuality.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/AlgorithmNotationPassThroughTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/DirectionLayoutGeometryTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/EdgeKeywordLabelLayoutTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/DirectionScenes.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutGeometryAssert.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"

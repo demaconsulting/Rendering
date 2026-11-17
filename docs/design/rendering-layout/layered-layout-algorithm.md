@@ -242,10 +242,32 @@ decorates its connectors must set that property on the graph edges it adds (SysM
 `LayeredPlacement.Place` does not yet do so); an edge drawn with a marker the graph does not declare
 keeps the 10 px approach and can still show the artifact.
 
+### LayeredLayoutAlgorithm Isolated Nodes and Canvas Fit
+
+**Isolated nodes in every direction.** Nodes with no edge are packed beside the connected component by the
+component-packing stage (see the layered pipeline design). For a Down or Up flow the pipeline stores each
+node with its width and height swapped, so the packer measures each component by its on-screen extent (the
+stored height as the width); before this, non-square isolated nodes were packed on a transposed pitch and
+overlapped the connected tree or each other in Down and Up flow. The result is overlap-free for every
+direction, and Right and Left output is unchanged.
+
+**Canvas fit.** The canvas the pipeline reports is computed from the boxes. A connector label (a midpoint
+label such as `«import»` or `«satisfy»`, or an end label) can extend beyond the box extent, and renderers
+only grow a canvas to the right and down, so a label at the left or top edge was clipped. `ApplyCore`
+therefore passes the finished tree through `CanvasFitter.Fit` with the algorithm's assumed font size
+before returning it. The fitter places the labels exactly as the renderers do and, only when a waypoint or
+label lies outside the canvas, translates the tree and grows the canvas (see *CanvasFitter Unit Design*); a
+layout that already fits is returned as the same instance, so existing output is byte-identical.
+
+**Parallel keyword-labeled edges.** Several same-kind relationships into one node (for example many
+`«satisfy»` arrowheads) rely on the face minimum anchor separation of at least 16 px and on the
+obstacle-aware label placer; this behavior is unchanged and is guarded by a regression test.
+
 ### LayeredLayoutAlgorithm Interactions
 
 `LayeredLayoutAlgorithm` depends on the `LayoutAlgorithmBase`, `LayoutGraph`, `LayoutTree`, and related
-model types from `DemaConsulting.Rendering.Abstractions` and on `InterconnectionLayoutEngine` from
+model types from `DemaConsulting.Rendering.Abstractions` and on `InterconnectionLayoutEngine` and
+`CanvasFitter` from
 the Engine subsystem. It is the entry point resolved by renderers through the layout registry.
 
 ### Requirements Traceability
@@ -273,3 +295,6 @@ the Engine subsystem. It is the entry point resolved by renderers through the la
 | Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproach | Back-edge entry approach, `ResolveBackEdgeEntryApproach` |
 | Rendering-Layout-LayeredAlgorithm-BackEdgeEntryApproachLegacyPreserved | Back-edge entry, undecorated default |
 | Rendering-Layout-LayeredAlgorithm-LabelsClearOfNodeBorders | Back-edge entry, second defect (box-aware labels) |
+| Rendering-Layout-LayeredAlgorithm-IsolatedNodesNoOverlap | Isolated nodes and canvas fit, component extents |
+| Rendering-Layout-LayeredAlgorithm-ContentInsideCanvas | Isolated nodes and canvas fit, `CanvasFitter` |
+| Rendering-Layout-LayeredAlgorithm-ParallelKeywordEdgeSeparation | Isolated nodes and canvas fit, anchor pitch |

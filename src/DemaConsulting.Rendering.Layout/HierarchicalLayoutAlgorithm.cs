@@ -401,7 +401,9 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             leafNodes.AddRange(widenedLines);
             leafNodes.AddRange(widenedPorts);
             leafNodes.AddRange(leafCrossLines);
-            return new LayoutTree(widenedWidth, placed.Height, leafNodes);
+            return CanvasFitter.Fit(
+                new LayoutTree(widenedWidth, placed.Height, leafNodes),
+                effective.Get(CoreOptions.AssumedFontSize));
         }
 
         // Deferred (see ROADMAP.md): extend the edge-count-aware sibling-gap widening above to the
@@ -438,7 +440,9 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         nodes.AddRange(decomposed.Lines);
         nodes.AddRange(decomposed.Ports);
         nodes.AddRange(crossLines);
-        return new LayoutTree(decomposed.Width, decomposed.Height, nodes);
+        return CanvasFitter.Fit(
+            new LayoutTree(decomposed.Width, decomposed.Height, nodes),
+            effective.Get(CoreOptions.AssumedFontSize));
     }
 
     /// <summary>

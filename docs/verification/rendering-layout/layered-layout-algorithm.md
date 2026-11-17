@@ -17,7 +17,10 @@ production code paths.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Project**: `test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs`, plus
   `NotationPrimitivePassThroughTests.cs` (appearance pass-through) and `BackEdgeEntryApproachTests.cs`
-  (back-edge entry approach and label clearance) in the same project.
+  (back-edge entry approach and label clearance) in the same project. `DirectionLayoutGeometryTests.cs`
+  and `EdgeKeywordLabelLayoutTests.cs` (with the shared `DirectionScenes.cs` and `LayoutGeometryAssert.cs`
+  helpers) cover isolated-node packing, canvas containment, and keyword-label separation; the Gallery tests in
+  `test/DemaConsulting.Rendering.Gallery/GalleryShowcaseTests.cs` repeat the checks on rendered SVG and PNG.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and `LayoutOptions` instances.
 - **Isolation**: each test builds its own inputs; the algorithm is stateless between calls.
@@ -168,6 +171,23 @@ failure.
   labels of the laid-out tree and assert no label overlaps a box, another label, or a connector segment other than
   the end segment it sits beside.
 
+- **Isolated nodes in every direction** (`Rendering-Layout-LayeredAlgorithm-IsolatedNodesNoOverlap`):
+  `LayeredLayout_IsolatedNodesBesideConnectedTree_DoNotOverlap` (a theory over Down, Up, Left, and Right) lays out
+  a connected tree beside several non-square isolated nodes and asserts no two boxes overlap;
+  `LayeredLayout_UpDirection_PlacesGeneralAboveSpecificsAndKeepsIsolatedNodesApart` asserts the same for an Up
+  general view whose general element sits above its specifics; and
+  `Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps` renders that view to SVG and PNG
+  and asserts the same on the rendered output.
+- **Content inside the canvas** (`Rendering-Layout-LayeredAlgorithm-ContentInsideCanvas`):
+  `LayeredLayout_UpDirection_PlacesGeneralAboveSpecificsAndKeepsIsolatedNodesApart` asserts every connector
+  waypoint and every placed connector label lies inside `[0, Width] x [0, Height]`;
+  `Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps` and
+  `Gallery_EdgeKeywordLabels_RendersSvgAndPngWithLabelsInsideCanvas` assert the same for the rendered SVG and
+  PNG of keyword-labeled diagrams.
+- **Parallel keyword edge separation** (`Rendering-Layout-LayeredAlgorithm-ParallelKeywordEdgeSeparation`):
+  `LayeredLayout_ParallelKeywordLabeledEdgesIntoOneNode_KeepAnchorsApartAndLabelsClear` lays out several
+  keyword-labeled edges into one node and asserts the end anchors on the shared face are at least 16 px apart
+  and no label overlaps a box or another label.
 - **Port appearance pass-through** (`Rendering-Layout-LayeredAlgorithm-PortAppearancePassThrough`):
   `LayeredLayout_PortAppearance_ReachesBothPlacedPorts` and `LayeredLayout_PortWithoutAppearance_StaysNull` assert the
   appearance reaches both emitted ports (and stays null); `LayeredLayout_OutwardLabelPort_HasUnconstrainedLabelWidth`
@@ -265,3 +285,13 @@ failure.
   LayeredLayout_OutwardPortLabels_OverlapNothing,
   LayeredLayout_NoOutwardLabels_BoxesIdenticalWithAndWithoutAnInwardAppearance,
   LayeredLayout_OutwardLabels_WidenTheCorridorBetweenParts
+- **`Rendering-Layout-LayeredAlgorithm-IsolatedNodesNoOverlap`**:
+  LayeredLayout_IsolatedNodesBesideConnectedTree_DoNotOverlap,
+  LayeredLayout_UpDirection_PlacesGeneralAboveSpecificsAndKeepsIsolatedNodesApart,
+  Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps
+- **`Rendering-Layout-LayeredAlgorithm-ContentInsideCanvas`**:
+  LayeredLayout_UpDirection_PlacesGeneralAboveSpecificsAndKeepsIsolatedNodesApart,
+  Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps,
+  Gallery_EdgeKeywordLabels_RendersSvgAndPngWithLabelsInsideCanvas
+- **`Rendering-Layout-LayeredAlgorithm-ParallelKeywordEdgeSeparation`**:
+  LayeredLayout_ParallelKeywordLabeledEdgesIntoOneNode_KeepAnchorsApartAndLabelsClear
