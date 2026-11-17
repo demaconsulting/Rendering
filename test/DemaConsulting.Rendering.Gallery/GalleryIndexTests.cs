@@ -119,7 +119,7 @@ public sealed class GalleryIndexTests
         }
     }
 
-    /// <summary>Asserts that no line in <paramref name="markdown"/> exceeds the 120-column markdownlint limit.</summary>
+    /// <summary>Asserts that no line in <paramref name="markdown"/> exceeds the 120-column LintMark limit.</summary>
     private static void AssertNoLineExceedsLintWidth(string markdown)
     {
         foreach (var line in markdown.Split('\n'))

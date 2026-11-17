@@ -75,32 +75,25 @@ if (-not $skipPython) {
 #       if ($LASTEXITCODE -ne 0) { $lintError = $true }
 #   }
 
-# --- NPM SECTION ---
-# Installs npm dependencies and runs markdownlint-cli2.
-Write-Host "Linting: markdown..."
-$skipNpm = $false
-npm install --silent
-if ($LASTEXITCODE -ne 0) { $lintError = $true; $skipNpm = $true }
-
-if (-not $skipNpm) {
-    npx markdownlint-cli2 "**/*.md"
-    if ($LASTEXITCODE -ne 0) { $lintError = $true }
-}
-
-# [PROJECT-SPECIFIC] Add additional npm-based lint checks here.
-# Example (ESLint for TypeScript):
-#   if (-not $skipNpm) {
-#       npx eslint "src/**/*.ts"
-#       if ($LASTEXITCODE -ne 0) { $lintError = $true }
-#   }
-
-# --- DOTNET LINTING SECTION ---
-# Runs spell checking and compliance tools: textlint, reqstream, versionmark, reviewmark, sysml2tools.
-Write-Host "Linting: spelling and compliance tools..."
+# --- DOTNET TOOLS ---
+# Restores the dotnet tools used by the markdown, spelling and compliance checks.
 $skipDotnetTools = $false
 dotnet tool restore > $null
 if ($LASTEXITCODE -ne 0) { $lintError = $true; $skipDotnetTools = $true }
 
+# --- MARKDOWN SECTION ---
+# Runs LintMark on all markdown files.
+Write-Host "Linting: markdown..."
+if (-not $skipDotnetTools) {
+    dotnet lintmark
+    if ($LASTEXITCODE -ne 0) { $lintError = $true }
+}
+
+# [PROJECT-SPECIFIC] Add additional lint checks here.
+
+# --- DOTNET LINTING SECTION ---
+# Runs spell checking and compliance tools: textlint, reqstream, versionmark, reviewmark, sysml2tools.
+Write-Host "Linting: spelling and compliance tools..."
 if (-not $skipDotnetTools) {
     dotnet textlint
     if ($LASTEXITCODE -ne 0) { $lintError = $true }
