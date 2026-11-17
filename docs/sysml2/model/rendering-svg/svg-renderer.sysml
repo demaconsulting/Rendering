@@ -6,7 +6,7 @@ package RenderingSvg {
 
         metadata info : SoftwareInfo {
             sourceFiles = ("src/DemaConsulting.Rendering.Svg/SvgRenderer.cs");
-            testFiles = ("test/DemaConsulting.Rendering.Svg.Tests/SvgEndMarkerTests.cs", "test/DemaConsulting.Rendering.Svg.Tests/SvgNotationPrimitiveTests.cs", "test/DemaConsulting.Rendering.Svg.Tests/SvgRendererPortedTests.cs", "test/DemaConsulting.Rendering.Svg.Tests/SvgRendererTests.cs");
+            testFiles = ("test/DemaConsulting.Rendering.Svg.Tests/SvgEndMarkerTests.cs", "test/DemaConsulting.Rendering.Svg.Tests/SvgNotationPrimitiveTests.cs", "test/DemaConsulting.Rendering.Svg.Tests/SvgRendererPortedTests.cs", "test/DemaConsulting.Rendering.Svg.Tests/SvgRendererTests.cs", "test/DemaConsulting.Rendering.Svg.Tests/SvgDiamondShapeTests.cs");
             designFiles = ("docs/design/rendering-svg/svg-renderer.md");
             verificationFiles = ("docs/verification/rendering-svg/svg-renderer.md");
             requirementFiles = ("docs/reqstream/rendering-svg/svg-renderer.yaml");

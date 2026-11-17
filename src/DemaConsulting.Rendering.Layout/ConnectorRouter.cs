@@ -26,6 +26,8 @@ namespace DemaConsulting.Rendering.Layout;
 /// <param name="TargetEnd">End-marker style drawn at the target (arrival) end of the connector.</param>
 /// <param name="LineStyle">Stroke style (solid, dashed, dotted) applied to the routed connector.</param>
 /// <param name="Label">Optional midpoint label carried onto the routed line; <see langword="null"/> for an unlabelled connector.</param>
+/// <param name="SourceEndLabel">Optional end labels (role name, multiplicity) carried onto the routed line's source end; <see langword="null"/> for none.</param>
+/// <param name="TargetEndLabel">Optional end labels carried onto the routed line's target end; <see langword="null"/> for none.</param>
 /// <remarks>
 /// A <see cref="Connection"/> carries no geometry of its own: source and target anchors are chosen by
 /// <see cref="ConnectorRouter"/> from the boxes' current placement. The record intentionally models
@@ -36,7 +38,9 @@ public sealed record Connection(
     LayoutBox To,
     EndMarkerStyle TargetEnd = EndMarkerStyle.None,
     LineStyle LineStyle = LineStyle.Solid,
-    string? Label = null);
+    string? Label = null,
+    LineEndLabel? SourceEndLabel = null,
+    LineEndLabel? TargetEndLabel = null);
 
 /// <summary>
 /// Options controlling how <see cref="ConnectorRouter"/> routes connectors among placed boxes.
@@ -363,7 +367,9 @@ public static class ConnectorRouter
             SourceEnd: EndMarkerStyle.None,
             TargetEnd: connection.TargetEnd,
             LineStyle: connection.LineStyle,
-            MidpointLabel: connection.Label);
+            MidpointLabel: connection.Label,
+            SourceEndLabel: connection.SourceEndLabel,
+            TargetEndLabel: connection.TargetEndLabel);
     }
 
     /// <summary>
@@ -1942,10 +1948,10 @@ public static class ConnectorRouter
     /// box projects inward to the shape's real outline.
     /// </summary>
     /// <remarks>
-    /// Current shipped shapes use constant per-face projections, but <see cref="ProjectToSurface"/>
-    /// intentionally receives the along-face coordinate so a future shape can vary its projection across
-    /// the face (for example a sloped or curved shoulder) without changing the router's calling
-    /// contract.
+    /// Most shipped shapes use constant per-face projections, but <see cref="ProjectToSurface"/>
+    /// intentionally receives the along-face coordinate so a shape can vary its projection across
+    /// the face — <see cref="DiamondGeometry"/> does, with its sloped outline — without changing the
+    /// router's calling contract.
     /// </remarks>
     /// <remarks>
     /// Also consumed internally by the <c>LayeredPipeline</c> unit's <c>PortDistributor</c> and
@@ -2168,6 +2174,40 @@ public static class ConnectorRouter
     }
 
     /// <summary>
+    /// Diamond geometry: the shape is the rhombus through the four edge midpoints of the bounding box, so
+    /// every face is connectable in full but the outline recedes linearly from the bounding-box face
+    /// towards the vertex at the face midpoint. <see cref="ProjectToSurface"/> returns that distance — zero
+    /// at the vertex and <c>depth / 2</c> at the corner — so a connector touches the drawn outline instead
+    /// of floating off the bounding box (Rendering#58).
+    /// </summary>
+    internal sealed class DiamondGeometry : BoxShapeGeometryBase
+    {
+        public DiamondGeometry(LayoutBox box)
+            : base(box)
+        {
+        }
+
+        public override IReadOnlyList<(double Lo, double Hi)> GetConnectableExtents(PortSide side) => FullExtent(side);
+
+        public override double ProjectToSurface(PortSide side, double alongAxisCoordinate)
+        {
+            // Top/bottom faces run along the width and recede over half the height; left/right faces run
+            // along the height and recede over half the width. The offset is the proportional distance of
+            // the coordinate from the face midpoint, clamped to the face so a coordinate marginally
+            // outside it never yields a negative or oversized offset.
+            var faceLength = BoxFaceLength(side);
+            if (faceLength <= 0.0)
+            {
+                return 0.0;
+            }
+
+            var depth = side is PortSide.Left or PortSide.Right ? Width : Height;
+            var fromMiddle = Math.Min(Math.Abs(alongAxisCoordinate - (faceLength / 2.0)), faceLength / 2.0);
+            return (depth / faceLength) * fromMiddle;
+        }
+    }
+
+    /// <summary>
     /// Resolves the shape geometry object used to interpret a box's connectable face extents and real
     /// outline projection.
     /// </summary>
@@ -2180,6 +2220,7 @@ public static class ConnectorRouter
         BoxShape.Folder => new FolderGeometry(box),
         BoxShape.RoundedRectangle => new RoundedRectangleGeometry(box),
         BoxShape.Note => new NoteGeometry(box),
+        BoxShape.Diamond => new DiamondGeometry(box),
         _ => new RectangleGeometry(box),
     };
 

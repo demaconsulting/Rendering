@@ -66,6 +66,14 @@ own endpoints, as a hard obstacle for the whole route (not just the final dockin
 other already-routed connectors can no longer detour straight through its own target box's interior. See [Parallel edges
 and ports](parallel-edges-and-ports/README.md) for the full set.
 
+![A fuel-system interconnection with SysML port glyphs and end
+labels](parallel-edges-and-ports/ports-sysml-glyphs-horizontal.svg)
+
+Five parts joined through ports: out-to-in fuel connections with a role name and multiplicity (one with an ordered
+adornment) at each end, an inout status port joined to a dashed reference port, and a proxy port driven by a controller;
+every port label reads name : Type outside its part. See [Parallel edges and ports](parallel-edges-and-ports/README.md)
+for the full set.
+
 ![One of each container shape side by side, each holding content](appearance-and-themes/shape-gallery.svg)
 
 Every Shape value side by side, each with content appropriate to it: rectangle and rounded-rectangle boxes with a

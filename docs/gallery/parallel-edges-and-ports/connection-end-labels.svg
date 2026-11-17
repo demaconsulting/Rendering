@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="549.76" height="410.00" viewBox="0 0 549.76 410.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="14.747763" markerHeight="7" refX="14.747763" refY="3.5" orient="auto">
+      <polygon points="4.5 0, 14.5 3.5, 4.5 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+      <line x1="1" y1="0" x2="1" y2="7" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9.75" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2.75" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#FFFFFF"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="379.76" y="114.60" width="150.00" height="180.80" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="454.76" y="205.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" textLength="138.00" lengthAdjust="spacingAndGlyphs">vehicle : Vehicle</text>
+  <rect x="20.00" y="20.00" width="150.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="95.00" y="55.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">engine : Engine</text>
+  <rect x="20.00" y="120.00" width="150.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="95.00" y="155.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" textLength="138.00" lengthAdjust="spacingAndGlyphs">gearbox : Gearbox</text>
+  <rect x="20.00" y="220.00" width="150.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="95.00" y="255.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">wheel : Wheel</text>
+  <rect x="20.00" y="320.00" width="150.00" height="70.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="95.00" y="355.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">driver : Driver</text>
+  <path d="M 170.00 55.00 L 249.60 55.00 A 4.00 4.00 0 0 1 253.60 59.00 L 253.60 133.20 A 4.00 4.00 0 0 0 257.60 137.20 L 379.76 137.20" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 170.00 155.00 L 249.60 155.00 A 4.00 4.00 0 0 1 253.60 159.00 L 253.60 178.40 A 4.00 4.00 0 0 0 257.60 182.40 L 379.76 182.40" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 170.00 255.00 L 249.60 255.00 A 4.00 4.00 0 0 0 253.60 251.00 L 253.60 231.60 A 4.00 4.00 0 0 1 257.60 227.60 L 379.76 227.60" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 170.00 355.00 L 249.60 355.00 A 4.00 4.00 0 0 0 253.60 351.00 L 253.60 276.80 A 4.00 4.00 0 0 1 257.60 272.80 L 379.76 272.80" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <text x="195.08" y="43.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">engine</text>
+  <text x="179.60" y="66.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+  <text x="335.18" y="125.40" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">owner</text>
+  <text x="349.16" y="149.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+  <text x="198.98" y="143.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">gearbox</text>
+  <text x="186.20" y="166.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">0..1</text>
+  <text x="335.18" y="170.60" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">owner</text>
+  <text x="349.16" y="194.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+  <text x="195.44" y="243.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">wheels</text>
+  <text x="207.80" y="266.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">4 {ordered}</text>
+  <text x="335.18" y="215.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">owner</text>
+  <text x="349.16" y="239.40" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+  <text x="192.38" y="343.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">driver</text>
+  <text x="185.00" y="366.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">0..*</text>
+  <text x="339.02" y="261.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">vehicle</text>
+  <text x="355.16" y="284.60" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+</svg>

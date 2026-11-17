@@ -275,3 +275,46 @@ sections:
           opt in while a lifeline built with only its legacy members is unchanged.
         tests:
           - LayoutLifeline_NewMembers_DefaultToLegacyLook
+
+      - id: Rendering-Model-LayoutTree-DiamondShape
+        title: >-
+          The box shape enumeration shall provide a diamond member appended after the existing
+          members, so existing shape ordinals are unchanged.
+        justification: |
+          Decision and merge nodes are diamonds whose connectors must attach to the outline rather than
+          the bounding box (Rendering#58); appending the member keeps every existing shape ordinal and
+          default (rectangle) stable for callers that never use it.
+        tests:
+          - BoxShape_LegacyOrdinals_ArePinnedAndDiamondAppended
+
+      - id: Rendering-Model-LayoutTree-LineEndLabels
+        title: >-
+          A line node shall carry optional end labels for its source and target ends, each with a
+          primary and a secondary text slot, defaulting to none.
+        justification: |
+          A SysML connection shows a role name and a multiplicity near each end of the line.
+          Appending optional end-label members to the line, each a value record of two slots, lets a
+          caller supply them while a line built with only its original members is unchanged.
+        tests:
+          - LayoutLine_EndLabels_DefaultToNull
+          - LayoutLine_EndLabels_AreCarried
+          - LineEndLabel_Secondary_DefaultsToNull
+          - LineEndLabel_IsAValueRecord
+
+      - id: Rendering-Model-LayoutTree-PortAppearance
+        title: >-
+          A port node shall carry an optional appearance (direction arrow, glyph, outline style, and
+          label placement) that defaults to the legacy look, and the automatic glyph shall resolve to
+          the legacy filled square unless a direction arrow or a non-solid outline asks for more.
+        justification: |
+          SysML ports are drawn with in, out, or inout arrows, a dashed outline for a reference port,
+          a proxy circle, and a label outside the box. Carrying that as an appended optional member of
+          a value record keeps every existing port, which has no appearance, unchanged, and resolving
+          the automatic glyph in one place keeps both renderers in agreement.
+        tests:
+          - PortAppearance_Defaults_AreTheLegacyLook
+          - PortAppearance_ResolvedGlyph_Auto_PicksFilledOrOutlined
+          - PortAppearance_ResolvedGlyph_Explicit_IsKept
+          - PortAppearance_IsAValueRecord
+          - LayoutPort_Appearance_DefaultsToNull
+          - LayoutPort_Appearance_IsCarried

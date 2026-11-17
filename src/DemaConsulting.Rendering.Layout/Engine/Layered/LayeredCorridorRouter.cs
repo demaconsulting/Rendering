@@ -45,7 +45,10 @@ internal sealed class LayeredCorridorRouter : ILayoutStage
             }
 
             // First slot starts one ConnectorClearance past the right edge of the source column.
-            var startPos = columnX[l] + maxColWidth[l] + ConnectorClearance;
+            // Source end labels sit on the straight run before the first bend, so the first slot is kept
+            // that much further out (zero, and so unchanged, when no edge carries source end labels).
+            var sourceLabelAlong = l < graph.CorridorSourceLabelAlong.Length ? graph.CorridorSourceLabelAlong[l] : 0.0;
+            var startPos = columnX[l] + maxColWidth[l] + ConnectorClearance + sourceLabelAlong;
 
             // Build routing segments.
             var segments = corridorEdges

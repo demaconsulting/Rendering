@@ -135,6 +135,19 @@ onto the placed boxes unchanged and leave an unset appearance `null`.
 
 **Covers**: `Rendering-Model-LayoutGraph-NodeAppearance`.
 
+#### Edge end labels default to none
+
+`LayoutGraphEdge_EndLabels_DefaultToNullAndAreSettable` asserts both edge end labels are `null` until set and are
+stored independently.
+
+**Covers**: `Rendering-Model-LayoutGraph-EdgeEndLabels`.
+
+#### Port appearance defaults to none
+
+`LayoutGraphPort_Appearance_DefaultsToNullAndIsSettable` asserts a graph port has no appearance until it is set.
+
+**Covers**: `Rendering-Model-LayoutGraph-PortAppearance`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-LayoutGraph-AddNode`**: AddNode_AppendsNodeAndReturnsIt
@@ -165,3 +178,5 @@ onto the placed boxes unchanged and leave an unset appearance `null`.
   LayeredLayout_NodeWithoutAppearance_StaysNull, ContainmentLayout_NodeAppearance_ReachesPlacedBox,
   HierarchicalLayout_ContainerAndLeafAppearance_ReachPlacedBoxes,
   AutoLayout_NodeAppearance_SurvivesClone
+- **`Rendering-Model-LayoutGraph-EdgeEndLabels`**: LayoutGraphEdge_EndLabels_DefaultToNullAndAreSettable
+- **`Rendering-Model-LayoutGraph-PortAppearance`**: LayoutGraphPort_Appearance_DefaultsToNullAndIsSettable

@@ -117,6 +117,35 @@ on a marker's length reads it through `RenderedAlongLineLength`, so layout, rout
 placement and both renderers agree. The print theme has a stroke width of 1.0, so its markers are the
 notation size in both formats.
 
+`DiamondBoxVertices(x, y, width, height)` returns the outline of a `BoxShape.Diamond` inscribed in a box: the
+midpoints of the top, right, bottom, and left box edges, in that order. The SVG renderer emits them as a
+polygon and the CanvasNet renderer builds its path from them, so the two outlines are identical by
+construction, and the layout's `DiamondGeometry` describes the same rhombus.
+
+#### Port glyph geometry
+
+The SysML-style port glyphs are described in a partial class file, `NotationMetrics.Ports.cs`, so both
+renderers and the layout share one source. `PortGlyphHalfSizeFor(appearance)` is the glyph half size: the
+legacy `PortHalfSize` (4 px) for no appearance or a filled square, `PortGlyphHalfSize` (6 px, a 12 px rounded
+square with `PortGlyphCornerRadius` 2) for an outlined glyph, and `PortProxyRadius` (5 px) for a proxy circle; it
+is the single source for how far a marker end on a port is shortened (so the painted tip lands on the glyph's
+outer edge) and for the inward label offset. `PortArrowSegments(direction, side)` returns the arrow polylines
+in glyph-local coordinates — a shaft of `PortArrowHalfLength` and one or two heads of `PortArrowHeadSize` — with
+the arrow axis along the face normal: `In` points into the owning part (a left port's arrow points right, a
+right port's left, a top port's down, a bottom port's up), `Out` points away, `InOut` has a head at both ends.
+`IsOutwardLabel`, `PortOutwardLabelAnchor`, and `PortOutwardLabelBounds` give the outward label: on a left or
+right port the text is above the connector line, ending at (left) or starting at (right) a point one glyph half
+size plus the label padding beyond the face; on a top or bottom port it is beside the connector, to its right,
+just outside the face. The label is lifted off the connector axis by the half width of the widest end marker at
+the theme's marker scale plus a 4 px clearance (`PortLabelConnectorGap`), so it never touches an arrowhead on that
+connector.
+`PortEndRetraction(end, adjacent, style, ports)` is the single rule for how far a marker end that sits on a port
+centre (within 0.5 px) is painted back along its end segment: the glyph half size when the end carries a marker and
+the segment is longer than that, otherwise zero. Both renderers shorten lines by it and the end-label placer measures
+from it, so the drawn marker and the label beside it always agree.
+`PortGlyphBounds` gives the glyph rectangle. The bounds feed canvas growth, the end-label placer's occupied
+rectangles, and the layout's overlap tests.
+
 ### Notation Metrics Key Methods
 
 `double AlongLineLength(EndMarkerStyle style)` — returns the along-line length consumed by an

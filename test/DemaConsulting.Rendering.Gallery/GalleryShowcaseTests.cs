@@ -16,6 +16,56 @@ namespace DemaConsulting.Rendering.Gallery;
 /// </summary>
 public sealed class GalleryShowcaseTests
 {
+    /// <summary>Minimum clear distance, in logical pixels, an end label's text keeps from other drawn content (4 px less estimate tolerance).</summary>
+    private const double MinClearance = 3.5;
+
+    /// <summary>The 2 px gap the label placer keeps around an end label's text inside its box.</summary>
+    private const double LabelBoxGap = 2.0;
+
+    /// <summary>
+    ///     The merge diamond of the Rendering#58 scene keeps its three arrowheads apart: in the laid-out
+    ///     tree and in the rendered SVG, the end points of the three connectors that join it are at least
+    ///     a marker width plus 4 px apart.
+    /// </summary>
+    [Fact]
+    public void Gallery_Regression58_DiamondOutlineAnchors_MarkerHeadsKeepApart()
+    {
+        // Arrange
+        var graph = GallerySysmlPorts.DiamondOutlineAnchors();
+        var tree = LayoutEngine.Layout(graph);
+        var merge = tree.Nodes.OfType<LayoutBox>().Where(box => box.Shape == BoxShape.Diamond).OrderBy(box => box.Y).Last();
+        var required = (2.0 * NotationMetrics.AcrossHalfWidth(EndMarkerStyle.FilledArrow) * NotationMetrics.MarkerScale(Themes.Light))
+            + NotationMetrics.MarkerStrokeWidth(Themes.Light) + 4.0;
+
+        // Act: the end points of the connectors that join the merge diamond, in the tree and in the SVG.
+        bool Joins(Point2D p) =>
+            p.X >= merge.X - 0.5 && p.X <= merge.X + merge.Width + 0.5 && p.Y >= merge.Y - 0.5 && p.Y <= merge.Y + (merge.Height / 2.0);
+        var treeEnds = tree.Nodes.OfType<LayoutLine>().Select(line => line.Waypoints[^1]).Where(Joins).Select(p => p.X).Order().ToList();
+
+        using var stream = new MemoryStream();
+        new DemaConsulting.Rendering.Svg.SvgRenderer().Render(tree, new RenderOptions(Themes.Light), stream);
+        var svg = System.Text.Encoding.UTF8.GetString(stream.ToArray());
+        var svgEnds = System.Text.RegularExpressions.Regex
+            .Matches(svg, "<path d=\"([^\"]+)\"[^>]*marker-end")
+            .Select(match => System.Text.RegularExpressions.Regex.Matches(match.Groups[1].Value, @"-?\d+(?:\.\d+)?").Select(m => double.Parse(m.Value, System.Globalization.CultureInfo.InvariantCulture)).ToList())
+            .Select(numbers => new Point2D(numbers[^2], numbers[^1]))
+            .Where(Joins)
+            .Select(p => p.X)
+            .Order()
+            .ToList();
+
+        // Assert
+        Assert.Equal(3, treeEnds.Count);
+        Assert.Equal(3, svgEnds.Count);
+        foreach (var ends in new[] { treeEnds, svgEnds })
+        {
+            for (var i = 1; i < ends.Count; i++)
+            {
+                Assert.True(ends[i] - ends[i - 1] >= required - 0.02, $"merge heads are {ends[i] - ends[i - 1]:0.##} px apart, need {required:0.##}");
+            }
+        }
+    }
+
     /// <summary>
     ///     Renders the layered pipeline diagram to SVG, proving the layered algorithm and SVG renderer
     ///     produce a well-formed document.
@@ -1185,5 +1235,252 @@ public sealed class GalleryShowcaseTests
             GalleryCatalog.BackEdgeEntryApproachSvg,
             GallerySysmlNotation.BackEdgeEntryApproach(),
             Themes.Light);
+    }
+
+    /// <summary>
+    ///     Renders the horizontal SysML port-glyph interconnection to SVG and PNG, proving the appearance
+    ///     and end labels reach the placed ports and lines and that no label overlaps a box, another label,
+    ///     or a connector.
+    /// </summary>
+    [Fact]
+    public void Gallery_SysmlPortsHorizontal_RendersSvgAndPngWithoutLabelOverlaps()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.PortsSysmlGlyphsHorizontalSvg, GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Right), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.PortsSysmlGlyphsHorizontalPng, GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Right), Themes.Light);
+
+        // Assert
+        AssertNoLabelOverlaps(LayoutEngine.Layout(GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Right)), expectedOutwardPorts: 8);
+    }
+
+    /// <summary>
+    ///     Renders the downward SysML port-glyph interconnection to SVG and PNG with the same label checks.
+    /// </summary>
+    [Fact]
+    public void Gallery_SysmlPortsVertical_RendersSvgAndPngWithoutLabelOverlaps()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.PortsSysmlGlyphsVerticalSvg, GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Down), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.PortsSysmlGlyphsVerticalPng, GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Down), Themes.Light);
+
+        // Assert
+        AssertNoLabelOverlaps(LayoutEngine.Layout(GallerySysmlPorts.FuelSystem(LayoutFlowDirection.Down)), expectedOutwardPorts: 8);
+    }
+
+    /// <summary>
+    ///     Renders the connection end-label ownership diagram to SVG and PNG, proving every end label is
+    ///     placed clear of boxes, other labels, and connectors.
+    /// </summary>
+    [Fact]
+    public void Gallery_ConnectionEndLabels_RendersSvgAndPngWithoutLabelOverlaps()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.ConnectionEndLabelsSvg, GallerySysmlPorts.ConnectionEnds(), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.ConnectionEndLabelsPng, GallerySysmlPorts.ConnectionEnds(), Themes.Light);
+
+        // Assert
+        AssertNoLabelOverlaps(LayoutEngine.Layout(GallerySysmlPorts.ConnectionEnds()), expectedOutwardPorts: 0);
+    }
+
+    /// <summary>
+    ///     Renders the SysML port-glyph matrix (a hand-built sheet) to SVG and PNG.
+    /// </summary>
+    [Fact]
+    public void Gallery_SysmlPortGlyphMatrix_RendersSvgAndPng()
+    {
+        // Act / Assert
+        GalleryWriter.Svg(GalleryCatalog.SysmlPortGlyphMatrixSvg, GallerySysmlPorts.GlyphMatrix(Themes.Light), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.SysmlPortGlyphMatrixPng, GallerySysmlPorts.GlyphMatrix(Themes.Light), Themes.Light);
+    }
+
+    /// <summary>
+    ///     Renders the Rendering#57 regression scene, proving every connector's final run is straight and
+    ///     no connector has a perpendicular step shorter than the marker.
+    /// </summary>
+    [Fact]
+    public void Gallery_Regression57_SharedFaceStraightRuns_AllFinalRunsStraight()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.SharedFaceStraightRunsSvg, GallerySysmlPorts.SharedFaceStraightRuns(), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.SharedFaceStraightRunsPng, GallerySysmlPorts.SharedFaceStraightRuns(), Themes.Light);
+
+        // Assert
+        var tree = LayoutEngine.Layout(GallerySysmlPorts.SharedFaceStraightRuns());
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        Assert.Equal(5, lines.Count);
+        Assert.All(lines, line => Assert.Equal(2, line.Waypoints.Count));
+    }
+
+    /// <summary>
+    ///     Renders the Rendering#58 regression scene to SVG and PNG, proving every connector end at a
+    ///     diamond lies on the diamond outline and leaves it perpendicular to the face.
+    /// </summary>
+    [Fact]
+    public void Gallery_Regression58_DiamondOutlineAnchors_EndsOnOutline()
+    {
+        // Act
+        GalleryWriter.Svg(GalleryCatalog.DiamondOutlineAnchorsSvg, GallerySysmlPorts.DiamondOutlineAnchors(), Themes.Light);
+        GalleryWriter.Png(GalleryCatalog.DiamondOutlineAnchorsPng, GallerySysmlPorts.DiamondOutlineAnchors(), Themes.Light);
+
+        // Assert
+        var tree = LayoutEngine.Layout(GallerySysmlPorts.DiamondOutlineAnchors());
+        var diamonds = tree.Nodes.OfType<LayoutBox>().Where(box => box.Shape == BoxShape.Diamond).ToList();
+        Assert.Equal(2, diamonds.Count);
+        foreach (var line in tree.Nodes.OfType<LayoutLine>())
+        {
+            foreach (var diamond in diamonds)
+            {
+                foreach (var (point, next) in new[] { (line.Waypoints[0], line.Waypoints[1]), (line.Waypoints[^1], line.Waypoints[^2]) })
+                {
+                    var norm = (Math.Abs(point.X - (diamond.X + (diamond.Width / 2.0))) / (diamond.Width / 2.0))
+                        + (Math.Abs(point.Y - (diamond.Y + (diamond.Height / 2.0))) / (diamond.Height / 2.0));
+                    if (Math.Abs(norm - 1.0) * (diamond.Width / 2.0) <= 0.6)
+                    {
+                        Assert.True(Math.Abs(point.X - next.X) < 1e-6, "a connector must leave a diamond outline along the axis");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Asserts that no outward port label, end label, or connector overlaps another: outward labels
+    ///     overlap no box, other port label, or connector segment; end labels (placed against the port
+    ///     rectangles) overlap no box, glyph, port label, other end label, or connector segment other than
+    ///     the end segment they sit beside.
+    /// </summary>
+    private static void AssertNoLabelOverlaps(LayoutTree tree, int expectedOutwardPorts)
+    {
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        var lines = tree.Nodes.OfType<LayoutLine>().ToList();
+        var ports = tree.Nodes.OfType<LayoutPort>().ToList();
+        var portLabels = ports.Where(NotationMetrics.IsOutwardLabel)
+            .Select(port => NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, Themes.Light))
+            .ToList();
+        Assert.True(portLabels.Count >= expectedOutwardPorts, $"expected at least {expectedOutwardPorts} outward port labels, found {portLabels.Count}");
+
+        static bool Overlap(LabelPlacement a, LabelPlacement b) =>
+            Math.Abs(a.X - b.X) < a.HalfWidth + b.HalfWidth && Math.Abs(a.Y - b.Y) < a.HalfHeight + b.HalfHeight;
+
+        static bool OverlapsBox(LabelPlacement a, LayoutBox box) =>
+            a.X - a.HalfWidth < box.X + box.Width && a.X + a.HalfWidth > box.X && a.Y - a.HalfHeight < box.Y + box.Height && a.Y + a.HalfHeight > box.Y;
+
+        static bool Crosses(LabelPlacement a, Point2D p, Point2D q) =>
+            a.X - a.HalfWidth <= Math.Max(p.X, q.X) && a.X + a.HalfWidth >= Math.Min(p.X, q.X) &&
+            a.Y - a.HalfHeight <= Math.Max(p.Y, q.Y) && a.Y + a.HalfHeight >= Math.Min(p.Y, q.Y);
+
+        for (var i = 0; i < portLabels.Count; i++)
+        {
+            Assert.DoesNotContain(boxes, box => OverlapsBox(portLabels[i], box));
+            for (var j = i + 1; j < portLabels.Count; j++)
+            {
+                Assert.False(Overlap(portLabels[i], portLabels[j]), "two outward port labels overlap");
+            }
+
+            foreach (var line in lines)
+            {
+                for (var s = 0; s + 1 < line.Waypoints.Count; s++)
+                {
+                    Assert.False(Crosses(portLabels[i], line.Waypoints[s], line.Waypoints[s + 1]), "an outward port label is crossed by a connector");
+                }
+            }
+        }
+
+        var occupied = portLabels.Concat(ports.Select(NotationMetrics.PortGlyphBounds)).ToList();
+        var endLabels = ConnectorLabelPlacer.PlaceEndLabels(lines, Themes.Light.FontSizeBody, boxes, NotationMetrics.MarkerScale(Themes.Light), occupied, ports);
+
+        // Every drawn extent an end label must keep MinClearance from: the port glyph and label rectangles,
+        // every connector segment, and every marker painted at its retracted position.
+        var markerRects = new List<(double L, double T, double R, double B)>();
+        foreach (var line in lines)
+        {
+            AddMarkerRect(markerRects, line.Waypoints[0], line.Waypoints[1], line.SourceEnd, ports);
+            AddMarkerRect(markerRects, line.Waypoints[^1], line.Waypoints[^2], line.TargetEnd, ports);
+        }
+
+        for (var i = 0; i < endLabels.Count; i++)
+        {
+            var label = new LabelPlacement(endLabels[i].X, endLabels[i].Y, endLabels[i].HalfWidth, endLabels[i].HalfHeight);
+            var text = TextRectangle(endLabels[i]);
+            Assert.DoesNotContain(boxes, box => OverlapsBox(label, box));
+            Assert.DoesNotContain(occupied, rect => Overlap(label, rect));
+            foreach (var rect in occupied)
+            {
+                var gap = Gap(text, (rect.X - rect.HalfWidth, rect.Y - rect.HalfHeight, rect.X + rect.HalfWidth, rect.Y + rect.HalfHeight));
+                Assert.True(gap >= MinClearance, $"end label '{endLabels[i].Text}' is only {gap:0.##} px from a port glyph or label");
+            }
+
+            foreach (var marker in markerRects)
+            {
+                var gap = Gap(text, marker);
+                Assert.True(gap >= MinClearance, $"end label '{endLabels[i].Text}' is only {gap:0.##} px from an end marker");
+            }
+
+            for (var j = i + 1; j < endLabels.Count; j++)
+            {
+                Assert.False(
+                    Overlap(label, new LabelPlacement(endLabels[j].X, endLabels[j].Y, endLabels[j].HalfWidth, endLabels[j].HalfHeight)),
+                    $"end labels '{endLabels[i].Text}' and '{endLabels[j].Text}' overlap");
+                var gap = Gap(text, TextRectangle(endLabels[j]));
+                Assert.True(gap >= MinClearance, $"end labels '{endLabels[i].Text}' and '{endLabels[j].Text}' are only {gap:0.##} px apart");
+            }
+
+            foreach (var line in lines)
+            {
+                for (var s = 0; s + 1 < line.Waypoints.Count; s++)
+                {
+                    var isOwnEndSegment = ReferenceEquals(line, endLabels[i].Line)
+                        && (endLabels[i].End == LineEnd.Source ? s == 0 : s == line.Waypoints.Count - 2);
+                    if (!isOwnEndSegment)
+                    {
+                        Assert.False(Crosses(label, line.Waypoints[s], line.Waypoints[s + 1]), $"end label '{endLabels[i].Text}' is crossed by a connector");
+                    }
+
+                    var p = line.Waypoints[s];
+                    var q = line.Waypoints[s + 1];
+                    var gap = Gap(text, (Math.Min(p.X, q.X), Math.Min(p.Y, q.Y), Math.Max(p.X, q.X), Math.Max(p.Y, q.Y)));
+                    Assert.True(gap >= MinClearance, $"end label '{endLabels[i].Text}' is only {gap:0.##} px from a connector segment");
+                }
+            }
+        }
+    }
+
+    /// <summary>The text rectangle of an end label: its placed box less the placer's own 2 px gap.</summary>
+    private static (double L, double T, double R, double B) TextRectangle(EndLabelPlacement p) =>
+        (p.X - p.HalfWidth + LabelBoxGap, p.Y - p.HalfHeight + LabelBoxGap, p.X + p.HalfWidth - LabelBoxGap, p.Y + p.HalfHeight - LabelBoxGap);
+
+    /// <summary>The clear distance between two rectangles; negative when they overlap.</summary>
+    private static double Gap((double L, double T, double R, double B) a, (double L, double T, double R, double B) b) =>
+        Math.Max(Math.Max(b.L - a.R, a.L - b.R), Math.Max(b.T - a.B, a.T - b.B));
+
+    /// <summary>Adds the painted footprint of one marker end, retracted from a port centre like the renderers do.</summary>
+    private static void AddMarkerRect(
+        List<(double L, double T, double R, double B)> rects,
+        Point2D end,
+        Point2D adjacent,
+        EndMarkerStyle style,
+        IReadOnlyList<LayoutPort> ports)
+    {
+        if (style == EndMarkerStyle.None)
+        {
+            return;
+        }
+
+        var dx = adjacent.X - end.X;
+        var dy = adjacent.Y - end.Y;
+        var length = Math.Sqrt((dx * dx) + (dy * dy));
+        var dirX = dx / length;
+        var dirY = dy / length;
+        var retraction = NotationMetrics.PortEndRetraction(end, adjacent, style, ports);
+        var scale = NotationMetrics.MarkerScale(Themes.Light);
+        var along = NotationMetrics.AlongLineLength(style) * scale;
+        var across = (NotationMetrics.AcrossHalfWidth(style) * scale) + (NotationMetrics.MarkerStrokeWidth(Themes.Light) / 2.0);
+        var startX = end.X + (dirX * retraction);
+        var startY = end.Y + (dirY * retraction);
+        var tipX = startX + (dirX * along);
+        var tipY = startY + (dirY * along);
+        var perpX = Math.Abs(dirY) * across;
+        var perpY = Math.Abs(dirX) * across;
+        rects.Add((Math.Min(startX, tipX) - perpX, Math.Min(startY, tipY) - perpY, Math.Max(startX, tipX) + perpX, Math.Max(startY, tipY) + perpY));
     }
 }

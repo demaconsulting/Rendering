@@ -82,5 +82,8 @@ sections:
           - Rendering-Svg-SvgRenderer-BandDashed
           - Rendering-Svg-SvgRenderer-LifelineRoundedHeader
           - Rendering-Svg-SvgRenderer-LabelsAvoidBoxes
+          - Rendering-Svg-SvgRenderer-DiamondShape
+          - Rendering-Svg-SvgRenderer-EndLabels
+          - Rendering-Svg-SvgRenderer-PortGlyphs
         tests:
           - SvgRenderer_Render_SingleBox_ProducesSvgDocument

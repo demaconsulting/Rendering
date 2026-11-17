@@ -55,6 +55,12 @@ namespace DemaConsulting.Rendering.Layout.Engine;
 /// The caller's true, never-swapped bounding-box height in logical pixels. See the
 /// <see cref="RealWidth"/> remarks.
 /// </param>
+/// <param name="MinPortPitch">
+/// The smallest spacing, in logical pixels, <see cref="Layered.PortAligner"/> keeps between two ports on
+/// one face of this node, on top of the standard edge spacing: the room the labels beside each connector
+/// (end labels, outward port labels) need, so aligning a port with the other end of its edge never packs
+/// the labels of neighboring connectors together. Zero (the default) leaves the standard spacing.
+/// </param>
 /// <param name="TitleReserveTop">
 /// The vertical band, in logical pixels, that this node's title (keyword line, if any, then the name
 /// line) occupies at the top of the box, or 0 when the node has no title. <see cref="Layered.PortDistributor"/>
@@ -74,14 +80,29 @@ internal readonly record struct LayerNode(
     string? Label = null,
     double RealWidth = 0.0,
     double RealHeight = 0.0,
-    double TitleReserveTop = 0.0);
+    double TitleReserveTop = 0.0,
+    double MinPortPitch = 0.0);
 
 /// <summary>
 /// A directed edge (from a source node to a target node, by index) used for layering.
 /// </summary>
 /// <param name="Source">Index of the source node.</param>
 /// <param name="Target">Index of the target node.</param>
-internal readonly record struct LayerEdge(int Source, int Target);
+/// <param name="SourceLabelAlong">
+/// Space, in logical pixels along the flow axis (the abstract X axis), that end labels beside the
+/// connector at the source node need between that node and the first bend of the connector; zero (the
+/// default) when the edge has no source end label. The corridor router keeps the first bend this far out
+/// and the placer widens the corridor, so the labels fit on the straight end run.
+/// </param>
+/// <param name="TargetLabelAlong">
+/// The same space for end labels (plus the end marker) at the target node, between the last bend and
+/// that node; zero (the default) when the edge has no target end label.
+/// </param>
+internal readonly record struct LayerEdge(
+    int Source,
+    int Target,
+    double SourceLabelAlong = 0.0,
+    double TargetLabelAlong = 0.0);
 
 /// <summary>
 /// The result of an interconnection layout pass.
@@ -165,6 +186,11 @@ internal static class InterconnectionLayoutEngine
     /// to the original engine; a caller whose edges carry a longer end decoration raises it so the
     /// rounded corner never intrudes into the decoration.
     /// </param>
+    /// <param name="alignPorts">
+    /// Whether connector ports are slid along their faces so the two ends of an edge line up (a straight
+    /// final run, Rendering#57; see <see cref="Layered.PortAligner"/>). Defaults to <see langword="true"/>;
+    /// pass <see langword="false"/> to reproduce the pre-alignment geometry exactly.
+    /// </param>
     /// <returns>Placement result with rects, layer assignments, and connector waypoints.</returns>
     public static LayerResult Place(
         IReadOnlyList<LayerNode> nodes,
@@ -172,7 +198,8 @@ internal static class InterconnectionLayoutEngine
         LayoutDirection direction = LayoutDirection.Right,
         double nodeSpacing = Layered.LayeredLayoutMetrics.NodeSpacing,
         bool mergeParallelEdges = true,
-        double backEdgeEntryApproach = Layered.LayeredLayoutMetrics.ConnectorClearance)
+        double backEdgeEntryApproach = Layered.LayeredLayoutMetrics.ConnectorClearance,
+        bool alignPorts = true)
     {
         ArgumentNullException.ThrowIfNull(nodes);
         ArgumentNullException.ThrowIfNull(edges);
@@ -188,6 +215,7 @@ internal static class InterconnectionLayoutEngine
             NodeSpacing = nodeSpacing,
             MergeParallelEdges = mergeParallelEdges,
             BackEdgeEntryApproach = backEdgeEntryApproach,
+            AlignPorts = alignPorts,
         };
         ComponentPacker.WithDefaultStages(nodeSpacing).Apply(graph);
 

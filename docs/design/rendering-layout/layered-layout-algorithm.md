@@ -170,6 +170,46 @@ per node followed by `LayoutLine` per edge).
 An empty graph yields an empty `LayoutTree` because `InterconnectionLayoutEngine.Place` returns a
 minimal-size empty result, which produces an empty canvas.
 
+### LayeredLayoutAlgorithm End Labels
+
+Each edge's `SourceEndLabel` and `TargetEndLabel` are copied onto its emitted `LayoutLine` (the algorithm
+emits waypoints in the declared source-to-target orientation even when `CycleBreaker` reversed the edge, so each
+label stays at its semantic end); a line that stands for several collapsed parallel edges carries none, like its
+midpoint label. The algorithm also reserves room for the labels so `ConnectorLabelPlacer.PlaceEndLabels` finds
+a clear spot. Along the flow axis, `LayerEdge.SourceLabelAlong` and `TargetLabelAlong` (the widest label slot
+for a horizontal flow, the label height for a vertical flow, plus the placer's clearance and, at the target
+end, the end marker) widen the corridor the connector crosses and keep its first bend that far out (see the
+layered pipeline design). Across the flow axis, each face with two or more anchors gets a minimum node size
+from the widest label stack at any anchor on it — stacked heights on a left or right face, side-by-side widths
+on a top or bottom face — through the same face-floor mechanism that already sizes faces for midpoint labels
+and port labels, so the labels of adjacent connectors never touch. All of it is zero, and the layout unchanged,
+for edges without end labels. The hierarchical algorithm's cross-container connectors are routed by
+`ConnectorRouter` and reserve no room: their end labels are placed clear of boxes but may slide or flip in a
+crowded diagram.
+
+A diamond (`BoxShape.Diamond`) that has two or more connector ends on one face also records a marker pitch for
+that face: for each emitted line whose target end carries a marker, `MarkerFacePitch(TargetEnd)` (the marker's
+painted width plus a 4 px gap, at least the 16 px edge spacing; zero for `EndMarkerStyle.None`, and source ends
+carry no marker) joins the end-label pitches in the per-node, per-face pitch map. Because `PortDistributor` spreads
+a shaped node's ports over the face less `ConnectorClearance` at each end, the face-floor for such a diamond face
+is `Total × pitch + 2 × ConnectorClearance` rather than `Total × pitch` (the same trim also applies to a diamond's
+end-label pitches). The per-node maximum pitch then flows to `MinPortPitch` so `PortAligner` keeps the same spacing
+between slid ports. A single-connector face, a face whose ends have no marker, and every non-diamond shape take
+the unchanged path, so rectangle and legacy-oracle output is byte-identical. A marker end on a port also reserves
+the port glyph's half size on the straight run (`EndLabelAlong`), because both renderers paint that marker
+retracted onto the glyph's edge.
+
+### LayeredLayoutAlgorithm Port Appearance
+
+Both emitted `LayoutPort`s of an edge (source and target) carry the `Appearance` of their `LayoutGraphPort`. For
+a port whose external label is outward (`PortLabelPlacement.Outward`) the algorithm records no label for the
+box's content inset (the label is outside, so it reserves nothing inside), sets `MaxLabelWidth` to infinity (no
+squeeze), and reserves room through the same end-label mechanism as `LineEndLabel`: the label width plus the
+glyph, the label padding, and the placer's clearance is added to the corridor reservation
+(`LayerEdge.SourceLabelAlong` / `TargetLabelAlong`), and the label height (left or right face) or width (top or
+bottom face) is added to the face pitch used to size a face with two or more anchors. All of it is zero for
+ports without an outward label, so the layout is unchanged.
+
 ### LayeredLayoutAlgorithm Back-Edge Entry Approach
 
 `ResolveBackEdgeEntryApproach(edges)` derives the minimum straight entry approach reserved for a

@@ -288,6 +288,42 @@ clear of the box.
 `Rendering-CanvasNet-CanvasNetRasterRenderer-LifelineRoundedHeader`,
 `Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes`.
 
+#### Diamond box outline
+
+`PngDiamond_HasInkAtTheFourVertices` asserts stroke ink at the four vertices,
+`PngDiamond_BoundingBoxCornersAreEmpty` asserts the bounding-box corners stay background,
+`PngDiamond_InteriorIsFilledWithTheDepthFill` asserts the depth fill, and
+`PngDiamond_Dashed_HasLessInkAlongTheEdgeThanSolid` asserts the dash pattern.
+`SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon` proves the outline matches the SVG polygon.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-DiamondShape`.
+
+#### Connection end labels
+
+`PngEndLabels_HaveInkInsideEachPlacedRectangle` asserts text ink inside every placed label rectangle,
+`PngEndLabels_InkIsCenteredOnThePlacement` asserts the ink centroid is on the placement,
+`PngLineWithoutEndLabels_HasNoInkBesideTheLine` asserts a line without labels leaves the space beside it blank, and
+`PngEndLabelBeyondTheSurface_GrowsTheSurface` asserts the surface grows to include a label past the declared width.
+`PngPortEnd_LabelClearOfRetractedMarker` asserts a label at a marker end on a port has ink at the port-aware placement,
+at least 4 px from the retracted marker. `SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor` asserts the PNG
+label is centered on the SVG anchor.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels`.
+
+#### Port glyphs
+
+`PngLegacyPort_IsAFilledEightPixelSquare` pins the legacy glyph's pixels.
+`PngOutlinedPort_HasABackgroundInteriorAndAnInkOutline`, `PngOutlinedPort_DirectionArrow_PutsInkInsideTheGlyph`, and
+`PngOutlinedPort_InAndOutArrows_PointOppositeWays` assert the outlined glyph, the arrow ink, and the arrow direction;
+`PngDashedPort_HasLessOutlineInkThanSolid` asserts the dash pattern; `PngProxyPort_IsAFilledCircle` asserts the proxy
+circle; `PngOutwardLabel_HasInkOutsideTheBoxAndNoneInsideIt` asserts the outward label. The gallery-project parity tests
+read the SVG back against the PNG: `SysmlPortsParity_OutlinedGlyph_PngFootprintAndArrowMatchSvg` (every direction, side,
+and outline style), `SysmlPortsParity_ProxyPort_PngCircleMatchesSvgCircle`,
+`SysmlPortsParity_OutwardLabel_PngTextMatchesSvgAnchor`, and
+`SysmlPortsParity_PortGlyph_MarkerEndShortenedIdenticallyInBothRenderers`.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphs`.
+
 ### Requirements Coverage
 
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree`**:
@@ -373,3 +409,18 @@ clear of the box.
   PngLifeline_DashedHeaderAppearance_HasGapsAlongTopEdge
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-LabelsAvoidBoxes`**:
   PngLineLabel_MidpointOnLeafBox_DoesNotEraseBoxBorder
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-DiamondShape`**:
+  PngDiamond_HasInkAtTheFourVertices, PngDiamond_BoundingBoxCornersAreEmpty,
+  PngDiamond_InteriorIsFilledWithTheDepthFill, PngDiamond_Dashed_HasLessInkAlongTheEdgeThanSolid,
+  SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels`**: PngEndLabels_HaveInkInsideEachPlacedRectangle,
+  PngEndLabels_InkIsCenteredOnThePlacement, PngLineWithoutEndLabels_HasNoInkBesideTheLine,
+  PngEndLabelBeyondTheSurface_GrowsTheSurface, PngPortEnd_LabelClearOfRetractedMarker,
+  SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphs`**:
+  PngLegacyPort_IsAFilledEightPixelSquare, PngOutlinedPort_HasABackgroundInteriorAndAnInkOutline,
+  PngOutlinedPort_DirectionArrow_PutsInkInsideTheGlyph, PngOutlinedPort_InAndOutArrows_PointOppositeWays,
+  PngDashedPort_HasLessOutlineInkThanSolid, PngProxyPort_IsAFilledCircle,
+  PngOutwardLabel_HasInkOutsideTheBoxAndNoneInsideIt, SysmlPortsParity_OutlinedGlyph_PngFootprintAndArrowMatchSvg,
+  SysmlPortsParity_ProxyPort_PngCircleMatchesSvgCircle, SysmlPortsParity_OutwardLabel_PngTextMatchesSvgAnchor,
+  SysmlPortsParity_PortGlyph_MarkerEndShortenedIdenticallyInBothRenderers

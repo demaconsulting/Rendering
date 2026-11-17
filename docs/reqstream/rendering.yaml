@@ -60,6 +60,9 @@ sections:
           - Rendering-Model-LayoutTree-BadgeCrossedCircle
           - Rendering-Model-LayoutTree-BandOutlineStyle
           - Rendering-Model-LayoutTree-LifelineHeaderStyle
+          - Rendering-Model-LayoutTree-DiamondShape
+          - Rendering-Model-LayoutTree-LineEndLabels
+          - Rendering-Model-LayoutTree-PortAppearance
         tests:
           - LayoutTree_Construction_StoresWidthHeightNodes
           - LayoutBox_Construction_StoresAllFields
@@ -108,6 +111,8 @@ sections:
           - Rendering-Model-LayoutGraph-PortLabels
           - Rendering-Model-LayoutGraph-ShapeGeometryHints
           - Rendering-Model-LayoutGraph-NodeAppearance
+          - Rendering-Model-LayoutGraph-EdgeEndLabels
+          - Rendering-Model-LayoutGraph-PortAppearance
         tests:
           - AddNode_AppendsNodeAndReturnsIt
           - AddEdge_AppendsEdgeWithEndpoints

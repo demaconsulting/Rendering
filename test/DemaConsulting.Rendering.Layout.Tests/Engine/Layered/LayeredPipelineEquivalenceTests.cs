@@ -18,7 +18,11 @@ namespace DemaConsulting.Rendering.Layout.Tests.Engine.Layered;
 ///     <see cref="HasIsolatedNode"/> (the isolated-node layer-gap fix),
 ///     <see cref="HasMultipleComponents"/> (component-packing for disconnected graphs), and
 ///     <see cref="HasWaypointBeyondNodeBounds"/> (the canvas-clipping fix for routed geometry that
-///     extends past the placed node rects).
+///     extends past the placed node rects), and the fourth, port alignment (<see cref="PortAligner"/>,
+///     Rendering#57): the comparison against the oracle runs with alignment switched off, and
+///     <see cref="Pipeline_PortAlignment_MatchesOracleWhenNoPortCanSlide"/> and
+///     <see cref="Pipeline_PortAlignment_OnlyMovesPortsAlongTheirFaces"/> pin what alignment may
+///     change (<see cref="HasAlignablePorts"/>).
 /// </summary>
 public sealed class LayeredPipelineEquivalenceTests
 {
@@ -81,6 +85,93 @@ public sealed class LayeredPipelineEquivalenceTests
         }
     }
 
+
+    /// <summary>
+    ///     The shipping pipeline (port alignment on) reproduces the legacy oracle bit-for-bit for every
+    ///     random graph where no port can slide (<see cref="HasAlignablePorts"/> is false): the stage
+    ///     is the fourth documented divergence and changes nothing it is not meant to.
+    /// </summary>
+    [Fact]
+    public void Pipeline_PortAlignment_MatchesOracleWhenNoPortCanSlide()
+    {
+        var compared = 0;
+        for (var seed = 0; seed < 2000; seed++)
+        {
+            var (nodes, edges) = BuildRandomGraph(seed);
+            if (HasIsolatedNode(nodes, edges) || HasMultipleComponents(nodes, edges) || HasWaypointBeyondNodeBounds(nodes, edges))
+            {
+                continue;
+            }
+
+            if (HasAlignablePorts(nodes, edges))
+            {
+                continue;
+            }
+
+            compared++;
+            AssertEquivalent($"aligned random seed {seed}", nodes, edges, alignPorts: true);
+        }
+
+        // Guard against the predicate silently skipping everything.
+        Assert.True(compared > 100, $"only {compared} graphs compared");
+    }
+
+    /// <summary>
+    ///     Port alignment only moves connector ports along their own faces: box rectangles, node layers,
+    ///     and the along-axis coordinate of every connector's first and last point are bit-identical with
+    ///     and without it, across all random graphs.
+    /// </summary>
+    [Fact]
+    public void Pipeline_PortAlignment_OnlyMovesPortsAlongTheirFaces()
+    {
+        for (var seed = 0; seed < 2000; seed++)
+        {
+            var (nodes, edges) = BuildRandomGraph(seed);
+            var plain = InterconnectionLayoutEngine.Place(nodes, edges, alignPorts: false);
+            var aligned = InterconnectionLayoutEngine.Place(nodes, edges, alignPorts: true);
+
+            Assert.Equal(plain.Rects.Count, aligned.Rects.Count);
+            for (var i = 0; i < plain.Rects.Count; i++)
+            {
+                Assert.Equal(plain.Rects[i], aligned.Rects[i]);
+            }
+
+            Assert.Equal(plain.NodeLayers, aligned.NodeLayers);
+            Assert.Equal(plain.ConnectorWaypoints.Count, aligned.ConnectorWaypoints.Count);
+            for (var e = 0; e < plain.ConnectorWaypoints.Count; e++)
+            {
+                var before = plain.ConnectorWaypoints[e];
+                var after = aligned.ConnectorWaypoints[e];
+                Assert.Equal(before[0].X, after[0].X);
+                Assert.Equal(before[^1].X, after[^1].X);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A single source and a single target whose faces do not overlap: alignment cannot make them
+    ///     straight, so the connector keeps a bend, never a sub-marker step.
+    /// </summary>
+    [Fact]
+    public void Pipeline_PortAlignment_DisjointFaces_KeepsClearStep()
+    {
+        // Arrange: a narrow tall chain forced so source and target faces cannot line up.
+        var nodes = new List<LayerNode> { new(60, 40), new(60, 40), new(60, 400) };
+        var edges = new List<LayerEdge> { new(0, 2), new(1, 2) };
+
+        // Act
+        var result = InterconnectionLayoutEngine.Place(nodes, edges);
+
+        // Assert: any interior step is either absent or at least the visible-step threshold.
+        foreach (var waypoints in result.ConnectorWaypoints)
+        {
+            for (var i = 1; i + 2 < waypoints.Count; i++)
+            {
+                var step = Math.Abs(waypoints[i + 1].Y - waypoints[i].Y) + Math.Abs(waypoints[i + 1].X - waypoints[i].X);
+                Assert.True(step < 1e-6 || step >= PortAligner.MinPortStep, $"step {step}");
+            }
+        }
+    }
 
     /// <summary>An empty graph produces identical (degenerate) results from both engines.</summary>
     [Fact]
@@ -433,6 +524,34 @@ public sealed class LayeredPipelineEquivalenceTests
     }
 
     /// <summary>
+    ///     Returns whether port alignment (see <see cref="PortAligner"/>) changes any routed waypoint of
+    ///     this graph — the fourth documented, intentional divergence from the frozen legacy oracle.
+    /// </summary>
+    /// <param name="nodes">The graph's nodes.</param>
+    /// <param name="edges">The graph's edges.</param>
+    /// <returns><see langword="true"/> if alignment moves at least one waypoint.</returns>
+    private static bool HasAlignablePorts(List<LayerNode> nodes, List<LayerEdge> edges)
+    {
+        var plain = InterconnectionLayoutEngine.Place(nodes, edges, alignPorts: false);
+        var aligned = InterconnectionLayoutEngine.Place(nodes, edges, alignPorts: true);
+        return !plain.ConnectorWaypoints.SequenceEqual(aligned.ConnectorWaypoints, WaypointListComparer.Instance);
+    }
+
+    /// <summary>Compares two waypoint lists bit-for-bit.</summary>
+    private sealed class WaypointListComparer : IEqualityComparer<IReadOnlyList<Point2D>>
+    {
+        /// <summary>Gets the shared instance.</summary>
+        public static readonly WaypointListComparer Instance = new();
+
+        /// <inheritdoc/>
+        public bool Equals(IReadOnlyList<Point2D>? x, IReadOnlyList<Point2D>? y) =>
+            x is not null && y is not null && x.SequenceEqual(y);
+
+        /// <inheritdoc/>
+        public int GetHashCode(IReadOnlyList<Point2D> obj) => obj.Count;
+    }
+
+    /// <summary>
     ///     Returns whether the refactored pipeline's canvas-widening fix (see
     ///     <see cref="InterconnectionLayoutEngine.Place"/>) actually changes this graph's reported
     ///     canvas size relative to the frozen legacy oracle — i.e. whether some routed connector
@@ -451,7 +570,7 @@ public sealed class LayeredPipelineEquivalenceTests
     private static bool HasWaypointBeyondNodeBounds(List<LayerNode> nodes, List<LayerEdge> edges)
     {
         var legacy = LegacyInterconnectionLayoutEngineOracle.Place(nodes, edges);
-        var actual = InterconnectionLayoutEngine.Place(nodes, edges);
+        var actual = InterconnectionLayoutEngine.Place(nodes, edges, alignPorts: false);
 
         return BitConverter.DoubleToInt64Bits(legacy.TotalWidth) != BitConverter.DoubleToInt64Bits(actual.TotalWidth) ||
                BitConverter.DoubleToInt64Bits(legacy.TotalHeight) != BitConverter.DoubleToInt64Bits(actual.TotalHeight);
@@ -459,12 +578,18 @@ public sealed class LayeredPipelineEquivalenceTests
 
     /// <summary>
     ///     Runs both engines on the same input and asserts bit-for-bit equality of every field
-    ///     of the resulting <c>LayerResult</c>.
+    ///     of the resulting <c>LayerResult</c>. The default compares the pipeline with port alignment
+    ///     (see <see cref="PortAligner"/>) switched off, so every other stage stays bit-identical to the
+    ///     frozen oracle; pass <paramref name="alignPorts"/> to compare the shipping default.
     /// </summary>
-    private static void AssertEquivalent(string context, List<LayerNode> nodes, List<LayerEdge> edges)
+    /// <param name="context">A human-readable name for the graph, used in failure messages.</param>
+    /// <param name="nodes">The graph's nodes.</param>
+    /// <param name="edges">The graph's edges.</param>
+    /// <param name="alignPorts">Whether the pipeline runs with port alignment on.</param>
+    private static void AssertEquivalent(string context, List<LayerNode> nodes, List<LayerEdge> edges, bool alignPorts = false)
     {
         var expected = LegacyInterconnectionLayoutEngineOracle.Place(nodes, edges);
-        var actual = InterconnectionLayoutEngine.Place(nodes, edges);
+        var actual = InterconnectionLayoutEngine.Place(nodes, edges, alignPorts: alignPorts);
 
         AssertExact($"{context}: TotalWidth", expected.TotalWidth, actual.TotalWidth);
         AssertExact($"{context}: TotalHeight", expected.TotalHeight, actual.TotalHeight);

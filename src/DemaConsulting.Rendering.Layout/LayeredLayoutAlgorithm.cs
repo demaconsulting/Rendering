@@ -53,6 +53,14 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
     /// </summary>
     private const double PortSideTolerance = 0.01;
 
+    /// <summary>
+    /// Clearance, in logical pixels, reserved beside an end label on the straight end run on top of the
+    /// label's own extent: the offset <see cref="ConnectorLabelPlacer.PlaceEndLabels"/> keeps from the end
+    /// point or marker, plus a little slack so rounding in the width estimate never pushes a label into
+    /// the bend.
+    /// </summary>
+    private const double EndLabelClearance = 6.0;
+
     /// <inheritdoc/>
     public override string Id => AlgorithmId;
 
@@ -115,6 +123,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         // Map edges to index pairs (resolving a port endpoint to its owning node's index), dropping
         // any that reference nodes/ports outside this graph. Kept in lockstep with engineEdges so the
         // same position in both lists always describes the same input edge.
+        var verticalFlow = ResolveDirection(graph, options) is LayoutFlowDirection.Down or LayoutFlowDirection.Up;
         var engineEdges = new List<LayerEdge>(graph.Edges.Count);
         var edgeSourcePorts = new List<LayoutGraphPort?>(graph.Edges.Count);
         var edgeTargetPorts = new List<LayoutGraphPort?>(graph.Edges.Count);
@@ -138,7 +147,13 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 continue;
             }
 
-            engineEdges.Add(new LayerEdge(s, t));
+            engineEdges.Add(new LayerEdge(
+                s,
+                t,
+                EndLabelAlong(edge.SourceEndLabel, verticalFlow, assumedFontSize, EndMarkerStyle.None, sourcePort)
+                    + OutwardPortLabelAlong(sourcePort, verticalFlow, assumedFontSize, EndMarkerStyle.None),
+                EndLabelAlong(edge.TargetEndLabel, verticalFlow, assumedFontSize, edge.TargetEnd, targetPort)
+                    + OutwardPortLabelAlong(targetPort, verticalFlow, assumedFontSize, EndMarkerStyle.None)));
             edgeSourcePorts.Add(sourcePort);
             edgeTargetPorts.Add(targetPort);
             edgeByEngineIndex.Add(edge);
@@ -198,7 +213,8 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 LayoutGraphPort? TargetPort,
                 IReadOnlyList<Point2D> Waypoints)> Emissions,
             Dictionary<int, Dictionary<PortSide, List<string>>> SidePorts,
-            Dictionary<int, Dictionary<PortSide, (int Total, bool AnyLabeled, double MaxLabelWidth)>> FaceAnchors) RunLayerPass(
+            Dictionary<int, Dictionary<PortSide, (int Total, bool AnyLabeled, double MaxLabelWidth)>> FaceAnchors,
+            Dictionary<(int Node, PortSide Side), double> EndLabelPitch) RunLayerPass(
             LayerNode[] nodesForPass)
         {
             var passResult = InterconnectionLayoutEngine.Place(
@@ -282,14 +298,15 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
 
             foreach (var emission in emissionsLocal)
             {
+                // An outward label is drawn outside the box, so it reserves no content inset inside it.
                 if (emission.SourcePort != null)
                 {
-                    RecordPort(emission.Source, emission.Waypoints[0], emission.SourcePort.ExternalLabel);
+                    RecordPort(emission.Source, emission.Waypoints[0], IsOutward(emission.SourcePort) ? null : emission.SourcePort.ExternalLabel);
                 }
 
                 if (emission.TargetPort != null)
                 {
-                    RecordPort(emission.Target, emission.Waypoints[^1], emission.TargetPort.ExternalLabel);
+                    RecordPort(emission.Target, emission.Waypoints[^1], IsOutward(emission.TargetPort) ? null : emission.TargetPort.ExternalLabel);
                 }
             }
 
@@ -321,17 +338,65 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 bySide[side] = (existing.Total + 1, existing.AnyLabeled || labeled, Math.Max(existing.MaxLabelWidth, labelWidth));
             }
 
+            // Aggregate, per node and side, the widest end-label stack any anchor on that face carries —
+            // the pitch a face with 2+ anchors must keep between adjacent connectors so one connector's
+            // labels never sit on its neighbor.
+            var endLabelPitchLocal = new Dictionary<(int Node, PortSide Side), double>();
+            void RecordEndLabelPitch(int nodeIndex, Point2D anchor, LineEndLabel? label, LayoutGraphPort? port)
+            {
+                var pitch = EndLabelPitchOf(label, assumedFontSize, ResolveSide(anchor, passResult.Rects[nodeIndex]))
+                    + OutwardPortLabelPitch(port, assumedFontSize, ResolveSide(anchor, passResult.Rects[nodeIndex]));
+                if (pitch <= 0.0)
+                {
+                    return;
+                }
+
+                var key = (nodeIndex, ResolveSide(anchor, passResult.Rects[nodeIndex]));
+                endLabelPitchLocal[key] = endLabelPitchLocal.TryGetValue(key, out var existing) ? Math.Max(existing, pitch) : pitch;
+            }
+
+            // A diamond's connector ends are spread over the usable extent of the face (the face less
+            // ConnectorClearance at each end), so adjacent end markers must also be a marker's painted
+            // width plus a gap apart; record that as the face pitch the same way end-label pitches are.
+            // Only a diamond node does this — rectangles spread over the whole face and keep their output.
+            void RecordMarkerPitch(int nodeIndex, Point2D anchor, EndMarkerStyle style)
+            {
+                if (graphNodes[nodeIndex].Shape != BoxShape.Diamond)
+                {
+                    return;
+                }
+
+                var pitch = LayeredLayoutMetrics.MarkerFacePitch(style);
+                if (pitch <= 0.0)
+                {
+                    return;
+                }
+
+                var key = (nodeIndex, ResolveSide(anchor, passResult.Rects[nodeIndex]));
+                endLabelPitchLocal[key] = endLabelPitchLocal.TryGetValue(key, out var existing) ? Math.Max(existing, pitch) : pitch;
+            }
+
             foreach (var emission in emissionsLocal)
             {
                 RecordAnchor(emission.Source, emission.Waypoints[0], emission.Edge.Label);
                 RecordAnchor(emission.Target, emission.Waypoints[^1], emission.Edge.Label);
+                RecordEndLabelPitch(emission.Source, emission.Waypoints[0], emission.Edge.SourceEndLabel, emission.SourcePort);
+                RecordEndLabelPitch(emission.Target, emission.Waypoints[^1], emission.Edge.TargetEndLabel, emission.TargetPort);
+                RecordMarkerPitch(emission.Target, emission.Waypoints[^1], emission.Edge.TargetEnd);
             }
 
-            return (passResult, routes, emissionsLocal, sidePortsLocal, faceAnchorsLocal);
+            return (passResult, routes, emissionsLocal, sidePortsLocal, faceAnchorsLocal, endLabelPitchLocal);
         }
 
-        var (result, routesByEngineIndex, emissions, sidePorts, faceAnchors) = RunLayerPass(engineNodes);
+        var (result, routesByEngineIndex, emissions, sidePorts, faceAnchors, endLabelPitch) = RunLayerPass(engineNodes);
 
+        // PortDistributor spreads a shaped node's ports over the face less ConnectorClearance at each end,
+        // so a diamond face with 2+ anchors needs that trim on top of Total * pitch to honor its pitch
+        // (a rectangle spreads over the whole face and needs none).
+        double ShapedFaceTrim(int nodeIndex, int total) =>
+            total >= 2 && graphNodes[nodeIndex].Shape == BoxShape.Diamond
+                ? 2.0 * LayeredLayoutMetrics.ConnectorClearance
+                : 0.0;
         // Fix 5: grow any node whose caller-supplied size is insufficient to fit its title plus its
         // (now-known) port-driven content insets simultaneously — never shrinking below the
         // caller-supplied size. When any node needs growth, engineNodes is rebuilt with the grown
@@ -463,6 +528,13 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                         // 2 * ConnectorClearance floor, which never bound in practice for the labeled
                         // case anyway and was too weak on its own for several unlabeled ports).
                         var labelBasedHeight = anyLabeled ? labelHeight * faceInfo.Total : 0.0;
+                        if (endLabelPitch.TryGetValue((i, side), out var endPitchHeight))
+                        {
+                            // End labels (role name above, multiplicity below) stack beside each
+                            // connector, so every anchor needs its full stack of rows.
+                            labelBasedHeight = Math.Max(labelBasedHeight, (endPitchHeight * faceInfo.Total) + ShapedFaceTrim(i, faceInfo.Total));
+                        }
+
                         var clearanceBasedHeight = 2.0 * LayeredLayoutMetrics.ConnectorClearance * faceInfo.Total;
                         var minHeightCandidate = Math.Max(labelBasedHeight, clearanceBasedHeight)
                             + effectiveTopReserve + insetBottom;
@@ -523,6 +595,13 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                         // branch was fixed for, just rotated 90 degrees.
                         var maxLabelWidth = Math.Max(faceInfo.MaxLabelWidth, sidePortMaxLabelWidth);
                         var labelBasedWidth = anyLabeled ? maxLabelWidth * faceInfo.Total : 0.0;
+                        if (endLabelPitch.TryGetValue((i, side), out var endPitchWidth))
+                        {
+                            // End labels sit left and right of each vertical connector, so every anchor
+                            // needs both label widths side by side.
+                            labelBasedWidth = Math.Max(labelBasedWidth, (endPitchWidth * faceInfo.Total) + ShapedFaceTrim(i, faceInfo.Total));
+                        }
+
                         var clearanceBasedWidth = 2.0 * LayeredLayoutMetrics.ConnectorClearance * faceInfo.Total;
                         var minWidthCandidate = Math.Max(labelBasedWidth, clearanceBasedWidth);
                         minWidth = Math.Max(minWidth, minWidthCandidate);
@@ -533,7 +612,20 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             var desiredWidth = Math.Max(engineNodes[i].Width, minWidth);
             var desiredHeight = Math.Max(engineNodes[i].Height, minHeight);
 
-            if (desiredWidth <= engineNodes[i].Width && desiredHeight <= engineNodes[i].Height)
+            // The widest label stack on any face of this node is the spacing PortAligner must keep between
+            // its ports, so aligning a port with the far end of its edge never packs two connectors'
+            // labels together. Zero (no change, no second pass) when the node has no end or outward labels.
+            var minPitch = 0.0;
+            foreach (var ((pitchNode, _), pitch) in endLabelPitch)
+            {
+                if (pitchNode == i)
+                {
+                    minPitch = Math.Max(minPitch, pitch);
+                }
+            }
+
+            var needsPitch = minPitch > engineNodes[i].MinPortPitch + 1e-9;
+            if (!needsPitch && desiredWidth <= engineNodes[i].Width && desiredHeight <= engineNodes[i].Height)
             {
                 continue;
             }
@@ -545,13 +637,14 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 Height = desiredHeight,
                 RealWidth = desiredWidth,
                 RealHeight = desiredHeight,
+                MinPortPitch = Math.Max(minPitch, grownNodes[i].MinPortPitch),
             };
         }
 
         if (grownNodes != null)
         {
             engineNodes = grownNodes;
-            (result, routesByEngineIndex, emissions, sidePorts, faceAnchors) = RunLayerPass(engineNodes);
+            (result, routesByEngineIndex, emissions, sidePorts, faceAnchors, endLabelPitch) = RunLayerPass(engineNodes);
         }
 
         var nodes = new List<LayoutNode>(count + (emissions.Count * 2));
@@ -621,7 +714,9 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 EndMarkerStyle.None,
                 emission.Edge.TargetEnd,
                 emission.Edge.LineStyle,
-                collapsed ? null : emission.Edge.Label));
+                collapsed ? null : emission.Edge.Label,
+                collapsed ? null : emission.Edge.SourceEndLabel,
+                collapsed ? null : emission.Edge.TargetEndLabel));
 
             if (emission.SourcePort != null)
             {
@@ -631,8 +726,9 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                     anchor.Y,
                     ResolveSide(anchor, result.Rects[emission.Source]),
                     emission.SourcePort.ExternalLabel,
-                    MaxLabelWidth: ResolveMaxLabelWidth(result.Rects[emission.Source]),
-                    SourcePort: emission.SourcePort));
+                    MaxLabelWidth: IsOutward(emission.SourcePort) ? double.PositiveInfinity : ResolveMaxLabelWidth(result.Rects[emission.Source]),
+                    SourcePort: emission.SourcePort,
+                    Appearance: emission.SourcePort.Appearance));
             }
 
             if (emission.TargetPort != null)
@@ -643,8 +739,9 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                     anchor.Y,
                     ResolveSide(anchor, result.Rects[emission.Target]),
                     emission.TargetPort.ExternalLabel,
-                    MaxLabelWidth: ResolveMaxLabelWidth(result.Rects[emission.Target]),
-                    SourcePort: emission.TargetPort));
+                    MaxLabelWidth: IsOutward(emission.TargetPort) ? double.PositiveInfinity : ResolveMaxLabelWidth(result.Rects[emission.Target]),
+                    SourcePort: emission.TargetPort,
+                    Appearance: emission.TargetPort.Appearance));
             }
         }
 
@@ -655,6 +752,129 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
     /// Resolves an edge endpoint (a node or one of its named ports) to the placed-rect index of the
     /// node that ultimately anchors it.
     /// </summary>
+    /// <summary>
+    /// Returns the space, in logical pixels along the flow axis, that the end labels of one connector end
+    /// need on the straight run beside the end (label extent plus the clearance the placer keeps), plus
+    /// the end marker for a target end; zero when the end carries no label. Passed to the layered
+    /// pipeline through <see cref="LayerEdge.SourceLabelAlong"/>/<see cref="LayerEdge.TargetLabelAlong"/>.
+    /// </summary>
+    /// <param name="label">The end labels of the connector end, or <see langword="null"/>.</param>
+    /// <param name="verticalFlow">Whether the flow runs down or up (labels then extend by their height along it).</param>
+    /// <param name="fontSize">Body font size, in logical pixels.</param>
+    /// <param name="end">The end marker drawn at this end, which the labels must clear.</param>
+    /// <param name="port">
+    /// The graph port the end attaches to, or <see langword="null"/>; a marker end on a port is drawn
+    /// retracted by the port glyph's half size, which the labels must clear as well.
+    /// </param>
+    /// <returns>The space to reserve, in logical pixels.</returns>
+    private static double EndLabelAlong(LineEndLabel? label, bool verticalFlow, double fontSize, EndMarkerStyle end, LayoutGraphPort? port = null)
+    {
+        var extent = 0.0;
+        foreach (var text in new[] { label?.Primary, label?.Secondary })
+        {
+            if (text is null || text.Length == 0)
+            {
+                continue;
+            }
+
+            extent = Math.Max(
+                extent,
+                verticalFlow
+                    ? ConnectorLabelPlacer.EstimateLabelHeight(fontSize)
+                    : ConnectorLabelPlacer.EstimateEndLabelWidth(text, fontSize));
+        }
+
+        var retraction = port is not null && end != EndMarkerStyle.None
+            ? NotationMetrics.PortGlyphHalfSizeFor(port.Appearance)
+            : 0.0;
+        return extent <= 0.0
+            ? 0.0
+            : extent + EndLabelClearance + retraction + (NotationMetrics.AlongLineLength(end) * NotationMetrics.MarkerScale(Themes.Light));
+    }
+
+    /// <summary>
+    /// Returns the pitch one connector's end labels need across the face they sit on: the stacked
+    /// heights of its slots on a left or right face (labels sit above and below the horizontal run), or
+    /// the side-by-side widths on a top or bottom face (labels sit left and right of the vertical run).
+    /// </summary>
+    /// <param name="label">The end labels of the connector end, or <see langword="null"/>.</param>
+    /// <param name="fontSize">Body font size, in logical pixels.</param>
+    /// <param name="side">The box face the connector end sits on.</param>
+    /// <returns>The pitch, in logical pixels; zero when the end carries no label.</returns>
+    private static double EndLabelPitchOf(LineEndLabel? label, double fontSize, PortSide side)
+    {
+        var pitch = 0.0;
+        foreach (var text in new[] { label?.Primary, label?.Secondary })
+        {
+            if (text is null || text.Length == 0)
+            {
+                continue;
+            }
+
+            pitch += side is PortSide.Left or PortSide.Right
+                ? ConnectorLabelPlacer.EstimateLabelHeight(fontSize)
+                : ConnectorLabelPlacer.EstimateEndLabelWidth(text, fontSize);
+        }
+
+        // Slack for the clearance the placer keeps between a label and the line it sits beside (on both
+        // sides of the line), so adjacent connectors' labels never touch.
+        return pitch > 0.0 ? pitch + EndLabelClearance : 0.0;
+    }
+
+    /// <summary>Returns whether a graph port's external label is drawn outward (outside its box).</summary>
+    /// <param name="port">The graph port.</param>
+    /// <returns><see langword="true"/> when the label is outward and present.</returns>
+    private static bool IsOutward(LayoutGraphPort port) =>
+        port.Appearance?.LabelPlacement == PortLabelPlacement.Outward && !string.IsNullOrEmpty(port.ExternalLabel);
+
+    /// <summary>
+    /// Returns the space, in logical pixels along the flow axis, that a port's outward label needs beside
+    /// the connector at that end (the glyph, the label padding, and the label's own extent, plus the
+    /// placer's clearance); zero for a port without an outward label. Added to the end-label reservation so
+    /// the label lies on the straight run before the first bend.
+    /// </summary>
+    /// <param name="port">The graph port at the connector end, or <see langword="null"/>.</param>
+    /// <param name="verticalFlow">Whether the flow runs down or up.</param>
+    /// <param name="fontSize">Body font size, in logical pixels.</param>
+    /// <param name="end">Unused marker style kept for symmetry with <see cref="EndLabelAlong"/>.</param>
+    /// <returns>The space to reserve, in logical pixels.</returns>
+    private static double OutwardPortLabelAlong(LayoutGraphPort? port, bool verticalFlow, double fontSize, EndMarkerStyle end)
+    {
+        if (port is null || !IsOutward(port))
+        {
+            return 0.0;
+        }
+
+        var glyph = NotationMetrics.PortGlyphHalfSizeFor(port.Appearance);
+        var extent = verticalFlow
+            ? fontSize * 1.3
+            : PortLabelWidthEstimator.MeasureWidth(port.ExternalLabel!, fontSize);
+        return glyph + Themes.Light.LabelPadding + extent + EndLabelClearance
+            + (NotationMetrics.AlongLineLength(end) * NotationMetrics.MarkerScale(Themes.Light));
+    }
+
+    /// <summary>
+    /// Returns the pitch a port's outward label needs across the face: one label height on a left or
+    /// right face (the label sits above the connector), the label width on a top or bottom face (the label
+    /// sits beside the connector); zero for a port without an outward label.
+    /// </summary>
+    /// <param name="port">The graph port at the connector end, or <see langword="null"/>.</param>
+    /// <param name="fontSize">Body font size, in logical pixels.</param>
+    /// <param name="side">The box face the connector end sits on.</param>
+    /// <returns>The pitch, in logical pixels.</returns>
+    private static double OutwardPortLabelPitch(LayoutGraphPort? port, double fontSize, PortSide side)
+    {
+        if (port is null || !IsOutward(port))
+        {
+            return 0.0;
+        }
+
+        return (side is PortSide.Left or PortSide.Right
+            ? (fontSize * 1.3) + NotationMetrics.PortLabelConnectorGap(Themes.Light)
+            : PortLabelWidthEstimator.MeasureWidth(port.ExternalLabel!, fontSize) + NotationMetrics.PortLabelConnectorGap(Themes.Light))
+            + EndLabelClearance;
+    }
+
     private static bool TryResolveEndpoint(
         ILayoutConnectable connectable,
         Dictionary<LayoutGraphNode, int> indexOf,

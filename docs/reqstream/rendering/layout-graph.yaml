@@ -179,3 +179,23 @@ sections:
           - ContainmentLayout_NodeAppearance_ReachesPlacedBox
           - HierarchicalLayout_ContainerAndLeafAppearance_ReachPlacedBoxes
           - AutoLayout_NodeAppearance_SurvivesClone
+
+      - id: Rendering-Model-LayoutGraph-EdgeEndLabels
+        title: >-
+          A graph edge shall carry optional source and target end labels, defaulting to none, that the
+          layout algorithms copy onto the placed line.
+        justification: |
+          End labels are part of the input model, not something a caller attaches after layout, so
+          they travel with the edge; null by default keeps every existing graph unchanged.
+        tests:
+          - LayoutGraphEdge_EndLabels_DefaultToNullAndAreSettable
+
+      - id: Rendering-Model-LayoutGraph-PortAppearance
+        title: >-
+          A graph port shall carry an optional appearance, defaulting to none, that the layout
+          algorithms copy onto every placed port they emit for it.
+        justification: |
+          The appearance is input model data, not something a caller attaches after layout; null by
+          default keeps every existing graph unchanged.
+        tests:
+          - LayoutGraphPort_Appearance_DefaultsToNullAndIsSettable

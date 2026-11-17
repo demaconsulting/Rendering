@@ -642,6 +642,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 var viewPort = viewNode.Ports.AddPort(port.Id);
                 viewPort.ExternalLabel = port.ExternalLabel;
                 viewPort.InternalLabel = port.InternalLabel;
+                viewPort.Appearance = port.Appearance;
                 viewPortOf[port] = viewPort;
             }
         }
@@ -665,6 +666,8 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 viewEdge.TargetEnd = edge.TargetEnd;
                 viewEdge.LineStyle = edge.LineStyle;
                 viewEdge.Label = edge.Label;
+                viewEdge.SourceEndLabel = edge.SourceEndLabel;
+                viewEdge.TargetEndLabel = edge.TargetEndLabel;
             }
         }
 
@@ -862,7 +865,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 AddUnrelatedWalls(box, expanded, walls);
             }
 
-            connections.Add(new Connection(from, to, edge.TargetEnd, edge.LineStyle, edge.Label));
+            connections.Add(new Connection(from, to, edge.TargetEnd, edge.LineStyle, edge.Label, edge.SourceEndLabel, edge.TargetEndLabel));
             obstacleSets.Add(obstacles);
             wallSets.Add(walls);
             AddOccupiedAnchors(from, fromAncestors, fixedAnchors);

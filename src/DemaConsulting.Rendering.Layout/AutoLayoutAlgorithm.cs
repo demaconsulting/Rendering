@@ -489,6 +489,8 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
             copy.TargetEnd = edge.TargetEnd;
             copy.LineStyle = edge.LineStyle;
             copy.Label = edge.Label;
+            copy.SourceEndLabel = edge.SourceEndLabel;
+            copy.TargetEndLabel = edge.TargetEndLabel;
             edge.CopyOverridesTo(copy);
             // The layout-only marker is keyed by edge identity, so it must be carried onto the copy.
             if (HierarchicalLayoutAlgorithm.IsLayoutOnlyEdge(edge))
@@ -542,6 +544,7 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
                 var portCopy = copy.Ports.AddPort(port.Id);
                 portCopy.ExternalLabel = port.ExternalLabel;
                 portCopy.InternalLabel = port.InternalLabel;
+                portCopy.Appearance = port.Appearance;
                 port.CopyOverridesTo(portCopy);
                 portMap[port] = portCopy;
             }

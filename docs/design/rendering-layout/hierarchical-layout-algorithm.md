@@ -64,28 +64,25 @@ overrides win over the supplied options, exactly like every nested scope), and c
    `PropertyHolder.OverlayOnto`. It then recursively lays out the child's subgraph with that snapshot and
    records both the sub-layout and the container's effective size — the sub-layout size grown by
    `ContainerPadding` on every side plus a title band when the container is labeled.
-3. **Sized view.** The engine builds an internal, side-effect-free *view* graph with the same nodes in
-   the same order (container nodes carrying their effective size, leaves their own size, labels copied,
-   each node's `Appearance` reference copied so a styled container or leaf keeps its notation through
-   every level, and each direct member's named ports copied onto its view counterpart), only the edges whose direct-
-   member endpoints are both under this scope and neither nested inside a container relative to it —
-   including an edge whose endpoint is a named `LayoutGraphPort` rather than the node itself, so a
-   same-scope port edge is routed by the leaf algorithm exactly as it would be in a flat (container-free)
-   graph, regardless of whether the scope also contains an unrelated container elsewhere. Every
-   `CoreOptions` property this scope needs is already present in `effective`, so the view carries no
-   options of its own — the leaf algorithm resolves them from `effective`, not from the view graph. The
-   caller's input graph is never mutated. In addition, when the resolved leaf algorithm is one of the
-   bundled ones that understands layout-only edges (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`,
-   or `AutoLayoutAlgorithm`), the view receives one *layout-only proxy edge* per routed edge (step 6)
-   whose endpoints live under two different direct members, joining those two direct members. The proxy
-   edge is marked through `MarkLayoutOnly`, which records the edge object in an identity-keyed
-   side table (a `ConditionalWeakTable`) rather than encoding anything in its identifier, so no
-   caller-chosen identifier can collide with it; `AutoLayoutAlgorithm` re-marks each edge copy it
-   makes when it splits a graph into components. The proxy's own identifier is a unique, non-reserved
-   name (`layout-only:{edge id}`, with a numeric suffix if that already names a leaf edge in the
-   view) that never surfaces because the edge is never emitted. The bundled leaf algorithms let such an
-   edge drive layering, ordering, and gap
-   sizing but emit no connector, port, or anchor for it. A custom leaf algorithm receives the view
+3. **Sized view.** The engine builds an internal, side-effect-free *view* graph with the same nodes in the same order
+   (container nodes carrying their effective size, leaves their own size, labels copied, each node's `Appearance`
+   reference copied so a styled container or leaf keeps its notation through every level, and each direct member's named
+   ports copied onto its view counterpart together with the port's labels and `Appearance`), only the edges whose
+   direct- member endpoints are both under this scope and neither nested inside a container relative to it — including
+   an edge whose endpoint is a named `LayoutGraphPort` rather than the node itself, so a same-scope port edge is routed
+   by the leaf algorithm exactly as it would be in a flat (container-free) graph, regardless of whether the scope also
+   contains an unrelated container elsewhere. Every `CoreOptions` property this scope needs is already present in
+   `effective`, so the view carries no options of its own — the leaf algorithm resolves them from `effective`, not from
+   the view graph. The caller's input graph is never mutated. In addition, when the resolved leaf algorithm is one of
+   the bundled ones that understands layout-only edges (`LayeredLayoutAlgorithm`, `ContainmentLayoutAlgorithm`, or
+   `AutoLayoutAlgorithm`), the view receives one *layout-only proxy edge* per routed edge (step 6) whose endpoints live
+   under two different direct members, joining those two direct members. The proxy edge is marked through
+   `MarkLayoutOnly`, which records the edge object in an identity-keyed side table (a `ConditionalWeakTable`) rather
+   than encoding anything in its identifier, so no caller-chosen identifier can collide with it; `AutoLayoutAlgorithm`
+   re-marks each edge copy it makes when it splits a graph into components. The proxy's own identifier is a unique,
+   non-reserved name (`layout-only:{edge id}`, with a numeric suffix if that already names a leaf edge in the view) that
+   never surfaces because the edge is never emitted. The bundled leaf algorithms let such an edge drive layering,
+   ordering, and gap sizing but emit no connector, port, or anchor for it. A custom leaf algorithm receives the view
    unchanged (no proxies), so it is never handed an edge it does not understand.
 4. **Placement.** The resolved leaf algorithm places the sized view against `effective`, emitting one box
    per node in input order, followed by routed lines and any named-port anchors (`LayoutPort`) for the
@@ -173,7 +170,8 @@ unit, in `Engine/Layered`): a container's port is a boundary port when an edge i
 own `Children` references it — the inward delegation edge is the structural signal, detected
 transitively and to unbounded depth by a recursive collect. *Only when at least one boundary port is
 detected* does the engine take the combined-pass path; a scope with no boundary port takes the
-identical existing code path, so flat and ordinary port-edge graphs are byte-for-byte unchanged. On
+identical existing code path, so for flat and ordinary port-edge graphs the hierarchical algorithm adds nothing
+to the leaf layered result (that result itself now includes the default-on port alignment of Rendering#57). On
 the combined path the engine assembles the container and all of its nested descendants into one
 `AssembledMergeRegion` (`MergeRegionGraphAssembler`), runs it through the recursive layered pipeline
 (`LayeredLayoutPipeline.RunRecursive` — recursive layer assignment and crossing minimization across
@@ -210,6 +208,13 @@ take effect at their own layer. It is each leaf algorithm's own responsibility t
 from the `effective` options it is invoked with (optionally preferring its own graph's override first,
 as `LayeredLayoutAlgorithm` and `ContainmentLayoutAlgorithm` do); a leaf algorithm that reads only its
 input graph and ignores the supplied options would silently break cascading for that algorithm.
+
+Edge end labels (`SourceEndLabel`, `TargetEndLabel`) are copied onto the placed lines for leaf-scope edges (through
+the layered algorithm) and for cross-container edges (through the `Connection` handed to `ConnectorRouter`).
+Cross-container connectors reserve no room for their labels.
+
+A port's `Appearance` is copied onto the placed port for leaf-scope edges (through the layered algorithm) and for
+a boundary port projected onto its container boundary (`MergeRegionDecomposer.ProjectPorts`).
 
 ### HierarchicalLayoutAlgorithm Design Constraints
 

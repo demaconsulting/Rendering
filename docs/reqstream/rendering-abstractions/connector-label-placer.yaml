@@ -140,3 +140,47 @@ sections:
           boundary, matching the existing placer overload.
         tests:
           - PlaceWithObstacles_NullArguments_Throw
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-EndLabelPlacement
+        title: >-
+          ConnectorLabelPlacer shall place each connection end label near its own end of the line,
+          beyond the end marker, with the primary text above a horizontal end run or right of a
+          vertical one and the secondary text on the opposite side, clear of boxes, the line's own end
+          decorations, supplied occupied rectangles, and every other placed label, deterministically,
+          and shall never drop or throw for a crowded label. A marker end that sits on a port centre
+          shall be measured from where the marker is painted (retracted by the port glyph's half size),
+          and the label text shall keep at least 4 px from that marker, the line it sits beside, supplied
+          occupied rectangles (port glyphs, port labels), and other end labels.
+        justification: |
+          SysML draws the role name above and the multiplicity below the line near each end. A shared
+          placer keeps the SVG and PNG renderers identical; trying slides along the run and the
+          opposite side before falling back to the nominal position keeps the label attached to its
+          end even in a crowded diagram. Both renderers draw a marker on a port retracted onto the
+          glyph's edge, so measuring from the port centre left the label touching the arrowhead; the
+          4 px margin keeps the text from looking flush against its neighbors.
+        tests:
+          - PlaceEndLabels_NoEndLabels_ReturnsEmpty
+          - PlaceEndLabels_HorizontalLine_PrimaryAboveSecondaryBelowNearEachEnd
+          - PlaceEndLabels_VerticalLine_PrimaryRightSecondaryLeft
+          - PlaceEndLabels_RightToLeftLine_PrimaryStillAbove
+          - PlaceEndLabels_LabelsStayClearOfTheBoxAtTheEnd
+          - PlaceEndLabels_LabelsStayClearOfTheEndMarker
+          - PlaceEndLabels_LabelsDoNotOverlapEachOtherOrOccupiedRectangles
+          - PlaceEndLabels_IsDeterministic
+          - PlaceEndLabels_LabelWiderThanTheRun_StillPlacedAtTheNominalPosition
+          - PlaceEndLabels_NullOrEmptySlots_AreSkipped
+          - PlaceEndLabels_NullArguments_Throw
+          - PlaceEndLabels_VerticalTargetEndOnPort_KeepsFourPixelsFromRetractedMarker
+          - PlaceEndLabels_VerticalRun_SecondaryKeepsFourPixelsFromConnector
+          - PlaceEndLabels_OccupiedRectangle_KeepsFourPixelsOfClearance
+          - PlaceEndLabels_StackedEndAndPortLabel_KeepFourPixelGap
+          - PlaceEndLabels_NoPorts_PositionsUnchanged
+
+      - id: Rendering-Abstractions-ConnectorLabelPlacer-EndLabelsKeepMidpointPlacementsUnchanged
+        title: >-
+          Adding end labels to a line shall not change the placement of any connector midpoint label.
+        justification: |
+          End labels are placed in a separate pass that yields to the midpoint placements, so
+          existing diagrams render identically whether or not a caller adds end labels elsewhere.
+        tests:
+          - Place_MidpointPlacements_UnchangedByEndLabels

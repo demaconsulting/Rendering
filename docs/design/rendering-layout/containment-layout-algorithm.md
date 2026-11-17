@@ -100,6 +100,9 @@ and the row-wrap decision itself uses the un-widened gap so no wrap point moves.
 parallel edges, sized so the packer places them on one row) is the reproduction scenario that exercises
 and visually demonstrates this widening.
 
+Edge end labels (`SourceEndLabel`, `TargetEndLabel`) are copied onto the `Connection` handed to `ConnectorRouter`
+and so onto the routed line.
+
 ### ContainmentLayoutAlgorithm Error Handling
 
 Null `graph` or `options` throw `ArgumentNullException`. Edges with an out-of-graph endpoint are

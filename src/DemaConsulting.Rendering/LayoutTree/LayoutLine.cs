@@ -85,9 +85,35 @@ public enum LineStyle
 /// <param name="TargetEnd">End-marker style at the target (end) end of the line.</param>
 /// <param name="LineStyle">Stroke style (solid, dashed, dotted) for the line.</param>
 /// <param name="MidpointLabel">Optional text label placed at the midpoint of the line; <see langword="null"/> for unlabelled lines.</param>
+/// <param name="SourceEndLabel">
+/// Optional labels near the source (<c>Waypoints[0]</c>) end of the line, for example the role name and
+/// multiplicity of a SysML connection end; <see langword="null"/> (the default) for none. Placed at render
+/// time by <c>ConnectorLabelPlacer.PlaceEndLabels</c>, so existing lines are unchanged.
+/// </param>
+/// <param name="TargetEndLabel">
+/// Optional labels near the target (<c>Waypoints[^1]</c>) end of the line; <see langword="null"/> (the
+/// default) for none.
+/// </param>
 public sealed record LayoutLine(
     IReadOnlyList<Point2D> Waypoints,
     EndMarkerStyle SourceEnd,
     EndMarkerStyle TargetEnd,
     LineStyle LineStyle,
-    string? MidpointLabel) : LayoutNode;
+    string? MidpointLabel,
+    LineEndLabel? SourceEndLabel = null,
+    LineEndLabel? TargetEndLabel = null) : LayoutNode;
+
+/// <summary>
+/// The labels drawn near one end of a connector (a SysML connection end): a role name and a
+/// multiplicity with its adornments. The two slots sit on opposite sides of the line, matching the
+/// SysML v2 graphical notation: <see cref="Primary"/> (the role name) above a horizontal end run or to
+/// the right of a vertical one, and <see cref="Secondary"/> (the multiplicity plus adornments such as
+/// <c>ordered</c> or <c>subsets x</c>) below a horizontal end run or to the left of a vertical one.
+/// </summary>
+/// <remarks>
+/// A slot that is <see langword="null"/> or empty is not drawn. The consumer composes the text of each
+/// slot; the renderers draw it verbatim in the body font.
+/// </remarks>
+/// <param name="Primary">The text above (horizontal run) or right of (vertical run) the line near the end, typically the role name.</param>
+/// <param name="Secondary">The text below (horizontal run) or left of (vertical run) the line near the end, typically the multiplicity.</param>
+public sealed record LineEndLabel(string? Primary, string? Secondary = null);

@@ -228,6 +228,35 @@ no vertices.
 
 **Covers**: `Rendering-Abstractions-NotationMetrics-CornerIcon`.
 
+#### Diamond box vertices are the edge midpoints
+
+`NotationMetrics_DiamondBoxVertices_AreTheBoxEdgeMidpointsTopRightBottomLeft` asserts the four vertices of a box
+in order, `NotationMetrics_DiamondBoxVertices_ZeroSizeBox_CollapsesToThePoint` asserts a zero-size box collapses
+without throwing, and `BoxMetrics_TitleCursorTop_Diamond_MatchesARectangle` asserts a diamond's title cursor
+equals a rectangle's.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-DiamondBoxVertices`.
+
+#### Port glyph sizes, arrow orientation, and outward label
+
+`NotationMetrics_PortGlyphHalfSizeFor_NullAndFilled_AreTheLegacyHalfSize` and
+`NotationMetrics_PortGlyphHalfSizeFor_OutlinedAndProxy_UseTheirOwnSizes` assert the glyph half sizes (4, 6, and 5 px)
+and the automatic resolution; `NotationMetrics_PortGlyphBounds_AreCenteredOnThePortWithTheGlyphHalfSize` asserts the
+glyph rectangle. `NotationMetrics_PortEndRetraction_OnPortWithMarker_IsTheGlyphHalfSizeElseZero` asserts a marker end on
+a port centre retracts by the glyph half size (legacy, outlined, proxy) and by nothing when off a port, without a
+marker, on a too-short segment, or with no ports. `NotationMetrics_PortArrowSegments_None_IsEmpty`,
+`NotationMetrics_PortArrowSegments_InAndOut_PointIntoAndAwayFromThePart` (all four sides),
+`NotationMetrics_PortArrowSegments_InOut_IsSymmetricAndDoubleHeaded`, and
+`NotationMetrics_PortArrowSegments_StayInsideTheGlyph` assert the arrow orientation table.
+`NotationMetrics_IsOutwardLabel_RequiresOutwardPlacementAndALabel`,
+`NotationMetrics_PortOutwardLabelBounds_LieOutsideTheBoxAndClearOfTheConnector` (every face), and
+`NotationMetrics_PortOutwardLabelAnchor_LiesInsideTheBounds` assert the outward label lies outside the box, beyond the
+glyph, and off the connector axis.
+
+**Covers**: `Rendering-Abstractions-NotationMetrics-PortGlyphGeometry`,
+`Rendering-Abstractions-NotationMetrics-PortArrowOrientation`,
+`Rendering-Abstractions-NotationMetrics-PortOutwardLabel`.
+
 ### Requirements Coverage
 
 - **`Rendering-Abstractions-NotationMetrics-TriangleDimensions`**: TriangleFamily_HasCanonicalValues,
@@ -268,3 +297,20 @@ no vertices.
 - **`Rendering-Abstractions-NotationMetrics-CornerIcon`**:
   CornerIconVertices_Send_IsConvexPentagonInsideIconBox, CornerIconVertices_Accept_HasNotchInLeftEdge,
   CornerIconVertices_None_IsEmpty
+- **`Rendering-Abstractions-NotationMetrics-DiamondBoxVertices`**:
+  NotationMetrics_DiamondBoxVertices_AreTheBoxEdgeMidpointsTopRightBottomLeft,
+  NotationMetrics_DiamondBoxVertices_ZeroSizeBox_CollapsesToThePoint,
+  BoxMetrics_TitleCursorTop_Diamond_MatchesARectangle
+- **`Rendering-Abstractions-NotationMetrics-PortGlyphGeometry`**:
+  NotationMetrics_PortGlyphHalfSizeFor_NullAndFilled_AreTheLegacyHalfSize,
+  NotationMetrics_PortGlyphHalfSizeFor_OutlinedAndProxy_UseTheirOwnSizes,
+  NotationMetrics_PortGlyphBounds_AreCenteredOnThePortWithTheGlyphHalfSize,
+  NotationMetrics_PortEndRetraction_OnPortWithMarker_IsTheGlyphHalfSizeElseZero
+- **`Rendering-Abstractions-NotationMetrics-PortArrowOrientation`**: NotationMetrics_PortArrowSegments_None_IsEmpty,
+  NotationMetrics_PortArrowSegments_InAndOut_PointIntoAndAwayFromThePart,
+  NotationMetrics_PortArrowSegments_InOut_IsSymmetricAndDoubleHeaded,
+  NotationMetrics_PortArrowSegments_StayInsideTheGlyph
+- **`Rendering-Abstractions-NotationMetrics-PortOutwardLabel`**:
+  NotationMetrics_IsOutwardLabel_RequiresOutwardPlacementAndALabel,
+  NotationMetrics_PortOutwardLabelBounds_LieOutsideTheBoxAndClearOfTheConnector,
+  NotationMetrics_PortOutwardLabelAnchor_LiesInsideTheBounds

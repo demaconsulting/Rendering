@@ -36,7 +36,7 @@ public readonly record struct MarkerVertex(double Along, double Across);
 /// endpoint; the PNG renderer derives its sizes from the same constants so
 /// the two renderers draw the identical shape.
 /// </remarks>
-public static class NotationMetrics
+public static partial class NotationMetrics
 {
     // ── End-marker primitives (triangle family: open chevron, hollow/filled triangle) ──────────
 
@@ -619,4 +619,29 @@ public static class NotationMetrics
         new MarkerVertex(0.0, 0.0),
         new MarkerVertex(DiamondRefX - DiamondMidX, DiamondHalfWidth),
     ];
+
+    /// <summary>
+    /// Returns the outline vertices of a <see cref="BoxShape.Diamond"/> inscribed in the box
+    /// <c>(x, y, width, height)</c>: the midpoints of the top, right, bottom, and left box edges, in
+    /// that order. Both renderers draw their diamond outline through these points, so the SVG polygon
+    /// and the raster path cannot drift apart, and the layout's anchor geometry (the sloped outline the
+    /// connectors attach to) is the same shape.
+    /// </summary>
+    /// <param name="x">Left edge of the bounding box.</param>
+    /// <param name="y">Top edge of the bounding box.</param>
+    /// <param name="width">Width of the bounding box.</param>
+    /// <param name="height">Height of the bounding box.</param>
+    /// <returns>The four vertices in order top, right, bottom, left.</returns>
+    public static IReadOnlyList<Point2D> DiamondBoxVertices(double x, double y, double width, double height)
+    {
+        var midX = x + (width / 2.0);
+        var midY = y + (height / 2.0);
+        return
+        [
+            new Point2D(midX, y),
+            new Point2D(x + width, midY),
+            new Point2D(midX, y + height),
+            new Point2D(x, midY),
+        ];
+    }
 }

@@ -111,10 +111,12 @@ public sealed class BackEdgeEntryApproachTests
     [Fact]
     public void LayeredLayout_UndecoratedBackEdge_KeepsLegacyApproach()
     {
+        // The legacy approach (ConnectorClearance) is the minimum final leg; port alignment may make
+        // the run straight and therefore longer.
         var lines = LinesByLabel(LayoutEngine.Layout(Elevator(EndMarkerStyle.None)));
 
-        Assert.Equal(LayeredLayoutMetrics.ConnectorClearance, FinalLeg(lines["timeout"]), 1e-6);
-        Assert.Equal(LayeredLayoutMetrics.ConnectorClearance, FinalLeg(lines["idleTimeout"]), 1e-6);
+        Assert.True(FinalLeg(lines["timeout"]) >= LayeredLayoutMetrics.ConnectorClearance - 1e-6);
+        Assert.True(FinalLeg(lines["idleTimeout"]) >= LayeredLayoutMetrics.ConnectorClearance - 1e-6);
     }
 
     /// <summary>

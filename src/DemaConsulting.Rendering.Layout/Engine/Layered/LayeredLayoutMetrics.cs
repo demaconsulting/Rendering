@@ -2,6 +2,8 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
+using DemaConsulting.Rendering.Abstractions;
+
 namespace DemaConsulting.Rendering.Layout.Engine.Layered;
 
 /// <summary>
@@ -37,6 +39,28 @@ internal static class LayeredLayoutMetrics
 
     /// <summary>Clearance added around a port label's measured width, matching a box's own port-label content insets.</summary>
     internal const double PortLabelClearance = 4.0;
+
+    /// <summary>Clear gap, in logical pixels, kept between the painted extents of two adjacent end markers on one face.</summary>
+    internal const double MarkerGap = 4.0;
+
+    /// <summary>
+    /// Returns the centre-to-centre pitch two connectors ending on the same face need so their end
+    /// markers never touch: the marker's painted width (its across extent at the light theme's marker
+    /// scale plus the painted stroke) plus <see cref="MarkerGap"/>, never less than <see cref="EdgeSpacing"/>.
+    /// </summary>
+    /// <param name="style">The end marker drawn at the connector end.</param>
+    /// <returns>The pitch in logical pixels; zero for <see cref="EndMarkerStyle.None"/>.</returns>
+    internal static double MarkerFacePitch(EndMarkerStyle style)
+    {
+        if (style == EndMarkerStyle.None)
+        {
+            return 0.0;
+        }
+
+        var painted = (2.0 * NotationMetrics.AcrossHalfWidth(style) * NotationMetrics.MarkerScale(Themes.Light))
+            + NotationMetrics.MarkerStrokeWidth(Themes.Light);
+        return Math.Max(EdgeSpacing, painted + MarkerGap);
+    }
 
     /// <summary>
     /// Computes the vertical band, in logical pixels, that a box's title (keyword line, if any, then

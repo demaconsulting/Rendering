@@ -213,7 +213,9 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
                     packedBoxes[t],
                     edge.TargetEnd,
                     edge.LineStyle,
-                    edge.Label));
+                    edge.Label,
+                    edge.SourceEndLabel,
+                    edge.TargetEndLabel));
             }
         }
 

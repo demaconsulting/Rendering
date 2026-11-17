@@ -97,6 +97,7 @@ public sealed class LayeredGraphTests
             nameof(LayeredGraph.MaxColWidth),
             nameof(LayeredGraph.AugPortYSrc),
             nameof(LayeredGraph.AugPortYTgt),
+            nameof(LayeredGraph.CorridorSourceLabelAlong),
             nameof(LayeredGraph.AugBendPoints),
             nameof(LayeredGraph.Waypoints),
         ];
@@ -122,6 +123,7 @@ public sealed class LayeredGraphTests
             BackEdgeEntryApproach = 123.5,
             NodeSpacing = 456.5,
             MergeParallelEdges = false,
+            AlignPorts = false,
         };
 
         // Act

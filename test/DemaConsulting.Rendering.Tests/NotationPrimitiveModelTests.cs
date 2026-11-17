@@ -50,6 +50,20 @@ public sealed class NotationPrimitiveModelTests
     }
 
     /// <summary>
+    ///     The <see cref="BoxShape"/> ordinals of the original shapes are pinned and
+    ///     <see cref="BoxShape.Diamond"/> is appended after them.
+    /// </summary>
+    [Fact]
+    public void BoxShape_LegacyOrdinals_ArePinnedAndDiamondAppended()
+    {
+        Assert.Equal(0, (int)BoxShape.Rectangle);
+        Assert.Equal(1, (int)BoxShape.RoundedRectangle);
+        Assert.Equal(2, (int)BoxShape.Folder);
+        Assert.Equal(3, (int)BoxShape.Note);
+        Assert.Equal(4, (int)BoxShape.Diamond);
+    }
+
+    /// <summary>
     ///     The <see cref="TextStyle"/> presets pair the weight and style they are named for.
     /// </summary>
     [Fact]

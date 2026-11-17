@@ -109,6 +109,10 @@ sections:
           - Rendering-Abstractions-NotationMetrics-ThickBarBadge
           - Rendering-Abstractions-NotationMetrics-CrossedCircleBadge
           - Rendering-Abstractions-NotationMetrics-CornerIcon
+          - Rendering-Abstractions-NotationMetrics-DiamondBoxVertices
+          - Rendering-Abstractions-NotationMetrics-PortGlyphGeometry
+          - Rendering-Abstractions-NotationMetrics-PortArrowOrientation
+          - Rendering-Abstractions-NotationMetrics-PortOutwardLabel
         tests:
           - TriangleFamily_HasCanonicalValues
 
@@ -148,6 +152,8 @@ sections:
           - Rendering-Abstractions-ConnectorLabelPlacer-AvoidBoxes
           - Rendering-Abstractions-ConnectorLabelPlacer-AvoidEndDecoration
           - Rendering-Abstractions-ConnectorLabelPlacer-RejectNullObstacleArguments
+          - Rendering-Abstractions-ConnectorLabelPlacer-EndLabelPlacement
+          - Rendering-Abstractions-ConnectorLabelPlacer-EndLabelsKeepMidpointPlacementsUnchanged
         tests:
           - Place_SingleLine_UsesLongestSegmentMidpoint
 

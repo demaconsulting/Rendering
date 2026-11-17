@@ -150,6 +150,35 @@ formats agree. Each rule below is the raster counterpart of the SVG rule of the 
 - **Obstacle-aware labels** — connector labels are placed so a label at a line midpoint on a leaf box
   moves clear of that box instead of painting its opaque backplate over the box border.
 
+#### Diamond Box Outline
+
+For `BoxShape.Diamond`, `RenderBoxOutline` fills and strokes a closed path built from
+`NotationMetrics.DiamondBoxVertices` (starting at the top vertex so a dash pattern begins there), using the
+box's depth fill, the theme stroke, and the box appearance's dash pattern. It is the same vertex helper the
+SVG renderer uses, so the PNG and SVG diamonds are the same shape; a parity test in the gallery project reads
+the SVG polygon back against PNG pixels.
+
+#### Connection End Labels
+
+`RenderToSurface` places end labels with `ConnectorLabelPlacer.PlaceEndLabels` after the midpoint labels (which
+they yield to), passing the port glyph and label rectangles as occupied rectangles and every port as `ports` so a
+marker retracted onto a port glyph is measured from where it is painted (the same `PortEndRetraction` rule as the
+line shortening), grows the surface to include them, and draws each as text centered on the placement, with no
+background rectangle (an end label sits beside its own line, and a background could only erase a neighboring
+connector). The text is centered vertically on the placement (baseline about 0.35 em
+below it), the same anchor the SVG renderer's `dominant-baseline="middle"` text uses, so the two formats agree.
+
+#### Port Glyphs
+
+`RenderPort` draws the legacy filled 8 × 8 square unchanged for a port without an appearance. An outlined glyph is
+a background-filled rounded rectangle stroked with the theme stroke (a dashed outline through the same
+rounded-rectangle path the dashed boxes use) with each `NotationMetrics.PortArrowSegments` segment stroked as a
+polyline; a proxy port is a filled circle with a background ring. An outward label is drawn with the text
+centered vertically on `NotationMetrics.PortOutwardLabelAnchor` (the anchor the SVG text uses) and aligned right
+or left of it; the surface grows to include it, and marker end shortening uses the glyph's own half size. The
+shared helpers make the two renderers identical; `SysmlPortsParityTests` in the gallery project reads the SVG
+geometry back against PNG pixels for every direction, side, and outline style.
+
 ### CanvasNetRasterRenderer Design Constraints
 
 - The rasterizer shall enforce a minimum surface size of one by one pixels before allocating the

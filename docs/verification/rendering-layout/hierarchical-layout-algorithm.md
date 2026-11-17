@@ -254,6 +254,20 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   top and at exactly the same offset as the body-titled keyword folder's child (the default reserve is
   kept).
 
+- **End label pass-through** (`Rendering-Layout-HierarchicalLayout-EndLabelPassThrough`):
+  `HierarchicalLayout_LeafEdgeEndLabels_ReachPlacedLine` and
+  `HierarchicalLayout_CrossContainerEdgeEndLabels_ReachPlacedLine` assert the labels reach the placed line for a
+  leaf-scope edge and for an edge between nodes of two different containers.
+  `HierarchicalLayout_SizedViewEdgeEndLabels_ReachPlacedLine` adds a container to the scope of the labeled leaf
+  edge, which forces the scope to be laid out through the copied sized view (a flat scope is laid out directly).
+
+- **Port appearance pass-through** (`Rendering-Layout-HierarchicalLayout-PortAppearancePassThrough`):
+  `HierarchicalLayout_LeafPortAppearance_ReachesPlacedPorts` and
+  `HierarchicalLayout_BoundaryPortAppearance_ReachesTheSharedAnchor` assert the appearance reaches a leaf-scope
+  port and the shared anchor of a boundary port. `HierarchicalLayout_SizedViewPortAppearance_ReachesPlacedPorts`
+  places a container beside the ported leaf edge so the ports are copied onto the sized view with their labels
+  and `Appearance` and the placed ports still carry the appearance.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-HierarchicalLayout-Identity`**:
@@ -326,3 +340,10 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   HierarchicalLayout_FolderNameInTab_ReservesNoBodyTitleBand,
   HierarchicalLayout_FolderNameInTabWithExplicitTitleHeight_KeepsReserve,
   HierarchicalLayout_FolderNameInTabWithKeyword_ChildClearsKeywordLine
+- **`Rendering-Layout-HierarchicalLayout-EndLabelPassThrough`**:
+  HierarchicalLayout_LeafEdgeEndLabels_ReachPlacedLine, HierarchicalLayout_SizedViewEdgeEndLabels_ReachPlacedLine,
+  HierarchicalLayout_CrossContainerEdgeEndLabels_ReachPlacedLine
+- **`Rendering-Layout-HierarchicalLayout-PortAppearancePassThrough`**:
+  HierarchicalLayout_LeafPortAppearance_ReachesPlacedPorts,
+  HierarchicalLayout_SizedViewPortAppearance_ReachesPlacedPorts,
+  HierarchicalLayout_BoundaryPortAppearance_ReachesTheSharedAnchor

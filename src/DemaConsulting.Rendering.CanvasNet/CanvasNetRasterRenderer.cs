@@ -61,6 +61,12 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     private const float PortGlyphStrokeWidth = 1.0f;
 
     /// <summary>
+    /// Extra width, in logical pixels, added to each side of an outward port label's rectangle when it is
+    /// handed to the end-label placer, so an end label on the same run keeps a visible gap from it.
+    /// </summary>
+    private const double OutwardLabelEndLabelGap = 5.0;
+
+    /// <summary>
     /// Opaque white fill used by shapes whose semantics are intentionally theme-independent in the
     /// CanvasNet renderer: activation bars and the inner bullseye circle.
     /// </summary>
@@ -94,12 +100,39 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var lines = CollectLines(layout.Nodes).ToList();
         var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody, CollectBoxes(layout.Nodes), NotationMetrics.MarkerScale(options.Theme));
 
+        // Connection end labels are placed after the midpoint labels, which they yield to.
+        // Port glyphs and outward port labels are drawn content too, so end labels keep clear of them.
+        var allPorts = new List<LayoutPort>();
+        CollectPorts(layout.Nodes, allPorts);
+        var portRects = PortOccupiedRects(allPorts, options.Theme);
+        var endLabelPlacements = ConnectorLabelPlacer.PlaceEndLabels(
+            lines,
+            options.Theme.FontSizeBody,
+            CollectBoxes(layout.Nodes),
+            NotationMetrics.MarkerScale(options.Theme),
+            labelPositions.Values.Concat(portRects),
+            allPorts);
+
         var width = Math.Max(1, (int)Math.Ceiling(layout.Width * options.Scale));
         var height = Math.Max(1, (int)Math.Ceiling(layout.Height * options.Scale));
         foreach (var placement in labelPositions.Values)
         {
             width = Math.Max(width, (int)Math.Ceiling((placement.X + placement.HalfWidth) * options.Scale));
             height = Math.Max(height, (int)Math.Ceiling((placement.Y + placement.HalfHeight) * options.Scale));
+        }
+
+        foreach (var placement in endLabelPlacements)
+        {
+            width = Math.Max(width, (int)Math.Ceiling((placement.X + placement.HalfWidth) * options.Scale));
+            height = Math.Max(height, (int)Math.Ceiling((placement.Y + placement.HalfHeight) * options.Scale));
+        }
+
+        // An outward port label hangs outside its box and can extend past the declared surface.
+        foreach (var port in allPorts.Where(NotationMetrics.IsOutwardLabel))
+        {
+            var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, options.Theme);
+            width = Math.Max(width, (int)Math.Ceiling((bounds.X + bounds.HalfWidth) * options.Scale));
+            height = Math.Max(height, (int)Math.Ceiling((bounds.Y + bounds.HalfHeight) * options.Scale));
         }
 
         var surface = new Surface(width, height);
@@ -120,6 +153,11 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
             {
                 RenderLineLabel(canvas, line, options, position.X, position.Y);
             }
+        }
+
+        foreach (var placement in endLabelPlacements)
+        {
+            RenderEndLabel(canvas, placement, options);
         }
 
         return surface;
@@ -352,6 +390,12 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
                 RenderNoteOutline(canvas, box, scale, strokeStyle, fillColor, strokeColor);
                 break;
 
+            case BoxShape.Diamond:
+                var diamondPath = BuildDiamondPath(x, y, width, height);
+                canvas.FillPath(diamondPath, fillColor);
+                canvas.StrokePath(diamondPath, strokeStyle, strokeColor);
+                break;
+
             case BoxShape.RoundedRectangle when ResolveRoundedCornerRadius(box, theme) > 0:
                 var cornerRadius = (float)(ResolveRoundedCornerRadius(box, theme) * scale);
                 canvas.FillRoundRect(x, y, width, height, cornerRadius, fillColor);
@@ -434,6 +478,30 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         if (r > 0f)
         {
             builder.TangentArcTo(new Vector2(x, y), new Vector2(x + r, y), r);
+        }
+
+        builder.Close();
+        return builder.Build();
+    }
+
+    /// <summary>
+    /// Builds the closed diamond outline path through <see cref="NotationMetrics.DiamondBoxVertices"/>,
+    /// starting at the top vertex so a dash pattern begins there. Sharing the vertex helper with the SVG
+    /// renderer keeps the two outlines identical.
+    /// </summary>
+    /// <param name="x">Scaled left edge of the bounding box.</param>
+    /// <param name="y">Scaled top edge of the bounding box.</param>
+    /// <param name="width">Scaled width of the bounding box.</param>
+    /// <param name="height">Scaled height of the bounding box.</param>
+    /// <returns>The closed diamond path.</returns>
+    private static GeometryPath BuildDiamondPath(float x, float y, float width, float height)
+    {
+        var vertices = NotationMetrics.DiamondBoxVertices(x, y, width, height);
+        var builder = new PathBuilder();
+        builder.MoveTo(new Vector2((float)vertices[0].X, (float)vertices[0].Y));
+        for (var i = 1; i < vertices.Count; i++)
+        {
+            builder.LineTo(new Vector2((float)vertices[i].X, (float)vertices[i].Y));
         }
 
         builder.Close();
@@ -1001,6 +1069,36 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     }
 
     /// <summary>
+    /// Draws one connection end label (a role name or multiplicity slot) centered on the position
+    /// <see cref="ConnectorLabelPlacer.PlaceEndLabels"/> chose, with no background (it sits beside its line, clear of it by construction, so a background could only
+    /// erase a neighboring connector). The text is centered vertically on the placement, which is where the SVG renderer
+    /// anchors it (<c>dominant-baseline="middle"</c>), so the two formats agree.
+    /// </summary>
+    /// <param name="canvas">Canvas to draw on.</param>
+    /// <param name="placement">The resolved end-label placement.</param>
+    /// <param name="options">Render options providing theme and scale.</param>
+    private static void RenderEndLabel(CanvasRenderer canvas, EndLabelPlacement placement, RenderOptions options)
+    {
+        var theme = options.Theme;
+        var scale = (float)options.Scale;
+        var centreX = (float)(placement.X * scale);
+        var centreY = (float)(placement.Y * scale);
+
+        var font = CreateFont(bold: false, italic: false);
+        var textSize = (float)theme.FontSizeBody * scale;
+
+        // The baseline sits about 0.35 em below the vertical centre of the text.
+        canvas.DrawText(
+            placement.Text,
+            centreX,
+            centreY + (0.35f * textSize),
+            CanvasTextAlign.Center,
+            font,
+            textSize,
+            ParseColor(theme.StrokeColor));
+    }
+
+    /// <summary>
     /// Recursively collects all <see cref="LayoutBox"/> nodes from a node tree.
     /// </summary>
     /// <param name="nodes">Top-level nodes to walk.</param>
@@ -1143,8 +1241,8 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
             return line;
         }
 
-        var first = line.SourceEnd == EndMarkerStyle.None ? null : RetreatFromPort(waypoints[0], waypoints[1], ports);
-        var last = line.TargetEnd == EndMarkerStyle.None ? null : RetreatFromPort(waypoints[^1], waypoints[^2], ports);
+        var first = RetreatFromPort(waypoints[0], waypoints[1], line.SourceEnd, ports);
+        var last = RetreatFromPort(waypoints[^1], waypoints[^2], line.TargetEnd, ports);
         if (first is null && last is null)
         {
             return line;
@@ -1165,17 +1263,20 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     }
 
     /// <summary>
-    /// Moves <paramref name="end"/> toward <paramref name="adjacent"/> by <see cref="NotationMetrics.PortHalfSize"/>
-    /// when it coincides with a port centre and the end segment is longer than that.
+    /// Moves <paramref name="end"/> toward <paramref name="adjacent"/> by the shared port-end retraction
+    /// (<see cref="NotationMetrics.PortEndRetraction"/>) when it carries a marker, coincides with a port
+    /// centre, and the end segment is longer than that.
     /// </summary>
     /// <param name="end">The line end point.</param>
     /// <param name="adjacent">The adjacent waypoint.</param>
+    /// <param name="style">The end marker drawn at <paramref name="end"/>.</param>
     /// <param name="ports">Every port in the tree.</param>
-    /// <returns>The retreated point, or <see langword="null"/> when the end is not on a port.</returns>
-    private static Point2D? RetreatFromPort(Point2D end, Point2D adjacent, List<LayoutPort> ports)
+    /// <returns>The retreated point, or <see langword="null"/> when the end is not retracted.</returns>
+    private static Point2D? RetreatFromPort(Point2D end, Point2D adjacent, EndMarkerStyle style, List<LayoutPort> ports)
     {
-        const double portTolerance = 0.5;
-        if (!ports.Exists(port => Math.Abs(port.CentreX - end.X) <= portTolerance && Math.Abs(port.CentreY - end.Y) <= portTolerance))
+        // The retreat is the glyph's own half size, so the painted tip lands on the glyph's outer edge.
+        var halfSize = NotationMetrics.PortEndRetraction(end, adjacent, style, ports);
+        if (halfSize <= 0.0)
         {
             return null;
         }
@@ -1183,12 +1284,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var dx = adjacent.X - end.X;
         var dy = adjacent.Y - end.Y;
         var length = Math.Sqrt((dx * dx) + (dy * dy));
-        if (length <= NotationMetrics.PortHalfSize)
-        {
-            return null;
-        }
-
-        var fraction = NotationMetrics.PortHalfSize / length;
+        var fraction = halfSize / length;
         return new Point2D(end.X + (dx * fraction), end.Y + (dy * fraction));
     }
 
@@ -1529,23 +1625,135 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var strokeColor = ParseColor(theme.StrokeColor);
         var backgroundColor = ParseColor(theme.BackgroundColor);
 
-        var x = (float)((port.CentreX - NotationMetrics.PortHalfSize) * scale);
-        var y = (float)((port.CentreY - NotationMetrics.PortHalfSize) * scale);
-        var size = (float)(NotationMetrics.PortSize * scale);
+        // Glyph: the legacy filled 8x8 square (unchanged pixels) unless the appearance asks for an outlined
+        // glyph or a proxy circle; the geometry comes from NotationMetrics, shared with the SVG renderer.
+        switch (port.Appearance?.ResolvedGlyph)
+        {
+            case PortGlyph.Outlined:
+                RenderOutlinedPortGlyph(canvas, port, options);
+                break;
 
-        canvas.FillRect(x, y, size, size, strokeColor);
-        canvas.StrokeRect(x, y, size, size, new StrokeStyle(PortGlyphStrokeWidth * scale), backgroundColor);
+            case PortGlyph.Proxy:
+                var proxyX = (float)(port.CentreX * scale);
+                var proxyY = (float)(port.CentreY * scale);
+                var proxyRadius = (float)(NotationMetrics.PortProxyRadius * scale);
+                canvas.FillCircle(proxyX, proxyY, proxyRadius, strokeColor);
+                canvas.StrokeCircle(proxyX, proxyY, proxyRadius, new StrokeStyle(PortGlyphStrokeWidth * scale), backgroundColor);
+                break;
+
+            default:
+                var x = (float)((port.CentreX - NotationMetrics.PortHalfSize) * scale);
+                var y = (float)((port.CentreY - NotationMetrics.PortHalfSize) * scale);
+                var size = (float)(NotationMetrics.PortSize * scale);
+                canvas.FillRect(x, y, size, size, strokeColor);
+                canvas.StrokeRect(x, y, size, size, new StrokeStyle(PortGlyphStrokeWidth * scale), backgroundColor);
+                break;
+        }
 
         if (port.InternalLabel != null)
         {
             DrawPortLabel(canvas, port, port.InternalLabel, port.Side, options);
         }
 
-        if (port.ExternalLabel != null)
+        if (NotationMetrics.IsOutwardLabel(port))
+        {
+            DrawOutwardPortLabel(canvas, port, options);
+        }
+        else if (port.ExternalLabel != null)
         {
             var side = port.InternalLabel != null ? OppositeSide(port.Side) : port.Side;
             DrawPortLabel(canvas, port, port.ExternalLabel, side, options);
         }
+    }
+
+    /// <summary>
+    /// Draws an outlined port glyph: a background-filled rounded square with the theme stroke (dashed for a
+    /// reference port), then the direction arrow as one stroked polyline per segment of
+    /// <see cref="NotationMetrics.PortArrowSegments"/> around the port centre.
+    /// </summary>
+    /// <param name="canvas">Canvas to draw on.</param>
+    /// <param name="port">The port whose glyph is drawn.</param>
+    /// <param name="options">Render options providing theme and scale.</param>
+    private static void RenderOutlinedPortGlyph(CanvasRenderer canvas, LayoutPort port, RenderOptions options)
+    {
+        var theme = options.Theme;
+        var scale = (float)options.Scale;
+        var strokeColor = ParseColor(theme.StrokeColor);
+        var half = (float)NotationMetrics.PortGlyphHalfSize;
+        var x = (float)(port.CentreX * scale) - (half * scale);
+        var y = (float)(port.CentreY * scale) - (half * scale);
+        var size = 2f * half * scale;
+        var corner = (float)NotationMetrics.PortGlyphCornerRadius * scale;
+        var dashArray = DashArrayFor(port.Appearance?.OutlineStyle ?? LineStyle.Solid, scale);
+        var outline = new StrokeStyle((float)theme.StrokeWidth * scale, dashArray: dashArray);
+
+        canvas.FillRoundRect(x, y, size, size, corner, ParseColor(theme.BackgroundColor));
+        canvas.StrokePath(BuildRoundRectPath(x, y, size, size, corner), outline, strokeColor);
+
+        var arrowStyle = new StrokeStyle(PortGlyphStrokeWidth * scale);
+        foreach (var segment in NotationMetrics.PortArrowSegments(port.Appearance?.Direction ?? PortDirection.None, port.Side))
+        {
+            var builder = new PathBuilder();
+            for (var i = 0; i < segment.Count; i++)
+            {
+                var point = new Vector2((float)((port.CentreX + segment[i].X) * scale), (float)((port.CentreY + segment[i].Y) * scale));
+                if (i == 0)
+                {
+                    builder.MoveTo(point);
+                }
+                else
+                {
+                    builder.LineTo(point);
+                }
+            }
+
+            canvas.StrokePath(builder.Build(), arrowStyle, strokeColor);
+        }
+    }
+
+    /// <summary>
+    /// Draws a port's external label outside the owning box, beside the connector, at the anchor
+    /// <see cref="NotationMetrics.PortOutwardLabelAnchor"/> returns, vertically centered on it (the same
+    /// anchor the SVG renderer's <c>dominant-baseline="middle"</c> text uses) and never squeezed.
+    /// </summary>
+    /// <param name="canvas">Canvas to draw on.</param>
+    /// <param name="port">The port whose outward label is drawn.</param>
+    /// <param name="options">Render options providing theme and scale.</param>
+    private static void DrawOutwardPortLabel(CanvasRenderer canvas, LayoutPort port, RenderOptions options)
+    {
+        var theme = options.Theme;
+        var scale = (float)options.Scale;
+        var anchor = NotationMetrics.PortOutwardLabelAnchor(port, theme);
+        var font = CreateFont(bold: false, italic: false);
+        var fontSize = (float)theme.FontSizeBody * scale;
+        var metrics = MeasureText(port.ExternalLabel!, font, fontSize);
+        var baselineY = (float)(anchor.Y * scale) + ((metrics.Ascent - metrics.Descent) / 2.0f);
+        var align = anchor.Align == PortLabelAlign.End ? CanvasTextAlign.Right : CanvasTextAlign.Left;
+        canvas.DrawText(port.ExternalLabel!, (float)(anchor.X * scale), baselineY, align, font, fontSize, ParseColor(theme.StrokeColor));
+    }
+
+    /// <summary>
+    /// Returns the rectangles the ports occupy — each glyph plus each outward label — that end labels must
+    /// keep clear of.
+    /// </summary>
+    /// <param name="ports">Every port in the tree.</param>
+    /// <param name="theme">Theme providing font settings.</param>
+    /// <returns>The occupied rectangles.</returns>
+    private static List<LabelPlacement> PortOccupiedRects(List<LayoutPort> ports, Theme theme)
+    {
+        var rects = new List<LabelPlacement>(ports.Count);
+        foreach (var port in ports)
+        {
+            rects.Add(NotationMetrics.PortGlyphBounds(port));
+            if (NotationMetrics.IsOutwardLabel(port))
+            {
+                // Padded along the text so an end label keeps a visible gap from the port label beside it.
+                var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
+                rects.Add(bounds with { HalfWidth = bounds.HalfWidth + OutwardLabelEndLabelGap });
+            }
+        }
+
+        return rects;
     }
 
     /// <summary>
@@ -1578,7 +1786,7 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var scale = (float)options.Scale;
         var strokeColor = ParseColor(theme.StrokeColor);
 
-        var offset = NotationMetrics.PortHalfSize + theme.LabelPadding
+        var offset = NotationMetrics.PortGlyphHalfSizeFor(port.Appearance) + theme.LabelPadding
             + (port.InternalLabel != null && port.ExternalLabel != null ? NotationMetrics.EndMarkerLength : 0.0);
         var (labelX, labelY, align) = offsetSide switch
         {

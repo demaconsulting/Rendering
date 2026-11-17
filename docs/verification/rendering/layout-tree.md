@@ -228,6 +228,33 @@ and asserts `Keyword`, `HeaderAppearance`, and `HeaderCornerRadius` are `null` a
 
 **Covers**: `Rendering-Model-LayoutTree-LifelineHeaderStyle`.
 
+#### Diamond box shape is appended
+
+Test `BoxShape_LegacyOrdinals_ArePinnedAndDiamondAppended` asserts the original `BoxShape` ordinals and that
+`Diamond` follows them.
+
+**Covers**: `Rendering-Model-LayoutTree-DiamondShape`.
+
+#### Line end labels default to none
+
+`LayoutLine_EndLabels_DefaultToNull` constructs a line with only its original members and asserts both end labels
+are `null`. `LayoutLine_EndLabels_AreCarried` constructs one with both and asserts they and the midpoint label
+are carried. `LineEndLabel_Secondary_DefaultsToNull` and `LineEndLabel_IsAValueRecord` assert the record's
+default and value semantics.
+
+**Covers**: `Rendering-Model-LayoutTree-LineEndLabels`.
+
+#### Port appearance defaults to the legacy look
+
+`PortAppearance_Defaults_AreTheLegacyLook` asserts the default appearance has no arrow, an automatic glyph, a
+solid outline, and the legacy label rule; `PortAppearance_ResolvedGlyph_Auto_PicksFilledOrOutlined` asserts the
+automatic glyph resolves to the filled square only for no arrow and a solid outline;
+`PortAppearance_ResolvedGlyph_Explicit_IsKept` asserts an explicit glyph is never overridden;
+`PortAppearance_IsAValueRecord` asserts value semantics; `LayoutPort_Appearance_DefaultsToNull` and
+`LayoutPort_Appearance_IsCarried` assert the appended `LayoutPort` member.
+
+**Covers**: `Rendering-Model-LayoutTree-PortAppearance`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-LayoutTree-Canvas`**: LayoutTree_Construction_StoresWidthHeightNodes
@@ -265,3 +292,11 @@ and asserts `Keyword`, `HeaderAppearance`, and `HeaderCornerRadius` are `null` a
   BadgeShape_LegacyOrdinals_ArePinnedAndNewMembersAppended
 - **`Rendering-Model-LayoutTree-BandOutlineStyle`**: LayoutBand_OutlineStyle_DefaultsToSolid
 - **`Rendering-Model-LayoutTree-LifelineHeaderStyle`**: LayoutLifeline_NewMembers_DefaultToLegacyLook
+- **`Rendering-Model-LayoutTree-DiamondShape`**: BoxShape_LegacyOrdinals_ArePinnedAndDiamondAppended
+- **`Rendering-Model-LayoutTree-LineEndLabels`**:
+  LayoutLine_EndLabels_DefaultToNull, LayoutLine_EndLabels_AreCarried, LineEndLabel_Secondary_DefaultsToNull,
+  LineEndLabel_IsAValueRecord
+- **`Rendering-Model-LayoutTree-PortAppearance`**:
+  PortAppearance_Defaults_AreTheLegacyLook, PortAppearance_ResolvedGlyph_Auto_PicksFilledOrOutlined,
+  PortAppearance_ResolvedGlyph_Explicit_IsKept, PortAppearance_IsAValueRecord, LayoutPort_Appearance_DefaultsToNull,
+  LayoutPort_Appearance_IsCarried

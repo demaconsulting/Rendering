@@ -5,8 +5,8 @@ package RenderingAbstractions {
         doc /* Intrinsic notation geometry shared by renderers. */
 
         metadata info : SoftwareInfo {
-            sourceFiles = ("src/DemaConsulting.Rendering.Abstractions/NotationMetrics.cs");
-            testFiles = ("test/DemaConsulting.Rendering.Abstractions.Tests/NotationMetricsTests.cs", "test/DemaConsulting.Rendering.Abstractions.Tests/NotationPrimitiveMetricsTests.cs");
+            sourceFiles = ("src/DemaConsulting.Rendering.Abstractions/NotationMetrics.cs", "src/DemaConsulting.Rendering.Abstractions/NotationMetrics.Ports.cs");
+            testFiles = ("test/DemaConsulting.Rendering.Abstractions.Tests/NotationMetricsTests.cs", "test/DemaConsulting.Rendering.Abstractions.Tests/NotationPrimitiveMetricsTests.cs", "test/DemaConsulting.Rendering.Abstractions.Tests/DiamondBoxMetricsTests.cs", "test/DemaConsulting.Rendering.Abstractions.Tests/PortGlyphMetricsTests.cs");
             designFiles = ("docs/design/rendering-abstractions/notation-metrics.md");
             verificationFiles = ("docs/verification/rendering-abstractions/notation-metrics.md");
             requirementFiles = ("docs/reqstream/rendering-abstractions/notation-metrics.yaml");

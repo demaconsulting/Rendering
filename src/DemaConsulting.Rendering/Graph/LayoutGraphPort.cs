@@ -61,4 +61,11 @@ public sealed class LayoutGraphPort : PropertyHolder, ILayoutConnectable
     /// and outward placement of <see cref="ExternalLabel"/>.
     /// </summary>
     public string? InternalLabel { get; set; }
+
+    /// <summary>
+    /// Gets or sets how the port is drawn (glyph, direction arrow, dashed outline, label placement); copied
+    /// onto every placed <see cref="LayoutPort"/> the layout emits for this port. <see langword="null"/>
+    /// (the default) is the legacy small filled square with an inward label.
+    /// </summary>
+    public PortAppearance? Appearance { get; set; }
 }

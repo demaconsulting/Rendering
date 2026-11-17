@@ -22,17 +22,70 @@ sections:
       - id: Rendering-Layout-LayeredPipeline-BehaviorPreserving
         title: >-
           The layered pipeline shall produce the same rectangles, totals, layer assignments, and
-          connector waypoints as the legacy monolithic interconnection engine for every input.
+          connector waypoints as the legacy monolithic interconnection engine for every input, apart
+          from the documented divergences (the port-alignment stage is switched off for the
+          comparison; see Rendering-Layout-LayeredPipeline-PortAlignment).
         justification: |
           The pipeline was extracted from the monolithic engine as a behavior-preserving refactor;
-          identical geometry is required so existing views render unchanged.
+          identical geometry is required so existing views render unchanged. Port alignment is a
+          deliberate, later improvement that only moves ports along their own faces, so the gate
+          compares every other stage bit-for-bit with alignment disabled and pins separately what
+          alignment may change.
         tests:
           - Pipeline_MatchesLegacyOracle_OnRandomGraphs
           - Pipeline_MatchesLegacyOracle_OnEmptyGraph
           - Pipeline_MatchesLegacyOracle_OnDroneLikeGraph
           - Pipeline_MatchesLegacyOracle_OnWorkstationLikeGraph
           - Pipeline_MatchesLegacyOracle_OnNamedTopologies
+          - Pipeline_PortAlignment_MatchesOracleWhenNoPortCanSlide
 
+      - id: Rendering-Layout-LayeredPipeline-PortAlignment
+        title: >-
+          The port-alignment stage shall slide the connector ports of an edge along their faces so the
+          two ends sit on one coordinate (a straight final run) whenever both faces allow it, shall
+          keep port order, the minimum port separation, the face extents (shape-aware, below the
+          title reserve), and the coordinates of long-edge dummies unchanged, and shall never leave a
+          perpendicular step shorter than the minimum visible step between two parallel runs.
+        justification: |
+          The even port spacing of the port-distribution stage ignores where the opposite end of each
+          edge sits, so two sources feeding one wide target routinely ended a few pixels apart and the
+          corridor router turned the residual into a small step right before the end marker
+          (Rendering#57). Sliding the ports onto a common coordinate removes the step, and the
+          constraints keep every other port-distribution guarantee intact.
+        tests:
+          - LayeredLayout_TwoSourcesOneTargetFace_Down_FinalRunsAreStraight
+          - LayeredLayout_TwoSourcesOneTargetFace_AnyDirection_FinalRunsAreStraight
+          - LayeredLayout_TwoSourcesOneTarget_SizeSweep_NeverLeavesSubMarkerStep
+          - LayeredLayout_TwoSourcesOneTarget_DenseSweep_NeverLeavesSubMarkerStep
+          - LayeredLayout_FaceSpansDoNotOverlap_KeepsBendAndEndLeg
+          - LayeredLayout_ThreeSourcesOneFace_SlidPortsKeepSeparationAndOrder
+          - LayeredLayout_LongEdgeAndShortEdgesSharingTarget_AllFinalRunsAxisAligned
+          - LayeredLayout_LabeledPortsRightFlow_AlignmentKeepsEndsOutOfTitleBand
+          - HierarchicalLayout_CrossContainerTwoSourcesOneTarget_FinalRunsStraight
+          - ConnectorRouter_Route_TwoSourcesOneTarget_FinalRunsStraight
+          - PortAligner_Apply_TwoSourcesOneWideTarget_PortsAlign
+          - PortAligner_Apply_SingleEdgeAlreadyAligned_IsNoOp
+          - PortAligner_Apply_AlignPortsDisabled_LeavesPortsUntouched
+          - PortAligner_Apply_ThreeSourcesOneTarget_KeepsOrderSeparationAndCornerClearance
+          - PortAligner_Apply_DummyEnd_IsPinnedAndNotMoved
+          - PortAligner_Apply_FolderTargetTopFace_Down_PortStaysRightOfTab
+          - PortAligner_Apply_DisjointFaces_NoStepBetweenZeroAndMinimum
+          - Pipeline_PortAlignment_DisjointFaces_KeepsClearStep
+
+      - id: Rendering-Layout-LayeredPipeline-PortAlignmentOnlyMovesPorts
+        title: >-
+          Port alignment shall change only the position of connector ports along their own faces: the
+          box rectangles, node layers, and the along-axis coordinate of every connector end shall be
+          identical with and without it, and the result shall equal the legacy oracle for every graph
+          where no port can slide.
+        justification: |
+          Alignment is the fourth documented divergence from the frozen legacy oracle. Pinning exactly
+          what it may change keeps the behavior-preservation gate meaningful for every other stage and
+          proves the stage cannot move boxes or detach a connector from its face.
+        tests:
+          - Pipeline_PortAlignment_OnlyMovesPortsAlongTheirFaces
+          - Pipeline_PortAlignment_MatchesOracleWhenNoPortCanSlide
+          - LayeredGraph_CreateChild_CopiesEveryKnownInputOption
       - id: Rendering-Layout-LayeredPipeline-FlatHierarchyOnly
         title: >-
           The layered pipeline shall assemble the flat (single-graph) stage sequence by default, and
@@ -416,3 +469,19 @@ sections:
           - Apply_LeftDirection_FolderTarget_RightFaceUnaffectedByTab
           - Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone
           - Apply_RectangleChain_MatchesPreShapeAwarenessOutput
+
+      - id: Rendering-Layout-LayeredPipeline-EndLabelReservation
+        title: >-
+          The layered pipeline shall widen a corridor by the end-label space its connectors request,
+          shall keep the first bend of connectors leaving that corridor's source column that far out,
+          and shall move a reversed edge's reservations with its endpoints, while leaving every layout
+          without requested space byte-identical.
+        justification: |
+          End labels sit on the straight runs beside each end of a connector, so the run on either
+          side of the bend must be long enough; carrying the request on the edge and applying it in
+          the placement and routing stages keeps the reservation with the stage that owns each
+          dimension and is a no-op for every existing caller.
+        tests:
+          - InterconnectionLayoutEngine_Place_EdgeLabelAlong_WidensCorridorAndPushesFirstBend
+          - CycleBreaker_ReversedEdge_SwapsEndLabelReservations
+          - Pipeline_MatchesLegacyOracle_OnRandomGraphs

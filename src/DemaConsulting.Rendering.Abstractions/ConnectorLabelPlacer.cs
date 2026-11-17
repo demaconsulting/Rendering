@@ -43,7 +43,7 @@ public readonly record struct LabelPlacement(double X, double Y, double HalfWidt
 /// result is deterministic. Both the SVG and PNG renderers share this logic so their label layouts
 /// match.
 /// </remarks>
-public static class ConnectorLabelPlacer
+public static partial class ConnectorLabelPlacer
 {
     /// <summary>Approximate width of one character as a fraction of the font size.</summary>
     private const double CharWidthFactor = 0.6;
@@ -167,8 +167,12 @@ public static class ConnectorLabelPlacer
     /// </summary>
     /// <param name="line">The line whose end decorations are measured.</param>
     /// <param name="markerScale">Pixels per notation unit of end-marker geometry.</param>
+    /// <param name="ports">
+    /// Every port in the tree, or <see langword="null"/>; a marker end on a port centre is measured from its
+    /// retracted (painted) position.
+    /// </param>
     /// <returns>The decoration footprints; empty when the line has no decoration.</returns>
-    private static List<Obstacle> DecorationZones(LayoutLine line, double markerScale)
+    private static List<Obstacle> DecorationZones(LayoutLine line, double markerScale, IEnumerable<LayoutPort>? ports = null)
     {
         var zones = new List<Obstacle>();
         if (line.Waypoints.Count < 2)
@@ -176,9 +180,9 @@ public static class ConnectorLabelPlacer
             return zones;
         }
 
-        AddZone(zones, line.Waypoints[0], line.Waypoints[1], line.SourceEnd, markerScale);
+        AddZone(zones, line.Waypoints[0], line.Waypoints[1], line.SourceEnd, markerScale, ports);
         var last = line.Waypoints.Count - 1;
-        AddZone(zones, line.Waypoints[last], line.Waypoints[last - 1], line.TargetEnd, markerScale);
+        AddZone(zones, line.Waypoints[last], line.Waypoints[last - 1], line.TargetEnd, markerScale, ports);
         return zones;
     }
 
@@ -188,7 +192,8 @@ public static class ConnectorLabelPlacer
     /// <param name="inward">The adjacent waypoint, which gives the direction back along the line.</param>
     /// <param name="style">The decoration style; <see cref="EndMarkerStyle.None"/> adds nothing.</param>
     /// <param name="markerScale">Pixels per notation unit of end-marker geometry.</param>
-    private static void AddZone(List<Obstacle> zones, Point2D end, Point2D inward, EndMarkerStyle style, double markerScale)
+    /// <param name="ports">Every port in the tree, or <see langword="null"/> for none.</param>
+    private static void AddZone(List<Obstacle> zones, Point2D end, Point2D inward, EndMarkerStyle style, double markerScale, IEnumerable<LayoutPort>? ports)
     {
         if (style == EndMarkerStyle.None)
         {
@@ -200,19 +205,24 @@ public static class ConnectorLabelPlacer
         var length = Math.Sqrt((dx * dx) + (dy * dy));
         var dirX = length > 1e-9 ? dx / length : 0.0;
         var dirY = length > 1e-9 ? dy / length : 0.0;
+
+        // A marker on a port centre is painted retracted along the end segment by the glyph half size.
+        var retraction = NotationMetrics.PortEndRetraction(end, inward, style, ports);
+        var startX = end.X + (dirX * retraction);
+        var startY = end.Y + (dirY * retraction);
         var along = NotationMetrics.AlongLineLength(style) * markerScale;
         var across = NotationMetrics.AcrossHalfWidth(style) * markerScale;
 
         // Bounding box of the oriented footprint rectangle
-        var tipX = end.X + (dirX * along);
-        var tipY = end.Y + (dirY * along);
+        var tipX = startX + (dirX * along);
+        var tipY = startY + (dirY * along);
         var perpX = Math.Abs(dirY) * across;
         var perpY = Math.Abs(dirX) * across;
         zones.Add(new Obstacle(
-            Math.Min(end.X, tipX) - perpX,
-            Math.Min(end.Y, tipY) - perpY,
-            Math.Max(end.X, tipX) + perpX,
-            Math.Max(end.Y, tipY) + perpY,
+            Math.Min(startX, tipX) - perpX,
+            Math.Min(startY, tipY) - perpY,
+            Math.Max(startX, tipX) + perpX,
+            Math.Max(startY, tipY) + perpY,
             IsContainer: false));
     }
 

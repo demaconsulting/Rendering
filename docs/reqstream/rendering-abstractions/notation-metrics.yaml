@@ -271,3 +271,59 @@ sections:
           - CornerIconVertices_Send_IsConvexPentagonInsideIconBox
           - CornerIconVertices_Accept_HasNotchInLeftEdge
           - CornerIconVertices_None_IsEmpty
+
+      - id: Rendering-Abstractions-NotationMetrics-DiamondBoxVertices
+        title: >-
+          NotationMetrics shall provide the outline vertices of a diamond box, the midpoints of the
+          four bounding-box edges in the order top, right, bottom, left.
+        justification: |
+          Both renderers draw the diamond outline through one helper so the SVG polygon and the raster
+          path cannot drift apart, and the layout's anchor geometry describes the same shape.
+        tests:
+          - NotationMetrics_DiamondBoxVertices_AreTheBoxEdgeMidpointsTopRightBottomLeft
+          - NotationMetrics_DiamondBoxVertices_ZeroSizeBox_CollapsesToThePoint
+          - BoxMetrics_TitleCursorTop_Diamond_MatchesARectangle
+
+      - id: Rendering-Abstractions-NotationMetrics-PortGlyphGeometry
+        title: >-
+          NotationMetrics shall provide the half size of each port glyph (the legacy 4 px for no
+          appearance or a filled square, 6 px for an outlined glyph, 5 px for a proxy circle), the
+          bounds of a port glyph, and the retraction of a marker end that sits on a port centre.
+        justification: |
+          The glyph half size is the single source for how far a marker end is shortened and how far an
+          inward label is offset in both renderers; keeping the legacy value for the legacy look leaves
+          every existing diagram unchanged. One retraction rule shared by both renderers and the end-label
+          placer keeps the drawn marker and the label measured from it in agreement.
+        tests:
+          - NotationMetrics_PortGlyphHalfSizeFor_NullAndFilled_AreTheLegacyHalfSize
+          - NotationMetrics_PortGlyphHalfSizeFor_OutlinedAndProxy_UseTheirOwnSizes
+          - NotationMetrics_PortGlyphBounds_AreCenteredOnThePortWithTheGlyphHalfSize
+          - NotationMetrics_PortEndRetraction_OnPortWithMarker_IsTheGlyphHalfSizeElseZero
+
+      - id: Rendering-Abstractions-NotationMetrics-PortArrowOrientation
+        title: >-
+          NotationMetrics shall provide the polylines of a port's direction arrow in glyph-local
+          coordinates, oriented for the port's face: in points into the owning part, out points away
+          from it, and inout is double-headed and symmetric, all inside the glyph.
+        justification: |
+          The SVG and raster renderers draw the arrow from one source, so the two cannot disagree about
+          which way an in or out port points on any of the four faces.
+        tests:
+          - NotationMetrics_PortArrowSegments_None_IsEmpty
+          - NotationMetrics_PortArrowSegments_InAndOut_PointIntoAndAwayFromThePart
+          - NotationMetrics_PortArrowSegments_InOut_IsSymmetricAndDoubleHeaded
+          - NotationMetrics_PortArrowSegments_StayInsideTheGlyph
+
+      - id: Rendering-Abstractions-NotationMetrics-PortOutwardLabel
+        title: >-
+          NotationMetrics shall decide whether a port's external label is outward and provide its anchor
+          and bounds: entirely outside the owning box, beginning beyond the glyph, and clear of the
+          connector axis on every face.
+        justification: |
+          The SysML notation draws the port name and type outside the owning part. Sharing the anchor
+          and bounds lets both renderers draw it identically and lets the layout and the end-label
+          placer reserve and avoid the same rectangle.
+        tests:
+          - NotationMetrics_IsOutwardLabel_RequiresOutwardPlacementAndALabel
+          - NotationMetrics_PortOutwardLabelBounds_LieOutsideTheBoxAndClearOfTheConnector
+          - NotationMetrics_PortOutwardLabelAnchor_LiesInsideTheBounds

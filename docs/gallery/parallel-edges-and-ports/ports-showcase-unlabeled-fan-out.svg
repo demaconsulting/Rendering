@@ -44,11 +44,11 @@
   <text x="290.00" y="285.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle" textLength="108.00" lengthAdjust="spacingAndGlyphs">graphics : Gpu</text>
   <path d="M 160.00 151.00 L 166.00 151.00 A 4.00 4.00 0 0 0 170.00 147.00 L 170.00 49.00 A 4.00 4.00 0 0 1 174.00 45.00 L 230.00 45.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <rect x="156.00" y="147.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
-  <path d="M 350.00 45.00 L 376.92 45.00 A 0.68 0.68 0 0 1 377.60 45.68 L 377.60 45.68 A 0.68 0.68 0 0 0 378.28 46.37 L 437.60 46.37" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 350.00 45.68 L 437.60 45.68" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <path d="M 160.00 171.00 L 182.00 171.00 A 4.00 4.00 0 0 0 186.00 167.00 L 186.00 129.00 A 4.00 4.00 0 0 1 190.00 125.00 L 230.00 125.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <rect x="156.00" y="167.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
-  <path d="M 160.00 191.00 L 166.00 191.00 A 4.00 4.00 0 0 1 170.00 195.00 L 170.00 201.00 A 4.00 4.00 0 0 0 174.00 205.00 L 230.00 205.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <rect x="156.00" y="187.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <path d="M 160.00 195.00 L 230.00 195.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="156.00" y="191.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
   <path d="M 160.00 211.00 L 166.00 211.00 A 4.00 4.00 0 0 1 170.00 215.00 L 170.00 281.00 A 4.00 4.00 0 0 0 174.00 285.00 L 230.00 285.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <rect x="156.00" y="207.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
 </svg>

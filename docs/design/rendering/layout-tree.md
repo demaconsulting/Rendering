@@ -107,6 +107,31 @@ right-pointing pentagon, and the same pentagon with a triangular notch in its le
 they exist so every node record and every layout algorithm expresses coordinates and bounds with one
 consistent, allocation-light vocabulary.
 
+`BoxShape` lists the box outlines the renderers know: `Rectangle`, `RoundedRectangle`, `Folder`, `Note`,
+and — appended last so earlier ordinals never change — `Diamond`, a rhombus inscribed in the bounding box
+with its four vertices at the midpoints of the box edges. A diamond is a plain box for sizing, title, and
+child purposes; only its outline and the way connectors anchor on it differ (see the ConnectorRouter
+`DiamondGeometry`), so a caller that never sets the shape sees no change.
+
+`LayoutLine` carries two optional, appended members, `SourceEndLabel` and `TargetEndLabel`, each a
+`LineEndLabel`: a value record of a `Primary` and a `Secondary` text slot that sit on opposite sides of the
+line near that end, following the SysML v2 notation — the role name (`Primary`) above a horizontal end run or
+to the right of a vertical one, and the multiplicity with its adornments (`Secondary`) below a horizontal end
+run or to the left of a vertical one. A null slot is not drawn and both members default to `null`, so a line
+built with only its original members renders exactly as before. The source label belongs at `Waypoints[0]`
+and the target label at `Waypoints[^1]`; the renderers place and draw them (see
+`ConnectorLabelPlacer.PlaceEndLabels`).
+
+`LayoutPort` carries an optional, appended `Appearance` (`PortAppearance`): a value record of a
+`PortDirection` arrow (`None`, `In`, `Out`, `InOut`), a `PortGlyph` (`Auto`, `Filled`, `Outlined`, `Proxy`), an
+outline `LineStyle` (dashed for a SysML reference port), and a `PortLabelPlacement` (`Auto`, `Inward`,
+`Outward`). Unlike `SourcePort`, renderers do read it. A `null` appearance, and a default `PortAppearance`, are
+the legacy look exactly: `ResolvedGlyph` maps `Auto` to the legacy `Filled` 8 × 8 square when there is no arrow
+and the outline is solid, and to `Outlined` otherwise. `Outlined` is a background-filled 12 × 12 rounded square
+with the theme stroke and the direction arrow inside; `Proxy` is a filled circle drawn on the connector line;
+`Outward` draws the external label outside the owning box. The consumer composes the label text, so
+`name : Type`, a conjugation tilde, or a nested port path is just the label string.
+
 ### Layout Tree Key Methods
 
 N/A - the Layout Tree types are immutable data records with no behavioral methods. Each record type

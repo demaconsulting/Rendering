@@ -364,6 +364,50 @@ leaf box and asserts the label's estimated extent lies entirely left or right of
 `Rendering-Svg-SvgRenderer-BandDashed`, `Rendering-Svg-SvgRenderer-LifelineRoundedHeader`,
 `Rendering-Svg-SvgRenderer-LabelsAvoidBoxes`.
 
+#### Diamond box outline
+
+`SvgRenderer_Diamond_PolygonPointsAreTheFourEdgeMidpoints` asserts the diamond is a polygon whose points are the four
+box-edge midpoints, `SvgRenderer_Diamond_UsesDepthFillAndThemeStroke` asserts the depth fill and theme stroke,
+`SvgRenderer_Diamond_DashedAppearance_AddsDashArray` asserts the dash array,
+`SvgRenderer_Diamond_Scaled_ScalesThePolygonPoints` asserts the render scale, and
+`SvgRenderer_Diamond_Label_IsCenteredOnTheDiamond` asserts a centered title.
+`SvgRenderer_Rectangle_StillRendersAsRectNotPolygon` asserts rectangles keep their `<rect>` markup, and
+`SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon` asserts the PNG outline passes through every vertex and edge
+midpoint of the SVG polygon.
+
+**Covers**: `Rendering-Svg-SvgRenderer-DiamondShape`.
+
+#### Connection end labels
+
+`SvgRenderer_EndLabels_DrawnAtThePlacersPositions` asserts each of four slots is a `<text>` at the position the placer
+chose, `SvgRenderer_EndLabels_UseTheMidpointLabelFontWithoutABackground` asserts the midpoint label's anchor, baseline
+and font size and the absence of the background filter, `SvgRenderer_NullOrEmptyEndLabelSlots_ProduceNoText` and
+`SvgRenderer_LineWithoutEndLabels_ProducesNoLabelText` assert nothing is drawn for blank or absent labels,
+`SvgRenderer_EndLabelText_IsXmlEscaped` asserts escaping, `SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas` asserts
+the canvas includes a label that extends past the declared width, and
+`SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize` asserts the render scale.
+`SvgRenderer_PortEnd_LabelClearOfRetractedMarker` asserts a label at a marker end on a port is drawn at the port-aware
+placement, shifted outward by the retraction, and at least 4 px from the retracted marker. The gallery-project parity
+test `SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor` asserts the PNG label is centered on the SVG anchor.
+
+**Covers**: `Rendering-Svg-SvgRenderer-EndLabels`.
+
+#### Port glyphs
+
+`SvgRenderer_LegacyPort_IsTheHistoricalFilledSquare` pins the historical port markup (and that a default
+appearance renders identically). `SvgRenderer_OutlinedPort_IsARoundedBackgroundFilledSquare` and
+`SvgRenderer_DashedPort_HasADashArray` assert the outlined glyph and its dash array;
+`SvgRenderer_PortArrow_IsDrawnFromTheSharedGeometry` asserts, for ten direction and side combinations, that the
+polylines are the shared arrow geometry around the port centre, and `SvgRenderer_PortWithoutDirection_HasNoArrow`
+that there is no arrow without a direction. `SvgRenderer_ProxyPort_IsAFilledCircle` asserts the proxy circle.
+`SvgRenderer_OutwardLabel_IsDrawnAtTheSharedAnchorOutsideTheBox` asserts the outward label's anchor and that it
+lies outside the box on every side; `SvgRenderer_InwardLabelOfOutlinedPort_IsOffsetByTheGlyphHalfSize` asserts the
+inward label offset follows the glyph; `SvgRenderer_MarkerEndOnPort_IsShortenedByTheGlyphHalfSize` asserts the
+retreat for the legacy, outlined, and proxy glyphs; and `SvgRenderer_OutwardLabelBeyondTheCanvas_GrowsTheCanvas`
+asserts the canvas grows.
+
+**Covers**: `Rendering-Svg-SvgRenderer-PortGlyphs`.
+
 ### Requirements Coverage
 
 - **`Rendering-Svg-SvgRenderer-ImplementsIRenderer`**:
@@ -497,3 +541,21 @@ leaf box and asserts the label's estimated extent lies entirely left or right of
   `LifelineKeyword_DrawsGuillemetLineAboveLabel`,
   `LifelineHeaderAppearance_DashedOutlineAndRegularLabel`, `LifelineDefault_MatchesLegacyMarkup`
 - **`Rendering-Svg-SvgRenderer-LabelsAvoidBoxes`**: `LineLabel_MidpointOnLeafBox_IsPlacedClear`
+- **`Rendering-Svg-SvgRenderer-DiamondShape`**:
+  `SvgRenderer_Diamond_PolygonPointsAreTheFourEdgeMidpoints`, `SvgRenderer_Diamond_UsesDepthFillAndThemeStroke`,
+  `SvgRenderer_Diamond_DashedAppearance_AddsDashArray`, `SvgRenderer_Diamond_Scaled_ScalesThePolygonPoints`,
+  `SvgRenderer_Rectangle_StillRendersAsRectNotPolygon`, `SvgRenderer_Diamond_Label_IsCenteredOnTheDiamond`,
+  `SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon`
+- **`Rendering-Svg-SvgRenderer-EndLabels`**: `SvgRenderer_EndLabels_DrawnAtThePlacersPositions`,
+  `SvgRenderer_EndLabels_UseTheMidpointLabelFontWithoutABackground`,
+  `SvgRenderer_NullOrEmptyEndLabelSlots_ProduceNoText`, `SvgRenderer_LineWithoutEndLabels_ProducesNoLabelText`,
+  `SvgRenderer_EndLabelText_IsXmlEscaped`, `SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas`,
+  `SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize`, `SvgRenderer_PortEnd_LabelClearOfRetractedMarker`,
+  `SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor`
+- **`Rendering-Svg-SvgRenderer-PortGlyphs`**:
+  `SvgRenderer_LegacyPort_IsTheHistoricalFilledSquare`, `SvgRenderer_OutlinedPort_IsARoundedBackgroundFilledSquare`,
+  `SvgRenderer_DashedPort_HasADashArray`, `SvgRenderer_PortArrow_IsDrawnFromTheSharedGeometry`,
+  `SvgRenderer_PortWithoutDirection_HasNoArrow`, `SvgRenderer_ProxyPort_IsAFilledCircle`,
+  `SvgRenderer_OutwardLabel_IsDrawnAtTheSharedAnchorOutsideTheBox`,
+  `SvgRenderer_InwardLabelOfOutlinedPort_IsOffsetByTheGlyphHalfSize`,
+  `SvgRenderer_MarkerEndOnPort_IsShortenedByTheGlyphHalfSize`, `SvgRenderer_OutwardLabelBeyondTheCanvas_GrowsTheCanvas`

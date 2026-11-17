@@ -688,3 +688,67 @@ sections:
           obstacle moves the label to a clear position on the line.
         tests:
           - LineLabel_MidpointOnLeafBox_IsPlacedClear
+
+      - id: Rendering-Svg-SvgRenderer-DiamondShape
+        title: >-
+          SvgRenderer shall draw a diamond-shaped box as a polygon through the four bounding-box edge
+          midpoints with the depth fill, theme stroke, and optional dash pattern of every other box
+          outline, while rectangle boxes keep their plain rect markup.
+        justification: |
+          A diamond node (decision, merge) must show its real outline for the connectors anchored on it
+          to touch it. Reusing the box fill, stroke, and dash handling keeps the diamond consistent
+          with the other shapes, and leaving the default shapes untouched keeps existing output
+          byte-identical.
+        tests:
+          - SvgRenderer_Diamond_PolygonPointsAreTheFourEdgeMidpoints
+          - SvgRenderer_Diamond_UsesDepthFillAndThemeStroke
+          - SvgRenderer_Diamond_DashedAppearance_AddsDashArray
+          - SvgRenderer_Diamond_Scaled_ScalesThePolygonPoints
+          - SvgRenderer_Rectangle_StillRendersAsRectNotPolygon
+          - SvgRenderer_Diamond_Label_IsCenteredOnTheDiamond
+          - SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon
+
+      - id: Rendering-Svg-SvgRenderer-EndLabels
+        title: >-
+          SvgRenderer shall draw each non-empty end-label slot of a line as a centered text element,
+          with the midpoint label's font and no background, at the position the end-label placer chose
+          after the midpoint labels, escape its text, grow the canvas to include it, and draw nothing
+          for a line without end labels. A marker end on a port shall be passed to the placer with the
+          tree's ports so the label is measured from the retracted marker.
+        justification: |
+          Using the shared placer and the midpoint label's style makes the end labels look like the
+          other connector text and identical to the PNG output; placing them after the midpoint
+          labels leaves existing diagrams unchanged.
+        tests:
+          - SvgRenderer_EndLabels_DrawnAtThePlacersPositions
+          - SvgRenderer_EndLabels_UseTheMidpointLabelFontWithoutABackground
+          - SvgRenderer_NullOrEmptyEndLabelSlots_ProduceNoText
+          - SvgRenderer_LineWithoutEndLabels_ProducesNoLabelText
+          - SvgRenderer_EndLabelText_IsXmlEscaped
+          - SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas
+          - SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize
+          - SvgRenderer_PortEnd_LabelClearOfRetractedMarker
+          - SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor
+
+      - id: Rendering-Svg-SvgRenderer-PortGlyphs
+        title: >-
+          SvgRenderer shall draw a port with the legacy markup when it has no appearance (or a default
+          one); as a background-filled rounded square with an optional dash array and a direction arrow
+          for an outlined glyph; as a filled circle for a proxy port; shall draw an outward label at the
+          shared anchor outside the owning box and grow the canvas to include it; and shall shorten a
+          marker end on a port by the glyph's own half size.
+        justification: |
+          The legacy port must stay byte-identical; the new glyphs follow the SysML notation and use the
+          shared geometry so the raster output matches; shortening by the glyph's own size keeps an
+          arrowhead tip on the glyph's outer edge instead of hidden under a larger glyph.
+        tests:
+          - SvgRenderer_LegacyPort_IsTheHistoricalFilledSquare
+          - SvgRenderer_OutlinedPort_IsARoundedBackgroundFilledSquare
+          - SvgRenderer_DashedPort_HasADashArray
+          - SvgRenderer_PortArrow_IsDrawnFromTheSharedGeometry
+          - SvgRenderer_PortWithoutDirection_HasNoArrow
+          - SvgRenderer_ProxyPort_IsAFilledCircle
+          - SvgRenderer_OutwardLabel_IsDrawnAtTheSharedAnchorOutsideTheBox
+          - SvgRenderer_InwardLabelOfOutlinedPort_IsOffsetByTheGlyphHalfSize
+          - SvgRenderer_MarkerEndOnPort_IsShortenedByTheGlyphHalfSize
+          - SvgRenderer_OutwardLabelBeyondTheCanvas_GrowsTheCanvas

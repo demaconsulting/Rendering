@@ -109,7 +109,12 @@ internal sealed class CycleBreaker : ILayoutStage
                 continue;
             }
 
-            result.Add(new LayerEdge(from, to));
+            // A reversed edge flips its endpoints, so its end-label space flips with them: each label
+            // reservation stays with the node it belongs to.
+            var (fromLabelAlong, toLabelAlong) = isBack
+                ? (e.TargetLabelAlong, e.SourceLabelAlong)
+                : (e.SourceLabelAlong, e.TargetLabelAlong);
+            result.Add(new LayerEdge(from, to, fromLabelAlong, toLabelAlong));
             reversed.Add(isBack);
             originalIndex.Add(idx);
         }

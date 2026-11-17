@@ -185,10 +185,22 @@ internal sealed class LayeredGraph
     public bool MergeParallelEdges { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets whether <see cref="PortAligner"/> slides connector ports along their faces so the
+    /// two ends of an edge line up (a straight final run) when both faces allow it.
+    /// </summary>
+    /// <remarks>
+    /// The default, <see langword="true"/>, produces the straight shared-face runs of Rendering#57.
+    /// Setting it to <see langword="false"/> skips the stage and reproduces the pre-alignment
+    /// geometry exactly, which is how the pipeline-equivalence gate keeps comparing every other stage
+    /// bit-for-bit against the frozen legacy oracle.
+    /// </remarks>
+    public bool AlignPorts { get; set; } = true;
+
+    /// <summary>
     /// Creates a fresh child <see cref="LayeredGraph"/> for one connected component of
     /// <paramref name="parent"/> (used by <see cref="ComponentPacker"/>), copying every caller-configured
-    /// input option — <see cref="BackEdgeEntryApproach"/>, <see cref="NodeSpacing"/>, and
-    /// <see cref="MergeParallelEdges"/> — from <paramref name="parent"/>, so a component sub-graph is
+    /// input option — <see cref="BackEdgeEntryApproach"/>, <see cref="NodeSpacing"/>,
+    /// <see cref="MergeParallelEdges"/>, and <see cref="AlignPorts"/> — from <paramref name="parent"/>, so a component sub-graph is
     /// laid out under exactly the same caller-requested settings as the whole graph.
     /// </summary>
     /// <remarks>
@@ -219,6 +231,7 @@ internal sealed class LayeredGraph
             BackEdgeEntryApproach = parent.BackEdgeEntryApproach,
             NodeSpacing = parent.NodeSpacing,
             MergeParallelEdges = parent.MergeParallelEdges,
+            AlignPorts = parent.AlignPorts,
         };
     }
 
@@ -276,6 +289,13 @@ internal sealed class LayeredGraph
 
     /// <summary>Gets or sets the target-side (left face) port Y for each augmented sub-edge.</summary>
     public double[] AugPortYTgt { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets, per corridor (index = source layer), the extra space the first bend of every
+    /// connector leaving that layer is kept away from the source column so source end labels fit on the
+    /// straight run. All zero unless an edge carries <see cref="LayerEdge.SourceLabelAlong"/>.
+    /// </summary>
+    public double[] CorridorSourceLabelAlong { get; set; } = [];
 
     /// <summary>Gets or sets the orthogonal bend points for each augmented sub-edge.</summary>
     public List<Point2D>[] AugBendPoints { get; set; } = [];

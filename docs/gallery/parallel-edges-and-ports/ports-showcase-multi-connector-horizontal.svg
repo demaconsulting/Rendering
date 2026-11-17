@@ -43,13 +43,13 @@
   <path d="M 140.00 45.00 L 146.00 45.00 A 4.00 4.00 0 0 1 150.00 49.00 L 150.00 75.00 A 4.00 4.00 0 0 0 154.00 79.00 L 206.00 79.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <rect x="206.00" y="75.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
   <text x="220.00" y="91.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">a rather long telemetry feed</text>
-  <path d="M 140.00 125.00 L 149.00 125.00 A 1.00 1.00 0 0 0 150.00 124.00 L 150.00 124.00 A 1.00 1.00 0 0 1 151.00 123.00 L 206.00 123.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <rect x="206.00" y="119.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
-  <text x="220.00" y="135.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">heartbeat</text>
+  <path d="M 140.00 124.00 L 206.00 124.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="206.00" y="120.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="220.00" y="136.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="start" dominant-baseline="middle">heartbeat</text>
   <path d="M 538.60 79.00 L 544.60 79.00 A 4.00 4.00 0 0 0 548.60 75.00 L 548.60 49.00 A 4.00 4.00 0 0 1 552.60 45.00 L 608.60 45.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
   <rect x="534.60" y="75.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
   <text x="528.60" y="91.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">primary drive command</text>
-  <path d="M 538.60 123.00 L 547.60 123.00 A 1.00 1.00 0 0 1 548.60 124.00 L 548.60 124.00 A 1.00 1.00 0 0 0 549.60 125.00 L 608.60 125.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <rect x="534.60" y="119.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
-  <text x="528.60" y="135.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">diag</text>
+  <path d="M 538.60 124.00 L 608.60 124.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="534.60" y="120.00" width="8.00" height="8.00" fill="#C0C0D8" stroke="#1E1E2E" stroke-width="1.00"/>
+  <text x="528.60" y="136.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#C0C0D8" text-anchor="end" dominant-baseline="middle">diag</text>
 </svg>

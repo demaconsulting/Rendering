@@ -387,3 +387,62 @@ sections:
           moves the label to a clear position on the line.
         tests:
           - PngLineLabel_MidpointOnLeafBox_DoesNotEraseBoxBorder
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-DiamondShape
+        title: >-
+          CanvasNetRasterRenderer shall draw a diamond-shaped box as a filled and stroked path through
+          the same four bounding-box edge midpoints the SVG renderer uses, honoring the dash pattern,
+          so a diamond looks the same in PNG and SVG.
+        justification: |
+          Connectors anchor on the diamond outline, so the raster outline must pass through the same
+          vertices as the vector one; sharing the vertex helper makes the two identical by
+          construction, and a parity test reads the SVG polygon back against PNG pixels.
+        tests:
+          - PngDiamond_HasInkAtTheFourVertices
+          - PngDiamond_BoundingBoxCornersAreEmpty
+          - PngDiamond_InteriorIsFilledWithTheDepthFill
+          - PngDiamond_Dashed_HasLessInkAlongTheEdgeThanSolid
+          - SysmlPortsParity_DiamondShape_PngOutlineMatchesSvgPolygon
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels
+        title: >-
+          CanvasNetRasterRenderer shall draw each non-empty end-label slot of a line as text centered
+          on the position the end-label placer chose, without a background rectangle, and grow the
+          surface to include it, so end labels look the same in PNG and SVG; a marker end on a port
+          shall be passed to the placer with the tree's ports so the label is measured from the
+          retracted marker.
+        justification: |
+          The raster output must show the same labels in the same places as the vector output; the
+          shared placer fixes the positions and centering the text on the placement matches the SVG
+          anchor.
+        tests:
+          - PngEndLabels_HaveInkInsideEachPlacedRectangle
+          - PngEndLabels_InkIsCenteredOnThePlacement
+          - PngLineWithoutEndLabels_HasNoInkBesideTheLine
+          - PngEndLabelBeyondTheSurface_GrowsTheSurface
+          - PngPortEnd_LabelClearOfRetractedMarker
+          - SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphs
+        title: >-
+          CanvasNetRasterRenderer shall draw the same port glyphs as the SVG renderer — the legacy filled
+          square unchanged, an outlined rounded square with an optional dashed outline and direction
+          arrow, a proxy circle — draw an outward label outside the owning box, grow the surface to
+          include it, and shorten a marker end on a port by the glyph's own half size, with identical
+          geometry in both formats.
+        justification: |
+          The raster output must show the same ports as the vector output; both draw from the shared
+          NotationMetrics geometry, and parity tests read the SVG back against PNG pixels for every
+          direction, side, and outline style.
+        tests:
+          - PngLegacyPort_IsAFilledEightPixelSquare
+          - PngOutlinedPort_HasABackgroundInteriorAndAnInkOutline
+          - PngOutlinedPort_DirectionArrow_PutsInkInsideTheGlyph
+          - PngOutlinedPort_InAndOutArrows_PointOppositeWays
+          - PngDashedPort_HasLessOutlineInkThanSolid
+          - PngProxyPort_IsAFilledCircle
+          - PngOutwardLabel_HasInkOutsideTheBoxAndNoneInsideIt
+          - SysmlPortsParity_OutlinedGlyph_PngFootprintAndArrowMatchSvg
+          - SysmlPortsParity_ProxyPort_PngCircleMatchesSvgCircle
+          - SysmlPortsParity_OutwardLabel_PngTextMatchesSvgAnchor
+          - SysmlPortsParity_PortGlyph_MarkerEndShortenedIdenticallyInBothRenderers

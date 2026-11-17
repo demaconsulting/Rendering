@@ -176,3 +176,13 @@ sections:
           unchanged lets every renderer draw the notation for a packed diagram exactly as for a layered one.
         tests:
           - ContainmentLayout_NodeAppearance_ReachesPlacedBox
+
+      - id: Rendering-Layout-ContainmentAlgorithm-EndLabelPassThrough
+        title: >-
+          ContainmentLayoutAlgorithm shall carry each edge's source and target end labels onto its
+          routed line.
+        justification: |
+          The containment algorithm routes its edges through the connector router; copying the labels
+          there keeps a packed diagram's connection ends labeled.
+        tests:
+          - ContainmentLayout_EdgeEndLabels_ReachPlacedLine
