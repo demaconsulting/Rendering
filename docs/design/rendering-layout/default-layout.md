@@ -53,8 +53,7 @@ would, while a nested graph is composed correctly — with no decision required 
   bundled algorithms; the `LayoutAlgorithmRegistry` it populates remains in Abstractions. This keeps the
   dependency direction intact (model &lt;- Abstractions &lt;- Layout).
 - The facade shall default to the hierarchical engine, not the layered algorithm, so one entry point
-  handles both flat and nested graphs; the flat-graph equivalence guarantee makes this behavior-
-  preserving.
+  handles both flat and nested graphs; the flat-graph equivalence guarantee makes this behavior-preserving.
 - The facade shall consult only an explicit algorithm declaration on the graph when resolving, so an
   unset graph reaches the hierarchical default rather than the layered property default.
 

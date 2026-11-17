@@ -30,8 +30,8 @@ A verification run passes when every named scenario below asserts without unexpe
 the referenced tests cover each `Rendering-Layout-DefaultRegistry-*` and
 `Rendering-Layout-LayoutEngine-*` requirement. Any drift in the bundled algorithm set, in the
 default algorithm identifier (`"hierarchical"`), in the resolution against an explicit graph-level
-declaration, in the flat-graph equivalence guarantee, in nested composition, or in the argument-
-null validation behavior constitutes a failure.
+declaration, in the flat-graph equivalence guarantee, in nested composition, or in the argument-null
+validation behavior constitutes a failure.
 
 ### Test Scenarios
 

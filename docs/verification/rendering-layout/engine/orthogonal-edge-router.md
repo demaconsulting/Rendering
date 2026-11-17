@@ -8,8 +8,8 @@ This document maps the OrthogonalEdgeRouter unit requirements to named test scen
 
 `OrthogonalEdgeRouter` is a stateless static engine, so verification is by direct xUnit unit tests
 that call `Route` and `RouteWithStatus` on synthetic anchor / obstacle inputs. No mocks are used;
-the tests observe the real grid construction, A\*-style search, clearance-retry ladder, and cost-
-band biasing so orthogonality, obstacle avoidance, clearance, perpendicular ends, and crossing
+the tests observe the real grid construction, A\*-style search, clearance-retry ladder, and cost-band
+biasing so orthogonality, obstacle avoidance, clearance, perpendicular ends, and crossing
 status are all measured on production output.
 
 #### Test Environment

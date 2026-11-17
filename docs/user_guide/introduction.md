@@ -815,8 +815,8 @@ choose:
 
 For the exact per-component routing rule `auto` applies — which component goes to which leaf — see the
 auto-routing meta-algorithm's design documentation. `auto` remains the recommended default, but it is
-not a substitute for understanding the output shape you want: when you already know a graph is a shared-
-rank disconnected set, a flat peer grid, or an explicitly sized nested hierarchy, selecting the leaf
+not a substitute for understanding the output shape you want: when you already know a graph is a shared-rank
+disconnected set, a flat peer grid, or an explicitly sized nested hierarchy, selecting the leaf
 algorithm directly gives a result `auto`'s shape-agnostic dispatch is not designed to produce.
 
 ## Selecting algorithms and renderers by registry

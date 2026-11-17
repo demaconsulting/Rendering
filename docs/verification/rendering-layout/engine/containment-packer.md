@@ -7,8 +7,8 @@ This document maps the ContainmentPacker unit requirements to named test scenari
 #### Verification Approach
 
 `ContainmentPacker` is a stateless static engine, so verification is by direct xUnit unit tests
-that call `Pack` on synthetic size lists. No mocks are used; the tests observe the real shelf-
-packing algorithm end-to-end so single-row placement, wrapping, non-overlap, oversized-item
+that call `Pack` on synthetic size lists. No mocks are used; the tests observe the real shelf-packing
+algorithm end-to-end so single-row placement, wrapping, non-overlap, oversized-item
 handling, and the reported region are all measured on production output.
 
 #### Test Environment
