@@ -63,3 +63,39 @@ collapses into the arrowhead, and connector labels are kept clear of node border
 Regression coverage for the back-edge entry approach: the two back edges (timeout and idleTimeout) end in a wrap-around
 corridor whose final leg is at least the rendered chevron plus the corner radius, so the chevron sits on a clean
 straight run with no collapsed corner inside it, and no connector label's background cuts a node border.
+
+## General View with Direction=Up (#59)
+
+With the flow direction Up (owners and generals on top, the SysML v2 General View convention) unconnected definitions
+used to be packed on the wrong pitch and overlap each other, and connectors between package folders were routed outside
+the canvas, so they and their labels were clipped. Disconnected nodes are now packed with their true on-screen size in
+every direction, and the canvas grows (moving the content in) to hold every connector and label. The before rendering is
+in the pull request, not in the repository.
+
+![Three package folders with unconnected definitions, flowing up](up-direction-general-view.svg)
+
+Regression coverage for Rendering#59: the unconnected definitions inside the folders (Unused1 to Unused4) and at the
+root (Orphan0 to Orphan2) are side by side without overlap, the specialization generals sit above their specifics, and
+the connectors between the folders and between nested definitions, with their import and satisfy labels, are entirely
+inside the canvas.
+
+![The Up-direction General View rendered through the raster path](up-direction-general-view.png)
+
+The same diagram through the CanvasNet raster renderer.
+
+## Edge keyword labels at the canvas edge (#61)
+
+Keyword labels such as the import, satisfy and verify labels sit on their connector, and a connector that runs around
+the outer edge of the diagram used to carry its label past the left edge, where it was clipped. The canvas now includes
+every connector label, and parallel keyword-labeled connectors into one node keep their arrowheads at least 16 px apart
+on a face with distinct labels. The before rendering is in the pull request, not in the repository.
+
+![Requirements, verification, library and vehicle folders joined by keyword edges](edge-keyword-labels.svg)
+
+Regression coverage for Rendering#61: the satisfy connector from the requirements runs around the left edge of the
+diagram and its label is entirely inside the canvas, the three import labels and the satisfy and verify labels are
+separate and clear of every box, and the arrowheads into the Vehicle definition keep their distance.
+
+![The keyword-labeled view rendered through the raster path](edge-keyword-labels.png)
+
+The same diagram through the CanvasNet raster renderer.

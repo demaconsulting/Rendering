@@ -20,7 +20,10 @@ hundreds of pseudo-random flat graphs to prove byte-identical behavior.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Project**: `test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs`, plus
   `NotationPrimitivePassThroughTests.cs` (appearance pass-through and in-tab folder title reserve) in the
-  same project.
+  same project. `DirectionLayoutGeometryTests.cs` and `EdgeKeywordLabelLayoutTests.cs` (with the shared
+  `DirectionScenes.cs` and `LayoutGeometryAssert.cs` helpers) cover isolated-node packing and canvas
+  containment of connectors and labels; the Gallery tests in
+  `test/DemaConsulting.Rendering.Gallery/GalleryShowcaseTests.cs` repeat the checks on rendered SVG and PNG.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and `LayoutOptions` instances. Deterministic pseudo-random graphs use
   fixed seeds so the equivalence suite is reproducible.
@@ -268,6 +271,21 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   places a container beside the ported leaf edge so the ports are copied onto the sized view with their labels
   and `Appearance` and the placed ports still carry the appearance.
 
+- **Isolated nodes** (`Rendering-Layout-HierarchicalLayout-IsolatedNodesNoOverlap`):
+  `HierarchicalLayout_IsolatedNodesInsideAndOutsideFolder_DoNotOverlap` (a theory over Down, Up, Left, and Right)
+  lays out isolated non-square nodes both inside and outside a folder and asserts no two boxes overlap.
+- **Content inside the canvas** (`Rendering-Layout-HierarchicalLayout-ContentInsideCanvas`):
+  `HierarchicalLayout_GeneralView_IsOverlapFreeAndInsideCanvas` and
+  `HierarchicalLayout_RootFolderConnectors_StayInsideCanvas` (theories over every direction) assert that every
+  connector waypoint, including cross-container connectors detouring around a root folder, lies inside the
+  canvas; `HierarchicalLayout_ImportLabels_AreInsideCanvasAndClear`,
+  `HierarchicalLayout_ManyImportLabelsBetweenRootFolders_AreInsideCanvasAndClear`, and
+  `HierarchicalLayout_KeywordLabeledView_LabelsInsideCanvasAndAnchorsApart` assert that every placed connector
+  label (`«import»` and similar) lies inside the canvas and clear of boxes and other labels, with arrowhead
+  anchors kept apart; the two Gallery tests
+  `Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps` and
+  `Gallery_EdgeKeywordLabels_RendersSvgAndPngWithLabelsInsideCanvas` assert the same on rendered SVG and PNG.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-HierarchicalLayout-Identity`**:
@@ -347,3 +365,12 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   HierarchicalLayout_LeafPortAppearance_ReachesPlacedPorts,
   HierarchicalLayout_SizedViewPortAppearance_ReachesPlacedPorts,
   HierarchicalLayout_BoundaryPortAppearance_ReachesTheSharedAnchor
+- **`Rendering-Layout-HierarchicalLayout-IsolatedNodesNoOverlap`**:
+  HierarchicalLayout_IsolatedNodesInsideAndOutsideFolder_DoNotOverlap
+- **`Rendering-Layout-HierarchicalLayout-ContentInsideCanvas`**:
+  HierarchicalLayout_GeneralView_IsOverlapFreeAndInsideCanvas, HierarchicalLayout_RootFolderConnectors_StayInsideCanvas,
+  HierarchicalLayout_ImportLabels_AreInsideCanvasAndClear,
+  HierarchicalLayout_ManyImportLabelsBetweenRootFolders_AreInsideCanvasAndClear,
+  HierarchicalLayout_KeywordLabeledView_LabelsInsideCanvasAndAnchorsApart,
+  Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps,
+  Gallery_EdgeKeywordLabels_RendersSvgAndPngWithLabelsInsideCanvas

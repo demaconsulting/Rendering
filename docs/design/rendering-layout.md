@@ -17,7 +17,8 @@ DemaConsulting.Rendering.Layout (System)
 │   ├── ContainmentPacker (Unit)
 │   ├── InterconnectionLayoutEngine (Unit)
 │   ├── LayeredPipeline (Unit)
-│   └── LayoutTreePacker (Unit)
+│   ├── LayoutTreePacker (Unit)
+│   └── CanvasFitter (Unit)
 ├── EdgeRoutingOption (Unit)
 ├── ConnectorRouter (Unit)
 ├── ContainmentLayout (Unit)
@@ -29,7 +30,8 @@ DemaConsulting.Rendering.Layout (System)
 ```
 
 - **Engine** — reusable, model-agnostic geometric engines (orthogonal routing, containment packing,
-  interconnection placement, the ELK-style layered stage pipeline, and layout-tree packing). Detailed
+  interconnection placement, the ELK-style layered stage pipeline, layout-tree packing, and canvas
+  fitting). Detailed
   in Engine Subsystem Design.
 - **EdgeRoutingOption** — routing-style configuration keys. Detailed in EdgeRoutingOption Unit Design.
 - **ConnectorRouter** — routes connectors among already placed boxes. Detailed in ConnectorRouter Unit
@@ -67,7 +69,7 @@ algorithms per connected component and packs their independently-placed results 
   the requested (or default) algorithm.
 - **`EdgeRoutingOption`** — outbound `LayoutProperty` keys that select connector routing style.
 - **Engine APIs (`OrthogonalEdgeRouter`, `ContainmentPacker`, `InterconnectionLayoutEngine`,
-  `LayeredPipeline`, `LayoutTreePacker`)** — internal geometric services composed by the public
+  `LayeredPipeline`, `LayoutTreePacker`, `CanvasFitter`)** — internal geometric services composed by the public
   algorithms; not intended for direct renderer use.
 
 ## Dependencies

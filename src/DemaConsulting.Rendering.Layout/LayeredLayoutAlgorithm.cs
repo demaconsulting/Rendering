@@ -745,7 +745,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             }
         }
 
-        return new LayoutTree(result.TotalWidth, result.TotalHeight, nodes);
+        return CanvasFitter.Fit(new LayoutTree(result.TotalWidth, result.TotalHeight, nodes), assumedFontSize);
     }
 
     /// <summary>

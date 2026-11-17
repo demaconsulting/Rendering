@@ -60,6 +60,15 @@
     </PackageReference>
   </ItemGroup>
 
+  <!-- Shared Test Sources -->
+  <!-- The Up-direction and keyword-label regression scenes are defined once, in the layout test project,
+       and compiled into the gallery too, so each gallery image is rendered from exactly the graph its
+       geometry regression tests assert on. -->
+  <ItemGroup>
+    <Compile Include="..\DemaConsulting.Rendering.Layout.Tests\DirectionScenes.cs" Link="Shared\DirectionScenes.cs" />
+    <Compile Include="..\DemaConsulting.Rendering.Layout.Tests\LayoutGeometryAssert.cs" Link="Shared\LayoutGeometryAssert.cs" />
+  </ItemGroup>
+
   <!-- Project References -->
   <!-- The gallery showcase exercises the full public rendering stack, so it references every
        delivered package: the model, the abstractions, the layout algorithms, and both renderers. -->

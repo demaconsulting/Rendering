@@ -77,6 +77,45 @@ public sealed class ComponentPackerTests
     }
 
     /// <summary>
+    ///     Disconnected non-square nodes are packed with their true on-screen extents in every direction.
+    ///     Regression test for issue #59: for Down/Up the normalized nodes carry swapped width/height, and the
+    ///     component bounding boxes were measured with those swapped extents, so a node 140 wide and 56
+    ///     high was packed on a 56-pixel pitch and overlapped its neighbor.
+    /// </summary>
+    /// <param name="directionName">The name of the <see cref="LayoutDirection"/> flow direction.</param>
+    [Theory]
+    [InlineData("Right")]
+    [InlineData("Left")]
+    [InlineData("Down")]
+    [InlineData("Up")]
+    public void ComponentPacker_Apply_DisconnectedNonSquareNodes_DoNotOverlapInAnyDirection(string directionName)
+    {
+        // Arrange: six isolated nodes 140 wide and 56 high (on screen, whatever the direction).
+        var nodes = Enumerable.Range(0, 6).Select(_ => new LayerNode(140.0, 56.0, RealWidth: 140.0, RealHeight: 56.0)).ToList();
+        var direction = Enum.Parse<LayoutDirection>(directionName);
+        var graph = new LayeredGraph(nodes, [], direction);
+
+        // Act
+        ComponentPacker.WithDefaultStages().Apply(graph);
+
+        // Assert: the screen rectangles (Down/Up nodes are stored swapped) never intersect.
+        var swapped = direction is LayoutDirection.Down or LayoutDirection.Up;
+        var width = swapped ? graph.Nodes[0].Height : graph.Nodes[0].Width;
+        var height = swapped ? graph.Nodes[0].Width : graph.Nodes[0].Height;
+        Assert.Equal(140.0, width);
+        Assert.Equal(56.0, height);
+        for (var a = 0; a < nodes.Count; a++)
+        {
+            for (var b = a + 1; b < nodes.Count; b++)
+            {
+                var overlapX = graph.AugX[a] < graph.AugX[b] + width - 1e-6 && graph.AugX[b] < graph.AugX[a] + width - 1e-6;
+                var overlapY = graph.AugY[a] < graph.AugY[b] + height - 1e-6 && graph.AugY[b] < graph.AugY[a] + height - 1e-6;
+                Assert.False(overlapX && overlapY, $"nodes {a} and {b} overlap in direction {direction}");
+            }
+        }
+    }
+
+    /// <summary>
     ///     A single connected component is a transparent pass-through: the packed output equals the
     ///     output of running the same inner stages directly on the graph.
     /// </summary>

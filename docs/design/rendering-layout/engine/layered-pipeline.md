@@ -171,6 +171,13 @@ runs directly — adding `ComponentPacker` only inside the hierarchical recursio
 disconnected flat graph. Wiring `ComponentPacker` into `InterconnectionLayoutEngine.Place` itself keeps
 both call paths consistent without special-casing the hierarchical recursion.
 
+For a Down or Up flow the pipeline stores each node with its width and height swapped (the along axis is
+the flow axis), so a component's bounding box measured from the stored sizes is transposed relative to
+what is drawn. `ComponentPacker` therefore measures each component with its on-screen extents — the stored
+height as the width and the stored width as the height for Down and Up — before running the shelf
+packing, so isolated non-square nodes are packed on the correct pitch and never overlap the connected
+component or each other, for every direction. Right and Left are unaffected, so their output is unchanged.
+
 #### Layered Pipeline End-Label Reservation
 
 `LayerEdge` has two optional members, `SourceLabelAlong` and `TargetLabelAlong`: the space, along the flow
@@ -331,6 +338,7 @@ public layout result contract.
 | Rendering-Layout-LayeredPipeline-BackEdgeApproach | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-LongEdgeJoining | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-ComponentPacking | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-ComponentPackingDownUp | Component packer on-screen extent measurement |
 | Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-ComponentPackingWiredIntoPlace | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-SharedState | Layered pipeline behavior described above |

@@ -209,6 +209,11 @@ failure.
   `ComponentPacker_Apply_Waypoints_TranslatedWithComponent`, `ComponentPacker_Apply_EmptyGraph_IsNoOp`,
   `ComponentPacker_Apply_SingleComponent_ParallelAndSelfEdges_ProducesAlignedWaypoints`, and
   `ComponentPacker_Apply_MultiComponent_ParallelAndSelfEdges_MergesAlignedWaypoints`.
+- **Component packing in every direction** (`Rendering-Layout-LayeredPipeline-ComponentPackingDownUp`):
+  `ComponentPacker_Apply_DisconnectedNonSquareNodes_DoNotOverlapInAnyDirection` is a theory over Right,
+  Left, Down, and Up that packs several disconnected non-square nodes and confirms no two placed
+  bounding boxes overlap, which fails for Down and Up if the components are measured with the internally
+  swapped node sizes.
 - **Component packing propagates back-edge approach**
   (`Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach`):
   `ComponentPacker_Apply_MultiComponent_PropagatesBackEdgeEntryApproach` builds two disconnected
@@ -358,6 +363,8 @@ failure.
   ComponentPacker_Apply_Waypoints_TranslatedWithComponent, ComponentPacker_Apply_EmptyGraph_IsNoOp,
   ComponentPacker_Apply_SingleComponent_ParallelAndSelfEdges_ProducesAlignedWaypoints,
   ComponentPacker_Apply_MultiComponent_ParallelAndSelfEdges_MergesAlignedWaypoints
+- **`Rendering-Layout-LayeredPipeline-ComponentPackingDownUp`**:
+  ComponentPacker_Apply_DisconnectedNonSquareNodes_DoNotOverlapInAnyDirection
 - **`Rendering-Layout-LayeredPipeline-PackedComponentsBackEdgeApproach`**:
   ComponentPacker_Apply_MultiComponent_PropagatesBackEdgeEntryApproach
 - **`Rendering-Layout-LayeredPipeline-ComponentPackingWiredIntoPlace`**:

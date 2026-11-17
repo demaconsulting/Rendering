@@ -172,7 +172,7 @@ internal static class LayoutTreePacker
     /// Thrown when <paramref name="node"/> is a <see cref="LayoutNode"/> subtype outside this packer's
     /// closed, verified set (see the type's remarks).
     /// </exception>
-    private static LayoutNode TranslateNode(LayoutNode node, double dx, double dy) => node switch
+    internal static LayoutNode TranslateNode(LayoutNode node, double dx, double dy) => node switch
     {
         LayoutBox box => box with
         {
