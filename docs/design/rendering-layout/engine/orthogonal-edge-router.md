@@ -22,8 +22,8 @@ cost function). The supporting internal types are:
   (`SourceLeg`/`TargetLeg`, `SourceComfort`/`TargetComfort`), a list of `RouterWall` keep-out strips and a
   `CrossingPenalty`, and a hard `MinInteriorSegment` (shortest segment between two bends, no reversal).
   A route computed without hints (or with all-zero hints) is exactly the legacy route.
-- `RouterWall(IsVertical, Coordinate, Lo, Hi, OutwardIsPositive)` — one container border: a direction-
-  selective obstacle that blocks runs parallel to the wall (and bends) within twice the current clearance
+- `RouterWall(IsVertical, Coordinate, Lo, Hi, OutwardIsPositive)` — one container border: a direction-selective
+  obstacle that blocks runs parallel to the wall (and bends) within twice the current clearance
   but never a move across it.
 - `PortRange(Side, Face, Preferred, Intervals, Extra, FixedPoint)` — where along one face the connector
   may attach (see `RoutePorts` below); `PortRange.Single` wraps one fixed anchor.
@@ -112,8 +112,8 @@ cost priced a long visual overlap identically to a trivial one and was always ch
 roughly fixed cost of a lane-change detour. Scaling the penalty by overlap length keeps a short,
 incidental overlap cheap while making an extended overlap cost substantially more than detouring to a
 free lane, so parallel connectors separate into distinct corridors instead of merging along a shared
-trunk. The redundant leave-and-
-return regression arose when endpoint-adjacent approach legs were also contributed as soft obstacles:
+trunk. The redundant leave-and-return
+regression arose when endpoint-adjacent approach legs were also contributed as soft obstacles:
 those are exactly the segments that several connectors may legitimately share when converging on one
 face, so penalizing them lured the search into a pointless excursion away from a usable approach point
 and back again. `ConnectorRouter` now omits those endpoint-adjacent segments from the soft-obstacle
