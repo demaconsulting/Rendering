@@ -405,6 +405,18 @@ placements as occupied rectangles, grows the canvas to include every end-label b
 draws each placement as a centered `<text>` with the midpoint label's font, fill, middle baseline, and `label-bg`
 filter (the text is XML-escaped). A line without end labels adds nothing, so existing output is unchanged.
 
+#### Port Glyphs
+
+`RenderPort` draws the legacy filled 8 × 8 `<rect>` (byte-identical markup) when the port has no appearance or
+resolves to `PortGlyph.Filled`. An outlined glyph is a `<rect>` of `2 × PortGlyphHalfSize` with `rx`/`ry` of
+`PortGlyphCornerRadius`, filled with the theme background, stroked with the theme stroke and (for a dashed
+outline) the box dash array, followed by one `<polyline>` per `NotationMetrics.PortArrowSegments` segment. A
+proxy port is a `<circle>` of `PortProxyRadius` filled with the stroke color. An inward label is offset by the
+glyph's own half size; an outward label is a `<text>` at `NotationMetrics.PortOutwardLabelAnchor` with
+`text-anchor` start or end and no width squeeze. The marker end shortening (`RetreatFromPort`) retreats by the
+glyph's own half size, and the canvas grows to include every outward label; the port glyph and label rectangles
+are also passed to the end-label placer as occupied rectangles.
+
 ### Error Handling
 
 `Render` throws `ArgumentNullException` when `layout`, `options`, or `output` is null. No other

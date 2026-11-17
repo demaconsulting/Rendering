@@ -122,6 +122,16 @@ built with only its original members renders exactly as before. The source label
 and the target label at `Waypoints[^1]`; the renderers place and draw them (see
 `ConnectorLabelPlacer.PlaceEndLabels`).
 
+`LayoutPort` carries an optional, appended `Appearance` (`PortAppearance`): a value record of a
+`PortDirection` arrow (`None`, `In`, `Out`, `InOut`), a `PortGlyph` (`Auto`, `Filled`, `Outlined`, `Proxy`), an
+outline `LineStyle` (dashed for a SysML reference port), and a `PortLabelPlacement` (`Auto`, `Inward`,
+`Outward`). Unlike `SourcePort`, renderers do read it. A `null` appearance, and a default `PortAppearance`, are
+the legacy look exactly: `ResolvedGlyph` maps `Auto` to the legacy `Filled` 8 × 8 square when there is no arrow
+and the outline is solid, and to `Outlined` otherwise. `Outlined` is a background-filled 12 × 12 rounded square
+with the theme stroke and the direction arrow inside; `Proxy` is a filled circle drawn on the connector line;
+`Outward` draws the external label outside the owning box. The consumer composes the label text, so
+`name : Type`, a conjugation tilde, or a nested port path is just the label string.
+
 ### Layout Tree Key Methods
 
 N/A - the Layout Tree types are immutable data records with no behavioral methods. Each record type

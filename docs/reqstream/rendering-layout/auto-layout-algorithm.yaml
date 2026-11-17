@@ -198,3 +198,13 @@ sections:
           silently disappear for every diagram laid out through it.
         tests:
           - AutoLayout_EdgeEndLabels_SurviveClone
+
+      - id: Rendering-Layout-AutoAlgorithm-PortAppearancePassThrough
+        title: >-
+          AutoLayoutAlgorithm shall carry a graph port's appearance through the sub-graphs it builds for
+          its leaf algorithms.
+        justification: |
+          A port appearance not copied onto the cloned port would silently revert to the legacy glyph for
+          every diagram laid out through the auto algorithm.
+        tests:
+          - AutoLayout_PortAppearance_ReachesPlacedPorts

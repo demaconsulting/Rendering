@@ -165,6 +165,17 @@ they yield to), grows the surface to include them, and draws each as text center
 background-colored rectangle behind it. The text is centered vertically on the placement (baseline about 0.35 em
 below it), the same anchor the SVG renderer's `dominant-baseline="middle"` text uses, so the two formats agree.
 
+#### Port Glyphs
+
+`RenderPort` draws the legacy filled 8 × 8 square unchanged for a port without an appearance. An outlined glyph is
+a background-filled rounded rectangle stroked with the theme stroke (a dashed outline through the same
+rounded-rectangle path the dashed boxes use) with each `NotationMetrics.PortArrowSegments` segment stroked as a
+polyline; a proxy port is a filled circle with a background ring. An outward label is drawn with the text
+centered vertically on `NotationMetrics.PortOutwardLabelAnchor` (the anchor the SVG text uses) and aligned right
+or left of it; the surface grows to include it, and marker end shortening uses the glyph's own half size. The
+shared helpers make the two renderers identical; `SysmlPortsParityTests` in the gallery project reads the SVG
+geometry back against PNG pixels for every direction, side, and outline style.
+
 ### CanvasNetRasterRenderer Design Constraints
 
 - The rasterizer shall enforce a minimum surface size of one by one pixels before allocating the

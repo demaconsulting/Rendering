@@ -215,6 +215,9 @@ Edge end labels (`SourceEndLabel`, `TargetEndLabel`) are copied onto the placed 
 the layered algorithm) and for cross-container edges (through the `Connection` handed to `ConnectorRouter`).
 Cross-container connectors reserve no room for their labels.
 
+A port's `Appearance` is copied onto the placed port for leaf-scope edges (through the layered algorithm) and for
+a boundary port projected onto its container boundary (`MergeRegionDecomposer.ProjectPorts`).
+
 ### HierarchicalLayoutAlgorithm Design Constraints
 
 - The flat-graph equivalence guarantee is load-bearing: the fast path must delegate directly to the

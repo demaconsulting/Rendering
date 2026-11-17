@@ -91,12 +91,16 @@ public sealed class SvgRenderer : IRenderer
 
         // Connection end labels (role name, multiplicity) are placed after the midpoint labels, which they
         // yield to, so midpoint placement is identical with or without them.
+        // Port glyphs and outward port labels are drawn content too, so end labels keep clear of them.
+        var allPorts = new List<LayoutPort>();
+        CollectPorts(layout.Nodes, allPorts);
+        var portRects = PortOccupiedRects(allPorts, theme);
         var endLabelPlacements = ConnectorLabelPlacer.PlaceEndLabels(
             lines,
             theme.FontSizeBody,
             CollectBoxes(layout.Nodes),
             NotationMetrics.MarkerScale(theme),
-            labelPositions.Values);
+            labelPositions.Values.Concat(portRects));
 
         // Compute canvas dimensions, ensuring a minimum 1×1 canvas, then grow to fully include every
         // placed label's bounding box (a label can be nudged beyond the box/routing geometry's
@@ -113,6 +117,14 @@ public sealed class SvgRenderer : IRenderer
         {
             width = Math.Max(width, (placement.X + placement.HalfWidth) * options.Scale);
             height = Math.Max(height, (placement.Y + placement.HalfHeight) * options.Scale);
+        }
+
+        // An outward port label hangs outside its box and can extend past the declared canvas.
+        foreach (var port in allPorts.Where(NotationMetrics.IsOutwardLabel))
+        {
+            var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
+            width = Math.Max(width, (bounds.X + bounds.HalfWidth) * options.Scale);
+            height = Math.Max(height, (bounds.Y + bounds.HalfHeight) * options.Scale);
         }
 
         // Write SVG root element with explicit namespace and viewBox
@@ -1210,20 +1222,25 @@ public sealed class SvgRenderer : IRenderer
     private static Point2D? RetreatFromPort(Point2D end, Point2D adjacent, List<LayoutPort> ports)
     {
         const double portTolerance = 0.5;
-        if (!ports.Exists(port => Math.Abs(port.CentreX - end.X) <= portTolerance && Math.Abs(port.CentreY - end.Y) <= portTolerance))
+        var onPort = ports.Find(port => Math.Abs(port.CentreX - end.X) <= portTolerance && Math.Abs(port.CentreY - end.Y) <= portTolerance);
+        if (onPort is null)
         {
             return null;
         }
+
+        // The retreat is the glyph's own half size (4 px for the legacy square, more for an outlined glyph
+        // or proxy circle), so the painted tip lands on the glyph's outer edge whichever glyph it is.
+        var halfSize = NotationMetrics.PortGlyphHalfSizeFor(onPort.Appearance);
 
         var dx = adjacent.X - end.X;
         var dy = adjacent.Y - end.Y;
         var length = Math.Sqrt((dx * dx) + (dy * dy));
-        if (length <= NotationMetrics.PortHalfSize)
+        if (length <= halfSize)
         {
             return null;
         }
 
-        var fraction = NotationMetrics.PortHalfSize / length;
+        var fraction = halfSize / length;
         return new Point2D(end.X + (dx * fraction), end.Y + (dy * fraction));
     }
 
@@ -1460,14 +1477,30 @@ public sealed class SvgRenderer : IRenderer
     /// <param name="scale">Uniform scale factor.</param>
     private static void RenderPort(StringBuilder sb, LayoutPort port, Theme theme, double scale)
     {
-        // Port square: filled with the stroke color, sized from NotationMetrics.
-        var rx = (port.CentreX - NotationMetrics.PortHalfSize) * scale;
-        var ry = (port.CentreY - NotationMetrics.PortHalfSize) * scale;
-        var rs = NotationMetrics.PortSize * scale;
+        // Glyph: the legacy filled 8x8 square (byte-identical markup) unless the appearance asks for an
+        // outlined glyph (rounded square with an optional dashed outline and direction arrow) or a proxy
+        // circle. The geometry comes from NotationMetrics so the raster renderer draws the same shapes.
+        switch (port.Appearance?.ResolvedGlyph)
+        {
+            case PortGlyph.Outlined:
+                RenderOutlinedPortGlyph(sb, port, theme, scale);
+                break;
 
-        sb.Append(
-            $"""  <rect x="{F(rx)}" y="{F(ry)}" width="{F(rs)}" height="{F(rs)}" fill="{theme.StrokeColor}" stroke="{theme.BackgroundColor}" stroke-width="{F(PortGlyphStrokeWidth * scale)}"/>""");
-        sb.AppendLine();
+            case PortGlyph.Proxy:
+                sb.Append(
+                    $"""  <circle cx="{F(port.CentreX * scale)}" cy="{F(port.CentreY * scale)}" r="{F(NotationMetrics.PortProxyRadius * scale)}" fill="{theme.StrokeColor}" stroke="{theme.BackgroundColor}" stroke-width="{F(PortGlyphStrokeWidth * scale)}"/>""");
+                sb.AppendLine();
+                break;
+
+            default:
+                var rx = (port.CentreX - NotationMetrics.PortHalfSize) * scale;
+                var ry = (port.CentreY - NotationMetrics.PortHalfSize) * scale;
+                var rs = NotationMetrics.PortSize * scale;
+                sb.Append(
+                    $"""  <rect x="{F(rx)}" y="{F(ry)}" width="{F(rs)}" height="{F(rs)}" fill="{theme.StrokeColor}" stroke="{theme.BackgroundColor}" stroke-width="{F(PortGlyphStrokeWidth * scale)}"/>""");
+                sb.AppendLine();
+                break;
+        }
 
         // Labels. InternalLabel (when present) always renders inward, toward the box interior, beside
         // the port glyph. ExternalLabel renders inward too whenever there is no InternalLabel (a plain,
@@ -1479,11 +1512,81 @@ public sealed class SvgRenderer : IRenderer
             EmitPortLabel(sb, port, port.InternalLabel, port.Side, theme, scale);
         }
 
-        if (port.ExternalLabel != null)
+        if (NotationMetrics.IsOutwardLabel(port))
+        {
+            EmitOutwardPortLabel(sb, port, theme, scale);
+        }
+        else if (port.ExternalLabel != null)
         {
             var side = port.InternalLabel != null ? OppositeSide(port.Side) : port.Side;
             EmitPortLabel(sb, port, port.ExternalLabel, side, theme, scale);
         }
+    }
+
+    /// <summary>
+    /// Renders an outlined port glyph: a background-filled rounded square with the theme stroke (dashed for
+    /// a reference port), then the direction arrow as one polyline per segment of
+    /// <see cref="NotationMetrics.PortArrowSegments"/> around the port centre.
+    /// </summary>
+    /// <param name="sb">String builder receiving the SVG markup.</param>
+    /// <param name="port">The port whose glyph is drawn.</param>
+    /// <param name="theme">Visual theme providing stroke and background colors.</param>
+    /// <param name="scale">Uniform scale factor.</param>
+    private static void RenderOutlinedPortGlyph(StringBuilder sb, LayoutPort port, Theme theme, double scale)
+    {
+        var half = NotationMetrics.PortGlyphHalfSize;
+        var corner = NotationMetrics.PortGlyphCornerRadius * scale;
+        var dash = DashAttribute(port.Appearance?.OutlineStyle ?? LineStyle.Solid);
+        sb.Append(
+            $"""  <rect x="{F((port.CentreX - half) * scale)}" y="{F((port.CentreY - half) * scale)}" width="{F(2.0 * half * scale)}" height="{F(2.0 * half * scale)}" rx="{F(corner)}" ry="{F(corner)}" fill="{theme.BackgroundColor}" stroke="{theme.StrokeColor}" stroke-width="{F(theme.StrokeWidth)}"{dash}/>""");
+        sb.AppendLine();
+
+        foreach (var segment in NotationMetrics.PortArrowSegments(port.Appearance?.Direction ?? PortDirection.None, port.Side))
+        {
+            var points = string.Join(" ", segment.Select(point => $"{F((port.CentreX + point.X) * scale)},{F((port.CentreY + point.Y) * scale)}"));
+            sb.Append(
+                $"""  <polyline points="{points}" fill="none" stroke="{theme.StrokeColor}" stroke-width="{F(PortGlyphStrokeWidth * scale)}" stroke-linecap="round" stroke-linejoin="round"/>""");
+            sb.AppendLine();
+        }
+    }
+
+    /// <summary>
+    /// Emits a port's external label outside the owning box, beside the connector, at the anchor
+    /// <see cref="NotationMetrics.PortOutwardLabelAnchor"/> returns (never squeezed: it lies outside the box).
+    /// </summary>
+    /// <param name="sb">String builder receiving the SVG markup.</param>
+    /// <param name="port">The port whose outward label is drawn.</param>
+    /// <param name="theme">Visual theme providing font settings.</param>
+    /// <param name="scale">Uniform scale factor.</param>
+    private static void EmitOutwardPortLabel(StringBuilder sb, LayoutPort port, Theme theme, double scale)
+    {
+        var anchor = NotationMetrics.PortOutwardLabelAnchor(port, theme);
+        var textAnchor = anchor.Align == PortLabelAlign.End ? "end" : "start";
+        sb.Append(
+            $"""  <text x="{F(anchor.X * scale)}" y="{F(anchor.Y * scale)}" font-family="Noto Sans, sans-serif" font-size="{F(theme.FontSizeBody * scale)}" fill="{theme.StrokeColor}" text-anchor="{textAnchor}" dominant-baseline="middle">{EscapeXml(port.ExternalLabel!)}</text>""");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// Returns the rectangles the ports occupy — each glyph plus each outward label — that end labels must
+    /// keep clear of.
+    /// </summary>
+    /// <param name="ports">Every port in the tree.</param>
+    /// <param name="theme">Visual theme providing font settings.</param>
+    /// <returns>The occupied rectangles.</returns>
+    private static List<LabelPlacement> PortOccupiedRects(List<LayoutPort> ports, Theme theme)
+    {
+        var rects = new List<LabelPlacement>(ports.Count);
+        foreach (var port in ports)
+        {
+            rects.Add(NotationMetrics.PortGlyphBounds(port));
+            if (NotationMetrics.IsOutwardLabel(port))
+            {
+                rects.Add(NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme));
+            }
+        }
+
+        return rects;
     }
 
     /// <summary>Returns the box edge opposite <paramref name="side"/>, used to place an outward label.</summary>
@@ -1512,7 +1615,7 @@ public sealed class SvgRenderer : IRenderer
     /// </summary>
     private static void EmitPortLabel(StringBuilder sb, LayoutPort port, string text, PortSide offsetSide, Theme theme, double scale)
     {
-        var offset = NotationMetrics.PortHalfSize + theme.LabelPadding
+        var offset = NotationMetrics.PortGlyphHalfSizeFor(port.Appearance) + theme.LabelPadding
             + (port.InternalLabel != null && port.ExternalLabel != null ? NotationMetrics.EndMarkerLength : 0.0);
         var (labelX, labelY, anchor) = offsetSide switch
         {

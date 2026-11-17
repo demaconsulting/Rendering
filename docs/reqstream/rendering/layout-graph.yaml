@@ -189,3 +189,13 @@ sections:
           they travel with the edge; null by default keeps every existing graph unchanged.
         tests:
           - LayoutGraphEdge_EndLabels_DefaultToNullAndAreSettable
+
+      - id: Rendering-Model-LayoutGraph-PortAppearance
+        title: >-
+          A graph port shall carry an optional appearance, defaulting to none, that the layout
+          algorithms copy onto every placed port they emit for it.
+        justification: |
+          The appearance is input model data, not something a caller attaches after layout; null by
+          default keeps every existing graph unchanged.
+        tests:
+          - LayoutGraphPort_Appearance_DefaultsToNullAndIsSettable

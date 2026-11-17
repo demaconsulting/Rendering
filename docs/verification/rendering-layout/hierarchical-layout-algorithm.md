@@ -259,6 +259,11 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   `HierarchicalLayout_CrossContainerEdgeEndLabels_ReachPlacedLine` assert the labels reach the placed line for a
   leaf-scope edge and for an edge between nodes of two different containers.
 
+- **Port appearance pass-through** (`Rendering-Layout-HierarchicalLayout-PortAppearancePassThrough`):
+  `HierarchicalLayout_LeafPortAppearance_ReachesPlacedPorts` and
+  `HierarchicalLayout_BoundaryPortAppearance_ReachesTheSharedAnchor` assert the appearance reaches a leaf-scope
+  port and the shared anchor of a boundary port.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-HierarchicalLayout-Identity`**:
@@ -333,3 +338,6 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   HierarchicalLayout_FolderNameInTabWithKeyword_ChildClearsKeywordLine
 - **`Rendering-Layout-HierarchicalLayout-EndLabelPassThrough`**:
   HierarchicalLayout_LeafEdgeEndLabels_ReachPlacedLine, HierarchicalLayout_CrossContainerEdgeEndLabels_ReachPlacedLine
+- **`Rendering-Layout-HierarchicalLayout-PortAppearancePassThrough`**:
+  HierarchicalLayout_LeafPortAppearance_ReachesPlacedPorts,
+  HierarchicalLayout_BoundaryPortAppearance_ReachesTheSharedAnchor

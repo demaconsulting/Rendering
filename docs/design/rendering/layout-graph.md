@@ -141,6 +141,11 @@ back edge), the hierarchical algorithm (leaf scopes and cross-container edges), 
 auto algorithm's cloned sub-graphs, and `ConnectorRouter` through the optional `SourceEndLabel` and
 `TargetEndLabel` members of `Connection`.
 
+`LayoutGraphPort` has an `Appearance` property (`null` by default) that the layered algorithm copies onto every
+`LayoutPort` it emits for the port, the hierarchical algorithm's boundary-port decomposer copies onto the shared
+boundary anchor, and the auto algorithm carries through its cloned sub-graphs. A label whose placement is
+`Outward` is not squeezed to the box width and reserves no content inset inside the box.
+
 ### Layout Graph Error Handling
 
 Invalid inputs are rejected at their entry point rather than deferred to layout time. The

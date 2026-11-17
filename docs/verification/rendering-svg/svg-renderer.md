@@ -390,6 +390,22 @@ asserts the canvas includes a label that extends past the declared width, and
 
 **Covers**: `Rendering-Svg-SvgRenderer-EndLabels`.
 
+#### Port glyphs
+
+`SvgRenderer_LegacyPort_IsTheHistoricalFilledSquare` pins the historical port markup (and that a default
+appearance renders identically). `SvgRenderer_OutlinedPort_IsARoundedBackgroundFilledSquare` and
+`SvgRenderer_DashedPort_HasADashArray` assert the outlined glyph and its dash array;
+`SvgRenderer_PortArrow_IsDrawnFromTheSharedGeometry` asserts, for ten direction and side combinations, that the
+polylines are the shared arrow geometry around the port centre, and `SvgRenderer_PortWithoutDirection_HasNoArrow`
+that there is no arrow without a direction. `SvgRenderer_ProxyPort_IsAFilledCircle` asserts the proxy circle.
+`SvgRenderer_OutwardLabel_IsDrawnAtTheSharedAnchorOutsideTheBox` asserts the outward label's anchor and that it
+lies outside the box on every side; `SvgRenderer_InwardLabelOfOutlinedPort_IsOffsetByTheGlyphHalfSize` asserts the
+inward label offset follows the glyph; `SvgRenderer_MarkerEndOnPort_IsShortenedByTheGlyphHalfSize` asserts the
+retreat for the legacy, outlined, and proxy glyphs; and `SvgRenderer_OutwardLabelBeyondTheCanvas_GrowsTheCanvas`
+asserts the canvas grows.
+
+**Covers**: `Rendering-Svg-SvgRenderer-PortGlyphs`.
+
 ### Requirements Coverage
 
 - **`Rendering-Svg-SvgRenderer-ImplementsIRenderer`**:
@@ -533,3 +549,10 @@ asserts the canvas includes a label that extends past the declared width, and
   `SvgRenderer_LineWithoutEndLabels_ProducesNoLabelText`, `SvgRenderer_EndLabelText_IsXmlEscaped`,
   `SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas`, `SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize`,
   `SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor`
+- **`Rendering-Svg-SvgRenderer-PortGlyphs`**:
+  `SvgRenderer_LegacyPort_IsTheHistoricalFilledSquare`, `SvgRenderer_OutlinedPort_IsARoundedBackgroundFilledSquare`,
+  `SvgRenderer_DashedPort_HasADashArray`, `SvgRenderer_PortArrow_IsDrawnFromTheSharedGeometry`,
+  `SvgRenderer_PortWithoutDirection_HasNoArrow`, `SvgRenderer_ProxyPort_IsAFilledCircle`,
+  `SvgRenderer_OutwardLabel_IsDrawnAtTheSharedAnchorOutsideTheBox`,
+  `SvgRenderer_InwardLabelOfOutlinedPort_IsOffsetByTheGlyphHalfSize`,
+  `SvgRenderer_MarkerEndOnPort_IsShortenedByTheGlyphHalfSize`, `SvgRenderer_OutwardLabelBeyondTheCanvas_GrowsTheCanvas`

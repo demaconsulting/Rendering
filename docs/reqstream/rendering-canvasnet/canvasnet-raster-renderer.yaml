@@ -419,3 +419,27 @@ sections:
           - PngLineWithoutEndLabels_HasNoInkBesideTheLine
           - PngEndLabelBeyondTheSurface_GrowsTheSurface
           - SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor
+
+      - id: Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphs
+        title: >-
+          CanvasNetRasterRenderer shall draw the same port glyphs as the SVG renderer — the legacy filled
+          square unchanged, an outlined rounded square with an optional dashed outline and direction
+          arrow, a proxy circle — draw an outward label outside the owning box, grow the surface to
+          include it, and shorten a marker end on a port by the glyph's own half size, with identical
+          geometry in both formats.
+        justification: |
+          The raster output must show the same ports as the vector output; both draw from the shared
+          NotationMetrics geometry, and parity tests read the SVG back against PNG pixels for every
+          direction, side, and outline style.
+        tests:
+          - PngLegacyPort_IsAFilledEightPixelSquare
+          - PngOutlinedPort_HasABackgroundInteriorAndAnInkOutline
+          - PngOutlinedPort_DirectionArrow_PutsInkInsideTheGlyph
+          - PngOutlinedPort_InAndOutArrows_PointOppositeWays
+          - PngDashedPort_HasLessOutlineInkThanSolid
+          - PngProxyPort_IsAFilledCircle
+          - PngOutwardLabel_HasInkOutsideTheBoxAndNoneInsideIt
+          - SysmlPortsParity_OutlinedGlyph_PngFootprintAndArrowMatchSvg
+          - SysmlPortsParity_ProxyPort_PngCircleMatchesSvgCircle
+          - SysmlPortsParity_OutwardLabel_PngTextMatchesSvgAnchor
+          - SysmlPortsParity_PortGlyph_MarkerEndShortenedIdenticallyInBothRenderers

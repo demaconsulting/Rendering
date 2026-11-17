@@ -6,7 +6,7 @@ package RenderingLayout {
 
         metadata info : SoftwareInfo {
             sourceFiles = ("src/DemaConsulting.Rendering.Layout/AutoLayoutAlgorithm.cs");
-            testFiles = ("test/DemaConsulting.Rendering.Layout.Tests/AutoLayoutAlgorithmTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/EndLabelPassThroughTests.cs");
+            testFiles = ("test/DemaConsulting.Rendering.Layout.Tests/AutoLayoutAlgorithmTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/EndLabelPassThroughTests.cs", "test/DemaConsulting.Rendering.Layout.Tests/PortAppearancePassThroughTests.cs");
             designFiles = ("docs/design/rendering-layout/auto-layout-algorithm.md");
             verificationFiles = ("docs/verification/rendering-layout/auto-layout-algorithm.md");
             requirementFiles = ("docs/reqstream/rendering-layout/auto-layout-algorithm.yaml");

@@ -110,6 +110,9 @@ sections:
           - Rendering-Abstractions-NotationMetrics-CrossedCircleBadge
           - Rendering-Abstractions-NotationMetrics-CornerIcon
           - Rendering-Abstractions-NotationMetrics-DiamondBoxVertices
+          - Rendering-Abstractions-NotationMetrics-PortGlyphGeometry
+          - Rendering-Abstractions-NotationMetrics-PortArrowOrientation
+          - Rendering-Abstractions-NotationMetrics-PortOutwardLabel
         tests:
           - TriangleFamily_HasCanonicalValues
 

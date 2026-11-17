@@ -36,7 +36,7 @@ public readonly record struct MarkerVertex(double Along, double Across);
 /// endpoint; the PNG renderer derives its sizes from the same constants so
 /// the two renderers draw the identical shape.
 /// </remarks>
-public static class NotationMetrics
+public static partial class NotationMetrics
 {
     // ── End-marker primitives (triangle family: open chevron, hollow/filled triangle) ──────────
 

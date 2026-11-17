@@ -23,6 +23,102 @@ public enum PortSide
 }
 
 /// <summary>
+/// The direction arrow drawn inside an outlined port glyph (SysML v2 flow direction of a port).
+/// </summary>
+public enum PortDirection
+{
+    /// <summary>No arrow (the default).</summary>
+    None,
+
+    /// <summary>An arrow pointing into the owning part (<c>in</c>).</summary>
+    In,
+
+    /// <summary>An arrow pointing out of the owning part (<c>out</c>).</summary>
+    Out,
+
+    /// <summary>A double-headed arrow (<c>inout</c>).</summary>
+    InOut,
+}
+
+/// <summary>
+/// The glyph a port is drawn with.
+/// </summary>
+public enum PortGlyph
+{
+    /// <summary>
+    /// Chosen from the rest of the appearance: <see cref="Filled"/> (the legacy 8×8 filled square) when
+    /// there is no direction arrow and the outline is solid, otherwise <see cref="Outlined"/>.
+    /// </summary>
+    Auto,
+
+    /// <summary>The legacy small filled square.</summary>
+    Filled,
+
+    /// <summary>A larger background-filled rounded square with an outline, optionally dashed, and an optional direction arrow inside.</summary>
+    Outlined,
+
+    /// <summary>A filled circle (the SysML v2 proxy port, drawn on the connector line).</summary>
+    Proxy,
+}
+
+/// <summary>
+/// Where a port's external label is drawn.
+/// </summary>
+public enum PortLabelPlacement
+{
+    /// <summary>
+    /// The legacy rule: a plain port's label is inside the owning box beside the glyph; a boundary
+    /// port's external label is on the outward face.
+    /// </summary>
+    Auto,
+
+    /// <summary>The external label is drawn inside the owning box beside the glyph.</summary>
+    Inward,
+
+    /// <summary>
+    /// The external label is drawn outside the owning box, beside the connector, never on top of it (the
+    /// SysML v2 notation draws <c>name : Type</c> outside the port).
+    /// </summary>
+    Outward,
+}
+
+/// <summary>
+/// How a port is drawn: its glyph, direction arrow, outline style, and label placement. Every default
+/// reproduces the legacy look, and a <see langword="null"/> appearance on a <see cref="LayoutPort"/> is the
+/// legacy look exactly.
+/// </summary>
+/// <param name="Direction">The direction arrow inside the glyph; <see cref="PortDirection.None"/> by default.</param>
+/// <param name="Glyph">The glyph; <see cref="PortGlyph.Auto"/> by default.</param>
+/// <param name="OutlineStyle">The outline stroke style (<see cref="LineStyle.Dashed"/> for a SysML reference port); solid by default.</param>
+/// <param name="LabelPlacement">Where the external label is drawn; <see cref="PortLabelPlacement.Auto"/> by default.</param>
+public sealed record PortAppearance(
+    PortDirection Direction = PortDirection.None,
+    PortGlyph Glyph = PortGlyph.Auto,
+    LineStyle OutlineStyle = LineStyle.Solid,
+    PortLabelPlacement LabelPlacement = PortLabelPlacement.Auto)
+{
+    /// <summary>
+    /// Gets the glyph this appearance is drawn with after resolving <see cref="PortGlyph.Auto"/>: the
+    /// legacy <see cref="PortGlyph.Filled"/> square when there is no direction arrow and the outline is
+    /// solid, otherwise <see cref="PortGlyph.Outlined"/>.
+    /// </summary>
+    public PortGlyph ResolvedGlyph
+    {
+        get
+        {
+            if (Glyph != PortGlyph.Auto)
+            {
+                return Glyph;
+            }
+
+            return Direction == PortDirection.None && OutlineStyle == LineStyle.Solid
+                ? PortGlyph.Filled
+                : PortGlyph.Outlined;
+        }
+    }
+}
+
+/// <summary>
 /// A port node pinned to the edge of its parent box. Position is absolute.
 /// </summary>
 /// <param name="CentreX">Absolute X coordinate of the port centre in logical pixels.</param>
@@ -59,6 +155,11 @@ public enum PortSide
 /// <paramref name="InternalLabel"/>/<paramref name="MaxLabelWidth"/> and must ignore this field.
 /// Defaults to <see langword="null"/>, which preserves the behavior of every pre-existing call site.
 /// </param>
+/// <param name="Appearance">
+/// Optional glyph, direction arrow, outline style, and label placement (see <see cref="PortAppearance"/>).
+/// Unlike <paramref name="SourcePort"/> this <em>is</em> rendering data that renderers read.
+/// <see langword="null"/> (the default) is the legacy look exactly.
+/// </param>
 public sealed record LayoutPort(
     double CentreX,
     double CentreY,
@@ -66,4 +167,5 @@ public sealed record LayoutPort(
     string? ExternalLabel,
     string? InternalLabel = null,
     double MaxLabelWidth = double.PositiveInfinity,
-    LayoutGraphPort? SourcePort = null) : LayoutNode;
+    LayoutGraphPort? SourcePort = null,
+    PortAppearance? Appearance = null) : LayoutNode;

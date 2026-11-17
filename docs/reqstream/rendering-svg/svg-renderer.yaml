@@ -727,3 +727,26 @@ sections:
           - SvgRenderer_EndLabelBeyondTheCanvas_GrowsTheCanvas
           - SvgRenderer_EndLabels_Scaled_ScalePositionAndFontSize
           - SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor
+
+      - id: Rendering-Svg-SvgRenderer-PortGlyphs
+        title: >-
+          SvgRenderer shall draw a port with the legacy markup when it has no appearance (or a default
+          one); as a background-filled rounded square with an optional dash array and a direction arrow
+          for an outlined glyph; as a filled circle for a proxy port; shall draw an outward label at the
+          shared anchor outside the owning box and grow the canvas to include it; and shall shorten a
+          marker end on a port by the glyph's own half size.
+        justification: |
+          The legacy port must stay byte-identical; the new glyphs follow the SysML notation and use the
+          shared geometry so the raster output matches; shortening by the glyph's own size keeps an
+          arrowhead tip on the glyph's outer edge instead of hidden under a larger glyph.
+        tests:
+          - SvgRenderer_LegacyPort_IsTheHistoricalFilledSquare
+          - SvgRenderer_OutlinedPort_IsARoundedBackgroundFilledSquare
+          - SvgRenderer_DashedPort_HasADashArray
+          - SvgRenderer_PortArrow_IsDrawnFromTheSharedGeometry
+          - SvgRenderer_PortWithoutDirection_HasNoArrow
+          - SvgRenderer_ProxyPort_IsAFilledCircle
+          - SvgRenderer_OutwardLabel_IsDrawnAtTheSharedAnchorOutsideTheBox
+          - SvgRenderer_InwardLabelOfOutlinedPort_IsOffsetByTheGlyphHalfSize
+          - SvgRenderer_MarkerEndOnPort_IsShortenedByTheGlyphHalfSize
+          - SvgRenderer_OutwardLabelBeyondTheCanvas_GrowsTheCanvas

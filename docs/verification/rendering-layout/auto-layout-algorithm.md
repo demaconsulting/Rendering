@@ -146,3 +146,5 @@ argument-null validation behavior constitutes a failure.
 - **`Rendering-Layout-AutoAlgorithm-EndLabelPassThrough`**:
   AutoLayout_EdgeEndLabels_SurviveClone (an edge with both end labels laid out through `auto` yields a line
   carrying them)
+- **`Rendering-Layout-AutoAlgorithm-PortAppearancePassThrough`**:
+  AutoLayout_PortAppearance_ReachesPlacedPorts (a port appearance survives the auto algorithm's cloned sub-graph)

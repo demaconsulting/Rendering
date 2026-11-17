@@ -376,3 +376,33 @@ sections:
         tests:
           - LayeredLayout_OwnershipDiagramWithEndLabels_LabelsOverlapNothing
           - LayeredLayout_ChainWithEndLabels_LabelsOverlapNothing
+
+      - id: Rendering-Layout-LayeredAlgorithm-PortAppearancePassThrough
+        title: >-
+          LayeredLayoutAlgorithm shall copy a graph port's appearance onto every placed port it emits
+          for it, shall not squeeze an outward label to the box width, and shall reserve no label-driven
+          content inset inside the box for an outward label.
+        justification: |
+          The appearance is how a caller selects the glyph, arrow, dashed outline, and outward label; a
+          label outside the box must not shrink or inflate the box it is not inside.
+        tests:
+          - LayeredLayout_PortAppearance_ReachesBothPlacedPorts
+          - LayeredLayout_PortWithoutAppearance_StaysNull
+          - LayeredLayout_OutwardLabelPort_HasUnconstrainedLabelWidth
+          - LayeredLayout_OutwardLabelPort_ReservesNoLabelInset
+
+      - id: Rendering-Layout-LayeredAlgorithm-OutwardPortLabelSpace
+        title: >-
+          LayeredLayoutAlgorithm shall reserve room for outward port labels — widening the corridor and
+          keeping the first bend out by the label's width, and sizing a face by the label stack — so no
+          outward label overlaps a box, another port label, a connector segment, or an end label, and a
+          layout without outward labels shall be unchanged.
+        justification: |
+          A label outside the owning part needs a straight run beside the connector and a row or column
+          of its own; without reserving them it would collide with the next part or a neighboring
+          connector. The reservation reuses the end-label mechanism and is zero when no port asks for an
+          outward label.
+        tests:
+          - LayeredLayout_OutwardPortLabels_OverlapNothing
+          - LayeredLayout_NoOutwardLabels_BoxesIdenticalWithAndWithoutAnInwardAppearance
+          - LayeredLayout_OutwardLabels_WidenTheCorridorBetweenParts

@@ -244,6 +244,17 @@ default and value semantics.
 
 **Covers**: `Rendering-Model-LayoutTree-LineEndLabels`.
 
+#### Port appearance defaults to the legacy look
+
+`PortAppearance_Defaults_AreTheLegacyLook` asserts the default appearance has no arrow, an automatic glyph, a
+solid outline, and the legacy label rule; `PortAppearance_ResolvedGlyph_Auto_PicksFilledOrOutlined` asserts the
+automatic glyph resolves to the filled square only for no arrow and a solid outline;
+`PortAppearance_ResolvedGlyph_Explicit_IsKept` asserts an explicit glyph is never overridden;
+`PortAppearance_IsAValueRecord` asserts value semantics; `LayoutPort_Appearance_DefaultsToNull` and
+`LayoutPort_Appearance_IsCarried` assert the appended `LayoutPort` member.
+
+**Covers**: `Rendering-Model-LayoutTree-PortAppearance`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-LayoutTree-Canvas`**: LayoutTree_Construction_StoresWidthHeightNodes
@@ -285,3 +296,7 @@ default and value semantics.
 - **`Rendering-Model-LayoutTree-LineEndLabels`**:
   LayoutLine_EndLabels_DefaultToNull, LayoutLine_EndLabels_AreCarried, LineEndLabel_Secondary_DefaultsToNull,
   LineEndLabel_IsAValueRecord
+- **`Rendering-Model-LayoutTree-PortAppearance`**:
+  PortAppearance_Defaults_AreTheLegacyLook, PortAppearance_ResolvedGlyph_Auto_PicksFilledOrOutlined,
+  PortAppearance_ResolvedGlyph_Explicit_IsKept, PortAppearance_IsAValueRecord, LayoutPort_Appearance_DefaultsToNull,
+  LayoutPort_Appearance_IsCarried

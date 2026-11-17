@@ -168,6 +168,17 @@ failure.
   labels of the laid-out tree and assert no label overlaps a box, another label, or a connector segment other than
   the end segment it sits beside.
 
+- **Port appearance pass-through** (`Rendering-Layout-LayeredAlgorithm-PortAppearancePassThrough`):
+  `LayeredLayout_PortAppearance_ReachesBothPlacedPorts` and `LayeredLayout_PortWithoutAppearance_StaysNull` assert the
+  appearance reaches both emitted ports (and stays null); `LayeredLayout_OutwardLabelPort_HasUnconstrainedLabelWidth`
+  and `LayeredLayout_OutwardLabelPort_ReservesNoLabelInset` assert an outward label is neither squeezed nor given an
+  inset inside the box.
+- **Outward port label space** (`Rendering-Layout-LayeredAlgorithm-OutwardPortLabelSpace`):
+  `LayeredLayout_OutwardPortLabels_OverlapNothing` (right and down flows; four labeled ports and end labels)
+  asserts no outward label overlaps a box, another port label, a connector segment, or an end label;
+  `LayeredLayout_NoOutwardLabels_BoxesIdenticalWithAndWithoutAnInwardAppearance` asserts a layout without outward
+  labels is unchanged; `LayeredLayout_OutwardLabels_WidenTheCorridorBetweenParts` asserts the corridor grows.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-LayeredAlgorithm-Identity`**:
@@ -247,3 +258,10 @@ failure.
 - **`Rendering-Layout-LayeredAlgorithm-EndLabelSpace`**:
   LayeredLayout_OwnershipDiagramWithEndLabels_LabelsOverlapNothing,
   LayeredLayout_ChainWithEndLabels_LabelsOverlapNothing
+- **`Rendering-Layout-LayeredAlgorithm-PortAppearancePassThrough`**:
+  LayeredLayout_PortAppearance_ReachesBothPlacedPorts, LayeredLayout_PortWithoutAppearance_StaysNull,
+  LayeredLayout_OutwardLabelPort_HasUnconstrainedLabelWidth, LayeredLayout_OutwardLabelPort_ReservesNoLabelInset
+- **`Rendering-Layout-LayeredAlgorithm-OutwardPortLabelSpace`**:
+  LayeredLayout_OutwardPortLabels_OverlapNothing,
+  LayeredLayout_NoOutwardLabels_BoxesIdenticalWithAndWithoutAnInwardAppearance,
+  LayeredLayout_OutwardLabels_WidenTheCorridorBetweenParts

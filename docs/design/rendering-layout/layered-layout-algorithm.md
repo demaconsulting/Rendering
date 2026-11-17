@@ -187,6 +187,17 @@ for edges without end labels. The hierarchical algorithm's cross-container conne
 `ConnectorRouter` and reserve no room: their end labels are placed clear of boxes but may slide or flip in a
 crowded diagram.
 
+### LayeredLayoutAlgorithm Port Appearance
+
+Both emitted `LayoutPort`s of an edge (source and target) carry the `Appearance` of their `LayoutGraphPort`. For
+a port whose external label is outward (`PortLabelPlacement.Outward`) the algorithm records no label for the
+box's content inset (the label is outside, so it reserves nothing inside), sets `MaxLabelWidth` to infinity (no
+squeeze), and reserves room through the same end-label mechanism as `LineEndLabel`: the label width plus the
+glyph, the label padding, and the placer's clearance is added to the corridor reservation
+(`LayerEdge.SourceLabelAlong` / `TargetLabelAlong`), and the label height (left or right face) or width (top or
+bottom face) is added to the face pitch used to size a face with two or more anchors. All of it is zero for
+ports without an outward label, so the layout is unchanged.
+
 ### LayeredLayoutAlgorithm Back-Edge Entry Approach
 
 `ResolveBackEdgeEntryApproach(edges)` derives the minimum straight entry approach reserved for a

@@ -300,3 +300,21 @@ sections:
           - LayoutLine_EndLabels_AreCarried
           - LineEndLabel_Secondary_DefaultsToNull
           - LineEndLabel_IsAValueRecord
+
+      - id: Rendering-Model-LayoutTree-PortAppearance
+        title: >-
+          A port node shall carry an optional appearance (direction arrow, glyph, outline style, and
+          label placement) that defaults to the legacy look, and the automatic glyph shall resolve to
+          the legacy filled square unless a direction arrow or a non-solid outline asks for more.
+        justification: |
+          SysML ports are drawn with in, out, or inout arrows, a dashed outline for a reference port,
+          a proxy circle, and a label outside the box. Carrying that as an appended optional member of
+          a value record keeps every existing port, which has no appearance, unchanged, and resolving
+          the automatic glyph in one place keeps both renderers in agreement.
+        tests:
+          - PortAppearance_Defaults_AreTheLegacyLook
+          - PortAppearance_ResolvedGlyph_Auto_PicksFilledOrOutlined
+          - PortAppearance_ResolvedGlyph_Explicit_IsKept
+          - PortAppearance_IsAValueRecord
+          - LayoutPort_Appearance_DefaultsToNull
+          - LayoutPort_Appearance_IsCarried

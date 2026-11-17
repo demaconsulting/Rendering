@@ -52,6 +52,8 @@ sections:
           - Rendering-Layout-LayeredAlgorithm-LabelsClearOfNodeBorders
           - Rendering-Layout-LayeredAlgorithm-EndLabelPassThrough
           - Rendering-Layout-LayeredAlgorithm-EndLabelSpace
+          - Rendering-Layout-LayeredAlgorithm-PortAppearancePassThrough
+          - Rendering-Layout-LayeredAlgorithm-OutwardPortLabelSpace
         tests:
           - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
           - Id_IsLayered
@@ -256,6 +258,7 @@ sections:
           - Rendering-Layout-HierarchicalLayout-AppearancePassThrough
           - Rendering-Layout-HierarchicalLayout-FolderTabTitleReserve
           - Rendering-Layout-HierarchicalLayout-EndLabelPassThrough
+          - Rendering-Layout-HierarchicalLayout-PortAppearancePassThrough
         tests:
           - Id_IsHierarchical
           - Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly
@@ -322,6 +325,7 @@ sections:
           - Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker
           - Rendering-Layout-AutoAlgorithm-AppearancePassThrough
           - Rendering-Layout-AutoAlgorithm-EndLabelPassThrough
+          - Rendering-Layout-AutoAlgorithm-PortAppearancePassThrough
         tests:
           - Id_IsAuto
           - Apply_ClusterPlusIsolatedSingletons_PacksBothGroupsWithoutOverlap

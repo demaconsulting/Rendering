@@ -142,6 +142,12 @@ stored independently.
 
 **Covers**: `Rendering-Model-LayoutGraph-EdgeEndLabels`.
 
+#### Port appearance defaults to none
+
+`LayoutGraphPort_Appearance_DefaultsToNullAndIsSettable` asserts a graph port has no appearance until it is set.
+
+**Covers**: `Rendering-Model-LayoutGraph-PortAppearance`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-LayoutGraph-AddNode`**: AddNode_AppendsNodeAndReturnsIt
@@ -173,3 +179,4 @@ stored independently.
   HierarchicalLayout_ContainerAndLeafAppearance_ReachPlacedBoxes,
   AutoLayout_NodeAppearance_SurvivesClone
 - **`Rendering-Model-LayoutGraph-EdgeEndLabels`**: LayoutGraphEdge_EndLabels_DefaultToNullAndAreSettable
+- **`Rendering-Model-LayoutGraph-PortAppearance`**: LayoutGraphPort_Appearance_DefaultsToNullAndIsSettable

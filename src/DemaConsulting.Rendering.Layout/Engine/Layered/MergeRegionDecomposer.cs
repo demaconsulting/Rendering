@@ -369,7 +369,8 @@ internal static class MergeRegionDecomposer
                 boundary.Port.ExternalLabel,
                 boundary.Port.InternalLabel,
                 maxLabelWidth,
-                SourcePort: boundary.Port));
+                SourcePort: boundary.Port,
+                Appearance: boundary.Port.Appearance));
         }
     }
 

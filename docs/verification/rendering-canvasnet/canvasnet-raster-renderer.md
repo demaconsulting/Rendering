@@ -309,6 +309,20 @@ anchor.
 
 **Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-EndLabels`.
 
+#### Port glyphs
+
+`PngLegacyPort_IsAFilledEightPixelSquare` pins the legacy glyph's pixels.
+`PngOutlinedPort_HasABackgroundInteriorAndAnInkOutline`, `PngOutlinedPort_DirectionArrow_PutsInkInsideTheGlyph`, and
+`PngOutlinedPort_InAndOutArrows_PointOppositeWays` assert the outlined glyph, the arrow ink, and the arrow direction;
+`PngDashedPort_HasLessOutlineInkThanSolid` asserts the dash pattern; `PngProxyPort_IsAFilledCircle` asserts the proxy
+circle; `PngOutwardLabel_HasInkOutsideTheBoxAndNoneInsideIt` asserts the outward label. The gallery-project parity tests
+read the SVG back against the PNG: `SysmlPortsParity_OutlinedGlyph_PngFootprintAndArrowMatchSvg` (every direction, side,
+and outline style), `SysmlPortsParity_ProxyPort_PngCircleMatchesSvgCircle`,
+`SysmlPortsParity_OutwardLabel_PngTextMatchesSvgAnchor`, and
+`SysmlPortsParity_PortGlyph_MarkerEndShortenedIdenticallyInBothRenderers`.
+
+**Covers**: `Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphs`.
+
 ### Requirements Coverage
 
 - **`Rendering-CanvasNet-CanvasNetRasterRenderer-DrawsLayoutTree`**:
@@ -402,3 +416,10 @@ anchor.
   PngEndLabels_HaveInkInsideEachPlacedRectangle, PngEndLabels_InkIsCenteredOnThePlacement,
   PngLineWithoutEndLabels_HasNoInkBesideTheLine, PngEndLabelBeyondTheSurface_GrowsTheSurface,
   SysmlPortsParity_EndLabel_PngInkCentroidMatchesSvgTextAnchor
+- **`Rendering-CanvasNet-CanvasNetRasterRenderer-PortGlyphs`**:
+  PngLegacyPort_IsAFilledEightPixelSquare, PngOutlinedPort_HasABackgroundInteriorAndAnInkOutline,
+  PngOutlinedPort_DirectionArrow_PutsInkInsideTheGlyph, PngOutlinedPort_InAndOutArrows_PointOppositeWays,
+  PngDashedPort_HasLessOutlineInkThanSolid, PngProxyPort_IsAFilledCircle,
+  PngOutwardLabel_HasInkOutsideTheBoxAndNoneInsideIt, SysmlPortsParity_OutlinedGlyph_PngFootprintAndArrowMatchSvg,
+  SysmlPortsParity_ProxyPort_PngCircleMatchesSvgCircle, SysmlPortsParity_OutwardLabel_PngTextMatchesSvgAnchor,
+  SysmlPortsParity_PortGlyph_MarkerEndShortenedIdenticallyInBothRenderers
