@@ -103,7 +103,9 @@ an empty node list.
 When it clones an edge into a leaf algorithm's sub-graph, the algorithm copies the end labels
 (`SourceEndLabel`, `TargetEndLabel`) with the target marker, line style, and label, so they survive the split.
 
-Ports cloned into a leaf algorithm's sub-graph keep their `Appearance` along with their labels.
+Ports cloned into a leaf algorithm's sub-graph keep their `Appearance` along with their labels. A reflection-based
+completeness test fails whenever a public settable member of the graph node, port or edge classes is not carried
+onto the copy, so a member added later cannot be dropped silently.
 
 ### AutoLayoutAlgorithm Interactions
 

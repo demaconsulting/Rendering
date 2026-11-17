@@ -410,6 +410,104 @@ public sealed class AutoLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Completeness tripwire for the component copy: every public settable member of
+    ///     <see cref="LayoutGraphNode"/>, <see cref="LayoutGraphPort"/> and <see cref="LayoutGraphEdge"/>,
+    ///     set to a non-default value on the source graph, must be carried onto the copy. A member added to
+    ///     one of those classes later but forgotten in the copy fails here with the member's name; a member
+    ///     of a type this test cannot synthesize a value for also fails, so the factory is extended
+    ///     consciously.
+    /// </summary>
+    [Fact]
+    public void BuildComponentGraph_CopiesEveryPublicSettableMember()
+    {
+        // Arrange: every public settable member of the three element classes gets a non-default value.
+        var graph = new LayoutGraph();
+        var node = graph.AddNode("n", 10, 10);
+        var port = node.Ports.AddPort("p");
+        var other = graph.AddNode("o", 80, 40);
+        var edge = graph.AddEdge("n-o", port, other);
+        var expectedValues = new List<(object Holder, System.Reflection.PropertyInfo Property, object? Value)>();
+        foreach (var holder in new object[] { node, port, edge })
+        {
+            foreach (var property in SettableProperties(holder.GetType()))
+            {
+                var value = NonDefaultValue(property, property.GetValue(holder));
+                property.SetValue(holder, value);
+                expectedValues.Add((holder, property, value));
+            }
+        }
+
+        // Act
+        var copy = AutoLayoutAlgorithm.BuildComponentGraph(graph, [0, 1]);
+
+        // Assert
+        var copies = new Dictionary<object, object>
+        {
+            [node] = copy.Nodes[0],
+            [port] = copy.Nodes[0].Ports.Ports[0],
+            [edge] = copy.Edges[0],
+        };
+        foreach (var (holder, property, value) in expectedValues)
+        {
+            var copied = property.GetValue(copies[holder]);
+            Assert.True(
+                Equals(value, copied) || (value is System.Collections.IEnumerable valueItems &&
+                                          copied is System.Collections.IEnumerable copiedItems &&
+                                          valueItems.Cast<object>().SequenceEqual(copiedItems.Cast<object>())),
+                $"{holder.GetType().Name}.{property.Name} was not copied by the auto algorithm's component copy " +
+                $"(expected '{value}', copy has '{copied}').");
+        }
+    }
+
+    private static IEnumerable<System.Reflection.PropertyInfo> SettableProperties(Type type) =>
+        type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Where(property => property.SetMethod is { IsPublic: true } && property.GetIndexParameters().Length == 0 &&
+                               property.DeclaringType == type);
+
+    private static object? NonDefaultValue(System.Reflection.PropertyInfo property, object? current)
+    {
+        var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+        if (type == typeof(string))
+        {
+            return "value-of-" + property.Name;
+        }
+
+        if (type == typeof(double))
+        {
+            return 12.5 + property.Name.Length;
+        }
+
+        if (type.IsEnum)
+        {
+            return Enum.GetValues(type).Cast<object>().Last(value => !Equals(value, current));
+        }
+
+        if (type == typeof(BoxAppearance))
+        {
+            return new BoxAppearance(LineStyle.Dotted, TextStyle.Italic, TextStyle.Bold, FolderTitlePlacement.Tab, BoxCornerIcon.Accept);
+        }
+
+        if (type == typeof(PortAppearance))
+        {
+            return new PortAppearance(PortDirection.InOut, PortGlyph.Outlined, LineStyle.Dashed, PortLabelPlacement.Outward);
+        }
+
+        if (type == typeof(LineEndLabel))
+        {
+            return new LineEndLabel("primary-" + property.Name, "secondary");
+        }
+
+        if (type == typeof(IReadOnlyList<LayoutCompartment>))
+        {
+            return new List<LayoutCompartment> { new("title", ["row"]) };
+        }
+
+        throw new NotSupportedException(
+            $"No non-default test value is defined for {property.DeclaringType!.Name}.{property.Name} of type " +
+            $"{property.PropertyType.Name}; extend NonDefaultValue so the new member stays covered by the component copy.");
+    }
+
+    /// <summary>
     ///     Asserts that the override applied by <paramref name="configureContainer"/> is honored for a
     ///     container laid out through the multi-group split path exactly as it is on the zero-copy fast
     ///     path, and that the override actually changes the layout (so the comparison is meaningful).

@@ -91,6 +91,15 @@ argument-null validation behavior constitutes a failure.
   The graph splits into two groups, so both the connected component and the singleton bucket are built
   by the field-by-field sub-graph copy (Sub-Graph Construction); the test confirms each styled node's
   placed box carries the very same `BoxAppearance` instance while the unstyled node stays `null`.
+- **End label and port appearance pass-through** (`Rendering-Layout-AutoAlgorithm-EndLabelPassThrough`,
+  `Rendering-Layout-AutoAlgorithm-PortAppearancePassThrough`): `AutoLayout_EdgeEndLabels_SurviveClone`,
+  `AutoLayout_PortAppearance_ReachesPlacedPorts` and `AutoLayout_BoundaryPortAppearance_ReachesTheSharedAnchor`
+  each add an isolated node, because a single connected group is delegated on the original graph with no copy
+  (`AutoLayout_PortAppearance_ConnectedPair_ReachesPlacedPorts` covers that fast path separately). The split
+  makes the field-by-field copy run, and the tests confirm the end labels and each port's `Appearance` reach
+  the placed output. `BuildComponentGraph_CopiesEveryPublicSettableMember` is the completeness tripwire: it
+  sets every public settable member of the node, port and edge classes to a non-default value and fails, naming
+  the member, if the copy does not carry it.
 
 - **`Rendering-Layout-AutoAlgorithm-Identity`**:
   Id_IsAuto
@@ -119,7 +128,7 @@ argument-null validation behavior constitutes a failure.
   Apply_PerNodeAlgorithmOverrideOnSplitContainer_IsPreserved,
   Apply_PerNodeDirectionOverrideOnSplitContainer_IsPreserved,
   Apply_ChildrenGraphOverrideOnSplitContainer_IsPreserved,
-  BuildComponentGraph_CopiesNodeChildrenPortAndEdgeOverrides
+  BuildComponentGraph_CopiesNodeChildrenPortAndEdgeOverrides, BuildComponentGraph_CopiesEveryPublicSettableMember
 - **`Rendering-Layout-AutoAlgorithm-EmptyGraph`**:
   Apply_EmptyGraph_ReturnsEmptyTree
 - **`Rendering-Layout-AutoAlgorithm-Validation`**:
@@ -144,7 +153,9 @@ argument-null validation behavior constitutes a failure.
 - **`Rendering-Layout-AutoAlgorithm-AppearancePassThrough`**:
   AutoLayout_NodeAppearance_SurvivesClone
 - **`Rendering-Layout-AutoAlgorithm-EndLabelPassThrough`**:
-  AutoLayout_EdgeEndLabels_SurviveClone (an edge with both end labels laid out through `auto` yields a line
-  carrying them)
+  AutoLayout_EdgeEndLabels_SurviveClone (an edge with both end labels laid out through `auto` beside an
+  isolated node, so the component split copies it, yields a line carrying them)
 - **`Rendering-Layout-AutoAlgorithm-PortAppearancePassThrough`**:
-  AutoLayout_PortAppearance_ReachesPlacedPorts (a port appearance survives the auto algorithm's cloned sub-graph)
+  AutoLayout_PortAppearance_ReachesPlacedPorts (a port appearance survives the auto algorithm's cloned sub-graph),
+  AutoLayout_PortAppearance_ConnectedPair_ReachesPlacedPorts (the zero-copy fast path),
+  AutoLayout_BoundaryPortAppearance_ReachesTheSharedAnchor (a boundary port through the split)

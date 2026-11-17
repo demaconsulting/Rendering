@@ -75,3 +75,8 @@ verification files; representative system-level coverage is:
 - **`Rendering-Layout-AutoAlgorithm`**: `Id_IsAuto`,
   `Apply_ClusterPlusIsolatedSingletons_PacksBothGroupsWithoutOverlap` (see
   AutoLayoutAlgorithm Unit Verification).
+- **`Rendering-Layout-NotationPassThroughAllAlgorithms`**: `Algorithm_Notation_ReachesPlacedTree`,
+  `Algorithm_WithoutNotation_StaysLegacy`, `ClonePath_PortAppearanceAndEndLabels_ReachRenderedSvg` — the
+  algorithm by scenario matrix (auto, layered, hierarchical, containment over flat, split, container and
+  boundary-port graphs) proves port appearance, both end labels, box appearance and diamond shape reach the
+  placed tree through every cloning path, and the gallery render test proves they reach the SVG.

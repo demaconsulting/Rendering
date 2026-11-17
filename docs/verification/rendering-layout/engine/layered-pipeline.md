@@ -251,7 +251,7 @@ failure.
   `Apply_DownDirection_NoteTarget_ExcludesFoldFromLandingZone`, and
   `Apply_RectangleChain_MatchesPreShapeAwarenessOutput`.
 
-#- **End label reservation** (`Rendering-Layout-LayeredPipeline-EndLabelReservation`):
+- **End label reservation** (`Rendering-Layout-LayeredPipeline-EndLabelReservation`):
   `InterconnectionLayoutEngine_Place_EdgeLabelAlong_WidensCorridorAndPushesFirstBend` asserts the next column moves
   right by exactly the requested source plus target space and the first bend by the source share;
   `CycleBreaker_ReversedEdge_SwapsEndLabelReservations` asserts a reversed edge swaps its reservations with its

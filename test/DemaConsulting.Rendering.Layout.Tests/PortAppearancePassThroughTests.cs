@@ -71,9 +71,30 @@ public sealed class PortAppearancePassThroughTests
         Assert.All(ports, port => Assert.Equal(Appearance, port.Appearance));
     }
 
-    /// <summary>The auto algorithm carries the appearance through its cloned sub-graphs.</summary>
+    /// <summary>
+    ///     The auto algorithm carries the appearance through its cloned sub-graphs. The isolated third node
+    ///     makes the graph a genuine multi-group case, so the component split (and its node/port copy) really
+    ///     runs; a connected pair alone would be delegated on the original graph without any copy.
+    /// </summary>
     [Fact]
     public void AutoLayout_PortAppearance_ReachesPlacedPorts()
+    {
+        // Arrange
+        var graph = PortedGraph("auto", Appearance);
+        graph.AddNode("isolated", 120, 60).Label = "Isolated";
+
+        // Act
+        var tree = LayoutEngine.Layout(graph);
+
+        // Assert
+        var ports = tree.Nodes.OfType<LayoutPort>().ToList();
+        Assert.Equal(2, ports.Count);
+        Assert.All(ports, port => Assert.Equal(Appearance, port.Appearance));
+    }
+
+    /// <summary>A connected pair is delegated by the auto algorithm on the original graph (no copy).</summary>
+    [Fact]
+    public void AutoLayout_PortAppearance_ConnectedPair_ReachesPlacedPorts()
     {
         // Act
         var tree = LayoutEngine.Layout(PortedGraph("auto", Appearance));
@@ -82,6 +103,79 @@ public sealed class PortAppearancePassThroughTests
         var ports = tree.Nodes.OfType<LayoutPort>().ToList();
         Assert.Equal(2, ports.Count);
         Assert.All(ports, port => Assert.Equal(Appearance, port.Appearance));
+    }
+
+    /// <summary>
+    ///     The hierarchical algorithm copies the appearance onto the sized view it lays a scope out through.
+    ///     A container node in the same scope as the ported leaf edge forces that view; a flat graph is laid
+    ///     out directly without it.
+    /// </summary>
+    [Fact]
+    public void HierarchicalLayout_SizedViewPortAppearance_ReachesPlacedPorts()
+    {
+        // Arrange
+        var graph = PortedGraph("hierarchical", Appearance);
+        var container = graph.AddNode("g", 100, 60);
+        container.Label = "G";
+        container.Children.AddNode("x", 80, 40).Label = "X";
+
+        // Act
+        var tree = LayoutEngine.Layout(graph);
+
+        // Assert
+        var ports = tree.Nodes.OfType<LayoutPort>().ToList();
+        Assert.Equal(2, ports.Count);
+        Assert.All(ports, port => Assert.Equal(Appearance, port.Appearance));
+    }
+
+    /// <summary>
+    ///     A boundary port keeps its appearance when the auto algorithm splits the graph (the isolated node
+    ///     forces the component copy, and the combined pass then reads the copied port).
+    /// </summary>
+    [Fact]
+    public void AutoLayout_BoundaryPortAppearance_ReachesTheSharedAnchor()
+    {
+        // Arrange: container B owns boundary port P; A -> P outside, P -> C inside; plus an isolated node.
+        var graph = new LayoutGraph();
+        graph.Set(CoreOptions.Algorithm, "auto");
+        var a = graph.AddNode("A", 80, 40);
+        a.Label = "A";
+        var b = graph.AddNode("B", 10, 10);
+        b.Label = "B";
+        var port = b.Ports.AddPort("p1");
+        port.ExternalLabel = "PWR_OUT";
+        port.InternalLabel = "PWR_IN";
+        port.Appearance = Appearance;
+        var c = b.Children.AddNode("C", 80, 40);
+        c.Label = "C";
+        graph.AddEdge("a-to-b", a, port);
+        b.Children.AddEdge("b-to-c", port, c);
+        graph.AddNode("I", 80, 40).Label = "I";
+
+        // Act
+        var tree = LayoutEngine.Layout(graph);
+
+        // Assert
+        var emitted = Assert.Single(AllPorts(tree.Nodes));
+        Assert.Equal(Appearance, emitted.Appearance);
+    }
+
+    private static IEnumerable<LayoutPort> AllPorts(IEnumerable<LayoutNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            if (node is LayoutPort port)
+            {
+                yield return port;
+            }
+            else if (node is LayoutBox box)
+            {
+                foreach (var inner in AllPorts(box.Children))
+                {
+                    yield return inner;
+                }
+            }
+        }
     }
 
     /// <summary>

@@ -447,6 +447,7 @@ reviews:
       - "test/DemaConsulting.Rendering.Layout.Tests/FaceAlignmentTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/DiagramQuality.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/AlgorithmNotationPassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/BackEdgeEntryApproachTests.cs"
     context:
       - "docs/design/rendering-layout.md"
@@ -503,6 +504,7 @@ reviews:
       - "src/DemaConsulting.Rendering.Layout/ContainmentLayoutAlgorithm.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/AlgorithmNotationPassThroughTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
@@ -521,6 +523,7 @@ reviews:
       - "test/DemaConsulting.Rendering.Layout.Tests/FaceAlignmentTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/DiagramQuality.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/AlgorithmNotationPassThroughTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
@@ -550,6 +553,7 @@ reviews:
       - "test/DemaConsulting.Rendering.Layout.Tests/PortAppearancePassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/EndLabelPassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/AlgorithmNotationPassThroughTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"

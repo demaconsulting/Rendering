@@ -329,3 +329,20 @@ sections:
         tests:
           - Id_IsAuto
           - Apply_ClusterPlusIsolatedSingletons_PacksBothGroupsWithoutOverlap
+
+      - id: Rendering-Layout-NotationPassThroughAllAlgorithms
+        title: >-
+          Every bundled layout algorithm shall carry port appearance, connector end labels, box
+          appearance and diamond shape from the input layout graph to the placed layout tree and the
+          rendered output, including through graph cloning.
+        tags: [system]
+        justification: |
+          The auto algorithm splits the graph into component copies and the hierarchical algorithm lays
+          each scope out through a sized view copy. A notation member that any copy drops silently
+          reverts to the legacy look for every diagram routed through it, so the whole algorithm by
+          scenario matrix (flat, split, container and boundary-port graphs) is verified end to end, and
+          the SVG rendered through the cloning paths is checked as well.
+        tests:
+          - Algorithm_Notation_ReachesPlacedTree
+          - Algorithm_WithoutNotation_StaysLegacy
+          - ClonePath_PortAppearanceAndEndLabels_ReachRenderedSvg

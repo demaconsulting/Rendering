@@ -642,6 +642,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 var viewPort = viewNode.Ports.AddPort(port.Id);
                 viewPort.ExternalLabel = port.ExternalLabel;
                 viewPort.InternalLabel = port.InternalLabel;
+                viewPort.Appearance = port.Appearance;
                 viewPortOf[port] = viewPort;
             }
         }

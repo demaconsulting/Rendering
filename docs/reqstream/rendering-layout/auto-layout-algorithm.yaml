@@ -116,6 +116,7 @@ sections:
           - Apply_PerNodeDirectionOverrideOnSplitContainer_IsPreserved
           - Apply_ChildrenGraphOverrideOnSplitContainer_IsPreserved
           - BuildComponentGraph_CopiesNodeChildrenPortAndEdgeOverrides
+          - BuildComponentGraph_CopiesEveryPublicSettableMember
 
       - id: Rendering-Layout-AutoAlgorithm-EmptyGraph
         title: >-
@@ -192,19 +193,23 @@ sections:
       - id: Rendering-Layout-AutoAlgorithm-EndLabelPassThrough
         title: >-
           AutoLayoutAlgorithm shall carry each edge's source and target end labels through the
-          sub-graphs it builds for its leaf algorithms.
+          sub-graphs it builds for its leaf algorithms, including when it splits a multi-group graph.
         justification: |
           The auto algorithm lays out cloned sub-graphs; an end label not copied onto the clone would
-          silently disappear for every diagram laid out through it.
+          silently disappear for every diagram laid out through it. The test adds an isolated node so the
+          component split really runs (a single connected group is laid out on the original graph).
         tests:
           - AutoLayout_EdgeEndLabels_SurviveClone
 
       - id: Rendering-Layout-AutoAlgorithm-PortAppearancePassThrough
         title: >-
           AutoLayoutAlgorithm shall carry a graph port's appearance through the sub-graphs it builds for
-          its leaf algorithms.
+          its leaf algorithms, including when it splits a multi-group graph.
         justification: |
           A port appearance not copied onto the cloned port would silently revert to the legacy glyph for
-          every diagram laid out through the auto algorithm.
+          every diagram laid out through the auto algorithm. The tests force the component split with an
+          isolated node; the connected-pair test covers the zero-copy fast path.
         tests:
           - AutoLayout_PortAppearance_ReachesPlacedPorts
+          - AutoLayout_PortAppearance_ConnectedPair_ReachesPlacedPorts
+          - AutoLayout_BoundaryPortAppearance_ReachesTheSharedAnchor

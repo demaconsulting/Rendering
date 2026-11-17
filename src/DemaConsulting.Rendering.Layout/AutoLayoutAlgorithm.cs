@@ -544,6 +544,7 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
                 var portCopy = copy.Ports.AddPort(port.Id);
                 portCopy.ExternalLabel = port.ExternalLabel;
                 portCopy.InternalLabel = port.InternalLabel;
+                portCopy.Appearance = port.Appearance;
                 port.CopyOverridesTo(portCopy);
                 portMap[port] = portCopy;
             }

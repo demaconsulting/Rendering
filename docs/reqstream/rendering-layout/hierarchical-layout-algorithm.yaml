@@ -406,9 +406,11 @@ sections:
           placed line, for leaf-scope and cross-container edges alike.
         justification: |
           Hierarchical diagrams route cross-container edges through the connector router and leaf
-          scopes through the layered algorithm; both paths must keep the labels.
+          scopes through the layered algorithm (on a copied sized view whenever the scope holds a
+          container); every path must keep the labels.
         tests:
           - HierarchicalLayout_LeafEdgeEndLabels_ReachPlacedLine
+          - HierarchicalLayout_SizedViewEdgeEndLabels_ReachPlacedLine
           - HierarchicalLayout_CrossContainerEdgeEndLabels_ReachPlacedLine
 
       - id: Rendering-Layout-HierarchicalLayout-PortAppearancePassThrough
@@ -416,8 +418,10 @@ sections:
           HierarchicalLayoutAlgorithm shall carry a graph port's appearance onto the placed port, for
           leaf-scope ports and for boundary (delegation) ports projected onto a container boundary.
         justification: |
-          Hierarchical diagrams emit ports from the layered algorithm and from the boundary-port
-          decomposer; both paths must keep the appearance or the glyph would revert to the legacy square.
+          Hierarchical diagrams emit ports from the layered algorithm (through a copied sized view
+          whenever the scope holds a container) and from the boundary-port decomposer; every path must
+          keep the appearance or the glyph would revert to the legacy square.
         tests:
           - HierarchicalLayout_LeafPortAppearance_ReachesPlacedPorts
+          - HierarchicalLayout_SizedViewPortAppearance_ReachesPlacedPorts
           - HierarchicalLayout_BoundaryPortAppearance_ReachesTheSharedAnchor

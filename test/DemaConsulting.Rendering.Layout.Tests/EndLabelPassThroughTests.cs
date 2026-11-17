@@ -78,6 +78,27 @@ public sealed class EndLabelPassThroughTests
         Assert.Equal(Target, line.TargetEndLabel);
     }
 
+    /// <summary>
+    ///     The hierarchical algorithm copies end labels onto the sized view it lays a scope out through; a
+    ///     container node in the same scope as the labeled leaf edge forces that view.
+    /// </summary>
+    [Fact]
+    public void HierarchicalLayout_SizedViewEdgeEndLabels_ReachPlacedLine()
+    {
+        // Arrange
+        var graph = TwoNodeGraph("hierarchical", out _);
+        var container = graph.AddNode("g", 100, 60);
+        container.Label = "G";
+        container.Children.AddNode("x", 80, 40);
+
+        // Act
+        var tree = LayoutEngine.Layout(graph);
+
+        // Assert
+        var line = Assert.Single(tree.Nodes.OfType<LayoutLine>());
+        Assert.Equal(Source, line.SourceEndLabel);
+        Assert.Equal(Target, line.TargetEndLabel);
+    }
     /// <summary>The hierarchical algorithm copies end labels on a cross-container edge.</summary>
     [Fact]
     public void HierarchicalLayout_CrossContainerEdgeEndLabels_ReachPlacedLine()
@@ -120,12 +141,16 @@ public sealed class EndLabelPassThroughTests
         Assert.Equal(Target, line.TargetEndLabel);
     }
 
-    /// <summary>The auto algorithm carries end labels through its cloned sub-graphs.</summary>
+    /// <summary>
+    ///     The auto algorithm carries end labels through its cloned sub-graphs. The isolated third node makes
+    ///     the graph a genuine multi-group case, so the component split really copies the edge.
+    /// </summary>
     [Fact]
     public void AutoLayout_EdgeEndLabels_SurviveClone()
     {
         // Arrange
         var graph = TwoNodeGraph("auto", out _);
+        graph.AddNode("isolated", 80, 40);
 
         // Act
         var tree = LayoutEngine.Layout(graph);
