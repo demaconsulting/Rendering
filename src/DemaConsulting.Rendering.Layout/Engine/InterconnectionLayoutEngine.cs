@@ -165,6 +165,11 @@ internal static class InterconnectionLayoutEngine
     /// to the original engine; a caller whose edges carry a longer end decoration raises it so the
     /// rounded corner never intrudes into the decoration.
     /// </param>
+    /// <param name="alignPorts">
+    /// Whether connector ports are slid along their faces so the two ends of an edge line up (a straight
+    /// final run, Rendering#57; see <see cref="Layered.PortAligner"/>). Defaults to <see langword="true"/>;
+    /// pass <see langword="false"/> to reproduce the pre-alignment geometry exactly.
+    /// </param>
     /// <returns>Placement result with rects, layer assignments, and connector waypoints.</returns>
     public static LayerResult Place(
         IReadOnlyList<LayerNode> nodes,
@@ -172,7 +177,8 @@ internal static class InterconnectionLayoutEngine
         LayoutDirection direction = LayoutDirection.Right,
         double nodeSpacing = Layered.LayeredLayoutMetrics.NodeSpacing,
         bool mergeParallelEdges = true,
-        double backEdgeEntryApproach = Layered.LayeredLayoutMetrics.ConnectorClearance)
+        double backEdgeEntryApproach = Layered.LayeredLayoutMetrics.ConnectorClearance,
+        bool alignPorts = true)
     {
         ArgumentNullException.ThrowIfNull(nodes);
         ArgumentNullException.ThrowIfNull(edges);
@@ -188,6 +194,7 @@ internal static class InterconnectionLayoutEngine
             NodeSpacing = nodeSpacing,
             MergeParallelEdges = mergeParallelEdges,
             BackEdgeEntryApproach = backEdgeEntryApproach,
+            AlignPorts = alignPorts,
         };
         ComponentPacker.WithDefaultStages(nodeSpacing).Apply(graph);
 

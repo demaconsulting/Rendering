@@ -41,7 +41,7 @@ public sealed class OrthogonalRouterBackEdgeTests
         // The product engine uses the default BackEdgeEntryApproach (== ConnectorClearance), so it
         // must reproduce the unmodified reference engine exactly, reversed edges included.
         var expected = LegacyInterconnectionLayoutEngineOracle.Place(nodes, edges).ConnectorWaypoints;
-        var actual = InterconnectionLayoutEngine.Place(nodes, edges).ConnectorWaypoints;
+        var actual = InterconnectionLayoutEngine.Place(nodes, edges, alignPorts: false).ConnectorWaypoints;
 
         Assert.Equal(expected.Count, actual.Count);
         for (var e = 0; e < expected.Count; e++)
@@ -175,7 +175,7 @@ public sealed class OrthogonalRouterBackEdgeTests
 
         var reversed = ReversedFlags(nodes, edges);
         var expected = LegacyInterconnectionLayoutEngineOracle.Place(nodes, edges).ConnectorWaypoints;
-        var actual = InterconnectionLayoutEngine.Place(nodes, edges).ConnectorWaypoints;
+        var actual = InterconnectionLayoutEngine.Place(nodes, edges, alignPorts: false).ConnectorWaypoints;
 
         Assert.Equal(expected.Count, actual.Count);
         var forwardChecked = 0;
@@ -213,7 +213,7 @@ public sealed class OrthogonalRouterBackEdgeTests
         Assert.All(reversed, flag => Assert.False(flag));
 
         var expected = LegacyInterconnectionLayoutEngineOracle.Place(nodes, edges).ConnectorWaypoints;
-        var actual = InterconnectionLayoutEngine.Place(nodes, edges).ConnectorWaypoints;
+        var actual = InterconnectionLayoutEngine.Place(nodes, edges, alignPorts: false).ConnectorWaypoints;
 
         Assert.Equal(expected.Count, actual.Count);
         for (var e = 0; e < expected.Count; e++)

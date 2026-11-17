@@ -430,6 +430,8 @@ reviews:
       - "docs/verification/rendering-layout/layered-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/LayeredLayoutAlgorithm.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/LayeredLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/FaceAlignmentTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/DiagramQuality.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/BackEdgeEntryApproachTests.cs"
     context:
@@ -444,6 +446,8 @@ reviews:
       - "docs/verification/rendering-layout/connector-router.md"
       - "src/DemaConsulting.Rendering.Layout/ConnectorRouter.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/ConnectorRouterTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/FaceAlignmentTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/DiagramQuality.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
     context:
       - "docs/design/rendering-layout.md"
@@ -495,6 +499,8 @@ reviews:
       - "docs/verification/rendering-layout/hierarchical-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/HierarchicalLayoutAlgorithm.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/FaceAlignmentTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/DiagramQuality.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
     context:
       - "docs/design/rendering-layout.md"

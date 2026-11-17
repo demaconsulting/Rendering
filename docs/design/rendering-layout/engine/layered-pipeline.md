@@ -10,7 +10,10 @@ sequence of small, single-purpose stages. Each stage reads the state produced by
 writes the state it owns, so the pipeline can be extended, reordered, and unit-tested one stage at a
 time. It was produced by a behavior-preserving extraction: for every input it produces exactly the
 same rectangles, totals, layer assignments, and connector waypoints as the previous implementation,
-verified byte for byte by the pipeline-equivalence tests.
+verified byte for byte by the pipeline-equivalence tests. One deliberate, later improvement is layered on
+top: the `PortAligner` stage (Rendering#57), which only moves connector ports along their own faces and
+can be switched off with `LayeredGraph.AlignPorts` so the equivalence gate keeps comparing every other
+stage bit-for-bit.
 
 #### Layered Pipeline Data Model
 
@@ -25,7 +28,9 @@ decoration-aware caller lengthen a reversed edge's final approach without distur
 geometry. The `NodeSpacing` parameter (default `LayeredLayoutMetrics.NodeSpacing`) is the minimum gap
 `BrandesKopfPlacer` enforces between same-layer nodes during horizontal compaction; a caller-supplied
 value replaces the pipeline's original fixed constant without disturbing default geometry when left
-at its default. The `SwapNodeAxes` seam swaps each node's width and height for the down/up directions so
+at its default. The `AlignPorts` flag (default `true`) enables the `PortAligner` stage; `false` skips it
+and reproduces the pre-alignment geometry exactly, which the equivalence tests use to compare against the
+frozen oracle. The `SwapNodeAxes` seam swaps each node's width and height for the down/up directions so
 the direction-agnostic stages space layers by the correct extent; it preserves every other
 `LayerNode` field (`Shape`, `RoundedCornerRadius`, `FolderTabWidth`, `FolderTabHeight`, `Label`,
 `RealWidth`, `RealHeight`) unchanged, since only the abstract along/cross axes need to reorient.
@@ -110,17 +115,32 @@ The default stage sequence added by `AddDefaultStages` runs in this order:
    disjoint extents when the shape excludes a middle portion of the face), reusing `ConnectorRouter`'s
    shape-geometry resolution via `ShapeAnchorSupport`; a plain-`Rectangle` node keeps the original
    full-span formula untouched.
-7. **LayeredCorridorRouter.** Assigns routing slots per corridor and emits orthogonal bend points, adding
+7. **PortAligner.** Slides ports along their faces so the two ends of an edge share one cross-axis
+   coordinate whenever both faces allow it, giving a straight final run into the end marker instead of the
+   small step the even port spacing leaves next to it (Rendering#57). For each sub-edge it computes each
+   end's window — the face's usable extent (the shape's connectable extents, kept `ConnectorClearance`
+   from the corners and below the title reserve on left/right faces) intersected with the gap to its
+   neighbours on the same face (kept `EdgeSpacing` away) — and a long-edge or hierarchy-crossing dummy
+   end is pinned to its own coordinate. When the two windows intersect, both ports move to the point of
+   the intersection nearest their mean; when they cannot meet, a residual step shorter than
+   `PortAligner.MinPortStep` (12 px, longer than every end marker) is pushed out to that minimum where
+   the windows allow, so no step between zero and the minimum survives next to a marker. Passes repeat
+   in edge-index order up to a fixed bound, so the stage is deterministic; port order, separation, face
+   extents, box positions, and the along-axis coordinate of every connector end are preserved. It runs
+   in the abstract axes, so it is direction-agnostic. The stage is the one documented divergence from
+   the legacy oracle: the equivalence tests compare with `AlignPorts` off and pin separately what
+   alignment may change.
+8. **LayeredCorridorRouter.** Assigns routing slots per corridor and emits orthogonal bend points, adding
    no bend points for a straight sub-edge. It reads `BackEdgeEntryApproach` to reserve a minimum
    final approach for a reversed edge; at the default this clamp is a no-op, keeping forward geometry
    byte-identical.
-8. **LongEdgeJoiner.** Concatenates the bend points of a split edge's sub-edges into one polyline per
+9. **LongEdgeJoiner.** Concatenates the bend points of a split edge's sub-edges into one polyline per
    original edge. For a non-`BoxShape.Rectangle` real endpoint, the assembled perpendicular endpoint
    coordinate is additionally projected inward by the shape's surface-projection offset at that
    endpoint's local face coordinate (for example a folder's tab height), so the connector touches the
    shape's real outline rather than the plain bounding-box edge; a plain-`Rectangle` endpoint skips
    geometry resolution entirely and keeps the original formula byte-identical.
-9. **AxisTransform.** Maps the abstract left-to-right along/cross coordinates onto screen coordinates
+10. **AxisTransform.** Maps the abstract left-to-right along/cross coordinates onto screen coordinates
    for the requested direction. The Right direction is the identity; Down, Left, and Up are rotations
    or flips. It also normalizes the input node axes at the start of `Run`.
 

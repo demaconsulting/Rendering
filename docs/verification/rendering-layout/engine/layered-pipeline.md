@@ -9,7 +9,10 @@ equivalence with the legacy oracle on every topology except the one documented, 
 divergence: a graph containing a genuinely isolated node (see
 `Rendering-Layout-LayeredPipeline-IsolatedNodeSpacing`), where the refactored pipeline's isolated-node
 layer-gap fix deliberately changes geometry that the frozen legacy oracle still reproduces with the
-bug. Dependencies are real (each stage operates on a `LayeredGraph`); nothing is mocked.
+bug. A second, later divergence is port alignment (see
+`Rendering-Layout-LayeredPipeline-PortAlignment`): the oracle comparison runs with the `PortAligner` stage
+switched off, and separate scenarios pin what alignment may change. Dependencies are real (each stage
+operates on a `LayeredGraph`); nothing is mocked.
 
 #### Verification Approach
 
@@ -56,6 +59,34 @@ failure.
   `Pipeline_MatchesLegacyOracle_OnEmptyGraph`, `Pipeline_MatchesLegacyOracle_OnDroneLikeGraph`,
   `Pipeline_MatchesLegacyOracle_OnWorkstationLikeGraph`, and
   `Pipeline_MatchesLegacyOracle_OnNamedTopologies`.
+- **Port alignment** (`Rendering-Layout-LayeredPipeline-PortAlignment`): the stage-level tests
+  `PortAligner_Apply_TwoSourcesOneWideTarget_PortsAlign`,
+  `PortAligner_Apply_SingleEdgeAlreadyAligned_IsNoOp`,
+  `PortAligner_Apply_AlignPortsDisabled_LeavesPortsUntouched`,
+  `PortAligner_Apply_ThreeSourcesOneTarget_KeepsOrderSeparationAndCornerClearance`,
+  `PortAligner_Apply_DummyEnd_IsPinnedAndNotMoved`,
+  `PortAligner_Apply_FolderTargetTopFace_Down_PortStaysRightOfTab`, and
+  `PortAligner_Apply_DisjointFaces_NoStepBetweenZeroAndMinimum` check the sliding, its constraints, and its
+  no-op cases in the abstract axes; the algorithm-level tests
+  `LayeredLayout_TwoSourcesOneTargetFace_Down_FinalRunsAreStraight`,
+  `LayeredLayout_TwoSourcesOneTargetFace_AnyDirection_FinalRunsAreStraight`,
+  `LayeredLayout_TwoSourcesOneTarget_SizeSweep_NeverLeavesSubMarkerStep`,
+  `LayeredLayout_TwoSourcesOneTarget_DenseSweep_NeverLeavesSubMarkerStep`,
+  `LayeredLayout_FaceSpansDoNotOverlap_KeepsBendAndEndLeg`,
+  `LayeredLayout_ThreeSourcesOneFace_SlidPortsKeepSeparationAndOrder`,
+  `LayeredLayout_LongEdgeAndShortEdgesSharingTarget_AllFinalRunsAxisAligned`, and
+  `LayeredLayout_LabeledPortsRightFlow_AlignmentKeepsEndsOutOfTitleBand` prove the Rendering#57 outcome
+  (straight runs, no sub-marker step, title band respected) through the full layered algorithm;
+  `HierarchicalLayout_CrossContainerTwoSourcesOneTarget_FinalRunsStraight` and
+  `ConnectorRouter_Route_TwoSourcesOneTarget_FinalRunsStraight` guard the cross-container path, which
+  already straightens; and `Pipeline_PortAlignment_DisjointFaces_KeepsClearStep` covers the pipeline-level
+  residual step.
+- **Port alignment only moves ports** (`Rendering-Layout-LayeredPipeline-PortAlignmentOnlyMovesPorts`):
+  `Pipeline_PortAlignment_OnlyMovesPortsAlongTheirFaces` compares rectangles, layers, and connector-end
+  along coordinates with and without alignment over 2000 random graphs;
+  `Pipeline_PortAlignment_MatchesOracleWhenNoPortCanSlide` compares the shipping default with the legacy
+  oracle bit-for-bit wherever no port can slide; `LayeredGraph_CreateChild_CopiesEveryKnownInputOption`
+  proves a component sub-graph inherits the `AlignPorts` setting.
 - **Flat and recursive hierarchy handling** (`Rendering-Layout-LayeredPipeline-FlatHierarchyOnly`):
   `LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline` confirms recursive
   hierarchy handling now assembles a runnable pipeline rather than throwing, alongside the flat default
@@ -228,7 +259,27 @@ failure.
 - **`Rendering-Layout-LayeredPipeline-BehaviorPreserving`**:
   Pipeline_MatchesLegacyOracle_OnRandomGraphs, Pipeline_MatchesLegacyOracle_OnEmptyGraph,
   Pipeline_MatchesLegacyOracle_OnDroneLikeGraph, Pipeline_MatchesLegacyOracle_OnWorkstationLikeGraph,
-  Pipeline_MatchesLegacyOracle_OnNamedTopologies
+  Pipeline_MatchesLegacyOracle_OnNamedTopologies, Pipeline_PortAlignment_MatchesOracleWhenNoPortCanSlide
+- **`Rendering-Layout-LayeredPipeline-PortAlignment`**:
+  LayeredLayout_TwoSourcesOneTargetFace_Down_FinalRunsAreStraight,
+  LayeredLayout_TwoSourcesOneTargetFace_AnyDirection_FinalRunsAreStraight,
+  LayeredLayout_TwoSourcesOneTarget_SizeSweep_NeverLeavesSubMarkerStep,
+  LayeredLayout_TwoSourcesOneTarget_DenseSweep_NeverLeavesSubMarkerStep,
+  LayeredLayout_FaceSpansDoNotOverlap_KeepsBendAndEndLeg,
+  LayeredLayout_ThreeSourcesOneFace_SlidPortsKeepSeparationAndOrder,
+  LayeredLayout_LongEdgeAndShortEdgesSharingTarget_AllFinalRunsAxisAligned,
+  LayeredLayout_LabeledPortsRightFlow_AlignmentKeepsEndsOutOfTitleBand,
+  HierarchicalLayout_CrossContainerTwoSourcesOneTarget_FinalRunsStraight,
+  ConnectorRouter_Route_TwoSourcesOneTarget_FinalRunsStraight,
+  PortAligner_Apply_TwoSourcesOneWideTarget_PortsAlign, PortAligner_Apply_SingleEdgeAlreadyAligned_IsNoOp,
+  PortAligner_Apply_AlignPortsDisabled_LeavesPortsUntouched,
+  PortAligner_Apply_ThreeSourcesOneTarget_KeepsOrderSeparationAndCornerClearance,
+  PortAligner_Apply_DummyEnd_IsPinnedAndNotMoved, PortAligner_Apply_FolderTargetTopFace_Down_PortStaysRightOfTab,
+  PortAligner_Apply_DisjointFaces_NoStepBetweenZeroAndMinimum,
+  Pipeline_PortAlignment_DisjointFaces_KeepsClearStep
+- **`Rendering-Layout-LayeredPipeline-PortAlignmentOnlyMovesPorts`**:
+  Pipeline_PortAlignment_OnlyMovesPortsAlongTheirFaces, Pipeline_PortAlignment_MatchesOracleWhenNoPortCanSlide,
+  LayeredGraph_CreateChild_CopiesEveryKnownInputOption
 - **`Rendering-Layout-LayeredPipeline-FlatHierarchyOnly`**:
   LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing,
   LayeredLayoutPipeline_Build_RecursiveHierarchy_ProducesRunnablePipeline

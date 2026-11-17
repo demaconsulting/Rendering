@@ -125,7 +125,7 @@ internal sealed class PortDistributor : ILayoutStage
     /// <param name="direction">The layout's requested flow direction.</param>
     /// <param name="node">The real node whose title reserve is being resolved.</param>
     /// <returns>The title band height to exclude, in logical pixels.</returns>
-    private static double TitleReserveFor(LayoutDirection direction, LayerNode node) =>
+    internal static double TitleReserveFor(LayoutDirection direction, LayerNode node) =>
         direction is LayoutDirection.Right or LayoutDirection.Left
             ? Math.Min(node.TitleReserveTop, node.Height)
             : 0.0;

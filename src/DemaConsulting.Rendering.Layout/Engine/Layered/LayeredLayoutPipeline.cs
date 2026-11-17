@@ -59,11 +59,11 @@ internal sealed class LayeredLayoutPipeline
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///     The same nine-stage sequence as <see cref="PipelineBuilder.AddDefaultStages"/> is applied
+    ///     The same ten-stage sequence as <see cref="PipelineBuilder.AddDefaultStages"/> is applied
     ///     per level, innermost first: <see cref="CycleBreaker"/>, level-relative
     ///     <see cref="LayerAssigner"/>, <see cref="LongEdgeSplitter"/>, hierarchy-aware
     ///     <see cref="CrossingMinimizer"/>, <see cref="BrandesKopfPlacer"/>, <see cref="PortDistributor"/>,
-    ///     <see cref="LayeredCorridorRouter"/>, <see cref="LongEdgeJoiner"/>, and <see cref="AxisTransform"/>.
+    ///     <see cref="PortAligner"/>, <see cref="LayeredCorridorRouter"/>, <see cref="LongEdgeJoiner"/>, and <see cref="AxisTransform"/>.
     ///     Crossing minimization is the single stage coordinated across levels: each level's resolved
     ///     boundary order propagates between adjacent levels (see
     ///     <see cref="CrossingMinimizer.MinimizeCrossingsRecursive"/>). Every other stage runs
@@ -124,6 +124,7 @@ internal sealed class LayeredLayoutPipeline
             MergeRegionGraphAssembler.PinIncomingCrossings(levelGraph, externalCrossingIndex, levels, Direction);
             new BrandesKopfPlacer().Apply(graph);
             new PortDistributor().Apply(graph);
+            new PortAligner().Apply(graph);
             new LayeredCorridorRouter().Apply(graph);
             new LongEdgeJoiner().Apply(graph);
             new AxisTransform().Apply(graph);
@@ -190,7 +191,7 @@ internal sealed class LayeredLayoutPipeline
         /// <summary>
         /// Appends the default ELK-layered stage sequence: cycle breaking, layer assignment,
         /// long-edge splitting, crossing minimization, Brandes-Kopf placement, port distribution,
-        /// orthogonal routing, long-edge joining, and the final axis transform.
+        /// port alignment, orthogonal routing, long-edge joining, and the final axis transform.
         /// </summary>
         /// <returns>This builder, for chaining.</returns>
         public PipelineBuilder AddDefaultStages()
@@ -201,6 +202,7 @@ internal sealed class LayeredLayoutPipeline
             _stages.Add(new CrossingMinimizer());
             _stages.Add(new BrandesKopfPlacer());
             _stages.Add(new PortDistributor());
+            _stages.Add(new PortAligner());
             _stages.Add(new LayeredCorridorRouter());
             _stages.Add(new LongEdgeJoiner());
             _stages.Add(new AxisTransform());

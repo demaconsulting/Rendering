@@ -145,6 +145,7 @@ internal sealed class ComponentPacker : ILayoutStage
         new CrossingMinimizer(),
         new BrandesKopfPlacer(),
         new PortDistributor(),
+        new PortAligner(),
         new LayeredCorridorRouter(),
         new LongEdgeJoiner(),
         new AxisTransform(),

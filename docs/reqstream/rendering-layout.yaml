@@ -107,6 +107,8 @@ sections:
           - Rendering-Layout-LayeredPipeline-SharedState
           - Rendering-Layout-LayeredPipeline-InputValidation
           - Rendering-Layout-LayeredPipeline-ShapeAwareAnchors
+          - Rendering-Layout-LayeredPipeline-PortAlignment
+          - Rendering-Layout-LayeredPipeline-PortAlignmentOnlyMovesPorts
         tests:
           - LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing
           - Pipeline_MatchesLegacyOracle_OnRandomGraphs
