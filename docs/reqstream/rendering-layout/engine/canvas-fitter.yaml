@@ -46,8 +46,9 @@ sections:
 
       - id: Rendering-Layout-CanvasFitter-IncludesConnectorLabels
         title: >-
-          CanvasFitter shall resolve midpoint and end labels with the same connector label placer the
-          renderers use and shall include every label rectangle in the extent it fits the canvas to.
+          CanvasFitter shall resolve midpoint and end labels through the shared connector label resolver the
+          renderers use and shall include every label rectangle, port glyph and outward port label in the
+          extent it fits the canvas to.
         justification: |
           A connector label (for example a keyword label such as «import» beside a line at the edge of the
           diagram) extends beyond its line, so fitting only the waypoints would still clip the label.
@@ -55,6 +56,10 @@ sections:
           agreement.
         tests:
           - CanvasFitter_Fit_LabelLeftOfOrigin_BringsLabelInsideCanvas
+          - CanvasFitter_Fit_OutwardPortLabelLeftOfOrigin_TranslatesTreeToHoldLabel
+          - CanvasFitter_Fit_PortGlyphAboveOrigin_TranslatesTree
+          - RenderedSvg_OutwardPortLabelsAndEndLabels_AreInsideCanvas
+          - RenderedSvg_EndLabels_AreAtThePositionsTheLayoutPredicted
 
       - id: Rendering-Layout-CanvasFitter-UnrecognizedNodeUnchanged
         title: >-

@@ -43,7 +43,12 @@ missing null-argument guard constitutes a failure.
   and height enlarges the canvas to the far content plus the margin while every node keeps its coordinates.
 - **Includes connector labels** (`Rendering-Layout-CanvasFitter-IncludesConnectorLabels`):
   `CanvasFitter_Fit_LabelLeftOfOrigin_BringsLabelInsideCanvas` confirms a connector label extending left of
-  the origin (while every waypoint is inside) is brought fully inside the canvas.
+  the origin (while every waypoint is inside) is brought fully inside the canvas;
+  `CanvasFitter_Fit_OutwardPortLabelLeftOfOrigin_TranslatesTreeToHoldLabel` and
+  `CanvasFitter_Fit_PortGlyphAboveOrigin_TranslatesTree` confirm an outward port label or port glyph past the
+  origin translates the tree; `RenderedSvg_OutwardPortLabelsAndEndLabels_AreInsideCanvas` and
+  `RenderedSvg_EndLabels_AreAtThePositionsTheLayoutPredicted` (gallery project) confirm that in a rendered SVG every
+  port label, end label and port glyph is inside the canvas and each end label is where the layout predicted.
 - **Unrecognized node unchanged** (`Rendering-Layout-CanvasFitter-UnrecognizedNodeUnchanged`):
   `CanvasFitter_Fit_UnrecognizedNode_ReturnsSameTree` confirms a tree containing a node subtype outside the
   closed set is returned unchanged.
@@ -59,7 +64,10 @@ missing null-argument guard constitutes a failure.
 - **`Rendering-Layout-CanvasFitter-GrowsCanvasForFarContent`**:
   CanvasFitter_Fit_WaypointBeyondFarEdges_GrowsCanvasWithoutTranslating
 - **`Rendering-Layout-CanvasFitter-IncludesConnectorLabels`**:
-  CanvasFitter_Fit_LabelLeftOfOrigin_BringsLabelInsideCanvas
+  CanvasFitter_Fit_LabelLeftOfOrigin_BringsLabelInsideCanvas,
+  CanvasFitter_Fit_OutwardPortLabelLeftOfOrigin_TranslatesTreeToHoldLabel,
+  CanvasFitter_Fit_PortGlyphAboveOrigin_TranslatesTree, RenderedSvg_OutwardPortLabelsAndEndLabels_AreInsideCanvas,
+  RenderedSvg_EndLabels_AreAtThePositionsTheLayoutPredicted
 - **`Rendering-Layout-CanvasFitter-UnrecognizedNodeUnchanged`**:
   CanvasFitter_Fit_UnrecognizedNode_ReturnsSameTree
 - **`Rendering-Layout-CanvasFitter-Validation`**:

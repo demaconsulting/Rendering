@@ -61,12 +61,6 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
     private const float PortGlyphStrokeWidth = 1.0f;
 
     /// <summary>
-    /// Extra width, in logical pixels, added to each side of an outward port label's rectangle when it is
-    /// handed to the end-label placer, so an end label on the same run keeps a visible gap from it.
-    /// </summary>
-    private const double OutwardLabelEndLabelGap = 5.0;
-
-    /// <summary>
     /// Opaque white fill used by shapes whose semantics are intentionally theme-independent in the
     /// CanvasNet renderer: activation bars and the inner bullseye circle.
     /// </summary>
@@ -98,20 +92,14 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         ArgumentNullException.ThrowIfNull(options);
 
         var lines = CollectLines(layout.Nodes).ToList();
-        var labelPositions = ConnectorLabelPlacer.Place(lines, options.Theme.FontSizeBody, CollectBoxes(layout.Nodes), NotationMetrics.MarkerScale(options.Theme));
 
         // Connection end labels are placed after the midpoint labels, which they yield to.
         // Port glyphs and outward port labels are drawn content too, so end labels keep clear of them.
         var allPorts = new List<LayoutPort>();
         CollectPorts(layout.Nodes, allPorts);
-        var portRects = PortOccupiedRects(allPorts, options.Theme);
-        var endLabelPlacements = ConnectorLabelPlacer.PlaceEndLabels(
-            lines,
-            options.Theme.FontSizeBody,
-            CollectBoxes(layout.Nodes),
-            NotationMetrics.MarkerScale(options.Theme),
-            labelPositions.Values.Concat(portRects),
-            allPorts);
+        var labelLayout = ConnectorLabelPlacer.ResolveLabels(lines, CollectBoxes(layout.Nodes).ToList(), allPorts, options.Theme);
+        var labelPositions = labelLayout.Midpoints;
+        var endLabelPlacements = labelLayout.EndLabels;
 
         var width = Math.Max(1, (int)Math.Ceiling(layout.Width * options.Scale));
         var height = Math.Max(1, (int)Math.Ceiling(layout.Height * options.Scale));
@@ -1730,30 +1718,6 @@ internal abstract class CanvasNetRasterRenderer : IRenderer
         var baselineY = (float)(anchor.Y * scale) + ((metrics.Ascent - metrics.Descent) / 2.0f);
         var align = anchor.Align == PortLabelAlign.End ? CanvasTextAlign.Right : CanvasTextAlign.Left;
         canvas.DrawText(port.ExternalLabel!, (float)(anchor.X * scale), baselineY, align, font, fontSize, ParseColor(theme.StrokeColor));
-    }
-
-    /// <summary>
-    /// Returns the rectangles the ports occupy — each glyph plus each outward label — that end labels must
-    /// keep clear of.
-    /// </summary>
-    /// <param name="ports">Every port in the tree.</param>
-    /// <param name="theme">Theme providing font settings.</param>
-    /// <returns>The occupied rectangles.</returns>
-    private static List<LabelPlacement> PortOccupiedRects(List<LayoutPort> ports, Theme theme)
-    {
-        var rects = new List<LabelPlacement>(ports.Count);
-        foreach (var port in ports)
-        {
-            rects.Add(NotationMetrics.PortGlyphBounds(port));
-            if (NotationMetrics.IsOutwardLabel(port))
-            {
-                // Padded along the text so an end label keeps a visible gap from the port label beside it.
-                var bounds = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
-                rects.Add(bounds with { HalfWidth = bounds.HalfWidth + OutwardLabelEndLabelGap });
-            }
-        }
-
-        return rects;
     }
 
     /// <summary>

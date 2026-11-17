@@ -22,9 +22,11 @@ namespace DemaConsulting.Rendering.Layout.Engine;
 ///     right and down, so anything at a negative coordinate was clipped.
 ///     </para>
 ///     <para>
-///     <see cref="Fit"/> resolves the labels with <see cref="ConnectorLabelPlacer"/> the way the
-///     renderers do (the same obstacle boxes, the light theme's marker scale and the caller's assumed font
-///     size, but not the renderers' port-glyph clearance rectangles), measures the extent of every waypoint and label rectangle, and — only when something lies
+///     <see cref="Fit"/> resolves the labels with <see cref="ConnectorLabelPlacer.ResolveLabels"/>, the one
+///     resolver the SVG and raster renderers also call (same obstacle boxes, port-glyph and outward port label
+///     rectangles, and ordering; the light theme with the caller's assumed font size), so the label positions
+///     it measures are the positions the renderers draw. It measures the extent of every waypoint, label
+///     rectangle, port glyph and outward port label, and — only when something lies
 ///     outside <c>[0, Width] x [0, Height]</c> — translates the tree so the content starts a
 ///     <see cref="FitMargin"/> inside the origin and widens the canvas to a <see cref="FitMargin"/> beyond the
 ///     far content. A tree whose content is already inside its canvas is returned unchanged (the same
@@ -62,7 +64,7 @@ internal static class CanvasFitter
         var boxes = new List<LayoutBox>();
         var lines = new List<LayoutLine>();
         var ports = new List<LayoutPort>();
-        if (!Collect(tree.Nodes, boxes, lines, ports) || lines.Count == 0)
+        if (!Collect(tree.Nodes, boxes, lines, ports) || (lines.Count == 0 && ports.Count == 0))
         {
             return tree;
         }
@@ -80,6 +82,9 @@ internal static class CanvasFitter
             maxY = Math.Max(maxY, bottom);
         }
 
+        void IncludePlacement(double x, double y, double halfWidth, double halfHeight) =>
+            Include(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight);
+
         foreach (var line in lines)
         {
             foreach (var point in line.Waypoints)
@@ -88,26 +93,32 @@ internal static class CanvasFitter
             }
         }
 
-        var scale = NotationMetrics.MarkerScale(Themes.Light);
-        var midpoints = ConnectorLabelPlacer.Place(lines, fontSize, boxes, scale);
-        foreach (var placement in midpoints.Values)
+        // Resolve every label through the one shared resolver the renderers use (same obstacle boxes, port
+        // glyph and outward port label rectangles, and ordering), so the positions measured here are the
+        // positions the renderers draw.
+        var theme = Themes.Light with { FontSizeBody = fontSize };
+        var labelLayout = ConnectorLabelPlacer.ResolveLabels(lines, boxes, ports, theme);
+        foreach (var placement in labelLayout.Midpoints.Values)
         {
-            Include(
-                placement.X - placement.HalfWidth,
-                placement.Y - placement.HalfHeight,
-                placement.X + placement.HalfWidth,
-                placement.Y + placement.HalfHeight);
+            IncludePlacement(placement.X, placement.Y, placement.HalfWidth, placement.HalfHeight);
         }
 
-        foreach (var placement in ConnectorLabelPlacer.PlaceEndLabels(lines, fontSize, boxes, scale, midpoints.Values, ports))
+        foreach (var placement in labelLayout.EndLabels)
         {
-            Include(
-                placement.X - placement.HalfWidth,
-                placement.Y - placement.HalfHeight,
-                placement.X + placement.HalfWidth,
-                placement.Y + placement.HalfHeight);
+            IncludePlacement(placement.X, placement.Y, placement.HalfWidth, placement.HalfHeight);
         }
 
+        // Port glyphs and outward port labels are drawn content too.
+        foreach (var port in ports)
+        {
+            var glyph = NotationMetrics.PortGlyphBounds(port);
+            IncludePlacement(glyph.X, glyph.Y, glyph.HalfWidth, glyph.HalfHeight);
+            if (NotationMetrics.IsOutwardLabel(port))
+            {
+                var label = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
+                IncludePlacement(label.X, label.Y, label.HalfWidth, label.HalfHeight);
+            }
+        }
         if (minX >= 0.0 && minY >= 0.0 && maxX <= tree.Width && maxY <= tree.Height)
         {
             return tree;

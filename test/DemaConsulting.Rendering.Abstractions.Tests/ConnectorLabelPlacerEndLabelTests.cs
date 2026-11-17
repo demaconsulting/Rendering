@@ -404,4 +404,66 @@ public sealed class ConnectorLabelPlacerEndLabelTests
         // Assert
         Assert.Equal(without[plain], with[labeled]);
     }
+
+    /// <summary>
+    ///     The occupied rectangles of a port are its glyph and, for an outward label, the label rectangle
+    ///     padded along the text, so an end label keeps a gap from both.
+    /// </summary>
+    [Fact]
+    public void PortOccupiedRects_OutwardLabeledPort_ReturnsGlyphAndPaddedLabel()
+    {
+        // Arrange
+        var port = new LayoutPort(100, 50, PortSide.Right, "state : Mode", Appearance: OutlinedIn);
+        var plain = new LayoutPort(200, 50, PortSide.Left, null);
+
+        // Act
+        var rects = ConnectorLabelPlacer.PortOccupiedRects([port, plain], Themes.Light);
+
+        // Assert: glyph + padded label for the outward port, glyph only for the plain one.
+        Assert.Equal(3, rects.Count);
+        Assert.Equal(NotationMetrics.PortGlyphBounds(port), rects[0]);
+        var label = NotationMetrics.PortOutwardLabelBounds(port, "state : Mode", Themes.Light);
+        Assert.Equal(label.HalfWidth + 5.0, rects[1].HalfWidth, 6);
+        Assert.Equal(label.X, rects[1].X, 6);
+        Assert.Equal(NotationMetrics.PortGlyphBounds(plain), rects[2]);
+    }
+
+    /// <summary>
+    ///     <see cref="ConnectorLabelPlacer.ResolveLabels"/> returns exactly the placements the renderers
+    ///     compute by hand: midpoint labels first, then end labels that yield to the midpoints and to every
+    ///     port rectangle.
+    /// </summary>
+    [Fact]
+    public void ResolveLabels_PortsAndLabels_MatchesManualComposition()
+    {
+        // Arrange: a labeled connector ending on an outward-labeled port.
+        var port = new LayoutPort(360, 100, PortSide.Right, "in : Fuel", Appearance: OutlinedIn);
+        var line = Horizontal(40, 360, 100, new LineEndLabel("src", "1"), new LineEndLabel("dst", "0..*"), EndMarkerStyle.OpenChevron)
+            with
+        { MidpointLabel = "mid" };
+        var box = new LayoutBox(0, 80, 40, 40, "A", 0, BoxShape.Rectangle, [], []);
+
+        // Act
+        var resolved = ConnectorLabelPlacer.ResolveLabels([line], [box], [port], Themes.Light);
+
+        // Assert
+        var midpoints = ConnectorLabelPlacer.Place([line], FontSize, [box], Scale);
+        var rects = ConnectorLabelPlacer.PortOccupiedRects([port], Themes.Light);
+        var ends = ConnectorLabelPlacer.PlaceEndLabels([line], FontSize, [box], Scale, midpoints.Values.Concat(rects), [port]);
+        Assert.Equal(midpoints[line], resolved.Midpoints[line]);
+        Assert.Equal(ends, resolved.EndLabels);
+        Assert.Equal(rects, resolved.PortRects);
+    }
+
+    /// <summary>Null arguments to the shared resolver and the port rectangles are rejected.</summary>
+    [Fact]
+    public void ResolveLabels_NullArguments_Throw()
+    {
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.ResolveLabels(null!, [], [], Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.ResolveLabels([], null!, [], Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.ResolveLabels([], [], null!, Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.ResolveLabels([], [], [], null!));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.PortOccupiedRects(null!, Themes.Light));
+        Assert.Throws<ArgumentNullException>(() => ConnectorLabelPlacer.PortOccupiedRects([], null!));
+    }
 }

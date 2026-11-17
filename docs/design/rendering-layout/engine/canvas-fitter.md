@@ -28,11 +28,11 @@ arrowhead on the edge is never clipped.
 
 1. **Collect.** Every `LayoutBox` (recursing through `Children`), `LayoutLine`, and `LayoutPort` is
    collected. A tree with a node of any other type, or with no line, is returned unchanged.
-2. **Measure.** The extent (minimum and maximum X and Y) of every connector waypoint is computed. Midpoint
-   labels are resolved with `ConnectorLabelPlacer.Place` and end labels with
-   `ConnectorLabelPlacer.PlaceEndLabels`, using the same obstacle boxes, the light theme's marker scale,
-   and the caller's font size that the renderers use (but not their port-glyph clearance rectangles, which
-   only matter for graphs with ports), and every label rectangle is added to the extent.
+2. **Measure.** The extent (minimum and maximum X and Y) of every connector waypoint is computed. Midpoint and end
+   labels are resolved through the shared `ConnectorLabelPlacer.ResolveLabels` resolver that the SVG and raster
+   renderers also call (same obstacle boxes, port glyph and outward port label rectangles, and ordering; the light theme
+   with the caller's font size), so the measured positions are the positions the renderers draw. Every label rectangle,
+   every port glyph, and every outward port label is added to the extent.
 3. **Contained case.** When the whole extent lies inside `[0, Width] x [0, Height]`, the same instance is
    returned, so every layout that already fits is byte-identical to its previous output.
 4. **Translate.** On an axis whose content starts before the origin, every node is translated by

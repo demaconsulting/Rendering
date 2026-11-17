@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering;
+using DemaConsulting.Rendering.Abstractions;
 using DemaConsulting.Rendering.Layout.Engine;
 
 namespace DemaConsulting.Rendering.Layout.Tests.Engine;
@@ -102,6 +103,54 @@ public sealed class CanvasFitterTests
         Assert.Equal(340 + CanvasFitter.FitMargin, fitted.Width, 6);
         Assert.Equal(130 + CanvasFitter.FitMargin, fitted.Height, 6);
         Assert.Equal(20.0, fitted.Nodes.OfType<LayoutBox>().Single().X, 6);
+    }
+
+    /// <summary>
+    ///     An outward port label hanging left of the origin (its port glyph is inside the canvas) translates
+    ///     the tree so the label is inside, even though no connector or connector label is outside.
+    /// </summary>
+    [Fact]
+    public void CanvasFitter_Fit_OutwardPortLabelLeftOfOrigin_TranslatesTreeToHoldLabel()
+    {
+        // Arrange: a port on the left face at x = 30 whose outward label extends far to its left.
+        var port = new LayoutPort(
+            30,
+            50,
+            PortSide.Left,
+            "aVeryLongPortLabel : SomeType",
+            Appearance: new PortAppearance(PortDirection.In, LabelPlacement: PortLabelPlacement.Outward));
+        var line = new LayoutLine([new Point2D(30, 50), new Point2D(30, 150)], EndMarkerStyle.None, EndMarkerStyle.OpenChevron, LineStyle.Solid, null);
+        var tree = new LayoutTree(300, 200, [Box(30, 20, "A"), line, port]);
+        var label = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, Themes.Light);
+        Assert.True(label.X - label.HalfWidth < 0.0, "scenario must put the port label left of the canvas");
+
+        // Act
+        var fitted = CanvasFitter.Fit(tree, FontSize);
+
+        // Assert: the outward label and the glyph are now inside the canvas.
+        var movedPort = fitted.Nodes.OfType<LayoutPort>().Single();
+        var movedLabel = NotationMetrics.PortOutwardLabelBounds(movedPort, movedPort.ExternalLabel!, Themes.Light);
+        Assert.Equal(CanvasFitter.FitMargin, movedLabel.X - movedLabel.HalfWidth, 6);
+        var glyph = NotationMetrics.PortGlyphBounds(movedPort);
+        Assert.True(glyph.X - glyph.HalfWidth >= 0.0 && glyph.X + glyph.HalfWidth <= fitted.Width);
+    }
+
+    /// <summary>A port glyph poking past the top-left corner brings the whole tree inside the canvas.</summary>
+    [Fact]
+    public void CanvasFitter_Fit_PortGlyphAboveOrigin_TranslatesTree()
+    {
+        // Arrange: a port glyph centered at y = 2 (half of it above the canvas) on a top face.
+        var port = new LayoutPort(60, 2, PortSide.Top, null);
+        var line = new LayoutLine([new Point2D(60, 2), new Point2D(60, 90)], EndMarkerStyle.None, EndMarkerStyle.None, LineStyle.Solid, null);
+        var tree = new LayoutTree(200, 150, [Box(30, 2, "A"), line, port]);
+
+        // Act
+        var fitted = CanvasFitter.Fit(tree, FontSize);
+
+        // Assert
+        var glyph = NotationMetrics.PortGlyphBounds(fitted.Nodes.OfType<LayoutPort>().Single());
+        Assert.True(glyph.Y - glyph.HalfHeight >= 0.0);
+        Assert.NotSame(tree, fitted);
     }
 
     /// <summary>A tree holding a node type the packer cannot translate is returned unchanged.</summary>
