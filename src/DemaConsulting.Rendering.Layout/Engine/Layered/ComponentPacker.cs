@@ -448,41 +448,26 @@ internal sealed class ComponentPacker : ILayoutStage
     }
 
     /// <summary>
-    /// Assigns each component a shelf offset using a greedy row (shelf) packer. The target row width is
-    /// the larger of the widest component and <c>sqrt(totalArea) * aspect</c>, which biases the overall
-    /// arrangement toward the requested aspect ratio.
+    /// Assigns each component an offset: the greedy row (shelf) arrangement (target row width the larger of
+    /// the widest component and <c>sqrt(totalArea) * aspect</c>, biasing the arrangement toward the
+    /// requested aspect ratio), or — when it needs a strictly smaller canvas — the free-space arrangement
+    /// that tucks small components (isolated nodes) into the space beside a tall one. See
+    /// <see cref="LayoutTreePacker.Arrange"/>.
     /// </summary>
     /// <param name="layouts">The laid-out components; their offsets are assigned in place.</param>
     private void PackComponents(List<ComponentLayout> layouts)
     {
-        var totalArea = 0.0;
-        var widest = 0.0;
-        foreach (var layout in layouts)
+        var sizes = new (double Width, double Height)[layouts.Count];
+        for (var i = 0; i < layouts.Count; i++)
         {
-            totalArea += layout.Width * layout.Height;
-            widest = Math.Max(widest, layout.Width);
+            sizes[i] = (layouts[i].Width, layouts[i].Height);
         }
 
-        var targetRowWidth = Math.Max(widest, Math.Sqrt(totalArea) * _aspect);
-
-        var cursorX = 0.0;
-        var shelfTop = 0.0;
-        var shelfHeight = 0.0;
-        foreach (var layout in layouts)
+        var arrangement = LayoutTreePacker.Arrange(sizes, _spacing, _aspect);
+        for (var i = 0; i < layouts.Count; i++)
         {
-            // Wrap to a new shelf when the running row width would exceed the target (but never leave a
-            // shelf empty — an over-wide component sits alone on its own shelf).
-            if (cursorX > 0.0 && cursorX + layout.Width > targetRowWidth)
-            {
-                shelfTop += shelfHeight + _spacing;
-                cursorX = 0.0;
-                shelfHeight = 0.0;
-            }
-
-            layout.OffsetX = cursorX;
-            layout.OffsetY = shelfTop;
-            cursorX += layout.Width + _spacing;
-            shelfHeight = Math.Max(shelfHeight, layout.Height);
+            layouts[i].OffsetX = arrangement.X[i];
+            layouts[i].OffsetY = arrangement.Y[i];
         }
     }
 

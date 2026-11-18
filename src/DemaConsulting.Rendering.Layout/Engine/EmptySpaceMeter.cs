@@ -57,7 +57,15 @@ internal static class EmptySpaceMeter
     /// </summary>
     /// <param name="tree">The placed tree.</param>
     /// <returns>The side, in logical pixels, a multiple of <see cref="CellSize"/>.</returns>
-    internal static double LargestEmptySquare(LayoutTree tree)
+    internal static double LargestEmptySquare(LayoutTree tree) => LargestEmptySquareCells(BuildOccupancy(tree)) * CellSize;
+
+    /// <summary>
+    /// Rasterizes <paramref name="tree"/> onto the occupancy grid of the measure: leaf boxes, connector
+    /// segments dilated by one cell, and resolved connector labels are occupied.
+    /// </summary>
+    /// <param name="tree">The placed tree.</param>
+    /// <returns>The grid, indexed <c>[column, row]</c>, <see langword="true"/> where occupied.</returns>
+    internal static bool[,] BuildOccupancy(LayoutTree tree)
     {
         var columns = Math.Max(1, (int)Math.Ceiling(tree.Width / CellSize));
         var rows = Math.Max(1, (int)Math.Ceiling(tree.Height / CellSize));
@@ -99,7 +107,7 @@ internal static class EmptySpaceMeter
             Fill(grid, placement.X - placement.HalfWidth, placement.Y - placement.HalfHeight, placement.X + placement.HalfWidth, placement.Y + placement.HalfHeight);
         }
 
-        return LargestEmptySquare(grid) * CellSize;
+        return grid;
     }
 
     /// <summary>
@@ -109,7 +117,7 @@ internal static class EmptySpaceMeter
     /// <param name="boxes">The accumulating boxes, outermost first.</param>
     /// <param name="lines">The accumulating lines.</param>
     /// <param name="ports">The accumulating ports.</param>
-    private static void Collect(
+    internal static void Collect(
         IReadOnlyList<LayoutNode> nodes,
         List<LayoutBox> boxes,
         List<LayoutLine> lines,
@@ -141,7 +149,7 @@ internal static class EmptySpaceMeter
     /// <param name="top">The top edge of the rectangle.</param>
     /// <param name="right">The right edge of the rectangle.</param>
     /// <param name="bottom">The bottom edge of the rectangle.</param>
-    private static void Fill(bool[,] grid, double left, double top, double right, double bottom)
+    internal static void Fill(bool[,] grid, double left, double top, double right, double bottom)
     {
         var columns = grid.GetLength(0);
         var rows = grid.GetLength(1);
@@ -163,7 +171,7 @@ internal static class EmptySpaceMeter
     /// </summary>
     /// <param name="grid">The occupancy grid.</param>
     /// <returns>The side in cells.</returns>
-    private static int LargestEmptySquare(bool[,] grid)
+    internal static int LargestEmptySquareCells(bool[,] grid)
     {
         var columns = grid.GetLength(0);
         var rows = grid.GetLength(1);

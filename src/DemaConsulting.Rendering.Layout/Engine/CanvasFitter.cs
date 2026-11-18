@@ -61,64 +61,11 @@ internal static class CanvasFitter
     {
         ArgumentNullException.ThrowIfNull(tree);
 
-        var boxes = new List<LayoutBox>();
-        var lines = new List<LayoutLine>();
-        var ports = new List<LayoutPort>();
-        if (!Collect(tree.Nodes, boxes, lines, ports) || (lines.Count == 0 && ports.Count == 0))
+        if (!TryMeasure(tree, fontSize, includeBoxes: false, bendInset: 0.0, out var minX, out var minY, out var maxX, out var maxY))
         {
             return tree;
         }
 
-        var minX = double.PositiveInfinity;
-        var minY = double.PositiveInfinity;
-        var maxX = double.NegativeInfinity;
-        var maxY = double.NegativeInfinity;
-
-        void Include(double left, double top, double right, double bottom)
-        {
-            minX = Math.Min(minX, left);
-            minY = Math.Min(minY, top);
-            maxX = Math.Max(maxX, right);
-            maxY = Math.Max(maxY, bottom);
-        }
-
-        void IncludePlacement(double x, double y, double halfWidth, double halfHeight) =>
-            Include(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight);
-
-        foreach (var line in lines)
-        {
-            foreach (var point in line.Waypoints)
-            {
-                Include(point.X, point.Y, point.X, point.Y);
-            }
-        }
-
-        // Resolve every label through the one shared resolver the renderers use (same obstacle boxes, port
-        // glyph and outward port label rectangles, and ordering), so the positions measured here are the
-        // positions the renderers draw.
-        var theme = Themes.Light with { FontSizeBody = fontSize };
-        var labelLayout = ConnectorLabelPlacer.ResolveLabels(lines, boxes, ports, theme);
-        foreach (var placement in labelLayout.Midpoints.Values)
-        {
-            IncludePlacement(placement.X, placement.Y, placement.HalfWidth, placement.HalfHeight);
-        }
-
-        foreach (var placement in labelLayout.EndLabels)
-        {
-            IncludePlacement(placement.X, placement.Y, placement.HalfWidth, placement.HalfHeight);
-        }
-
-        // Port glyphs and outward port labels are drawn content too.
-        foreach (var port in ports)
-        {
-            var glyph = NotationMetrics.PortGlyphBounds(port);
-            IncludePlacement(glyph.X, glyph.Y, glyph.HalfWidth, glyph.HalfHeight);
-            if (NotationMetrics.IsOutwardLabel(port))
-            {
-                var label = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
-                IncludePlacement(label.X, label.Y, label.HalfWidth, label.HalfHeight);
-            }
-        }
         if (minX >= 0.0 && minY >= 0.0 && maxX <= tree.Width && maxY <= tree.Height)
         {
             return tree;
@@ -144,6 +91,162 @@ internal static class CanvasFitter
             ? tree.Nodes
             : [.. tree.Nodes.Select(node => LayoutTreePacker.TranslateNode(node, dx, dy))];
         return tree with { Width = width, Height = height, Nodes = nodes };
+    }
+
+    /// <summary>
+    /// Returns <paramref name="tree"/> translated so its drawn content (boxes, connector waypoints and
+    /// resolved labels, port glyphs and outward port labels) starts at the origin, with the canvas sized to
+    /// exactly that content: the layout's own canvas padding is trimmed so the caller can add exactly one
+    /// padding of its own choosing.
+    /// </summary>
+    /// <param name="tree">The placed tree.</param>
+    /// <param name="fontSize">The body font size, in logical pixels, used to size connector labels.</param>
+    /// <param name="bendInset">
+    /// How far a connector bend counts as extending beyond its position (see <c>TryMeasure</c>): the margin a
+    /// border must keep from a bend beyond the margin it keeps from a box.
+    /// </param>
+    /// <returns>
+    /// The trimmed copy, or <paramref name="tree"/> itself when it has no measurable content or contains a
+    /// node type the packer cannot translate.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="tree"/> is <see langword="null"/>.</exception>
+    internal static LayoutTree TrimToContent(LayoutTree tree, double fontSize, double bendInset = 0.0)
+    {
+        ArgumentNullException.ThrowIfNull(tree);
+
+        if (!TryMeasure(tree, fontSize, includeBoxes: true, bendInset, out var minX, out var minY, out var maxX, out var maxY))
+        {
+            return tree;
+        }
+
+        var width = maxX - minX;
+        var height = maxY - minY;
+        if (minX == 0.0 && minY == 0.0 && Math.Abs(width - tree.Width) < 1e-9 && Math.Abs(height - tree.Height) < 1e-9)
+        {
+            return tree;
+        }
+
+        var nodes = minX == 0.0 && minY == 0.0
+            ? tree.Nodes
+            : [.. tree.Nodes.Select(node => LayoutTreePacker.TranslateNode(node, -minX, -minY))];
+        return tree with { Width = width, Height = height, Nodes = nodes };
+    }
+
+    /// <summary>
+    /// Measures the extent of the drawn content of <paramref name="tree"/>: connector waypoints, resolved
+    /// connector labels (through the one resolver the renderers use), port glyphs and outward port labels,
+    /// and optionally every box.
+    /// </summary>
+    /// <param name="tree">The placed tree.</param>
+    /// <param name="fontSize">The body font size, in logical pixels, used to size connector labels.</param>
+    /// <param name="includeBoxes">Whether box rectangles count as content.</param>
+    /// <param name="bendInset">
+    /// How far, in logical pixels, a connector bend (any waypoint that is not one of the two ends) counts as
+    /// extending beyond its position, so a caller can keep a wider margin from bends than from boxes.
+    /// </param>
+    /// <param name="minX">Receives the leftmost content coordinate.</param>
+    /// <param name="minY">Receives the topmost content coordinate.</param>
+    /// <param name="maxX">Receives the rightmost content coordinate.</param>
+    /// <param name="maxY">Receives the lowest content coordinate.</param>
+    /// <returns>
+    /// <see langword="false"/> when the tree has an unrecognized node type or nothing to measure (without
+    /// <paramref name="includeBoxes"/>, a tree with neither lines nor ports).
+    /// </returns>
+    private static bool TryMeasure(
+        LayoutTree tree,
+        double fontSize,
+        bool includeBoxes,
+        double bendInset,
+        out double minX,
+        out double minY,
+        out double maxX,
+        out double maxY)
+    {
+        minX = double.PositiveInfinity;
+        minY = double.PositiveInfinity;
+        maxX = double.NegativeInfinity;
+        maxY = double.NegativeInfinity;
+
+        var boxes = new List<LayoutBox>();
+        var lines = new List<LayoutLine>();
+        var ports = new List<LayoutPort>();
+        if (!Collect(tree.Nodes, boxes, lines, ports) ||
+            (lines.Count == 0 && ports.Count == 0 && !(includeBoxes && boxes.Count > 0)))
+        {
+            return false;
+        }
+
+        // Locals cannot be captured from out parameters, so the extents accumulate in plain locals.
+        var left = double.PositiveInfinity;
+        var top = double.PositiveInfinity;
+        var right = double.NegativeInfinity;
+        var bottom = double.NegativeInfinity;
+
+        void Include(double x1, double y1, double x2, double y2)
+        {
+            left = Math.Min(left, x1);
+            top = Math.Min(top, y1);
+            right = Math.Max(right, x2);
+            bottom = Math.Max(bottom, y2);
+        }
+
+        void IncludePlacement(double x, double y, double halfWidth, double halfHeight) =>
+            Include(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight);
+
+        if (includeBoxes)
+        {
+            foreach (var box in boxes)
+            {
+                Include(box.X, box.Y, box.X + box.Width, box.Y + box.Height);
+            }
+        }
+
+        foreach (var points in lines.Select(line => line.Waypoints))
+        {
+            for (var i = 0; i < points.Count; i++)
+            {
+                // A bend (not an end on a box face) may be required to keep a wider margin from the
+                // enclosing border than a box does.
+                var inset = i > 0 && i < points.Count - 1 ? bendInset : 0.0;
+                Include(points[i].X - inset, points[i].Y - inset, points[i].X + inset, points[i].Y + inset);
+            }
+        }
+
+        // Resolve every label through the one shared resolver the renderers use (same obstacle boxes, port
+        // glyph and outward port label rectangles, and ordering), so the positions measured here are the
+        // positions the renderers draw.
+        var theme = Themes.Light with { FontSizeBody = fontSize };
+        if (lines.Exists(line => line.MidpointLabel is not null || line.SourceEndLabel is not null || line.TargetEndLabel is not null))
+        {
+            var labelLayout = ConnectorLabelPlacer.ResolveLabels(lines, boxes, ports, theme);
+            foreach (var placement in labelLayout.Midpoints.Values)
+            {
+                IncludePlacement(placement.X, placement.Y, placement.HalfWidth, placement.HalfHeight);
+            }
+
+            foreach (var placement in labelLayout.EndLabels)
+            {
+                IncludePlacement(placement.X, placement.Y, placement.HalfWidth, placement.HalfHeight);
+            }
+        }
+
+        // Port glyphs and outward port labels are drawn content too.
+        foreach (var port in ports)
+        {
+            var glyph = NotationMetrics.PortGlyphBounds(port);
+            IncludePlacement(glyph.X, glyph.Y, glyph.HalfWidth, glyph.HalfHeight);
+            if (NotationMetrics.IsOutwardLabel(port))
+            {
+                var label = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
+                IncludePlacement(label.X, label.Y, label.HalfWidth, label.HalfHeight);
+            }
+        }
+
+        minX = left;
+        minY = top;
+        maxX = right;
+        maxY = bottom;
+        return !double.IsInfinity(left);
     }
 
     /// <summary>

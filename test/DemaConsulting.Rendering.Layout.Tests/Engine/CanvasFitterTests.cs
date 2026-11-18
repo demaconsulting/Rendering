@@ -176,6 +176,78 @@ public sealed class CanvasFitterTests
         Assert.Throws<ArgumentNullException>(() => CanvasFitter.Fit(null!, FontSize));
     }
 
+    /// <summary>
+    ///     Trimming moves the content to the origin and sizes the canvas to exactly the content: the two boxes
+    ///     of the fixture span 20..320 by 20..180, so the trimmed canvas is 300 by 160 with the first box at (0, 0).
+    /// </summary>
+    [Fact]
+    public void CanvasFitter_TrimToContent_Boxes_StartsAtOriginAndHugsContent()
+    {
+        // Arrange
+        var tree = TwoBoxTree(waypointsX: 100.0, label: null);
+
+        // Act
+        var trimmed = CanvasFitter.TrimToContent(tree, FontSize);
+
+        // Assert
+        Assert.Equal(300.0, trimmed.Width, 6);
+        Assert.Equal(160.0, trimmed.Height, 6);
+        var boxes = trimmed.Nodes.OfType<LayoutBox>().ToList();
+        Assert.Equal(0.0, boxes[0].X, 6);
+        Assert.Equal(0.0, boxes[0].Y, 6);
+        Assert.Equal(200.0, boxes[1].X, 6);
+        Assert.Equal(100.0, boxes[1].Y, 6);
+        var line = trimmed.Nodes.OfType<LayoutLine>().Single();
+        Assert.Equal(new Point2D(100, 30), line.Waypoints[0]);
+    }
+
+    /// <summary>A connector bend left of the boxes counts as content, and a bend inset keeps a wider margin from it.</summary>
+    [Fact]
+    public void CanvasFitter_TrimToContent_BendLeftOfBoxes_IsContentAndHonorsBendInset()
+    {
+        // Arrange: the connector detours to x = 2, left of the first box (x = 20)
+        var tree = TwoBoxTree(waypointsX: 2.0, label: null);
+
+        // Act
+        var plain = CanvasFitter.TrimToContent(tree, FontSize);
+        var inset = CanvasFitter.TrimToContent(tree, FontSize, bendInset: 12.0);
+
+        // Assert: the bend is the leftmost content; the inset keeps 12 further out
+        Assert.Equal(0.0, plain.Nodes.OfType<LayoutLine>().Single().Waypoints[1].X, 6);
+        Assert.Equal(12.0, inset.Nodes.OfType<LayoutLine>().Single().Waypoints[1].X, 6);
+        Assert.Equal(inset.Width, plain.Width + 12.0, 6);
+    }
+
+    /// <summary>A tree with no content is returned unchanged.</summary>
+    [Fact]
+    public void CanvasFitter_TrimToContent_EmptyTree_ReturnsSameTree()
+    {
+        // Arrange
+        var tree = new LayoutTree(50, 50, []);
+
+        // Act / Assert
+        Assert.Same(tree, CanvasFitter.TrimToContent(tree, FontSize));
+    }
+
+    /// <summary>A tree already hugging its content at the origin is returned unchanged.</summary>
+    [Fact]
+    public void CanvasFitter_TrimToContent_AlreadyTrimmed_ReturnsSameTree()
+    {
+        // Arrange
+        var tree = new LayoutTree(100, 60, [Box(0, 0, "A")]);
+
+        // Act / Assert
+        Assert.Same(tree, CanvasFitter.TrimToContent(tree, FontSize));
+    }
+
+    /// <summary>A null tree is rejected.</summary>
+    [Fact]
+    public void CanvasFitter_TrimToContent_NullTree_Throws()
+    {
+        // Act / Assert
+        Assert.Throws<ArgumentNullException>(() => CanvasFitter.TrimToContent(null!, FontSize));
+    }
+
     private static LayoutTree TwoBoxTree(double waypointsX, string? label)
     {
         var line = new LayoutLine(

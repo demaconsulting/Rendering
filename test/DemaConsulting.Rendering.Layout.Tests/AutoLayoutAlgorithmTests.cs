@@ -199,6 +199,31 @@ public sealed class AutoLayoutAlgorithmTests
     }
 
     /// <summary>
+    ///     Proves that a tall connected chain beside several isolated nodes (which Auto packs content-trimmed,
+    ///     dissolved from their bucket or tucked into free space when that gives a smaller canvas) keeps one top
+    ///     level box per input node in input order, no two boxes overlap, every box is inside the canvas, and the
+    ///     layout is deterministic.
+    /// </summary>
+    [Fact]
+    public void Apply_TallChainPlusIsolatedNodes_KeepsInputBoxOrderWithoutOverlapAndIsDeterministic()
+    {
+        // Arrange
+        var graph = LayoutQualityScenes.AutoTallPlusIsolated();
+        var expectedOrder = graph.Nodes.Select(node => node.Label).ToList();
+
+        // Act
+        var tree = LayoutEngine.Layout(graph);
+        var again = LayoutEngine.Layout(LayoutQualityScenes.AutoTallPlusIsolated());
+
+        // Assert
+        var boxes = tree.Nodes.OfType<LayoutBox>().ToList();
+        Assert.Equal(expectedOrder, boxes.Select(box => box.Label));
+        LayoutGeometryAssert.AssertNoSiblingOverlap(tree);
+        LayoutGeometryAssert.AssertWithinCanvas(tree);
+        Assert.Equal(DumpTree(tree), DumpTree(again));
+    }
+
+    /// <summary>
     ///     Proves that a graph mixing one connected cluster with several unrelated singleton nodes packs
     ///     the cluster (via layered) and the singleton bucket (via containment) into one combined tree
     ///     with non-overlapping bounding boxes for the two pieces.

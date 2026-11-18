@@ -178,6 +178,28 @@ public sealed partial class HierarchicalLayoutAlgorithm
         internal Dictionary<(LayoutGraphNode Container, string Signature), LayoutTree> InteriorLayouts { get; } = [];
 
         /// <summary>
+        /// Gets the loose containers (not tightened to their content) of the scopes laid out so far, so a
+        /// refinement pass starts with what the first pass of the scope found out.
+        /// </summary>
+        private Dictionary<LayoutGraph, HashSet<LayoutGraphNode>> LooseContainers { get; } = [];
+
+        /// <summary>
+        /// Returns the set of loose containers of <paramref name="scope"/>, created empty on first use.
+        /// </summary>
+        /// <param name="scope">The container scope.</param>
+        /// <returns>The mutable set, shared by every pass over the scope in this run.</returns>
+        internal HashSet<LayoutGraphNode> LooseContainersOf(LayoutGraph scope)
+        {
+            if (!LooseContainers.TryGetValue(scope, out var loose))
+            {
+                loose = [];
+                LooseContainers[scope] = loose;
+            }
+
+            return loose;
+        }
+
+        /// <summary>
         /// Records one memo hit.
         /// </summary>
         internal void RecordMemoHit() => MemoHits++;
@@ -223,26 +245,40 @@ public sealed partial class HierarchicalLayoutAlgorithm
     /// </summary>
     /// <param name="node">The container whose children scope is laid out.</param>
     /// <param name="childEffective">The cascaded effective options of the container's children scope.</param>
+    /// <param name="tighten">Whether the interior is trimmed to its content (see <c>LayoutContainerChildren</c>).</param>
     /// <returns>The placed interior in local coordinates.</returns>
-    private LayoutTree LayoutContainerScope(LayoutGraphNode node, LayoutOptions childEffective)
+    private LayoutTree LayoutContainerScope(LayoutGraphNode node, LayoutOptions childEffective, bool tighten)
     {
         var context = childEffective.Get(RefinementContext);
         if (context is null)
         {
-            return LayoutScope(node.Children, childEffective);
+            return TrimInterior(LayoutScope(node.Children, childEffective), childEffective, tighten);
         }
 
-        var key = (node, RankSignature(node, childEffective.Get(OrderRanks)));
+        var key = (node, RankSignature(node, childEffective.Get(OrderRanks)) + (tighten ? "|t" : "|u"));
         if (context.InteriorLayouts.TryGetValue(key, out var cached))
         {
             context.RecordMemoHit();
             return cached;
         }
 
-        var sub = LayoutScope(node.Children, childEffective);
+        var sub = TrimInterior(LayoutScope(node.Children, childEffective), childEffective, tighten);
         context.InteriorLayouts[key] = sub;
         return sub;
     }
+
+    /// <summary>
+    /// Trims a container interior to its drawn content (boxes, waypoints, resolved labels, ports) so the
+    /// leaf algorithm's own canvas padding is not added on top of <see cref="ContainerPadding"/>.
+    /// </summary>
+    /// <param name="interior">The placed interior.</param>
+    /// <param name="childEffective">The cascaded effective options of the container's children scope.</param>
+    /// <param name="tighten">Whether to trim at all.</param>
+    /// <returns>The interior, trimmed when requested.</returns>
+    private static LayoutTree TrimInterior(LayoutTree interior, LayoutOptions childEffective, bool tighten) =>
+        tighten
+            ? CanvasFitter.TrimToContent(interior, childEffective.Get(CoreOptions.AssumedFontSize), ContainerPadding)
+            : interior;
 
     /// <summary>
     /// Builds the signature of the order ranks that apply to the subtree of <paramref name="container"/>:

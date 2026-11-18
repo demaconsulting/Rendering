@@ -828,7 +828,7 @@ public static class ConnectorRouter
     /// of a wall. The short step-off stubs at the two ends are exempt, so a port close to its own
     /// container's wall is not penalized for leaving its face.
     /// </summary>
-    private static bool HasWallViolation(IReadOnlyList<Point2D> w, IReadOnlyList<RouterWall>? walls, double clearance)
+    internal static bool HasWallViolation(IReadOnlyList<Point2D> w, IReadOnlyList<RouterWall>? walls, double clearance)
     {
         if (walls is null || walls.Count == 0)
         {

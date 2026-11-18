@@ -527,6 +527,39 @@ public sealed class ComponentPackerTests
         Assert.Equal(unranked.AugY.Take(4), nan.AugY.Take(4));
     }
 
+    /// <summary>
+    ///     A tall component (a chain flowing down) followed by isolated nodes: the isolated nodes are tucked
+    ///     into the space beside the chain instead of wrapping onto a row below it, so the canvas ends with
+    ///     the chain and does not grow by another row.
+    /// </summary>
+    [Fact]
+    public void ComponentPacker_Apply_TallComponentPlusIsolatedNodes_TucksIsolatedNodesBesideIt()
+    {
+        // Arrange: a six-node chain flowing down (tall and narrow) and three isolated nodes.
+        var nodes = Enumerable.Range(0, 9).Select(_ => new LayerNode(NodeWidth, NodeHeight, RealWidth: NodeWidth, RealHeight: NodeHeight)).ToList();
+        var edges = Enumerable.Range(0, 5).Select(i => new LayerEdge(i, i + 1)).ToList();
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Down);
+
+        // Act
+        ComponentPacker.WithDefaultStages().Apply(graph);
+
+        // Assert: no isolated node starts at or below the chain's last node (none wrapped under the chain)
+        // and no two nodes overlap.
+        var lastChainTop = graph.AugY[5];
+        foreach (var isolated in new[] { 6, 7, 8 })
+        {
+            Assert.True(graph.AugY[isolated] < lastChainTop, $"isolated node {isolated} is below the chain");
+        }
+
+        for (var a = 0; a < nodes.Count; a++)
+        {
+            for (var b = a + 1; b < nodes.Count; b++)
+            {
+                Assert.False(BoxesOverlap(graph, a, b), $"nodes {a} and {b} overlap");
+            }
+        }
+    }
+
     /// <summary>Finds the furthest first-bend-point X coordinate among a graph's reversed (back) edges.</summary>
     /// <param name="graph">The laid-out graph.</param>
     /// <returns>The maximum X coordinate of the first bend point across all reversed edges.</returns>
