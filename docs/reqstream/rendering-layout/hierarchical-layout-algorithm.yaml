@@ -585,6 +585,20 @@ sections:
         tests:
           - LayoutEngine_Layout_BenchmarkScene_MarkersClearContainerBorders
 
+      - id: Rendering-Layout-HierarchicalLayout-AnchorSeparation
+        title: >-
+          HierarchicalLayoutAlgorithm shall keep every pair of connector ends on one box face at least 16
+          pixels apart (anchor separation) wherever the face has room, also when a re-routing pass moves a
+          connector onto a face another connector already uses: the connector's naive anchor is not offered
+          where it coincides with another connector's port.
+        justification: |
+          Two connectors that leave one face at the same point cannot be told apart and break the one port
+          per connector rule (diagram-quality C2, C6). A re-routing pass searching alternative faces used to
+          offer the naive anchor unconditionally, so a connector moved onto a face could land on the port of
+          the specialization already there.
+        tests:
+          - LayoutEngine_Layout_BenchmarkScene_AnchorsStaySeparatedOnSharedFace
+
       - id: Rendering-Layout-HierarchicalLayout-CanvasPadding
         title: >-
           HierarchicalLayoutAlgorithm shall return a canvas that hugs its content, keeping the padding

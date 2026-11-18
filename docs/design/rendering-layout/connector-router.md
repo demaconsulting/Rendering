@@ -157,6 +157,12 @@ slid port stays between its neighbors on the same face (other batch connectors a
 final ports, and fixed anchors), in the original order, and at least the smaller of the batch
 separation (16 px) and its current distance away from each of them. The preferred position is the
 plain anchor, and the router adds the overlap midpoint of the two ends' intervals as a candidate lane.
+On a face the connector is newly moving onto in a re-routing pass (an alternative face of the cross-hierarchy
+profile) the neighbor windows are cut out of the usable extent, and the end's naive anchor is offered only
+when it does not coincide with a neighbor's port (within 1 px); otherwise the nearest port the exclusion
+leaves is added as a routing candidate, so a re-routing pass never lands a connector on another connector's
+port. A face with no port left keeps the naive anchor (best effort), and a range whose intervals hold no
+routing grid line yields no route at all (`TrySolveAtClearance` returns none).
 `OrthogonalEdgeRouter.RoutePorts` then searches from every candidate source port to every candidate
 target port, charging a small cost per pixel of displacement (so the centered anchor wins every tie and a
 port only moves to remove a bend). Outside the profile the search result replaces the first route only

@@ -89,6 +89,17 @@ internal static class LayoutQualityBaseline
     }
 
     /// <summary>
+    ///     The smallest port separation, in logical pixels, a benchmark scene must keep between two connector ends
+    ///     on one box face: the router's 16 px (<c>MinFixedAnchorSeparation</c>), except in the two scenes where
+    ///     main@219650c already had connector ends sharing a point on a full face (NestedPackagesRight and
+    ///     DenseUsageTree measure 0 on main and today; the bound there is main's, never worse).
+    /// </summary>
+    /// <param name="scene">The benchmark scene name.</param>
+    /// <returns>The smallest acceptable separation.</returns>
+    public static double MinAnchorSeparation(string scene) =>
+        scene is "NestedPackagesRight" or "DenseUsageTree" ? 0.0 : 16.0;
+
+    /// <summary>
     ///     The smallest canvas area main reaches for Repro 2 over every insertion order of the first folder,
     ///     by flow direction (Right and Left; Up and Down). main@219650c.
     /// </summary>

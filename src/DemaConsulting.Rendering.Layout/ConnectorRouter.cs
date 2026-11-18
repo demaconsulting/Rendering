@@ -1247,8 +1247,8 @@ public static class ConnectorRouter
         var bestCrossings = int.MaxValue;
         foreach (var pair in CandidateFacePairs(connection, current, alternatives: profile is not null))
         {
-            var sourceRange = BuildPortRange(connection.From, pair.SourceSide, connection.To, index, true, connections, anchors, occupied, clearance);
-            var targetRange = BuildPortRange(connection.To, pair.TargetSide, connection.From, index, false, connections, anchors, occupied, clearance);
+            var sourceRange = BuildPortRange(connection.From, pair.SourceSide, connection.To, index, true, connections, anchors, occupied, clearance, refine is not null);
+            var targetRange = BuildPortRange(connection.To, pair.TargetSide, connection.From, index, false, connections, anchors, occupied, clearance, refine is not null);
             if (sourceRange is null || targetRange is null)
             {
                 continue;
@@ -1418,7 +1418,8 @@ public static class ConnectorRouter
         IReadOnlyList<Connection> connections,
         FaceAnchors[] anchors,
         IReadOnlyList<FixedAnchor> occupied,
-        double clearance)
+        double clearance,
+        bool keepSeparation)
     {
         var geometry = ResolveShapeGeometry(box);
         var extents = geometry.GetConnectableExtents(side);
@@ -1451,14 +1452,31 @@ public static class ConnectorRouter
         var intervals = isCurrentFace
             ? WindowBetweenNeighbors(usable, preferredLocal, neighbors)
             : ExcludeNeighborWindows(usable, neighbors);
-        intervals.Add((preferredLocal, preferredLocal));
+        // The end's own position is always a permitted port on the face it already sits on (it is, by
+        // construction, as far from its neighbors as it ever was). A face it is newly moving onto keeps
+        // the batch separation from every neighbor like any other port: when its naive anchor would sit on
+        // a neighbor's port, the nearest port the exclusion leaves takes its place as the preferred one, so a
+        // connector moving onto the face never lands on top of another connector's port. A face with no
+        // port left keeps the naive anchor (best effort, as before).
+        var preferredLocalPort = preferredLocal;
+        var extra = new List<double>();
+        if (!keepSeparation || isCurrentFace || neighbors.All(n => Math.Abs(n - preferredLocal) >= CoincidentAnchorGap) || intervals.Count == 0)
+        {
+            intervals.Add((preferredLocal, preferredLocal));
+        }
+        else
+        {
+            // The nearest port the exclusion leaves is always a routing candidate.
+            extra.Add(intervals.SelectMany(i => new[] { i.Lo, i.Hi }).OrderBy(point => Math.Abs(point - preferredLocal)).First() + (side is PortSide.Left or PortSide.Right ? box.Y : box.X));
+        }
 
         var offset = side is PortSide.Left or PortSide.Right ? box.Y : box.X;
         return new PortRange
         {
             Side = side,
             Face = face,
-            Preferred = preferredAbsolute,
+            Preferred = preferredLocalPort + offset,
+            Extra = extra,
             Intervals = intervals.Select(i => (i.Lo + offset, i.Hi + offset)).ToList(),
         };
     }
@@ -1638,7 +1656,7 @@ public static class ConnectorRouter
             }
         }
 
-        return (source with { Extra = shared }, target with { Extra = shared });
+        return (source with { Extra = [.. source.Extra, .. shared] }, target with { Extra = [.. target.Extra, .. shared] });
     }
 
     /// <summary>
@@ -2211,6 +2229,12 @@ public static class ConnectorRouter
     /// (batch anchors, and batch anchors versus anchors that are already occupied on the face).
     /// </summary>
     private const double MinFixedAnchorSeparation = 16.0;
+
+    /// <summary>
+    /// How close, in logical pixels, to a neighbor's port the naive anchor of a connector newly moving onto a
+    /// face may be before it is no longer offered: an anchor that coincides with another connector's port.
+    /// </summary>
+    private const double CoincidentAnchorGap = 1.0;
 
     /// <summary>
     /// Resolves whether <paramref name="point"/> lies on the bounding-box boundary of

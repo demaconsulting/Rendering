@@ -457,6 +457,13 @@ internal static class OrthogonalEdgeRouter
 
         var starts = BuildTerminals(source, stubs.Source, xAxis, yAxis);
         var goals = BuildTerminals(target, stubs.Target, xAxis, yAxis);
+
+        // A range whose permitted intervals hold no grid line (every port of the face excluded) offers no terminal.
+        if (starts.Count == 0 || goals.Count == 0)
+        {
+            return null;
+        }
+
         extras?.SetTerminals(starts, goals);
 
         var found = AStar(xAxis, yAxis, starts, goals, obstacles, c, costBands, softObstacles, extras);

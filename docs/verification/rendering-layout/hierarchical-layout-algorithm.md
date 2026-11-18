@@ -338,6 +338,12 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
 - **Entry arrowhead room** (`Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom`):
   `LayoutEngine_Layout_BenchmarkScene_MarkersClearContainerBorders` asserts no end marker of any benchmark scene
   (and, through the gallery writer, of any gallery image) overlaps a container border.
+- **Anchor separation** (`Rendering-Layout-HierarchicalLayout-AnchorSeparation`):
+  `LayoutEngine_Layout_BenchmarkScene_AnchorsStaySeparatedOnSharedFace` asserts that in every benchmark scene any two
+  connector ends on one box face are at least 16 pixels apart (NestedPackagesUp once had the «satisfy» connector leave
+  RangeReq's top face at the specialization's point, because a re-routing pass offered a connector moved onto that
+  face its naive anchor even where a neighbor already sat). NestedPackagesRight and DenseUsageTree keep main's
+  recorded residual (connector ends sharing a point on a full face), so their bound is main's, never worse.
 - **Canvas padding** (`Rendering-Layout-HierarchicalLayout-CanvasPadding`): `CanvasMarginTests` asserts the margin
   between the content and each canvas edge is the leaf output's padding for the benchmark, cross-hierarchy and
   nested-package scenes in every flow direction and root
@@ -466,6 +472,8 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   LayoutEngine_Layout_BenchmarkScene_NeverWorseThanBaseline, LayoutEngine_Layout_BenchmarkScene_GeometryStaysClean
 - **`Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom`**:
   LayoutEngine_Layout_BenchmarkScene_MarkersClearContainerBorders
+- **`Rendering-Layout-HierarchicalLayout-AnchorSeparation`**:
+  LayoutEngine_Layout_BenchmarkScene_AnchorsStaySeparatedOnSharedFace
 - **`Rendering-Layout-HierarchicalLayout-CanvasPadding`**:
   LayoutEngine_Layout_BenchmarkScene_CanvasHugsContent, LayoutEngine_Layout_CrossHierarchyScenes_CanvasHugsContent,
   LayoutEngine_Layout_NestedPackagesAndGeneralView_CanvasHugsContent

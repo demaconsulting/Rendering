@@ -146,21 +146,23 @@ internal static class LayoutQualityMetrics
     /// </summary>
     /// <param name="tree">The placed tree.</param>
     /// <returns>The number of hairpins.</returns>
-    public static int UTurns(LayoutTree tree)
+    public static int UTurns(LayoutTree tree) => AllLines(tree).Sum(LineUTurns);
+
+    /// <summary>Counts the hairpins of one connector (see <see cref="UTurns"/>).</summary>
+    /// <param name="line">The connector.</param>
+    /// <returns>The number of hairpins.</returns>
+    public static int LineUTurns(LayoutLine line)
     {
         var count = 0;
-        foreach (var line in AllLines(tree))
+        var segments = Segments(line);
+        for (var i = 0; i + 2 < segments.Count; i++)
         {
-            var segments = Segments(line);
-            for (var i = 0; i + 2 < segments.Count; i++)
+            var (ax, ay) = segments[i];
+            var (cx, cy) = segments[i + 2];
+            if ((Math.Abs(ax) > Epsilon && Math.Abs(cx) > Epsilon && Math.Sign(ax) != Math.Sign(cx) && Math.Abs(ay) < Epsilon && Math.Abs(cy) < Epsilon)
+                || (Math.Abs(ay) > Epsilon && Math.Abs(cy) > Epsilon && Math.Sign(ay) != Math.Sign(cy) && Math.Abs(ax) < Epsilon && Math.Abs(cx) < Epsilon))
             {
-                var (ax, ay) = segments[i];
-                var (cx, cy) = segments[i + 2];
-                if ((Math.Abs(ax) > Epsilon && Math.Abs(cx) > Epsilon && Math.Sign(ax) != Math.Sign(cx) && Math.Abs(ay) < Epsilon && Math.Abs(cy) < Epsilon)
-                    || (Math.Abs(ay) > Epsilon && Math.Abs(cy) > Epsilon && Math.Sign(ay) != Math.Sign(cy) && Math.Abs(ax) < Epsilon && Math.Abs(cx) < Epsilon))
-                {
-                    count++;
-                }
+                count++;
             }
         }
 
@@ -196,6 +198,90 @@ internal static class LayoutQualityMetrics
         }
 
         return total;
+    }
+
+    /// <summary>
+    ///     Returns the smallest distance, along a box face, between the end points of two different connector ends
+    ///     that land on the same face of the same box (the innermost box whose border the end point lies on):
+    ///     the port separation of diagram-quality criteria C2 and C6. Two ends on one face must be a port width
+    ///     apart (the router keeps 16 px) so each connector has its own port.
+    /// </summary>
+    /// <param name="tree">The placed tree.</param>
+    /// <returns>The smallest separation, in logical pixels; <see cref="double.PositiveInfinity"/> when no face is shared.</returns>
+    public static double MinAnchorSeparationOnSharedFace(LayoutTree tree)
+    {
+        var boxes = AllBoxes(tree);
+        var faces = new Dictionary<(LayoutBox Box, char Face), List<double>>();
+        foreach (var line in AllLines(tree))
+        {
+            foreach (var end in new[] { line.Waypoints[0], line.Waypoints[^1] })
+            {
+                if (InnermostBoxAt(boxes, end) is not { } box)
+                {
+                    continue;
+                }
+
+                var face = FaceOf(box, end);
+                if (!faces.TryGetValue((box, face), out var along))
+                {
+                    along = [];
+                    faces[(box, face)] = along;
+                }
+
+                along.Add(face is 'L' or 'R' ? end.Y : end.X);
+            }
+        }
+
+        var smallest = double.PositiveInfinity;
+        foreach (var along in faces.Values)
+        {
+            along.Sort();
+            for (var i = 1; i < along.Count; i++)
+            {
+                smallest = Math.Min(smallest, along[i] - along[i - 1]);
+            }
+        }
+
+        return smallest;
+    }
+
+    /// <summary>
+    ///     Returns the face of <paramref name="box"/> a point on its border lies on: 'T', 'B', 'L' or 'R'.
+    /// </summary>
+    private static char FaceOf(LayoutBox box, Point2D point)
+    {
+        const double tolerance = 0.6;
+        if (Math.Abs(point.Y - box.Y) <= tolerance)
+        {
+            return 'T';
+        }
+
+        if (Math.Abs(point.Y - (box.Y + box.Height)) <= tolerance)
+        {
+            return 'B';
+        }
+
+        return Math.Abs(point.X - box.X) <= tolerance ? 'L' : 'R';
+    }
+
+    /// <summary>Returns the smallest box whose border passes through <paramref name="point"/>, or <see langword="null"/>.</summary>
+    private static LayoutBox? InnermostBoxAt(IReadOnlyList<LayoutBox> boxes, Point2D point)
+    {
+        const double tolerance = 0.6;
+        LayoutBox? best = null;
+        foreach (var box in boxes)
+        {
+            var insideX = point.X >= box.X - tolerance && point.X <= box.X + box.Width + tolerance;
+            var insideY = point.Y >= box.Y - tolerance && point.Y <= box.Y + box.Height + tolerance;
+            var onBorder = (insideX && (Math.Abs(point.Y - box.Y) <= tolerance || Math.Abs(point.Y - (box.Y + box.Height)) <= tolerance))
+                || (insideY && (Math.Abs(point.X - box.X) <= tolerance || Math.Abs(point.X - (box.X + box.Width)) <= tolerance));
+            if (onBorder && (best is null || box.Width * box.Height < best.Width * best.Height))
+            {
+                best = box;
+            }
+        }
+
+        return best;
     }
 
     /// <summary>

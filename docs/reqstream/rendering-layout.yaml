@@ -292,6 +292,7 @@ sections:
           - Rendering-Layout-HierarchicalLayout-ContainerTightening
           - Rendering-Layout-HierarchicalLayout-TighteningRouteQualityGate
           - Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom
+          - Rendering-Layout-HierarchicalLayout-AnchorSeparation
           - Rendering-Layout-HierarchicalLayout-CanvasPadding
         tests:
           - Id_IsHierarchical

@@ -134,6 +134,31 @@ public sealed class LayoutCompactnessTests
     }
 
     /// <summary>
+    ///     Proves every pair of connector ends on one box face is at least 16 px apart in every benchmark scene
+    ///     (diagram-quality criteria C2 and C6: each connector has its own port), except where main@219650c
+    ///     already shared a point on a full face (see <see cref="LayoutQualityBaseline.MinAnchorSeparation"/>).
+    ///     NestedPackagesUp once had the «satisfy» connector leave RangeReq's top face at the very point of the
+    ///     specialization, because a re-routing pass moved it onto that face at its naive anchor.
+    /// </summary>
+    /// <param name="scene">The benchmark scene name.</param>
+    [Theory]
+    [MemberData(nameof(AllScenes))]
+    public void LayoutEngine_Layout_BenchmarkScene_AnchorsStaySeparatedOnSharedFace(string scene)
+    {
+        // Arrange
+        var minimum = LayoutQualityBaseline.MinAnchorSeparation(scene);
+
+        // Act
+        var tree = LayoutEngine.Layout(Build(scene));
+
+        // Assert
+        var separation = LayoutQualityMetrics.MinAnchorSeparationOnSharedFace(tree);
+        Assert.True(
+            separation >= minimum - Slack,
+            $"{scene}: two connector ends share a face {separation:0.##} px apart (< {minimum})");
+    }
+
+    /// <summary>
     ///     Proves the benchmark layouts keep the invariants whatever else changes: no overlapping siblings,
     ///     everything inside the canvas, and no label over a box or another label.
     /// </summary>
