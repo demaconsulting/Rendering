@@ -172,6 +172,32 @@ internal static class GalleryCatalog
     public const string EdgeKeywordLabelsSvg = "layout-regressions/edge-keyword-labels.svg";
     public const string EdgeKeywordLabelsPng = "layout-regressions/edge-keyword-labels.png";
 
+    public const string QualityRepro2RightSvg = "layout-quality/repro2-right.svg";
+    public const string QualityRepro3RightSvg = "layout-quality/repro3-right.svg";
+    public const string QualityNestedDepthRightSvg = "layout-quality/nested-depth-right.svg";
+    public const string QualityNestedPackagesRightSvg = "layout-quality/nested-packages-right.svg";
+    public const string QualityNestedPackagesRightPng = "layout-quality/nested-packages-right.png";
+    public const string QualityNestedPackagesUpSvg = "layout-quality/nested-packages-up.svg";
+    public const string QualityNestedPackagesUpPng = "layout-quality/nested-packages-up.png";
+    public const string QualityGeneralViewUpSvg = "layout-quality/general-view-up.svg";
+    public const string QualityGeneralViewUpPng = "layout-quality/general-view-up.png";
+    public const string QualityDenseUsageTreeSvg = "layout-quality/dense-usage-tree.svg";
+    public const string QualityDenseUsageTreePng = "layout-quality/dense-usage-tree.png";
+    public const string QualityInterconnectionSvg = "layout-quality/interconnection-labeled-corridors.svg";
+    public const string QualityInterconnectionPng = "layout-quality/interconnection-labeled-corridors.png";
+    public const string QualityInterconnectionLayerSpacing40Svg =
+        "layout-quality/interconnection-layer-spacing-40.svg";
+    public const string QualityLayerSpacingDefaultSvg = "layout-quality/layer-spacing-default.svg";
+    public const string QualityLayerSpacing150Svg = "layout-quality/layer-spacing-150.svg";
+    public const string QualityLayerSpacing150Png = "layout-quality/layer-spacing-150.png";
+    public const string QualityActionFlowSvg = "layout-quality/action-flow.svg";
+    public const string QualityStateMachineSvg = "layout-quality/state-machine.svg";
+    public const string QualityAutoTallPlusIsolatedSvg = "layout-quality/auto-tall-plus-isolated.svg";
+    public const string QualityAutoTallPlusIsolatedPng = "layout-quality/auto-tall-plus-isolated.png";
+
+    /// <summary>The generated before/after metrics table of the layout-quality group (written in gallery mode).</summary>
+    public const string QualityMetricsMarkdown = "layout-quality/metrics.md";
+
     public const string SysmlEndMarkersSvg = "custom-rendering/sysml-end-markers.svg";
     public const string SysmlEndMarkersPng = "custom-rendering/sysml-end-markers.png";
     public const string SysmlNotationPrimitivesSvg = "custom-rendering/sysml-notation-primitives.svg";
@@ -872,6 +898,158 @@ internal static class GalleryCatalog
                             "The keyword-labeled view rendered through the raster path",
                             "The same diagram through the CanvasNet raster renderer."),
                     ]),
+            ]),
+        new GalleryGroup(
+            "layout-quality",
+            "Layout quality (#48, #60)",
+            "The benchmark scenes behind the layout-quality work: cross-hierarchy connector crossing "
+            + "minimization (Rendering#48) and compact, honestly spaced layouts (Rendering#60). Every "
+            + "diagram below is laid out from the same graph the regression tests measure, and the "
+            + "before/after numbers (connector crossings, empty space, block area ratio, canvas size) "
+            + "against the baseline (main@219650c) are in the [metrics table](metrics.md).",
+            "Crossing, compactness and LayerSpacing benchmark scenes",
+            [
+                new GallerySection(
+                    "Nested packages and cross-hierarchy edges (#48)",
+                    "Package folders holding definitions and nested folders, joined by connectors that "
+                    + "cross the package borders. The order of the members inside a folder used to decide "
+                    + "whether those connectors crossed, and every container reserved a wide empty margin "
+                    + "around its content. The layered engine now orders the members of each container by "
+                    + "where their cross-hierarchy partners sit, and containers hug their content.",
+                    [
+                        new GalleryImage(
+                            QualityRepro2RightSvg,
+                            "Two package folders and a root definition joined by cross-hierarchy connectors",
+                            "The smallest reproduction: folder B holds C, S (specializing C) and H, folder P "
+                            + "holds E and the root holds K. The connectors H to E, E to K and C to K leave "
+                            + "their folders without crossing, whatever order the members were added in."),
+                        new GalleryImage(
+                            QualityRepro3RightSvg,
+                            "The same reproduction with an extra connector inside the second folder",
+                            "Adds a connector M to E inside folder P, which the connector H to E entering "
+                            + "the folder must not cross."),
+                        new GalleryImage(
+                            QualityNestedDepthRightSvg,
+                            "Connectors reaching leaves three containers deep",
+                            "H reaches X three containers deep, and X and C reach the root definition K; "
+                            + "the unconnected E sits beside the nested folders."),
+                        new GalleryImage(
+                            QualityNestedPackagesRightSvg,
+                            "Four package folders with nested package and keyword-labeled connectors, flowing right",
+                            "The reproduction scaled up: design, requirements, verification and library "
+                            + "packages, a nested power package, keyword-labeled connectors between leaves and "
+                            + "between packages, and unconnected definitions."),
+                        new GalleryImage(
+                            QualityNestedPackagesRightPng,
+                            "The nested packages rendered through the raster path",
+                            "The same diagram through the CanvasNet raster renderer."),
+                        new GalleryImage(
+                            QualityNestedPackagesUpSvg,
+                            "The same four packages flowing up",
+                            "The same graph with the SysML General View direction: generals above their "
+                            + "specifics."),
+                        new GalleryImage(
+                            QualityNestedPackagesUpPng,
+                            "The upward nested packages rendered through the raster path",
+                            "The same diagram through the CanvasNet raster renderer."),
+                    ]),
+                new GallerySection(
+                    "SysML general view and usage tree",
+                    "Two larger diagrams in the shape consumers produce: a General View with package "
+                    + "folders, definitions and usages as nodes, composite and typing connectors and "
+                    + "scattered insertion order, and a dense usage tree with one owner, a dozen usages and "
+                    + "shared and unused definitions.",
+                    [
+                        new GalleryImage(
+                            QualityGeneralViewUpSvg,
+                            "A SysML general view flowing up",
+                            "Folders, definitions and usages joined by composite (filled diamond) and typing "
+                            + "(hollow triangle with two dots) connectors, many of them across package "
+                            + "borders, with orphan definitions tucked into free space."),
+                        new GalleryImage(
+                            QualityGeneralViewUpPng,
+                            "The general view rendered through the raster path",
+                            "The same diagram through the CanvasNet raster renderer."),
+                        new GalleryImage(
+                            QualityDenseUsageTreeSvg,
+                            "A drone usage tree with shared and isolated definitions",
+                            "One owner with a dozen usages typed by shared definitions, plus unused "
+                            + "definitions packed beside the tree."),
+                        new GalleryImage(
+                            QualityDenseUsageTreePng,
+                            "The usage tree rendered through the raster path",
+                            "The same diagram through the CanvasNet raster renderer."),
+                    ]),
+                new GallerySection(
+                    "Interconnection corridors and LayerSpacing (#60)",
+                    "Parts and ports joined by labeled connectors with end labels, laid out to the right. "
+                    + "The corridors between layers hold the labels as well as the routing lanes, and the "
+                    + "LayerSpacing option sets the least gap between adjacent layers: a floor, since the "
+                    + "connector routing may still need more. An unset option keeps the historical 70 px "
+                    + "corridor.",
+                    [
+                        new GalleryImage(
+                            QualityInterconnectionSvg,
+                            "An interconnection with labeled connectors, LayerSpacing unset",
+                            "The default: corridors sized by the labels and lanes they hold."),
+                        new GalleryImage(
+                            QualityInterconnectionPng,
+                            "The default interconnection rendered through the raster path",
+                            "The same diagram through the CanvasNet raster renderer."),
+                        new GalleryImage(
+                            QualityInterconnectionLayerSpacing40Svg,
+                            "The same interconnection with LayerSpacing 40",
+                            "A spacing below what the labels and lanes need changes nothing: the option is a "
+                            + "floor, not a ceiling."),
+                        new GalleryImage(
+                            QualityLayerSpacingDefaultSvg,
+                            "A source feeding two targets with LayerSpacing unset",
+                            "The Rendering#60 reproduction: three unlabeled boxes with the default 70 px "
+                            + "corridor between the layers."),
+                        new GalleryImage(
+                            QualityLayerSpacing150Svg,
+                            "The same fan-out with LayerSpacing 150",
+                            "The same graph with LayerSpacing set to 150: the corridor between the layers is "
+                            + "150 px wide, leaving room for connector labels and bends at the cost of a "
+                            + "wider canvas."),
+                        new GalleryImage(
+                            QualityLayerSpacing150Png,
+                            "The LayerSpacing 150 fan-out rendered through the raster path",
+                            "The same diagram through the CanvasNet raster renderer."),
+                    ]),
+                new GallerySection(
+                    "Flows, state machines and isolated definitions",
+                    "Small diagrams that must stay exactly as good as before: a downward action flow, a "
+                    + "state machine with back edges, and a tall connected chain beside isolated "
+                    + "definitions that the auto algorithm now packs into the free space.",
+                    [
+                        new GalleryImage(
+                            QualityActionFlowSvg,
+                            "An action flow with decisions, a fork and join, and a back edge",
+                            "A downward flow with a guarded decision, a fork and join pair, a merge and a "
+                            + "retry edge back to an earlier action."),
+                        new GalleryImage(
+                            QualityStateMachineSvg,
+                            "A state machine with two back edges",
+                            "A downward state machine whose reversed edges end in wrap-around corridors."),
+                        new GalleryImage(
+                            QualityAutoTallPlusIsolatedSvg,
+                            "A tall connected chain beside isolated definitions",
+                            "The auto algorithm lays out the chain with the layered algorithm and tucks the "
+                            + "isolated definitions into the free space beside it."),
+                        new GalleryImage(
+                            QualityAutoTallPlusIsolatedPng,
+                            "The tall chain with isolated definitions rendered through the raster path",
+                            "The same diagram through the CanvasNet raster renderer."),
+                    ]),
+                new GallerySection(
+                    "Measurements",
+                    "The [metrics table](metrics.md) lists, for every scene above, the connector "
+                    + "crossings, the largest empty square relative to the block height (B4), the block "
+                    + "area ratio (B5) and the canvas size before (main@219650c) and after the "
+                    + "layout-quality work. The gallery test that writes it fails if any scene gets worse "
+                    + "than the baseline.",
+                    []),
             ]),
         new GalleryGroup(
             "custom-rendering",

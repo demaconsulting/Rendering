@@ -96,6 +96,22 @@ public sealed class GalleryIndexTests
     }
 
     /// <summary>
+    ///     Proves the layout-quality group's page links the generated before/after metrics table, so the
+    ///     numbers are one click from the images.
+    /// </summary>
+    [Fact]
+    public void Gallery_LayoutQualityGroupPage_LinksMetricsTable()
+    {
+        // Arrange / Act
+        var group = GalleryCatalog.Groups.First(g => g.Folder == "layout-quality");
+        var markdown = GalleryIndex.BuildGroupPage(group);
+
+        // Assert
+        Assert.Contains("(metrics.md)", markdown, StringComparison.Ordinal);
+        Assert.Equal("layout-quality/metrics.md", GalleryCatalog.QualityMetricsMarkdown);
+    }
+
+    /// <summary>
     ///     In gallery mode, proves <see cref="GalleryIndex.WriteAll"/> writes the top-level index and
     ///     every group's <c>README.md</c> alongside the images, each a non-empty file.
     /// </summary>

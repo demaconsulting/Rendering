@@ -69,6 +69,16 @@
     <Compile Include="..\DemaConsulting.Rendering.Layout.Tests\LayoutGeometryAssert.cs" Link="Shared\LayoutGeometryAssert.cs" />
   </ItemGroup>
 
+  <!-- The layout-quality benchmark scenes, the metrics measured on them and the baseline they are compared
+       with (main@219650c) are likewise defined once, in the layout test project: the gallery's
+       layout-quality group renders exactly the graphs the regression tests measure and writes the same
+       numbers into its metrics table. -->
+  <ItemGroup>
+    <Compile Include="..\DemaConsulting.Rendering.Layout.Tests\LayoutQualityBaseline.cs" Link="Shared\LayoutQualityBaseline.cs" />
+    <Compile Include="..\DemaConsulting.Rendering.Layout.Tests\LayoutQualityMetrics.cs" Link="Shared\LayoutQualityMetrics.cs" />
+    <Compile Include="..\DemaConsulting.Rendering.Layout.Tests\LayoutQualityScenes.cs" Link="Shared\LayoutQualityScenes.cs" />
+  </ItemGroup>
+
   <!-- Project References -->
   <!-- The gallery showcase exercises the full public rendering stack, so it references every
        delivered package: the model, the abstractions, the layout algorithms, and both renderers. -->

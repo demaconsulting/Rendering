@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2158.61" height="319.60" viewBox="0 0 2158.61 319.60">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="14.747763" markerHeight="7" refX="14.747763" refY="3.5" orient="auto">
+      <polygon points="4.5 0, 14.5 3.5, 4.5 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+      <line x1="1" y1="0" x2="1" y2="7" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9.75" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2.75" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#FFFFFF"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="20.00" y="84.80" width="170.00" height="80.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="105.00" y="96.80" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="105.00" y="115.80" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">battery : Battery</text>
+  <rect x="493.37" y="20.00" width="170.00" height="209.60" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="578.37" y="32.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="578.37" y="51.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">bus : PowerBus</text>
+  <rect x="1512.95" y="46.30" width="170.20" height="209.60" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="1598.05" y="58.30" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="1598.05" y="77.30" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" textLength="158.20" lengthAdjust="spacingAndGlyphs">controller : MotorController</text>
+  <rect x="1968.61" y="56.72" width="170.00" height="80.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="2053.61" y="68.72" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="2053.61" y="87.72" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">motorA : Motor</text>
+  <rect x="1968.61" y="166.72" width="170.00" height="80.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="2053.61" y="178.72" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="2053.61" y="197.72" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">motorB : Motor</text>
+  <rect x="954.50" y="154.34" width="170.00" height="119.20" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="1039.50" y="166.34" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="1039.50" y="185.34" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" textLength="158.00" lengthAdjust="spacingAndGlyphs">flight : FlightComputer</text>
+  <rect x="20.00" y="219.60" width="170.00" height="80.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="105.00" y="231.60" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="105.00" y="250.60" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">sensor : Imu</text>
+  <path d="M 190.00 152.80 L 487.37 152.80" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <rect x="184.00" y="146.80" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="193.00,152.80 187.00,152.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="191.00,150.80 193.00,152.80 191.00,154.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="202.00" y="135.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">out : Power</text>
+  <rect x="487.37" y="146.80" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="490.37,152.80 496.37,152.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="494.37,154.80 496.37,152.80 494.37,150.80" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="481.37" y="135.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">in : Power</text>
+  <path d="M 663.37 114.40 L 793.13 114.40 A 4.00 4.00 0 0 0 797.13 110.40 L 797.13 89.93 A 4.00 4.00 0 0 1 801.13 85.93 L 1283.06 85.93 A 4.00 4.00 0 0 1 1287.06 89.93 L 1287.06 136.70 A 4.00 4.00 0 0 0 1291.06 140.70 L 1506.95 140.70" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <rect x="657.37" y="108.40" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="666.37,114.40 660.37,114.40" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="664.37,112.40 666.37,114.40 664.37,116.40" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="675.37" y="96.60" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">out1 : Power</text>
+  <rect x="1506.95" y="134.70" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="1509.95,140.70 1515.95,140.70" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1513.95,142.70 1515.95,140.70 1513.95,138.70" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1500.95" y="122.90" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">power : Power</text>
+  <path d="M 663.37 191.20 L 793.13 191.20 A 4.00 4.00 0 0 1 797.13 195.20 L 797.13 222.14 A 4.00 4.00 0 0 0 801.13 226.14 L 948.50 226.14" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <rect x="657.37" y="185.20" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="666.37,191.20 660.37,191.20" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="664.37,189.20 666.37,191.20 664.37,193.20" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="675.37" y="173.40" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">out2 : Power</text>
+  <rect x="948.50" y="220.14" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="951.50,226.14 957.50,226.14" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="955.50,228.14 957.50,226.14 955.50,224.14" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="942.50" y="208.34" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">power : Power</text>
+  <path d="M 1124.50 229.72 L 1506.95 229.72" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <rect x="1118.50" y="223.72" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="1127.50,229.72 1121.50,229.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1125.50,227.72 1127.50,229.72 1125.50,231.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1136.50" y="211.92" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">cmd : Command</text>
+  <rect x="1506.95" y="223.72" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="1509.95,229.72 1515.95,229.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1513.95,231.72 1515.95,229.72 1513.95,227.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1500.95" y="211.92" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">cmd : Command</text>
+  <path d="M 1683.15 126.72 L 1962.61 126.72" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <rect x="1677.15" y="120.72" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="1686.15,126.72 1680.15,126.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1684.15,124.72 1686.15,126.72 1684.15,128.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1695.15" y="108.92" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">drive : Torque</text>
+  <rect x="1962.61" y="120.72" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="1965.61,126.72 1971.61,126.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1969.61,128.72 1971.61,126.72 1969.61,124.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1956.61" y="108.92" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">in : Torque</text>
+  <path d="M 1683.15 232.72 L 1962.61 232.72" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <rect x="1677.15" y="226.72" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="1686.15,232.72 1680.15,232.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1684.15,230.72 1686.15,232.72 1684.15,234.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1695.15" y="214.92" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">drive : Torque</text>
+  <rect x="1962.61" y="226.72" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="1965.61,232.72 1971.61,232.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1969.61,234.72 1971.61,232.72 1969.61,230.72" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1956.61" y="214.92" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">in : Torque</text>
+  <path d="M 190.00 287.60 L 325.76 287.60 A 4.00 4.00 0 0 0 329.76 283.60 L 329.76 263.60 A 4.00 4.00 0 0 1 333.76 259.60 L 796.20 259.60 A 0.93 0.93 0 0 0 797.13 258.67 L 797.13 258.67 A 0.93 0.93 0 0 1 798.06 257.74 L 948.50 257.74" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <rect x="184.00" y="281.60" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="193.00,287.60 187.00,287.60" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="191.00,285.60 193.00,287.60 191.00,289.60" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="202.00" y="269.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">out : Attitude</text>
+  <rect x="948.50" y="251.74" width="12.00" height="12.00" rx="2.00" ry="2.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <polyline points="951.50,257.74 957.50,257.74" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="955.50,259.74 957.50,257.74 955.50,255.74" fill="none" stroke="#1A1A2E" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="942.50" y="239.94" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="end" dominant-baseline="middle">sense : Attitude</text>
+  <text x="341.69" y="152.80" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">28 V</text>
+  <text x="1042.10" y="85.93" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">power</text>
+  <text x="875.82" y="226.14" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">power</text>
+  <text x="1318.73" y="229.72" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">command</text>
+  <text x="1825.88" y="126.72" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">torque A</text>
+  <text x="1825.88" y="232.72" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">torque B</text>
+  <text x="563.45" y="259.60" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">attitude</text>
+  <text x="298.50" y="141.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">source</text>
+  <text x="205.20" y="164.60" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+  <text x="402.27" y="141.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">sink</text>
+  <text x="457.37" y="164.60" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1..*</text>
+  <text x="781.77" y="102.60" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">feed</text>
+  <text x="678.57" y="126.20" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+  <text x="1389.53" y="128.90" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">load</text>
+  <text x="1475.75" y="152.50" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">0..1</text>
+  <text x="1258.84" y="217.92" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">issuer</text>
+  <text x="1139.70" y="241.52" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+  <text x="1461.35" y="241.52" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">executor</text>
+  <text x="1426.35" y="241.52" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+  <text x="1924.81" y="138.52" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">motor</text>
+  <text x="1898.81" y="138.52" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+  <text x="1924.81" y="244.52" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">motor</text>
+  <text x="1898.81" y="244.52" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">1</text>
+</svg>
