@@ -19,8 +19,15 @@ internal static class LayeredLayoutMetrics
     /// <summary>Vertical gap between adjacent nodes stacked within the same layer.</summary>
     internal const double NodeSpacing = 30.0;
 
-    /// <summary>Minimum corridor width (node-node spacing) between adjacent columns.</summary>
-    internal const double CorridorMinWidth = 70.0;
+    /// <summary>
+    /// Default layer spacing: the corridor width (node-node spacing) between adjacent columns when the
+    /// caller sets no <c>CoreOptions.LayerSpacing</c>. Equal to the engine's historical fixed corridor
+    /// width, so an unset option reproduces the original geometry.
+    /// </summary>
+    internal const double DefaultLayerSpacing = 70.0;
+
+    /// <summary>Minimum corridor width (node-node spacing) between adjacent columns; alias of <see cref="DefaultLayerSpacing"/>.</summary>
+    internal const double CorridorMinWidth = DefaultLayerSpacing;
 
     /// <summary>Slot-to-slot spacing within a corridor (ELK edgeEdgeSpacing).</summary>
     internal const double EdgeSpacing = 16.0;

@@ -152,13 +152,120 @@ public sealed class BrandesKopfPlacerTests
         }
     }
 
+    /// <summary>
+    ///     A requested layer spacing above the routing floor sets the corridor between the first two columns
+    ///     exactly, and the default (70) is the historical corridor.
+    /// </summary>
+    /// <param name="layerSpacing">The requested layer spacing.</param>
+    [Theory]
+    [InlineData(70.0)]
+    [InlineData(100.0)]
+    [InlineData(260.0)]
+    public void BrandesKopfPlacer_Apply_LayerSpacingAboveFloor_SetsCorridorExactly(double layerSpacing)
+    {
+        // Arrange / Act: a two-node chain with the requested spacing
+        var graph = BuildPlacedGraph([new(60, 40), new(60, 40)], [new(0, 1)], layerSpacing);
+
+        // Assert
+        Assert.Equal(layerSpacing, Corridor(graph, 0), 6);
+    }
+
+    /// <summary>A graph that never sets a layer spacing carries the historical 70 px corridor.</summary>
+    [Fact]
+    public void LayeredGraph_Constructor_LayerSpacing_DefaultsToHistoricalCorridor()
+    {
+        // Arrange / Act
+        var graph = new LayeredGraph([], [], LayoutDirection.Right);
+
+        // Assert
+        Assert.Equal(70.0, graph.LayerSpacing, 6);
+        Assert.Equal(LayeredLayoutMetrics.DefaultLayerSpacing, graph.LayerSpacing, 6);
+    }
+
+    /// <summary>
+    ///     A layer spacing below the routing needs is a floor: the corridor equals the computed routing floor
+    ///     (the slots of the fan plus the clearance, with the end-marker approach added when it fits the
+    ///     historical corridor), never the requested value, for every marker style and fan width.
+    /// </summary>
+    /// <param name="style">The end marker of every connector.</param>
+    /// <param name="edgeCount">The number of connectors fanning out of the source.</param>
+    [Theory]
+    [InlineData(EndMarkerStyle.None, 1)]
+    [InlineData(EndMarkerStyle.OpenChevron, 1)]
+    [InlineData(EndMarkerStyle.OpenChevron, 4)]
+    [InlineData(EndMarkerStyle.HollowTriangle, 1)]
+    [InlineData(EndMarkerStyle.HollowTriangle, 2)]
+    [InlineData(EndMarkerStyle.FilledDiamond, 1)]
+    [InlineData(EndMarkerStyle.FilledDiamond, 4)]
+    [InlineData(EndMarkerStyle.FilledArrow, 3)]
+    public void BrandesKopfPlacer_Apply_LayerSpacingBelowFloor_ClampsToRoutingFloor(EndMarkerStyle style, int edgeCount)
+    {
+        // Arrange: one source fanning out to edgeCount targets, every connector ending in the marker
+        var approach = LayeredLayoutAlgorithm.ResolveEndApproach(style);
+        var nodes = new List<LayerNode> { new(60, 40) };
+        var edges = new List<LayerEdge>();
+        for (var i = 1; i <= edgeCount; i++)
+        {
+            nodes.Add(new LayerNode(60, 40));
+            edges.Add(new LayerEdge(0, i, TargetApproach: approach));
+        }
+
+        // Act
+        var graph = BuildPlacedGraph(nodes, edges, 0.0);
+
+        // Assert: the corridor is the slot floor, raised to the marker approach where that fits the
+        // historical corridor; the slot pitch (16) and clearance (10) are never reduced
+        var slots = (edgeCount - 1) * LayeredLayoutMetrics.EdgeSpacing;
+        var slotFloor = (2.0 * LayeredLayoutMetrics.ConnectorClearance) + slots;
+        var approachFloor = Math.Min(
+            LayeredLayoutMetrics.ConnectorClearance + slots + Math.Max(LayeredLayoutMetrics.ConnectorClearance, approach),
+            LayeredLayoutMetrics.DefaultLayerSpacing);
+        var floor = Math.Max(slotFloor, approachFloor);
+        Assert.Equal(floor, Corridor(graph, 0), 6);
+
+        // The last run of the outermost slot is at least the standard clearance, and at least the marker
+        // approach whenever the approach fits the historical corridor
+        var lastRunOfOuterSlot = floor - LayeredLayoutMetrics.ConnectorClearance - slots;
+        Assert.True(lastRunOfOuterSlot >= LayeredLayoutMetrics.ConnectorClearance - 1e-9);
+        if (LayeredLayoutMetrics.ConnectorClearance + slots + approach <= LayeredLayoutMetrics.DefaultLayerSpacing)
+        {
+            Assert.True(lastRunOfOuterSlot >= approach - 1e-9, "the corridor is shorter than the end-marker approach");
+        }
+    }
+
+    /// <summary>
+    ///     End-label space is held inside the corridor: with a small layer spacing the corridor is the routing
+    ///     floor plus the label space (not the spacing, and not 70 plus the labels).
+    /// </summary>
+    [Fact]
+    public void BrandesKopfPlacer_Apply_EndLabelsWithSmallLayerSpacing_CorridorIsFloorPlusLabels()
+    {
+        // Arrange: one labeled connector
+        var graph = BuildPlacedGraph([new(60, 40), new(60, 40)], [new(0, 1, SourceLabelAlong: 30, TargetLabelAlong: 20)], 0.0);
+
+        // Assert: 2 * clearance + 30 + 20
+        Assert.Equal(70.0, Corridor(graph, 0), 6);
+
+        // With a spacing that exceeds that, the spacing itself is the corridor
+        var wide = BuildPlacedGraph([new(60, 40), new(60, 40)], [new(0, 1, SourceLabelAlong: 30, TargetLabelAlong: 20)], 90.0);
+        Assert.Equal(90.0, Corridor(wide, 0), 6);
+    }
+
+    /// <summary>Returns the corridor width between column <paramref name="layer"/> and the next column.</summary>
+    private static double Corridor(LayeredGraph graph, int layer) =>
+        graph.ColumnX[layer + 1] - graph.ColumnX[layer] - graph.MaxColWidth[layer];
+
     /// <summary>Runs the stages up to and including placement and returns the graph.</summary>
     /// <param name="nodes">Input nodes.</param>
     /// <param name="edges">Input edges.</param>
+    /// <param name="layerSpacing">The requested layer spacing.</param>
     /// <returns>The graph after the Brandes-Köpf placement stage.</returns>
-    private static LayeredGraph BuildPlacedGraph(List<LayerNode> nodes, List<LayerEdge> edges)
+    private static LayeredGraph BuildPlacedGraph(
+        List<LayerNode> nodes,
+        List<LayerEdge> edges,
+        double layerSpacing = LayeredLayoutMetrics.DefaultLayerSpacing)
     {
-        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right);
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right) { LayerSpacing = layerSpacing };
         new CycleBreaker().Apply(graph);
         new LayerAssigner().Apply(graph);
         new LongEdgeSplitter().Apply(graph);

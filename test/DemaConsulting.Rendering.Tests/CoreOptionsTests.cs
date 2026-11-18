@@ -56,4 +56,14 @@ public sealed class CoreOptionsTests
 
         Assert.Equal(16.0, options.Get(CoreOptions.AssumedFontSize));
     }
+
+    /// <summary>
+    ///     Proves that <see cref="CoreOptions.LayerSpacing"/> defaults to <c>70.0</c>, the corridor width
+    ///     the layered engine has always used between layers, so an unset option changes no layout.
+    /// </summary>
+    [Fact]
+    public void LayerSpacing_DefaultValue_Is70()
+    {
+        Assert.Equal(70.0, CoreOptions.LayerSpacing.DefaultValue);
+    }
 }

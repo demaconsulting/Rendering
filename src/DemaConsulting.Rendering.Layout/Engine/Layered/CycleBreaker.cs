@@ -110,11 +110,12 @@ internal sealed class CycleBreaker : ILayoutStage
             }
 
             // A reversed edge flips its endpoints, so its end-label space flips with them: each label
-            // reservation stays with the node it belongs to.
+            // reservation stays with the node it belongs to. Its end marker then sits on the new source
+            // side, whose approach LayeredGraph.BackEdgeEntryApproach covers, so no target approach remains.
             var (fromLabelAlong, toLabelAlong) = isBack
                 ? (e.TargetLabelAlong, e.SourceLabelAlong)
                 : (e.SourceLabelAlong, e.TargetLabelAlong);
-            result.Add(new LayerEdge(from, to, fromLabelAlong, toLabelAlong));
+            result.Add(new LayerEdge(from, to, fromLabelAlong, toLabelAlong, isBack ? 0.0 : e.TargetApproach));
             reversed.Add(isBack);
             originalIndex.Add(idx);
         }

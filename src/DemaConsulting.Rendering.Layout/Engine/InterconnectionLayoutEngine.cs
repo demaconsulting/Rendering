@@ -98,11 +98,21 @@ internal readonly record struct LayerNode(
 /// The same space for end labels (plus the end marker) at the target node, between the last bend and
 /// that node; zero (the default) when the edge has no target end label.
 /// </param>
+/// <param name="TargetApproach">
+/// The straight run, in logical pixels along the flow axis, the connector must keep into its target node
+/// so the rounded corner never intrudes into the end marker drawn there: the rendered marker length plus
+/// the corner radius plus the clean-leg margin (the same formula as
+/// <c>LayeredLayoutAlgorithm.ResolveBackEdgeEntryApproach</c>). Zero (the default) imposes nothing beyond
+/// the standard <see cref="Layered.LayeredLayoutMetrics.ConnectorClearance"/>. The layered placer sizes
+/// the corridor the connector enters its target through to hold it, so a small
+/// <c>CoreOptions.LayerSpacing</c> never shortens the final run below the marker.
+/// </param>
 internal readonly record struct LayerEdge(
     int Source,
     int Target,
     double SourceLabelAlong = 0.0,
-    double TargetLabelAlong = 0.0);
+    double TargetLabelAlong = 0.0,
+    double TargetApproach = 0.0);
 
 /// <summary>
 /// The result of an interconnection layout pass.
@@ -191,6 +201,12 @@ internal static class InterconnectionLayoutEngine
     /// final run, Rendering#57; see <see cref="Layered.PortAligner"/>). Defaults to <see langword="true"/>;
     /// pass <see langword="false"/> to reproduce the pre-alignment geometry exactly.
     /// </param>
+    /// <param name="layerSpacing">
+    /// The minimum corridor width between adjacent layers, mirroring <c>CoreOptions.LayerSpacing</c>; a
+    /// floor — each corridor is widened to whatever its routing and end labels need. Defaults to
+    /// <see cref="Layered.LayeredLayoutMetrics.DefaultLayerSpacing"/>, which is byte-identical to the
+    /// original engine's fixed corridor width.
+    /// </param>
     /// <returns>Placement result with rects, layer assignments, and connector waypoints.</returns>
     public static LayerResult Place(
         IReadOnlyList<LayerNode> nodes,
@@ -199,7 +215,8 @@ internal static class InterconnectionLayoutEngine
         double nodeSpacing = Layered.LayeredLayoutMetrics.NodeSpacing,
         bool mergeParallelEdges = true,
         double backEdgeEntryApproach = Layered.LayeredLayoutMetrics.ConnectorClearance,
-        bool alignPorts = true)
+        bool alignPorts = true,
+        double layerSpacing = Layered.LayeredLayoutMetrics.DefaultLayerSpacing)
     {
         ArgumentNullException.ThrowIfNull(nodes);
         ArgumentNullException.ThrowIfNull(edges);
@@ -213,6 +230,7 @@ internal static class InterconnectionLayoutEngine
         var graph = new LayeredGraph(nodes, edges, direction)
         {
             NodeSpacing = nodeSpacing,
+            LayerSpacing = layerSpacing,
             MergeParallelEdges = mergeParallelEdges,
             BackEdgeEntryApproach = backEdgeEntryApproach,
             AlignPorts = alignPorts,

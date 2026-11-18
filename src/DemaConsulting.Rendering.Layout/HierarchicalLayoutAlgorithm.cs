@@ -429,7 +429,8 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         // longer-bend detour in the internal-fan-out boundary-port scenario. See ROADMAP.md for the
         // follow-up to extend the reservation here once that interaction is worked out.
         var region = MergeRegionGraphAssembler.Assemble(graph, boundaryPorts, effectiveSize);
-        var placement = RunRecursiveWithCascadingSizing(region, effectiveSize, engineDirection, assumedFontSize: 0.0);
+        var placement = RunRecursiveWithCascadingSizing(
+            region, effectiveSize, engineDirection, assumedFontSize: 0.0, layerSpacing: effective.Get(CoreOptions.LayerSpacing));
         var decomposed = MergeRegionDecomposer.Decompose(placement, engineDirection, composed);
 
         var crossLines = RouteCrossContainerEdges(routedEdges, decomposed.Boxes, decomposed.IndexOf, descendantToDirect, nesting, effective);
@@ -464,12 +465,14 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// The <c>CoreOptions.AssumedFontSize</c>-derived font size used to reserve each node's title band
     /// from left/right port placement.
     /// </param>
+    /// <param name="layerSpacing">The scope's effective <see cref="CoreOptions.LayerSpacing"/>, the corridor floor of every level.</param>
     /// <returns>The fully-placed, size-stable recursive layout result.</returns>
     private static RecursiveLayoutResult RunRecursiveWithCascadingSizing(
         AssembledMergeRegion region,
         Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize,
         LayoutDirection direction,
-        double assumedFontSize)
+        double assumedFontSize,
+        double layerSpacing)
     {
         var pipeline = LayeredLayoutPipeline.Builder()
             .Direction(direction)
@@ -481,7 +484,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         var sizingPairs = new List<(LayoutGraphNode Container, MergeRegionLevel Child)>();
         CollectSizingPairs(region.Root, sizingPairs);
 
-        var result = pipeline.RunRecursive(region, assumedFontSize);
+        var result = pipeline.RunRecursive(region, assumedFontSize, layerSpacing);
         for (var iteration = 0; iteration < MaxSizingIterations; iteration++)
         {
             var grew = false;
@@ -507,7 +510,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 break;
             }
 
-            result = pipeline.RunRecursive(region, assumedFontSize);
+            result = pipeline.RunRecursive(region, assumedFontSize, layerSpacing);
         }
 
         return result;

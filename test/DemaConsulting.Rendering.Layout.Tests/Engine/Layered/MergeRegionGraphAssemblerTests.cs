@@ -155,6 +155,41 @@ public sealed class MergeRegionGraphAssemblerTests
     }
 
     /// <summary>
+    ///     Every level graph built for a merge region carries the requested layer spacing, a nested level's own
+    ///     <see cref="CoreOptions.LayerSpacing"/> overrides the inherited value for its interior, and an unset
+    ///     spacing keeps the historical 70 px corridor.
+    /// </summary>
+    [Fact]
+    public void MergeRegionGraphAssembler_BuildAllLevelGraphs_LayerSpacing_InheritedAndOverriddenPerLevel()
+    {
+        // Arrange: scope { A, B(port p) }, A->p; B.Children { C } with delegation p->C, and the interior
+        // of B declaring its own spacing
+        var scope = new LayoutGraph();
+        var a = scope.AddNode("A", 80, 40);
+        var b = scope.AddNode("B", 10, 10);
+        var p = b.Ports.AddPort("p");
+        var c = b.Children.AddNode("C", 80, 40);
+        scope.AddEdge("a-p", a, p);
+        b.Children.AddEdge("p-c", p, c);
+        var region = MergeRegionGraphAssembler.Assemble(scope, HierarchyMergeRegionBuilder.Collect(scope), EmptySize());
+
+        // Act
+        var inherited = MergeRegionGraphAssembler.BuildAllLevelGraphs(region, LayoutDirection.Right, 0.0, 111.0);
+        var unset = MergeRegionGraphAssembler.BuildAllLevelGraphs(region, LayoutDirection.Right);
+        b.Children.Set(CoreOptions.LayerSpacing, 222.0);
+        var overridden = MergeRegionGraphAssembler.BuildAllLevelGraphs(region, LayoutDirection.Right, 0.0, 111.0);
+
+        // Assert
+        var child = Assert.Single(region.Root.Children).Child;
+        Assert.Equal(111.0, inherited[region.Root].Graph.LayerSpacing, 6);
+        Assert.Equal(111.0, inherited[child].Graph.LayerSpacing, 6);
+        Assert.Equal(70.0, unset[region.Root].Graph.LayerSpacing, 6);
+        Assert.Equal(70.0, unset[child].Graph.LayerSpacing, 6);
+        Assert.Equal(111.0, overridden[region.Root].Graph.LayerSpacing, 6);
+        Assert.Equal(222.0, overridden[child].Graph.LayerSpacing, 6);
+    }
+
+    /// <summary>
     ///     Creates an empty effective-size lookup, so every node falls back to its own declared
     ///     dimensions during assembly.
     /// </summary>

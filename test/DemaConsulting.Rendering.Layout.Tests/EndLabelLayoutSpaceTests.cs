@@ -74,8 +74,9 @@ public sealed class EndLabelLayoutSpaceTests
     }
 
     /// <summary>
-    ///     End-label space requested on an edge widens exactly the corridor it crosses and pushes the first
-    ///     bend out by the source-end share, so the labels fit on the straight end runs.
+    ///     End-label space requested on an edge is held by the corridor it crosses (the corridor is the larger
+    ///     of the layer spacing and the routing floor plus that space) and pushes the first bend out by the
+    ///     source-end share, so the labels fit on the straight end runs.
     /// </summary>
     [Fact]
     public void InterconnectionLayoutEngine_Place_EdgeLabelAlong_WidensCorridorAndPushesFirstBend()
@@ -89,10 +90,12 @@ public sealed class EndLabelLayoutSpaceTests
         var plain = InterconnectionLayoutEngine.Place(nodes, plainEdges);
         var labeled = InterconnectionLayoutEngine.Place(nodes, labeledEdges);
 
-        // Assert: the next column moves right by exactly the requested space ...
+        // Assert: the plain corridor is the 70 px layer spacing (the routing floor of two slots is 36) and the
+        // labeled one holds the routing floor plus the requested 65 px, not 70 px plus 65 px ...
         var plainGap = plain.Rects[1].X - (plain.Rects[0].X + plain.Rects[0].Width);
         var labeledGap = labeled.Rects[1].X - (labeled.Rects[0].X + labeled.Rects[0].Width);
-        Assert.Equal(plainGap + 65, labeledGap, 6);
+        Assert.Equal(70.0, plainGap, 6);
+        Assert.Equal(36.0 + 65.0, labeledGap, 6);
 
         // ... and the first bend of every connector leaving that column moves out by the source share.
         var plainBend = plain.ConnectorWaypoints.Select(w => w.Where(p => p.X > plain.Rects[0].X + 60 + 1).Min(p => p.X)).Min();

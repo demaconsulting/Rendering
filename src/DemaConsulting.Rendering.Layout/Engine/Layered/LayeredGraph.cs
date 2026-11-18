@@ -172,6 +172,18 @@ internal sealed class LayeredGraph
     public double NodeSpacing { get; set; } = LayeredLayoutMetrics.NodeSpacing;
 
     /// <summary>
+    /// Gets or sets the minimum corridor width between adjacent layers, mirroring
+    /// <see cref="Rendering.CoreOptions.LayerSpacing"/>. It is a floor: <see cref="BrandesKopfPlacer"/>
+    /// widens each corridor to whatever its connector routing (slots, end-marker approach) and end labels need.
+    /// </summary>
+    /// <remarks>
+    /// The default is <see cref="LayeredLayoutMetrics.DefaultLayerSpacing"/>, the engine's historical
+    /// fixed corridor width, so callers that never set this property see byte-identical output to
+    /// before this property existed.
+    /// </remarks>
+    public double LayerSpacing { get; set; } = LayeredLayoutMetrics.DefaultLayerSpacing;
+
+    /// <summary>
     /// Gets or sets whether <see cref="CycleBreaker"/> collapses parallel edges (multiple input
     /// edges sharing the same directed node pair after cycle-breaking) into a single retained edge,
     /// mirroring <see cref="Rendering.CoreOptions.MergeParallelEdges"/>.
@@ -199,7 +211,7 @@ internal sealed class LayeredGraph
     /// <summary>
     /// Creates a fresh child <see cref="LayeredGraph"/> for one connected component of
     /// <paramref name="parent"/> (used by <see cref="ComponentPacker"/>), copying every caller-configured
-    /// input option — <see cref="BackEdgeEntryApproach"/>, <see cref="NodeSpacing"/>,
+    /// input option — <see cref="BackEdgeEntryApproach"/>, <see cref="NodeSpacing"/>, <see cref="LayerSpacing"/>,
     /// <see cref="MergeParallelEdges"/>, and <see cref="AlignPorts"/> — from <paramref name="parent"/>, so a component sub-graph is
     /// laid out under exactly the same caller-requested settings as the whole graph.
     /// </summary>
@@ -230,6 +242,7 @@ internal sealed class LayeredGraph
         {
             BackEdgeEntryApproach = parent.BackEdgeEntryApproach,
             NodeSpacing = parent.NodeSpacing,
+            LayerSpacing = parent.LayerSpacing,
             MergeParallelEdges = parent.MergeParallelEdges,
             AlignPorts = parent.AlignPorts,
         };
