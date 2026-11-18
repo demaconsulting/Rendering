@@ -1090,6 +1090,16 @@ internal static class OrthogonalEdgeRouter
         // fresh empty array on every A* iteration.
         var resolvedSoftObstacles = softObstacles ?? [];
 
+        // A search whose goals cannot be reached over the grid at all (the free grid edges, ignoring costs,
+        // turns and the minimum interior segment, which can only remove moves) fails after expanding every
+        // state reachable from the starts, by far the most expensive way to find that out. A plain
+        // connectivity sweep over the nodes finds it out at a fraction of the cost and never disagrees
+        // with the search: every move the search may make is a free grid edge the sweep follows too.
+        if (!NodesConnected(xs, ys, starts, goals, obstacles, clearance, extras))
+        {
+            return (null, 0.0);
+        }
+
         while (open.Count > 0)
         {
             var current = open.Dequeue();
@@ -1189,6 +1199,79 @@ internal static class OrthogonalEdgeRouter
         }
 
         return (null, 0.0);
+    }
+
+    /// <summary>
+    /// Returns whether any goal terminal can be reached from any start terminal over the free edges of the
+    /// grid, ignoring every cost, turn and minimum-segment rule: the hard blocks only (obstacles inflated by
+    /// the clearance, wall strips). It is a relaxation of the A* search, so a search for which this is
+    /// <see langword="false"/> can only fail.
+    /// </summary>
+    /// <param name="xs">The grid's x lines.</param>
+    /// <param name="ys">The grid's y lines.</param>
+    /// <param name="starts">The start terminals.</param>
+    /// <param name="goals">The goal terminals.</param>
+    /// <param name="obstacles">The hard obstacles.</param>
+    /// <param name="clearance">The clearance of the level searched.</param>
+    /// <param name="extras">The hint-driven terms (wall strips), or <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> when a goal node is reachable from a start node.</returns>
+    private static bool NodesConnected(
+        double[] xs,
+        double[] ys,
+        IReadOnlyList<Terminal> starts,
+        IReadOnlyList<Terminal> goals,
+        IReadOnlyList<Rect> obstacles,
+        double clearance,
+        SearchExtras? extras)
+    {
+        var nx = xs.Length;
+        var ny = ys.Length;
+        var seen = new bool[nx * ny];
+        var queue = new int[nx * ny];
+        var isGoal = new bool[nx * ny];
+        foreach (var goal in goals)
+        {
+            isGoal[(goal.I * ny) + goal.J] = true;
+        }
+
+        var head = 0;
+        var tail = 0;
+        foreach (var start in starts)
+        {
+            var id = (start.I * ny) + start.J;
+            if (!seen[id])
+            {
+                seen[id] = true;
+                queue[tail++] = id;
+            }
+        }
+
+        while (head < tail)
+        {
+            var id = queue[head++];
+            if (isGoal[id])
+            {
+                return true;
+            }
+
+            var ci = id / ny;
+            var cj = id % ny;
+            foreach (var (ni, nj, _) in Neighbors(ci, cj, nx, ny))
+            {
+                var next = (ni * ny) + nj;
+                if (seen[next]
+                    || SegmentBlocked(xs, ys, ci, cj, ni, nj, obstacles, clearance)
+                    || (extras is not null && extras.WallBlocked(xs, ys, ci, cj, ni, nj)))
+                {
+                    continue;
+                }
+
+                seen[next] = true;
+                queue[tail++] = next;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

@@ -38,7 +38,11 @@ namespace DemaConsulting.Rendering.Layout;
 ///     others one each, i.e. at most <see cref="MaxLayoutsPerRefinedScope"/> routed layouts of one scope.
 ///     A scope whose routing is expensive (see <see cref="HeavyScopeWeight"/>) is refined in one round
 ///     with at most <see cref="HeavyScopeProposals"/> routed proposals that the placement-only score
-///     predicts to be better, and is left alone when it already has no crossing. Interior layouts are
+///     predicts to be no worse than the layout in force (the prediction is a rough one: it counts straight
+///     segments between the endpoint boxes, so a proposal that merely ties it can still route better), and
+///     is left alone when it already has no crossing. A proposal is also accepted when its largest empty
+///     square is larger than the limit it is held to by less than <see cref="EmptySquareTolerance"/>,
+///     the resolution of that measure. Interior layouts are
 ///     memoized per container and order-rank signature, so a proposal that does not change a container's
 ///     subtree never lays that container out again. A scope without a cross-container connector that has
 ///     a nested endpoint inside a container of at least two members is returned as the first pass
@@ -93,6 +97,14 @@ public sealed partial class HierarchicalLayoutAlgorithm
     /// proposal ties the best crossing count.
     /// </summary>
     private const double AreaTolerance = 1e-6;
+
+    /// <summary>
+    /// How much larger, in logical pixels, the largest empty square of a proposal may be than the limit it
+    /// is held to: one occupancy-grid cell of <see cref="EmptySpaceMeter"/>, the resolution of that
+    /// measurement. A difference of one cell is below what the measure can tell apart, so it must not veto
+    /// a proposal that removes crossings.
+    /// </summary>
+    private const double EmptySquareTolerance = EmptySpaceMeter.CellSize;
 
     /// <summary>
     /// Tolerance, in logical pixels, when classifying a connector segment as horizontal or vertical.
@@ -395,7 +407,7 @@ public sealed partial class HierarchicalLayoutAlgorithm
             var improved = false;
             var routed = 0;
             foreach (var proposal in proposals
-                .Where(p => !heavy || p.Score.EmptySquare <= Math.Max(current.EmptySquare, passingSquare) + AreaTolerance)
+                .Where(p => !heavy || p.Score.EmptySquare <= Math.Max(current.EmptySquare, passingSquare) + EmptySquareTolerance)
                 .OrderBy(p => p.Variant == PreferredVariant ? 0 : 1)
                 .ThenBy(p => p.Score.Crossings)
                 .ThenBy(p => p.Score.Area)
@@ -406,11 +418,9 @@ public sealed partial class HierarchicalLayoutAlgorithm
                     break;
                 }
 
-                // An expensive scope only pays for a proposal its placement-only score predicts to win.
-                if (heavy
-                    && (proposal.Score.Crossings > current.Crossings
-                        || (proposal.Score.Crossings == current.Crossings
-                            && proposal.Score.Area >= current.Area - AreaTolerance)))
+                // An expensive scope only pays for a proposal its placement-only score predicts to be no worse
+                // (the prediction ignores how the router really bends and shares lanes, so a tie is worth a try).
+                if (heavy && proposal.Score.Crossings > current.Crossings)
                 {
                     continue;
                 }
@@ -425,7 +435,7 @@ public sealed partial class HierarchicalLayoutAlgorithm
                 if (cost < bestCost || (cost == bestCost && area < bestArea - AreaTolerance))
                 {
                     var emptySquare = EmptySpaceMeter.LargestEmptySquare(candidate.Tree);
-                    if (cost == 0 || emptySquare <= Math.Max(bestEmptySquare, passingSquare) + AreaTolerance)
+                    if (cost == 0 || emptySquare <= Math.Max(bestEmptySquare, passingSquare) + EmptySquareTolerance)
                     {
                         best = candidate;
                         bestEffective = candidateEffective;

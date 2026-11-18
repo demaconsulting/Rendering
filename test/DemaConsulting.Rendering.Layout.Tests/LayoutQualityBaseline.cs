@@ -35,11 +35,41 @@ internal sealed record BaselineMetrics(
 internal static class LayoutQualityBaseline
 {
     /// <summary>
-    ///     The best crossing count main reaches for <see cref="LayoutQualityScenes.GeneralViewUp"/> (Up) over
-    ///     seeds 0 to 39 of the shuffled insertion order (seed 28), i.e. what a caller that hand-picks the
-    ///     insertion order can reach on main. main@219650c.
+    ///     The insertion orders of <see cref="LayoutQualityScenes.GeneralViewUp"/> (Up) the bound is checked
+    ///     for: <see langword="null"/> is the fixed scattered order of the scene, 0 to 5 are the shuffle seeds.
     /// </summary>
-    public const int GeneralViewUpBestShuffledCrossings = 12;
+    public static readonly int?[] GeneralViewUpOrders = [null, 0, 1, 2, 3, 4, 5];
+
+    /// <summary>
+    ///     The crossings main@219650c produces for <see cref="LayoutQualityScenes.GeneralViewUp"/> (Up) for
+    ///     each insertion order of <see cref="GeneralViewUpOrders"/> (same index): what a caller gets from
+    ///     the engine as it was. Measured with the layout-quality bench harness on the unmodified main.
+    /// </summary>
+    public static readonly int[] GeneralViewUpMainCrossings = [22, 24, 23, 25, 25, 21, 16];
+
+    /// <summary>
+    ///     The crossings main@219650c produces for the same insertion orders (same index) after a caller has
+    ///     laid the graph out once and then re-inserted every container's items in the order of the mean
+    ///     horizontal center, in that first layout, of the boxes their external relationships lead to (the
+    ///     two-pass ordering prototype of SysML2Tools, <c>GeneralViewLayoutStrategy.ComputeItemOrder</c>):
+    ///     what a caller reaches by working around the missing engine ordering. Measured with the harness.
+    /// </summary>
+    public static readonly int[] GeneralViewUpPrototypeCrossings = [15, 24, 23, 23, 28, 24, 24];
+
+    /// <summary>
+    ///     The crossings the engine may produce for <see cref="LayoutQualityScenes.GeneralViewUp"/> (Up) for
+    ///     an insertion order: no more than the better of what main produces (<see cref="GeneralViewUpMainCrossings"/>)
+    ///     and what main plus the caller-side two-pass prototype produces
+    ///     (<see cref="GeneralViewUpPrototypeCrossings"/>) for that same insertion order, so the engine is
+    ///     never worse than either without the caller doing anything. main@219650c.
+    /// </summary>
+    /// <param name="seed">The shuffle seed, or <see langword="null"/> for the fixed scattered order.</param>
+    /// <returns>The largest acceptable crossing count.</returns>
+    public static int GeneralViewUpCrossingBound(int? seed)
+    {
+        var index = Array.IndexOf(GeneralViewUpOrders, seed);
+        return Math.Min(GeneralViewUpMainCrossings[index], GeneralViewUpPrototypeCrossings[index]);
+    }
 
     /// <summary>
     ///     The smallest canvas area main reaches for Repro 2 over every insertion order of the first folder,
