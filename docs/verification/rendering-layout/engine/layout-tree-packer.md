@@ -65,10 +65,13 @@ null-argument guard constitutes a failure.
   host canvas clear of its content; `TuckIntoHoles_PieceFitsNowhere_ReturnsNull` and
   `TuckIntoHoles_NoPieces_ReturnsNull` confirm the no-fit and no-piece results.
 - **Never worse than the shelf** (`Rendering-Layout-LayoutTreePacker-NeverWorseThanShelf`):
-  `Arrange_RandomPieces_NeverLargerThanShelfAndNeverOverlaps` (random pieces) confirms the arrangement is
-  never larger than the shelf arrangement and never overlaps; `Arrange_NoGain_KeepsShelfArrangement` confirms the
-  shelf arrangement is returned when the search gains nothing; `Arrange_SameInputTwice_IsIdentical` confirms
-  determinism; `Arrange_EmptyAndSingle_AreUnchanged` confirms the degenerate inputs.
+  `Arrange_RandomPieces_NeverLargerThanShelfAndNeverOverlaps` (random pieces) confirms the arrangement is never larger
+  than the shelf arrangement and never overlaps; `Arrange_NoGain_KeepsShelfArrangement` confirms the shelf arrangement
+  is returned when the search gains nothing; `Arrange_TiedScoreWithSmallerArea_ChoosesFreeSpace` confirms a free-space
+  canvas whose penalized score ties the shelf's is taken when its area is strictly smaller, and
+  `Arrange_TiedScoreAndArea_KeepsShelfArrangement` confirms a tie in both keeps the shelf;
+  `Arrange_SameInputTwice_IsIdentical` confirms determinism; `Arrange_EmptyAndSingle_AreUnchanged` confirms the
+  degenerate inputs.
 - **Empty-space measure** (`Rendering-Layout-LayoutTreePacker-EmptySpaceMeasure`): the `EmptySpaceMeter_*` tests
   (`Engine/EmptySpaceMeterTests.cs`) confirm an empty tree measures its smaller canvas side, a central leaf box
   reduces the square, a container outline is transparent, a connector across the canvas splits the space, and the
@@ -99,6 +102,7 @@ null-argument guard constitutes a failure.
   TuckIntoHoles_NoPieces_ReturnsNull
 - **`Rendering-Layout-LayoutTreePacker-NeverWorseThanShelf`**:
   Arrange_RandomPieces_NeverLargerThanShelfAndNeverOverlaps, Arrange_NoGain_KeepsShelfArrangement,
+  Arrange_TiedScoreWithSmallerArea_ChoosesFreeSpace, Arrange_TiedScoreAndArea_KeepsShelfArrangement,
   Arrange_SameInputTwice_IsIdentical, Arrange_EmptyAndSingle_AreUnchanged
 - **`Rendering-Layout-LayoutTreePacker-EmptySpaceMeasure`**:
   EmptySpaceMeter_LargestEmptySquare_EmptyTree_IsSmallerCanvasSide,

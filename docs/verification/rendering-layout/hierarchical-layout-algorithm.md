@@ -294,7 +294,10 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
 - **Layer spacing cascade** (`Rendering-Layout-HierarchicalLayout-LayerSpacingCascades`):
   `LayoutEngine_Layout_LayerSpacingOnContainerChildren_CascadesToInterior` sets the value on a container's
   `Children` graph and asserts the interior corridor follows it; `..._LayerSpacingOnBoundaryPortScope_IsHonored`
-  asserts the boundary-port combined pass honors the value, and `..._LayerSpacingBoundaryPortUnset_SameAsExplicit70`
+  asserts the boundary-port combined pass honors the value, `..._LayerSpacingZeroOnBoundaryPortScope_KeepsMarkerRun`
+  asserts that at a spacing of zero every boundary-port connector still ends in a straight run at least as long as
+  its end marker (the synthetic delegation and container-link segments carry the marker approach), and
+  `..._LayerSpacingBoundaryPortUnset_SameAsExplicit70`
   asserts an unset value is the same layout as an explicit 70.
 - **Order ranks** (`Rendering-Layout-HierarchicalLayout-OrderRanks`):
   `HierarchicalLayoutAlgorithm_OrderRanks_TranslatedThroughSizedView` and `..._InheritedByNestedScope` assert the
@@ -441,6 +444,7 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
 - **`Rendering-Layout-HierarchicalLayout-LayerSpacingCascades`**:
   LayoutEngine_Layout_LayerSpacingOnContainerChildren_CascadesToInterior,
   LayoutEngine_Layout_LayerSpacingOnBoundaryPortScope_IsHonored,
+  LayoutEngine_Layout_LayerSpacingZeroOnBoundaryPortScope_KeepsMarkerRun,
   LayoutEngine_Layout_LayerSpacingBoundaryPortUnset_SameAsExplicit70
 - **`Rendering-Layout-HierarchicalLayout-OrderRanks`**:
   HierarchicalLayoutAlgorithm_OrderRanks_TranslatedThroughSizedView,

@@ -118,7 +118,10 @@ The default stage sequence added by `AddDefaultStages` runs in this order:
    beyond the first) and the marker-approach floor: the last clearance raised to the straight run into the end
    marker of the connectors entering a real node (and, for a reversed edge leaving a real node, its back-edge
    entry approach), capped at the historical corridor width so a wide fan keeps exactly the width it always had
-   and the default output never widens. The slot pitch and the clearances are never reduced, so a small
+   and the default output never widens. The one exception is a back-edge entry approach whose own need
+   (`BackEdgeEntryApproach` plus a clearance) exceeds that width: the corridor router bends the back edge that far
+   into the corridor, so the cap is lifted to what the approach needs and the bend never intrudes into the next
+   column. The slot pitch and the clearances are never reduced, so a small
    requested spacing can never cramp the connectors or leave a final run shorter than its marker, and the end
    labels (zero when none) keep their own space. A non-finite requested spacing is ignored. With the default
    spacing an unlabeled corridor is exactly the former width; a labeled corridor is now the larger of the
@@ -278,7 +281,12 @@ each boundary port to one shared physical anchor on the container face — the f
 external and internal faces collapse onto one point — and takes every converging edge's waypoints
 directly from the orthogonal corridor router's routed polylines (the external approach concatenates the
 approach and container-link polylines; each internal delegation prepends the shared anchor to its
-delegation polyline with at most one orthogonal corner). Boundary containers recurse to arbitrary depth;
+delegation polyline with at most one orthogonal corner). The synthetic edges `MergeRegionGraphAssembler`
+builds for the crossings carry the end-marker approach of the connector they finish (as an ordinary edge's
+`TargetApproach` does): each internal delegation the approach of its original edge's target marker, and the
+shared container link the widest approach among the external approaches that concatenate onto it, so the final
+straight run into a boundary port is never shorter than its marker even at a small layer spacing. Boundary
+containers recurse to arbitrary depth;
 leaf and non-boundary nodes rigid-shift into place. No endpoint is patched onto the anchor with a
 hand-built diagonal, which is what keeps external fan-in and multi-level delegation chains orthogonal.
 `BoundaryPortResolver` itself is now reduced to the single retained `FaceForDirection` helper (the

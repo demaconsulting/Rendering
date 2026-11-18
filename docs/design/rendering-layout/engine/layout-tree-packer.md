@@ -37,8 +37,9 @@ is a single combined `LayoutTree`.
    rectangles search over the space left beside already-placed pieces, for nine candidate row widths and for
    the input order and the tallest-first order, so a small piece may fill the hole beside a tall one. The
    free-space result replaces the shelf arrangement only when its canvas is strictly smaller and its
-   aspect-penalized score (no penalty for an aspect within 0.5 to 2) is not worse; otherwise (including every
-   tie, an empty input and a single piece) the shelf arrangement is returned, so the search can never produce
+   aspect-penalized score (no penalty for an aspect within 0.5 to 2) is not worse (a tie within the tolerance
+   counts as not worse); otherwise (including a tie in both area and score, an empty input and a single piece) the
+   shelf arrangement is returned, so the search can never produce
    a larger, overlapping or non-deterministic result. `ComponentPacker` uses the same `Arrange` for the
    components of a layered graph.
 3. **Recursive translation.** Every node in a packed sub-tree is shifted by that sub-tree's assigned

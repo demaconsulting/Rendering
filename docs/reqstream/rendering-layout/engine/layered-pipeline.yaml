@@ -503,7 +503,8 @@ sections:
         title: >-
           The layered pipeline shall size each corridor between adjacent layers as the larger of the
           requested layer spacing and the routing floor (the connector slots, the end-marker approach
-          that fits the historical corridor, plus the end-label space), shall carry the layer spacing
+          that fits the historical corridor — or, for a larger explicit back-edge entry approach, that
+          approach in full — plus the end-label space), shall carry the layer spacing
           through every level of a recursive combined pass, and shall ignore a non-finite value.
         justification: |
           Honoring the layer spacing as a floor in the coordinate-assignment stage is what lets a caller
@@ -515,6 +516,8 @@ sections:
           - BrandesKopfPlacer_Apply_LayerSpacingAboveFloor_SetsCorridorExactly
           - BrandesKopfPlacer_Apply_LayerSpacingBelowFloor_ClampsToRoutingFloor
           - BrandesKopfPlacer_Apply_EndLabelsWithSmallLayerSpacing_CorridorIsFloorPlusLabels
+          - BrandesKopfPlacer_Apply_LargeBackEdgeApproachAtZeroSpacing_BendStaysInCorridor
+          - BrandesKopfPlacer_Apply_DefaultBackEdgeApproach_KeepsHistoricalCorridor
           - MergeRegionGraphAssembler_BuildAllLevelGraphs_LayerSpacing_InheritedAndOverriddenPerLevel
 
       - id: Rendering-Layout-LayeredPipeline-OrderRank

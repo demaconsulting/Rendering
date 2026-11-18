@@ -170,6 +170,33 @@ public sealed class LayerSpacingTests
     }
 
     /// <summary>
+    ///     Proves a decorated edge into a boundary port keeps a final straight run at least as long as its end
+    ///     marker even at a layer spacing of zero: the synthetic delegation and container-link segments of
+    ///     the recursive path carry the marker's approach, so the corridor they cross is never shorter than the
+    ///     marker (Rendering#60).
+    /// </summary>
+    /// <param name="direction">The flow direction.</param>
+    [Theory]
+    [InlineData(LayoutFlowDirection.Right)]
+    [InlineData(LayoutFlowDirection.Down)]
+    public void LayoutEngine_Layout_LayerSpacingZeroOnBoundaryPortScope_KeepsMarkerRun(LayoutFlowDirection direction)
+    {
+        // Act
+        var tree = LayoutEngine.Layout(BoundaryPortScene(direction, 0.0));
+
+        // Assert: both the external approach (ending at the container face) and the internal delegation
+        // (ending at the leaf) finish in a straight run at least the marker long
+        var lines = LayoutQualityMetrics.AllLines(tree).ToList();
+        Assert.NotEmpty(lines);
+        foreach (var line in lines)
+        {
+            Assert.True(
+                DiagramQuality.LastRun(line.Waypoints) >= DiagramQuality.MarkerLength(EndMarkerStyle.OpenChevron) - Tolerance,
+                $"the final run {DiagramQuality.LastRun(line.Waypoints)} of a boundary-port connector is shorter than its end marker");
+        }
+    }
+
+    /// <summary>
     ///     Proves an unset <see cref="CoreOptions.LayerSpacing"/> and an explicit 70 give identical geometry on
     ///     the boundary-port (recursive) path, so the new default is exactly the historical corridor there too.
     /// </summary>

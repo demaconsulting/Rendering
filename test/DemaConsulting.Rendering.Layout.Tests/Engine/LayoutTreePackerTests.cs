@@ -363,6 +363,53 @@ public sealed class LayoutTreePackerTests
         Assert.Equal(50.0, arrangement.Height);
     }
 
+    /// <summary>
+    ///     Proves a free-space arrangement whose aspect-penalized score ties the shelf score is accepted when
+    ///     its canvas area is strictly smaller ("score no worse"): a 400-wide piece fixes the canvas width of
+    ///     both arrangements, so a wide canvas scores width²/2 either way, yet the free-space packing is
+    ///     shorter.
+    /// </summary>
+    [Fact]
+    public void Arrange_TiedScoreWithSmallerArea_ChoosesFreeSpace()
+    {
+        // Arrange: shelf (aspect 1) gives 400 x 170 (rows: 400x20 / 150x100+150x30 / 150x30+150x30); the
+        // free-space packing stacks the three small pieces beside the tall one: 400 x 140
+        (double, double)[] sizes = [(400, 20), (150, 100), (150, 30), (150, 30), (150, 30)];
+        var shelf = LayoutTreePacker.ArrangeShelf(sizes, 10.0, 1.0);
+
+        // Act
+        var arrangement = LayoutTreePacker.Arrange(sizes, 10.0, 1.0);
+
+        // Assert: both canvases are wider than 2:1 with equal width (equal penalized score), and the
+        // free-space canvas is strictly smaller
+        Assert.Equal(shelf.Width, arrangement.Width, 6);
+        Assert.True(shelf.Width / shelf.Height > 2.0);
+        Assert.True(arrangement.Width / arrangement.Height > 2.0);
+        Assert.True(arrangement.Area < shelf.Area - 1e-6, $"area {arrangement.Area} vs shelf {shelf.Area}");
+        AssertNoOverlap(sizes, arrangement, 10.0);
+    }
+
+    /// <summary>
+    ///     Proves a free-space arrangement that ties the shelf in both score and area is not taken: equal
+    ///     canvases keep the shelf offsets exactly.
+    /// </summary>
+    [Fact]
+    public void Arrange_TiedScoreAndArea_KeepsShelfArrangement()
+    {
+        // Arrange: two equal pieces side by side; any free-space packing is the same canvas
+        (double, double)[] sizes = [(400, 20), (400, 20)];
+        var shelf = LayoutTreePacker.ArrangeShelf(sizes, 10.0, 1.0);
+
+        // Act
+        var arrangement = LayoutTreePacker.Arrange(sizes, 10.0, 1.0);
+
+        // Assert
+        Assert.Equal(shelf.X, arrangement.X);
+        Assert.Equal(shelf.Y, arrangement.Y);
+        Assert.Equal(shelf.Width, arrangement.Width);
+        Assert.Equal(shelf.Height, arrangement.Height);
+    }
+
     /// <summary>Proves empty and single-piece inputs are unchanged.</summary>
     [Fact]
     public void Arrange_EmptyAndSingle_AreUnchanged()

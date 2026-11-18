@@ -629,7 +629,7 @@ internal static class MergeRegionGraphAssembler
                 wired = true;
             }
 
-            edges.Add(new LayerEdge(dummyIndex, target));
+            edges.Add(new LayerEdge(dummyIndex, target, TargetApproach: LayeredLayoutAlgorithm.ResolveEndApproach(edge.TargetEnd)));
             edgeRoles.Add(new LevelEdgeRole(LevelEdgeKind.InternalDelegation, edge, incoming));
         }
     }
@@ -659,6 +659,8 @@ internal static class MergeRegionGraphAssembler
 
         var dummyIndex = nodes.Count;
         var wired = false;
+        var linkIndex = -1;
+        var linkApproach = 0.0;
         foreach (var edge in boundary.ExternalEdges)
         {
             var sourceEndpoint = OtherEndpoint(edge, boundary.Port);
@@ -673,14 +675,23 @@ internal static class MergeRegionGraphAssembler
             if (!wired)
             {
                 nodes.Add(new LayerNode(0.0, 0.0, RealWidth: 0.0, RealHeight: 0.0));
+                linkIndex = edges.Count;
                 edges.Add(new LayerEdge(dummyIndex, containerIndex));
                 edgeRoles.Add(new LevelEdgeRole(LevelEdgeKind.ContainerLink, Edge: null, boundary));
                 crossings.Add(new LevelCrossing(dummyIndex, boundary, HierarchyCrossingFace.External));
                 wired = true;
             }
 
+            // The shared container link is the final segment of every external approach, so it carries the
+            // widest end-marker approach among them.
+            linkApproach = Math.Max(linkApproach, LayeredLayoutAlgorithm.ResolveEndApproach(edge.TargetEnd));
             edges.Add(new LayerEdge(source, dummyIndex));
             edgeRoles.Add(new LevelEdgeRole(LevelEdgeKind.ExternalApproach, edge, boundary));
+        }
+
+        if (wired)
+        {
+            edges[linkIndex] = edges[linkIndex] with { TargetApproach = linkApproach };
         }
     }
 

@@ -167,7 +167,8 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
         // routingFloor(l) + labelAlong(l))). routingFloor starts from ELK's routingWidth =
         // 2*edgeNodeSpacing + (n-1)*edgeEdgeSpacing; the marker approach — the last clearance raised to the
         // straight run into the end marker of the connectors entering a real node — is added on top whenever
-        // it fits the historical corridor (DefaultLayerSpacing). That keeps a small LayerSpacing from
+        // it fits the historical corridor (DefaultLayerSpacing) — except a back-edge entry approach that itself
+        // needs more than the historical corridor, which is honored in full. That keeps a small LayerSpacing from
         // leaving a final run shorter than its marker, while a wide fan whose slots alone already fill the
         // historical corridor keeps exactly the width it always had (so default output never widens). The
         // slot pitch EdgeSpacing and the clearances are never reduced.
@@ -187,7 +188,12 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
                 var slotFloor = (2.0 * ConnectorClearance) + slots;
                 var forwardFloor = ConnectorClearance + slots + Math.Max(ConnectorClearance, forwardApproach[l - 1]);
                 var backFloor = backApproach[l - 1] > 0.0 ? backApproach[l - 1] + ConnectorClearance : 0.0;
-                var approachFloor = Math.Min(Math.Max(forwardFloor, backFloor), DefaultLayerSpacing);
+                // The marker approach is capped at the historical corridor so default output never widens;
+                // only a back-edge entry approach that itself needs more than that (an explicit, larger
+                // BackEdgeEntryApproach) lifts the cap to what it needs, because the corridor router bends the
+                // back edge that far into the corridor and a narrower corridor would push the bend into the
+                // next column.
+                var approachFloor = Math.Min(Math.Max(forwardFloor, backFloor), Math.Max(DefaultLayerSpacing, backFloor));
                 routingFloor = Math.Max(slotFloor, approachFloor);
             }
 

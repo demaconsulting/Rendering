@@ -181,8 +181,9 @@ internal static class LayoutTreePacker
     ///     sheet that keeps the packing lowest (a maximal-rectangles search), for several candidate row widths.
     ///     A free-space arrangement replaces the shelf arrangement only when its canvas area is strictly
     ///     smaller and its area weighted by an aspect penalty (none while the width-to-height ratio lies in
-    ///     [0.5, 2]) is no larger, so the result is never a larger canvas than the shelf one and equal canvases
-    ///     keep the shelf arrangement exactly. The algorithm is deterministic.
+    ///     [0.5, 2]) is no worse (equal scores within the tolerance count), so the result is never a larger
+    ///     canvas than the shelf one and equal canvases keep the shelf arrangement exactly. The algorithm is
+    ///     deterministic.
     ///     </para>
     /// </remarks>
     /// <param name="sizes">The piece sizes, in input order.</param>
@@ -221,8 +222,10 @@ internal static class LayoutTreePacker
         var inputOrder = Enumerable.Range(0, sizes.Count).ToArray();
         var tallestFirst = inputOrder.OrderByDescending(index => sizes[index].Height).ThenBy(index => index).ToArray();
 
+        var shelfScore = Score(shelf);
         var best = shelf;
-        var bestScore = Score(shelf);
+        var bestScore = shelfScore;
+        var bestIsFreeSpace = false;
         foreach (var order in new[] { inputOrder, tallestFirst })
         {
             foreach (var rowWidth in rowWidths)
@@ -233,11 +236,15 @@ internal static class LayoutTreePacker
                     continue;
                 }
 
+                // A free-space canvas with a strictly smaller area replaces the shelf one when its score is
+                // no worse (a tie within the tolerance counts); among free-space candidates only a strictly
+                // better score replaces the best so far, so the first of equals is kept.
                 var score = Score(candidate);
-                if (score < bestScore - Tolerance)
+                if (bestIsFreeSpace ? score < bestScore - Tolerance : score <= shelfScore + Tolerance)
                 {
                     best = candidate;
                     bestScore = score;
+                    bestIsFreeSpace = true;
                 }
             }
         }

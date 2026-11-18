@@ -251,6 +251,65 @@ public sealed class BrandesKopfPlacerTests
         Assert.Equal(90.0, Corridor(wide, 0), 6);
     }
 
+    /// <summary>
+    ///     An explicit back-edge entry approach larger than the historical corridor is honored: with a zero
+    ///     layer spacing the corridor is at least the approach plus the clearance (not capped at 70), so the
+    ///     router's wrap-around bend sits inside the corridor and never intrudes into the next column.
+    /// </summary>
+    [Fact]
+    public void BrandesKopfPlacer_Apply_LargeBackEdgeApproachAtZeroSpacing_BendStaysInCorridor()
+    {
+        // Arrange: a 3-chain closed by a back edge 2->0, with an approach well above the 70 px cap
+        const double approach = 123.5;
+        var nodes = new List<LayerNode> { new(60, 40), new(60, 40), new(60, 40) };
+        var edges = new List<LayerEdge> { new(0, 1), new(1, 2), new(2, 0) };
+
+        // Act
+        var graph = BuildPlacedGraph(nodes, edges, 0.0, approach, route: true);
+
+        // Assert: the corridor leaving the back edge's real node holds the approach plus the clearance
+        Assert.True(
+            Corridor(graph, 0) >= approach + LayeredLayoutMetrics.ConnectorClearance - 1e-9,
+            $"corridor {Corridor(graph, 0)} is narrower than the explicit back-edge approach");
+
+        // The wrap-around bend lands exactly the approach into the corridor, before the next column
+        var found = false;
+        for (var i = 0; i < graph.AugEdges.Count; i++)
+        {
+            var ae = graph.AugEdges[i];
+            if (!graph.AcyclicReversed[ae.OrigEdgeIndex] || graph.AugNodes[ae.Source].IsDummy || graph.AugBendPoints[i].Count == 0)
+            {
+                continue;
+            }
+
+            found = true;
+            var layer = graph.AugNodes[ae.Source].Layer;
+            var bendX = graph.AugBendPoints[i][0].X;
+            Assert.True(bendX >= graph.ColumnX[layer] + graph.MaxColWidth[layer] + approach - 1e-9);
+            Assert.True(
+                bendX < graph.ColumnX[layer + 1] - 1e-9,
+                $"bend {bendX} intrudes into the next column at {graph.ColumnX[layer + 1]}");
+        }
+
+        Assert.True(found, "the scenario produced no back-edge bend to check");
+    }
+
+    /// <summary>
+    ///     A back-edge approach within the historical corridor leaves the corridor exactly as before (the
+    ///     default output is unchanged): a default approach keeps the 70 px corridor at zero spacing.
+    /// </summary>
+    [Fact]
+    public void BrandesKopfPlacer_Apply_DefaultBackEdgeApproach_KeepsHistoricalCorridor()
+    {
+        // Arrange / Act
+        var nodes = new List<LayerNode> { new(60, 40), new(60, 40), new(60, 40) };
+        var edges = new List<LayerEdge> { new(0, 1), new(1, 2), new(2, 0) };
+        var graph = BuildPlacedGraph(nodes, edges, 0.0);
+
+        // Assert: the clearance-only approach (10 + 10) is below the 70 px floor cap
+        Assert.True(Corridor(graph, 0) <= LayeredLayoutMetrics.DefaultLayerSpacing + 1e-9);
+    }
+
     /// <summary>Returns the corridor width between column <paramref name="layer"/> and the next column.</summary>
     private static double Corridor(LayeredGraph graph, int layer) =>
         graph.ColumnX[layer + 1] - graph.ColumnX[layer] - graph.MaxColWidth[layer];
@@ -259,18 +318,33 @@ public sealed class BrandesKopfPlacerTests
     /// <param name="nodes">Input nodes.</param>
     /// <param name="edges">Input edges.</param>
     /// <param name="layerSpacing">The requested layer spacing.</param>
-    /// <returns>The graph after the Brandes-Köpf placement stage.</returns>
+    /// <param name="backEdgeEntryApproach">The back-edge entry approach (clearance by default).</param>
+    /// <param name="route">Whether to also run the corridor router.</param>
+    /// <returns>The graph after the Brandes-Köpf placement stage (and routing when requested).</returns>
     private static LayeredGraph BuildPlacedGraph(
         List<LayerNode> nodes,
         List<LayerEdge> edges,
-        double layerSpacing = LayeredLayoutMetrics.DefaultLayerSpacing)
+        double layerSpacing = LayeredLayoutMetrics.DefaultLayerSpacing,
+        double backEdgeEntryApproach = LayeredLayoutMetrics.ConnectorClearance,
+        bool route = false)
     {
-        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right) { LayerSpacing = layerSpacing };
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right)
+        {
+            LayerSpacing = layerSpacing,
+            BackEdgeEntryApproach = backEdgeEntryApproach,
+        };
         new CycleBreaker().Apply(graph);
         new LayerAssigner().Apply(graph);
         new LongEdgeSplitter().Apply(graph);
         new CrossingMinimizer().Apply(graph);
         new BrandesKopfPlacer().Apply(graph);
+        if (route)
+        {
+            new PortDistributor().Apply(graph);
+            new PortAligner().Apply(graph);
+            new LayeredCorridorRouter().Apply(graph);
+        }
+
         return graph;
     }
 }

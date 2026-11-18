@@ -127,6 +127,8 @@ sections:
         tests:
           - Arrange_RandomPieces_NeverLargerThanShelfAndNeverOverlaps
           - Arrange_NoGain_KeepsShelfArrangement
+          - Arrange_TiedScoreWithSmallerArea_ChoosesFreeSpace
+          - Arrange_TiedScoreAndArea_KeepsShelfArrangement
           - Arrange_SameInputTwice_IsIdentical
           - Arrange_EmptyAndSingle_AreUnchanged
 

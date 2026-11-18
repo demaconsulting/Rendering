@@ -468,9 +468,13 @@ sections:
         justification: |
           A caller sets the layer spacing once for a diagram; every nested scope must use the same
           corridor floor, and a boundary-port scope (laid out through a different pass) must not ignore it.
+          The synthetic delegation and container-link segments of that pass carry the end-marker approach of
+          the connector they belong to, so a small spacing never leaves the final run into a boundary port
+          shorter than the marker.
         tests:
           - LayoutEngine_Layout_LayerSpacingOnContainerChildren_CascadesToInterior
           - LayoutEngine_Layout_LayerSpacingOnBoundaryPortScope_IsHonored
+          - LayoutEngine_Layout_LayerSpacingZeroOnBoundaryPortScope_KeepsMarkerRun
           - LayoutEngine_Layout_LayerSpacingBoundaryPortUnset_SameAsExplicit70
 
       - id: Rendering-Layout-HierarchicalLayout-OrderRanks
