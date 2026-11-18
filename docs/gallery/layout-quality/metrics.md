@@ -57,7 +57,7 @@ baseline, without exceptions.
 | `Repro3Right` | 1594 → 1448 (-9.1%) | 6 → 6 | 1 → 1 | 0 → 0 |
 | `NestedDepthRight` | 2214 → 2052 (-7.3%) | 10 → 10 | 2 → 2 | 76 → 0 |
 | `NestedPackagesRight` | 4266 → 3672 (-13.9%) | 28 → 28 | 7 → 4 | 482 → 433 |
-| `NestedPackagesUp` | 5439 → 5224 (-4.0%) | 23 → 24 | 8 → 8 | 684 → 368 |
+| `NestedPackagesUp` | 5439 → 5207 (-4.3%) | 23 → 24 | 8 → 8 | 684 → 368 |
 | `GeneralViewUp` | 12061 → 12034 (-0.2%) | 49 → 41 | 7 → 7 | 897 → 521 |
 | `DenseUsageTree` | 20219 → 20216 (0.0%) | 57 → 57 | 4 → 4 | 929 → 669 |
 | `InterconnectionLabeledCorridors` | 3481 → 3316 (-4.7%) | 10 → 10 | 1 → 1 | 0 → 0 |
