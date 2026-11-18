@@ -207,6 +207,68 @@ public sealed class CrossingMinimizerTests
         return crossings;
     }
 
+    /// <summary>
+    ///     Siblings with no crossing pressure (a fork's leaves all share one barycenter) keep the order of
+    ///     their ranks instead of their input indices.
+    /// </summary>
+    [Fact]
+    public void CrossingMinimizer_OrderRank_FreeNodes_FollowRank()
+    {
+        // Arrange: a fork 0 -> {1, 2, 3} whose leaves rank 3, 2, 1 -> reversed relative to input order.
+        var nodes = new List<LayerNode>
+        {
+            new(60, 40),
+            new(60, 40, OrderRank: 2.0),
+            new(60, 40, OrderRank: 1.0),
+            new(60, 40, OrderRank: 0.0),
+        };
+        var edges = new List<LayerEdge> { new(0, 1), new(0, 2), new(0, 3) };
+
+        // Act
+        var graph = BuildGroupedGraph(nodes, edges);
+
+        // Assert: the leaf layer lists the leaves in rank order.
+        Assert.Equal([3, 2, 1], graph.Groups[1]);
+    }
+
+    /// <summary>
+    ///     The ranks only decide the initial order: a crossing-prone input still ends up exactly as the
+    ///     unranked graph does, because the barycenter sweeps keep priority over rank hints.
+    /// </summary>
+    [Fact]
+    public void CrossingMinimizer_OrderRank_DoesNotOverrideCrossingReduction()
+    {
+        // Arrange: the fully-reversed two-layer wiring with ranks that restate the index order.
+        var edges = new List<LayerEdge> { new(0, 5), new(1, 4), new(2, 3) };
+        var unranked = BuildGroupedGraph(Enumerable.Range(0, 6).Select(_ => new LayerNode(60, 40)).ToList(), [.. edges]);
+        var ranked = BuildGroupedGraph(
+            Enumerable.Range(0, 6).Select(i => new LayerNode(60, 40, OrderRank: i)).ToList(),
+            [.. edges]);
+
+        // Assert: identical final order, and no crossings remain.
+        Assert.Equal(unranked.Groups, ranked.Groups);
+        Assert.Equal(0, CountCrossings(ranked.Groups, ranked.AugEdges, ranked.AugNodes));
+    }
+
+    /// <summary>
+    ///     A graph whose nodes carry no rank (NaN, the default) is ordered exactly like main: the groups
+    ///     are in index order before sweeping, so ordering is unchanged.
+    /// </summary>
+    [Fact]
+    public void CrossingMinimizer_OrderRank_NaNRanks_IdenticalToUnranked()
+    {
+        // Arrange: a fork with explicit NaN ranks versus implicit defaults.
+        var edges = new List<LayerEdge> { new(0, 1), new(0, 2), new(0, 3) };
+        var implicitRank = BuildGroupedGraph(Enumerable.Range(0, 4).Select(_ => new LayerNode(60, 40)).ToList(), [.. edges]);
+        var explicitNaN = BuildGroupedGraph(
+            Enumerable.Range(0, 4).Select(_ => new LayerNode(60, 40, OrderRank: double.NaN)).ToList(),
+            [.. edges]);
+
+        // Assert
+        Assert.Equal(implicitRank.Groups, explicitNaN.Groups);
+        Assert.Equal([1, 2, 3], explicitNaN.Groups[1]);
+    }
+
     /// <summary>Runs the stages up to and including crossing minimization and returns the graph.</summary>
     /// <param name="nodes">Input nodes.</param>
     /// <param name="edges">Input edges.</param>

@@ -83,10 +83,12 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         var indexOf = new Dictionary<LayoutGraphNode, int>(count);
         var portOwnerIndex = new Dictionary<LayoutGraphPort, int>();
         var engineNodes = new LayerNode[count];
+        var orderRanks = options.Get(HierarchicalLayoutAlgorithm.OrderRanks);
         for (var i = 0; i < count; i++)
         {
             var node = graphNodes[i];
             indexOf[node] = i;
+            var orderRank = orderRanks != null && orderRanks.TryGetValue(node, out var ranked) ? ranked : double.NaN;
             // TitleReserveTop excludes a band from PortDistributor's left/right-face port placement
             // (see PortDistributor.TitleReserveFor) to keep a *named* port's rendered label clear of
             // the title. A node with no declared LayoutGraphPorts only has plain, unlabeled edge
@@ -109,7 +111,8 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                         HasBodyTitle(node),
                         node.Keyword != null,
                         assumedFontSize)
-                    : 0.0);
+                    : 0.0,
+                OrderRank: orderRank);
 
             if (!node.HasPorts)
             {

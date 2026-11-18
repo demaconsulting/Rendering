@@ -98,7 +98,7 @@ namespace DemaConsulting.Rendering.Layout;
 ///     // new SvgRenderer().Render(tree, new RenderOptions(Themes.Light), stream);
 ///     </code>
 /// </example>
-public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
+public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
 {
     /// <summary>
     /// The stable algorithm identifier <c>"hierarchical"</c> under which this algorithm is selected and
@@ -139,6 +139,53 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// The shared value stored against every marked edge in <see cref="LayoutOnlyEdges"/>.
     /// </summary>
     private static readonly object LayoutOnlyMarker = new();
+
+    /// <summary>
+    /// Internal order-rank hint: a rank per node (keyed by node identity) that the bundled leaf
+    /// algorithms use to decide the order of nodes they would otherwise place in input order — the order
+    /// of disconnected components, of a component's members, and of unconstrained siblings. Smaller ranks
+    /// are placed first; a node missing from the dictionary is unranked and falls back to input order, so
+    /// a scope with no hint lays out exactly as it always has. The hint travels in the scopes' effective
+    /// <see cref="LayoutOptions"/> (never on the caller's graph or nodes, which are not mutated) and is
+    /// inherited by nested scopes; whenever an algorithm works on copies of the nodes (the sized view,
+    /// <see cref="AutoLayoutAlgorithm"/>'s split-off components) the keys are translated onto the copies
+    /// with <see cref="TranslateOrderRanks"/>.
+    /// </summary>
+    internal static readonly LayoutProperty<IReadOnlyDictionary<LayoutGraphNode, double>?> OrderRanks =
+        new("rendering.layout.hierarchical.orderRanks", null);
+
+    /// <summary>
+    /// Returns <paramref name="effective"/> with its <see cref="OrderRanks"/> hint re-keyed from the
+    /// original nodes onto their copies (<paramref name="copyOf"/>), leaving the rank values unchanged and
+    /// every other option as it is. When the options carry no hint, <paramref name="effective"/> itself is
+    /// returned. Neither <paramref name="effective"/> nor the original hint is modified.
+    /// </summary>
+    /// <param name="effective">The effective options of the scope being copied.</param>
+    /// <param name="copyOf">A map from each original node to its copy.</param>
+    /// <returns>Options whose hint is keyed by the copies.</returns>
+    internal static LayoutOptions TranslateOrderRanks(
+        LayoutOptions effective,
+        IReadOnlyDictionary<LayoutGraphNode, LayoutGraphNode> copyOf)
+    {
+        var ranks = effective.Get(OrderRanks);
+        if (ranks == null || ranks.Count == 0)
+        {
+            return effective;
+        }
+
+        var translated = new Dictionary<LayoutGraphNode, double>();
+        foreach (var pair in copyOf)
+        {
+            if (ranks.TryGetValue(pair.Key, out var rank))
+            {
+                translated[pair.Value] = rank;
+            }
+        }
+
+        var overlay = new LayoutOptions();
+        overlay.Set<IReadOnlyDictionary<LayoutGraphNode, double>?>(OrderRanks, translated);
+        return overlay.OverlayOnto(effective);
+    }
 
     /// <summary>
     /// Marks <paramref name="edge"/> as layout-only: it influences placement but is never drawn.
@@ -350,12 +397,13 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         // routed afterwards between the actual nested endpoints. A custom leaf algorithm gets the view
         // unchanged (backward compatible) and the real connector is still routed to the nested endpoints.
         var addProxies = algo is LayeredLayoutAlgorithm or ContainmentLayoutAlgorithm or AutoLayoutAlgorithm;
-        var (view, _, viewPortOf) = BuildSizedView(
+        var (view, viewOf, viewPortOf) = BuildSizedView(
             graph, effectiveSize, leafEdges, addProxies ? routedEdges : new List<LayoutGraphEdge>(), descendantToDirect);
 
         // Place this level with the resolved leaf algorithm over the sized view. The leaf algorithm
-        // emits one box per node in Nodes order, so placed boxes align with graph.Nodes by index.
-        var placed = algo.ApplyCore(view, effective);
+        // emits one box per node in Nodes order, so placed boxes align with graph.Nodes by index. The
+        // order-rank hint is keyed by the original nodes, so it is translated onto the view's copies.
+        var placed = algo.ApplyCore(view, TranslateOrderRanks(effective, viewOf));
         var placedBoxes = placed.Nodes.OfType<LayoutBox>().ToList();
         var placedLines = placed.Nodes.OfType<LayoutLine>().ToList();
         var placedPorts = placed.Nodes.OfType<LayoutPort>().ToList();
@@ -823,6 +871,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         var obstacleSets = new List<IReadOnlyList<LayoutBox>>(routedEdges.Count);
         var wallSets = new List<IReadOnlyList<RouterWall>>(routedEdges.Count);
         var fixedAnchors = new List<ConnectorRouter.FixedAnchor>();
+        var existingLineSets = new List<IReadOnlyList<LayoutLine>>(routedEdges.Count);
         foreach (var edge in routedEdges)
         {
             // ClassifyEdges only ever adds edges with LayoutGraphNode endpoints to routedEdges — a
@@ -875,6 +924,14 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             connections.Add(new Connection(from, to, edge.TargetEnd, edge.LineStyle, edge.Label, edge.SourceEndLabel, edge.TargetEndLabel));
             obstacleSets.Add(obstacles);
             wallSets.Add(walls);
+
+            // The interior connectors that end on either endpoint box (the lines its own enclosing scope
+            // already routed to it, which live in the parent container box's children) are crossing costs
+            // for this connector: it should reach its endpoint without cutting across them where it can.
+            var interiorLines = new List<LayoutLine>();
+            AddIncidentInteriorLines(from, fromAncestors, interiorLines);
+            AddIncidentInteriorLines(to, toAncestors, interiorLines);
+            existingLineSets.Add(interiorLines);
             AddOccupiedAnchors(from, fromAncestors, fixedAnchors);
             AddOccupiedAnchors(to, toAncestors, fixedAnchors);
         }
@@ -886,7 +943,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 index => obstacleSets[index],
                 fixedAnchors,
                 penalizeLongEndSegments: true,
-                profile: new ConnectorRouter.RoutingProfile(index => wallSets[index])));
+                profile: new ConnectorRouter.RoutingProfile(index => wallSets[index], index => existingLineSets[index])));
     }
 
     /// <summary>
@@ -950,6 +1007,40 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         else
         {
             walls.Add(new RouterWall(IsVertical: false, top, left, right, OutwardIsPositive: false));
+        }
+    }
+
+    /// <summary>
+    /// Collects, for a nested endpoint box, the interior connectors of its enclosing scope that end on it
+    /// (those lines live in the parent container box's children — the same lines
+    /// <see cref="AddOccupiedAnchors"/> reads the taken anchors from). They are what the cross-hierarchy
+    /// connector landing on the same box has to avoid crossing, so the router receives them as crossing
+    /// costs. Lines of the container that do not touch the endpoint are left out: reaching a box deep in a
+    /// dense interior rarely has an uncrossed route, and including them would make the router's search
+    /// far more expensive.
+    /// </summary>
+    /// <param name="endpoint">The endpoint's placed box.</param>
+    /// <param name="ancestors">The container boxes enclosing the endpoint, outermost first.</param>
+    /// <param name="lines">The accumulating list of interior lines.</param>
+    private static void AddIncidentInteriorLines(
+        LayoutBox endpoint,
+        List<(LayoutBox Box, LayoutGraphNode Node)> ancestors,
+        List<LayoutLine> lines)
+    {
+        if (ancestors.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var line in ancestors[^1].Box.Children.OfType<LayoutLine>())
+        {
+            if (line.Waypoints.Count > 0
+                && (ConnectorRouter.TryResolveFaceAnchor(endpoint, line.Waypoints[0], out _)
+                    || ConnectorRouter.TryResolveFaceAnchor(endpoint, line.Waypoints[^1], out _))
+                && !lines.Contains(line))
+            {
+                lines.Add(line);
+            }
         }
     }
 

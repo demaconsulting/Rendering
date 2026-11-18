@@ -88,6 +88,21 @@ internal sealed record RouteHints
     public double CrossingPenalty { get; init; }
 
     /// <summary>
+    /// Gets the thin rectangles (one per segment, as built for soft obstacles) of lines that already
+    /// exist around the connector and are not part of its batch — the interior connectors of the
+    /// containers enclosing its endpoints — or <see langword="null"/> for none. They must also be
+    /// passed as soft obstacles; this only adds the <see cref="ExistingLineCrossingPenalty"/> to a
+    /// right-angle crossing of one of them, on top of the ordinary soft cost.
+    /// </summary>
+    public IReadOnlyList<Rect>? ExistingLines { get; init; }
+
+    /// <summary>
+    /// Gets the extra cost charged each time the route crosses one of the <see cref="ExistingLines"/>
+    /// at right angles; ignored when there are none.
+    /// </summary>
+    public double ExistingLineCrossingPenalty { get; init; }
+
+    /// <summary>
     /// Gets the shortest interior segment (one between two bends) the route may contain; zero allows any.
     /// The first and the last segment are exempt (the end-leg zones govern them) and a segment may never
     /// reverse direction to satisfy the minimum. It is a hard constraint on a first pass over every
@@ -763,17 +778,32 @@ internal static class OrthogonalEdgeRouter
     /// <summary>The extra, hint-driven search terms resolved for one clearance level.</summary>
     private sealed class SearchExtras
     {
-        public SearchExtras(IReadOnlyList<ZoneSpec> zones, IReadOnlyList<WallSpec> walls, double crossingPenalty, double clearance, double minSegment)
+        public SearchExtras(
+            IReadOnlyList<ZoneSpec> zones,
+            IReadOnlyList<WallSpec> walls,
+            double crossingPenalty,
+            double clearance,
+            double minSegment,
+            IReadOnlyList<Rect>? existingLines = null,
+            double existingLinePenalty = 0.0)
         {
             Zones = zones;
             Walls = walls;
             CrossingPenalty = crossingPenalty;
             MinSegment = minSegment;
+            ExistingLines = existingLines is { Count: > 0 } && existingLinePenalty > 0.0 ? existingLines : null;
+            ExistingLinePenalty = existingLinePenalty;
             _rewardDistance = WallDistanceRewardScale * clearance;
         }
 
         /// <summary>Gets the minimum interior segment length enforced by the search; zero for none.</summary>
         public double MinSegment { get; }
+
+        /// <summary>Gets the rectangles of pre-existing lines charged an extra crossing penalty, or <see langword="null"/>.</summary>
+        public IReadOnlyList<Rect>? ExistingLines { get; }
+
+        /// <summary>Gets the extra cost of crossing one of <see cref="ExistingLines"/>.</summary>
+        public double ExistingLinePenalty { get; }
 
         public IReadOnlyList<ZoneSpec> Zones { get; }
 
@@ -952,7 +982,14 @@ internal static class OrthogonalEdgeRouter
             }
         }
 
-        return new SearchExtras(zones, walls, hints.CrossingPenalty, clearance, enforceMinSegment ? hints.MinInteriorSegment : 0.0);
+        return new SearchExtras(
+            zones,
+            walls,
+            hints.CrossingPenalty,
+            clearance,
+            enforceMinSegment ? hints.MinInteriorSegment : 0.0,
+            hints.ExistingLines,
+            hints.ExistingLineCrossingPenalty);
     }
 
     /// <summary>Registers one end's leg zone and the grid lines at its boundaries.</summary>
@@ -1128,6 +1165,11 @@ internal static class OrthogonalEdgeRouter
                     if (extras.CrossingPenalty > 0.0 && softOverlap > 0.0)
                     {
                         extraCost += extras.CrossingPenalty * SoftCrossingCount(xs, ys, ci, cj, ni, nj, resolvedSoftObstacles);
+                    }
+
+                    if (extras.ExistingLines is not null)
+                    {
+                        extraCost += extras.ExistingLinePenalty * SoftCrossingCount(xs, ys, ci, cj, ni, nj, extras.ExistingLines);
                     }
                 }
 

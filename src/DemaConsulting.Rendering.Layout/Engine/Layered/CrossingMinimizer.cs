@@ -15,7 +15,37 @@ internal sealed class CrossingMinimizer : ILayoutStage
     {
         ArgumentNullException.ThrowIfNull(graph);
         graph.Groups = GroupByLayerAug(graph.AugNodes);
+        ApplyOrderRanks(graph);
         OrderLayersAug(graph.Groups, graph.AugNodes.Count, graph.AugEdges);
+    }
+
+    /// <summary>
+    /// Seeds the initial in-layer order of the real nodes from their <see cref="LayerNode.OrderRank"/>
+    /// hint: real nodes sort by (rank, index) at the front of each layer and long-edge dummies keep
+    /// their position after them. The barycenter sweeps that follow use the current position as their
+    /// tie-break, so a rank decides the order of nodes with no crossing pressure while genuine crossing
+    /// reduction keeps priority. A graph with no ranked node is left untouched (byte-identical).
+    /// </summary>
+    /// <param name="graph">The graph whose freshly grouped layers are re-seeded in place.</param>
+    private static void ApplyOrderRanks(LayeredGraph graph)
+    {
+        var nodes = graph.Nodes;
+        if (!LayerOrdering.AnyRanked(nodes.Select(node => node.OrderRank)))
+        {
+            return;
+        }
+
+        // Real augmented nodes are exactly the first nodes.Count entries (see LongEdgeSplitter); the
+        // dummies follow, so a stable partition keeps them behind every real node of their layer.
+        double RankOf(int augIndex) => augIndex < nodes.Count ? nodes[augIndex].OrderRank : double.NaN;
+        foreach (var layer in graph.Groups)
+        {
+            var real = LayerOrdering.Sort(layer.Where(i => i < nodes.Count), RankOf);
+            var dummies = layer.Where(i => i >= nodes.Count).ToList();
+            layer.Clear();
+            layer.AddRange(real);
+            layer.AddRange(dummies);
+        }
     }
 
     /// <summary>

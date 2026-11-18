@@ -70,6 +70,13 @@ namespace DemaConsulting.Rendering.Layout.Engine;
 /// pipeline's title-vs-side-port reservation), so a left/right port can never land in the same row as
 /// the box's own title.
 /// </param>
+/// <param name="OrderRank">
+/// An optional ordering hint: among nodes the layered stages leave otherwise unconstrained (the order of
+/// disconnected components, the order of a component's members, the initial order within a layer), a node
+/// with a smaller rank is placed first; ties and unranked nodes (<see cref="double.NaN"/>, the default)
+/// fall back to the input index, so a graph with no ranks lays out exactly as it always has. See
+/// <see cref="LayerOrdering"/>.
+/// </param>
 internal readonly record struct LayerNode(
     double Width,
     double Height,
@@ -81,7 +88,54 @@ internal readonly record struct LayerNode(
     double RealWidth = 0.0,
     double RealHeight = 0.0,
     double TitleReserveTop = 0.0,
-    double MinPortPitch = 0.0);
+    double MinPortPitch = 0.0,
+    double OrderRank = double.NaN);
+
+/// <summary>
+/// The shared ordering rule for the order-rank hint (<see cref="LayerNode.OrderRank"/>): items sort by
+/// ascending rank, an unranked item (a <see cref="double.NaN"/> rank) sorts after every ranked item, and
+/// ties fall back to the item's own index, so the sort is stable and total. When no item carries a rank
+/// every consumer skips sorting entirely and keeps its historical input order.
+/// </summary>
+internal static class LayerOrdering
+{
+    /// <summary>
+    /// Determines whether at least one rank is set (not <see cref="double.NaN"/>).
+    /// </summary>
+    /// <param name="ranks">The ranks to inspect.</param>
+    /// <returns><see langword="true"/> when any rank is a number.</returns>
+    public static bool AnyRanked(IEnumerable<double> ranks) => ranks.Any(rank => !double.IsNaN(rank));
+
+    /// <summary>
+    /// Compares two items by (rank, index): ascending rank, an unranked (NaN) rank after any real rank,
+    /// then ascending index.
+    /// </summary>
+    /// <param name="rankA">Rank of the first item.</param>
+    /// <param name="indexA">Index of the first item.</param>
+    /// <param name="rankB">Rank of the second item.</param>
+    /// <param name="indexB">Index of the second item.</param>
+    /// <returns>A negative, zero, or positive value ordering the first item against the second.</returns>
+    public static int Compare(double rankA, int indexA, double rankB, int indexB)
+    {
+        var a = double.IsNaN(rankA) ? double.PositiveInfinity : rankA;
+        var b = double.IsNaN(rankB) ? double.PositiveInfinity : rankB;
+        var byRank = a.CompareTo(b);
+        return byRank != 0 ? byRank : indexA.CompareTo(indexB);
+    }
+
+    /// <summary>
+    /// Returns the items sorted by (rank, index) (see <see cref="Compare"/>).
+    /// </summary>
+    /// <param name="items">The item indices to sort.</param>
+    /// <param name="rankOf">Resolves an item index to its rank (NaN for none).</param>
+    /// <returns>A new list holding the items in rank order.</returns>
+    public static List<int> Sort(IEnumerable<int> items, Func<int, double> rankOf)
+    {
+        var sorted = new List<int>(items);
+        sorted.Sort((a, b) => Compare(rankOf(a), a, rankOf(b), b));
+        return sorted;
+    }
+}
 
 /// <summary>
 /// A directed edge (from a source node to a target node, by index) used for layering.

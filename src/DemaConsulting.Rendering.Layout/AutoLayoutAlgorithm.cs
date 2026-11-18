@@ -313,19 +313,36 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
         // container scopes are re-classified rather than defaulting to a fixed leaf choice.
         var effective = graph.OverlayOnto(options);
 
+        // Order-rank hint: when the cascaded options carry ranks, list the routed groups by the lowest
+        // (rank, index) of their members, each group's members (the node order of its sub-graph) and the
+        // singleton bucket's members by (rank, index), so the caller steers the packing order. The
+        // bucket itself stays last. Without ranks this is skipped and the input order is kept.
+        var orderRanks = effective.Get(HierarchicalLayoutAlgorithm.OrderRanks);
+        if (orderRanks != null)
+        {
+            double RankOf(int index) => orderRanks.TryGetValue(nodes[index], out var rank) ? rank : double.NaN;
+            if (LayerOrdering.AnyRanked(Enumerable.Range(0, count).Select(RankOf)))
+            {
+                routedGroups = [.. routedGroups.Select(group => (Members: LayerOrdering.Sort(group.Members, RankOf), group.Algorithm))];
+                routedGroups.Sort((a, b) => LayerOrdering.Compare(RankOf(a.Members[0]), a.Members[0], RankOf(b.Members[0]), b.Members[0]));
+                singletons = LayerOrdering.Sort(singletons, RankOf);
+            }
+        }
+
         var trees = new List<LayoutTree>(routedGroups.Count + (singletons.Count > 0 ? 1 : 0));
         var packedOrder = new List<int>(count);
         foreach (var (members, algorithm) in routedGroups)
         {
-            var subGraph = BuildComponentGraph(graph, members);
-            trees.Add(algorithm.ApplyCore(subGraph, effective));
+            // The split-off piece is built from node copies, so the hint's keys are translated onto them.
+            var subGraph = BuildComponentGraph(graph, members, out var nodeMap);
+            trees.Add(algorithm.ApplyCore(subGraph, HierarchicalLayoutAlgorithm.TranslateOrderRanks(effective, nodeMap)));
             packedOrder.AddRange(members);
         }
 
         if (singletons.Count > 0)
         {
-            var subGraph = BuildComponentGraph(graph, singletons);
-            trees.Add(_containment.ApplyCore(subGraph, effective));
+            var subGraph = BuildComponentGraph(graph, singletons, out var nodeMap);
+            trees.Add(_containment.ApplyCore(subGraph, HierarchicalLayoutAlgorithm.TranslateOrderRanks(effective, nodeMap)));
             packedOrder.AddRange(singletons);
         }
 
@@ -454,10 +471,25 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
     /// <param name="memberIndices">Top-level node indices, into <paramref name="original"/>'s
     /// <see cref="LayoutGraph.Nodes"/>, belonging to this component.</param>
     /// <returns>The newly-built sub-graph for the component.</returns>
-    internal static LayoutGraph BuildComponentGraph(LayoutGraph original, List<int> memberIndices)
+    internal static LayoutGraph BuildComponentGraph(LayoutGraph original, List<int> memberIndices) =>
+        BuildComponentGraph(original, memberIndices, out _);
+
+    /// <summary>
+    /// Builds the component sub-graph exactly like <see cref="BuildComponentGraph(LayoutGraph, List{int})"/>
+    /// and additionally surfaces the original-to-copy node map, so state keyed by node identity (the
+    /// order-rank hint) can be translated onto the copies.
+    /// </summary>
+    /// <param name="original">The graph the component's nodes are copied out of.</param>
+    /// <param name="memberIndices">Top-level node indices, into <paramref name="original"/>'s nodes, in this component.</param>
+    /// <param name="nodeMap">Receives a map from every copied original node (at every depth) to its copy.</param>
+    /// <returns>The newly-built sub-graph for the component.</returns>
+    private static LayoutGraph BuildComponentGraph(
+        LayoutGraph original,
+        List<int> memberIndices,
+        out Dictionary<LayoutGraphNode, LayoutGraphNode> nodeMap)
     {
         var target = new LayoutGraph();
-        var nodeMap = new Dictionary<LayoutGraphNode, LayoutGraphNode>();
+        nodeMap = [];
         var portMap = new Dictionary<LayoutGraphPort, LayoutGraphPort>();
         var pendingEdges = new List<(LayoutGraphEdge Edge, LayoutGraph Container)>();
 

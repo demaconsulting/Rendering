@@ -319,7 +319,238 @@ public static class ConnectorRouter
             AddLineObstacles(line.Waypoints, routedLineObstacles, penalizeLongEndSegments ? options.Clearance : 0.0);
         }
 
+        // The lines that already exist around a connection's endpoints (interior connectors of the
+        // containers it enters) were not known while the batch was routed, so a connector may have been
+        // routed straight across one; those connectors get a second look now that every line is known.
+        if (profile?.ExistingLinesFor is { } existingLinesFor)
+        {
+            AvoidExistingLines(
+                connections, options, obstaclesFor, anchors, occupied, profile, endZones, lines, existingLinesFor,
+                penalizeLongEndSegments ? options.Clearance : 0.0);
+        }
+
         return lines;
+    }
+
+    /// <summary>
+    /// Re-routes, one at a time, each connector of an already-routed batch that crosses a line existing
+    /// around its endpoints (see <see cref="RoutingProfile.ExistingLinesFor"/>), when a route that crosses
+    /// fewer lines exists. The batch is routed exactly as without the existing lines first; this pass then
+    /// searches each affected connector again over the finished batch — every other connector of the batch
+    /// and the nearby existing lines are crossing costs, so the new route is judged against the lines as
+    /// they really are — and keeps it only when it crosses strictly fewer lines than the one it replaces.
+    /// Every other connector stays as it was, so the pass can only reduce the crossings of the batch.
+    /// </summary>
+    private static void AvoidExistingLines(
+        IReadOnlyList<Connection> connections,
+        ConnectorRouteOptions options,
+        Func<int, IReadOnlyList<LayoutBox>> obstaclesFor,
+        FaceAnchors[] anchors,
+        IReadOnlyList<FixedAnchor> occupied,
+        RoutingProfile profile,
+        Rect[][] endZones,
+        List<LayoutLine> lines,
+        Func<int, IReadOnlyList<LayoutLine>> existingLinesFor,
+        double endInset)
+    {
+        var reach = ExistingLineReachFactor * options.Clearance;
+        for (var index = 0; index < lines.Count; index++)
+        {
+            var existing = existingLinesFor(index);
+            var current = lines[index].Waypoints;
+            if (existing.Count == 0 || CountCrossedLines(current, existing, limit: 1) == 0)
+            {
+                continue;
+            }
+
+            // Every other connector of the batch, as soft obstacles for the search (only those near the
+            // current route, to keep the search's grid small) and as lines to count crossings against.
+            var others = new List<Rect>();
+            var otherLines = new List<LayoutLine>(lines.Count);
+            for (var j = 0; j < lines.Count; j++)
+            {
+                if (j != index)
+                {
+                    AddLineObstacles(lines[j].Waypoints, others, endInset);
+                    otherLines.Add(lines[j]);
+                }
+            }
+
+            var existingRects = ExistingLineRects(LinesNearPath(existing, current, reach));
+            List<Rect> soft = [.. others.Where(r => IsRectNearPath(r, current, reach)), .. existingRects];
+            var refine = new RefineContext(existingRects, [.. others, .. existingRects]);
+            var better = SearchBetterRoute(
+                index, connections, options, obstaclesFor(index), anchors, occupied, soft, profile, profile.WallsFor(index), endZones,
+                new RouteResult(current, false), refine);
+
+            // The search only ranked rectangles near the current route; confirm with the exact lines that
+            // the new route really crosses fewer of them than the one it replaces.
+            if (better is not { } accepted
+                || CountCrossedLines(accepted.Waypoints, existing) + CountCrossedLines(accepted.Waypoints, otherLines)
+                    >= CountCrossedLines(current, existing) + CountCrossedLines(current, otherLines))
+            {
+                continue;
+            }
+
+            lines[index] = lines[index] with { Waypoints = accepted.Waypoints };
+            anchors[index] = accepted.Anchors;
+            endZones[index] = EndZonesOfRoute(connections[index], accepted.Anchors, accepted.Waypoints, options);
+        }
+    }
+
+    /// <summary>
+    /// What the existing-line avoidance pass hands the route search: the rectangles of the existing lines
+    /// near the route (which also earn a crossing penalty in the search), and every rectangle crossings are
+    /// counted against (the existing lines plus every other connector of the batch).
+    /// </summary>
+    /// <param name="ExistingRects">The rectangles of the nearby existing lines.</param>
+    /// <param name="CrossingRects">Every rectangle a candidate's crossings are counted against.</param>
+    private sealed record RefineContext(IReadOnlyList<Rect> ExistingRects, IReadOnlyList<Rect> CrossingRects);
+
+    /// <summary>
+    /// Builds the thin soft-obstacle rectangles of <paramref name="existingLines"/> (see
+    /// <see cref="RoutingProfile.ExistingLinesFor"/>). Every segment counts, including the end runs and
+    /// all but the last <see cref="ExistingLineEndInset"/> pixels beside each end, so a route cannot slip
+    /// across such a line next to the point it ends on.
+    /// </summary>
+    /// <param name="existingLines">The lines that already exist around a connection.</param>
+    /// <returns>The rectangles, empty when there is no line.</returns>
+    private static List<Rect> ExistingLineRects(IReadOnlyList<LayoutLine> existingLines)
+    {
+        var rects = new List<Rect>();
+        foreach (var existingLine in existingLines)
+        {
+            AddLineObstacles(existingLine.Waypoints, rects, ExistingLineEndInset);
+        }
+
+        return rects;
+    }
+
+    /// <summary>
+    /// Counts the transversal crossings between the path <paramref name="w"/> and <paramref name="lines"/>
+    /// (a horizontal segment through a vertical one, strictly inside both). Used as a cheap pre-test on
+    /// every connection that has lines around its endpoints — so only one that really crosses a line pays
+    /// for the soft-obstacle search — and as the exact final check of a searched route.
+    /// </summary>
+    /// <param name="w">The path.</param>
+    /// <param name="lines">The lines to cross-check against.</param>
+    /// <param name="limit">Stops counting once this many crossings are found (for a mere "any" test pass 1).</param>
+    private static int CountCrossedLines(IReadOnlyList<Point2D> w, IReadOnlyList<LayoutLine> lines, int limit = int.MaxValue)
+    {
+        const double tolerance = 1e-6;
+        var count = 0;
+        foreach (var o in lines.Select(line => line.Waypoints))
+        {
+            for (var j = 0; j < o.Count - 1; j++)
+            {
+                var oHorizontal = Math.Abs(o[j].Y - o[j + 1].Y) < tolerance;
+                var oVertical = Math.Abs(o[j].X - o[j + 1].X) < tolerance;
+                for (var i = 0; i < w.Count - 1; i++)
+                {
+                    var wHorizontal = Math.Abs(w[i].Y - w[i + 1].Y) < tolerance;
+                    var wVertical = Math.Abs(w[i].X - w[i + 1].X) < tolerance;
+                    if (!((wHorizontal && oVertical) || (wVertical && oHorizontal)))
+                    {
+                        continue;
+                    }
+
+                    var (hA, hB, vA, vB) = wHorizontal ? (w[i], w[i + 1], o[j], o[j + 1]) : (o[j], o[j + 1], w[i], w[i + 1]);
+                    if (vA.X > Math.Min(hA.X, hB.X) + tolerance && vA.X < Math.Max(hA.X, hB.X) - tolerance
+                        && hA.Y > Math.Min(vA.Y, vB.Y) + tolerance && hA.Y < Math.Max(vA.Y, vB.Y) - tolerance
+                        && ++count >= limit)
+                    {
+                        return count;
+                    }
+                }
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Returns the lines of <paramref name="lines"/> that come within <paramref name="reach"/> logical
+    /// pixels of the path <paramref name="w"/> (the ones it crosses, and the ones running beside it). Only
+    /// these are worth the cost of being soft obstacles of the route search: an alternative to the path
+    /// stays near it, and the exact final check against every line guards the rest.
+    /// </summary>
+    private static List<LayoutLine> LinesNearPath(IReadOnlyList<LayoutLine> lines, IReadOnlyList<Point2D> w, double reach) =>
+        [.. lines.Where(line => IsNearPath(line.Waypoints, w, reach))];
+
+    /// <summary>Returns whether <paramref name="line"/> lies within <paramref name="reach"/> of any segment of <paramref name="w"/>.</summary>
+    private static bool IsNearPath(IReadOnlyList<Point2D> line, IReadOnlyList<Point2D> w, double reach)
+    {
+        for (var j = 0; j < line.Count - 1; j++)
+        {
+            if (IsBoundsNearPath(
+                    Math.Min(line[j].X, line[j + 1].X),
+                    Math.Min(line[j].Y, line[j + 1].Y),
+                    Math.Max(line[j].X, line[j + 1].X),
+                    Math.Max(line[j].Y, line[j + 1].Y),
+                    w,
+                    reach))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Returns whether the rectangle <paramref name="r"/> lies within <paramref name="reach"/> of any segment of <paramref name="w"/>.</summary>
+    private static bool IsRectNearPath(Rect r, IReadOnlyList<Point2D> w, double reach) =>
+        IsBoundsNearPath(r.X, r.Y, r.X + r.Width, r.Y + r.Height, w, reach);
+
+    /// <summary>Returns whether the box (<paramref name="loX"/>, <paramref name="loY"/>)–(<paramref name="hiX"/>, <paramref name="hiY"/>) inflated by <paramref name="reach"/> meets any segment of <paramref name="w"/>.</summary>
+    private static bool IsBoundsNearPath(double loX, double loY, double hiX, double hiY, IReadOnlyList<Point2D> w, double reach)
+    {
+        for (var i = 0; i < w.Count - 1; i++)
+        {
+            if (Math.Min(w[i].X, w[i + 1].X) <= hiX + reach && Math.Max(w[i].X, w[i + 1].X) >= loX - reach
+                && Math.Min(w[i].Y, w[i + 1].Y) <= hiY + reach && Math.Max(w[i].Y, w[i + 1].Y) >= loY - reach)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Counts the transversal crossings between the path <paramref name="w"/> and the thin line
+    /// rectangles in <paramref name="lines"/> (as built by <see cref="AddLineObstacles"/>): a horizontal
+    /// segment crossing a vertical rectangle or a vertical segment crossing a horizontal one. Segments
+    /// that run along a line are not crossings.
+    /// </summary>
+    private static int CountLineCrossings(IReadOnlyList<Point2D> w, IReadOnlyList<Rect> lines)
+    {
+        var count = 0;
+        for (var i = 0; i < w.Count - 1; i++)
+        {
+            var a = w[i];
+            var b = w[i + 1];
+            var horizontal = Math.Abs(a.Y - b.Y) < 1e-9;
+            var lo = horizontal ? Math.Min(a.X, b.X) : Math.Min(a.Y, b.Y);
+            var hi = horizontal ? Math.Max(a.X, b.X) : Math.Max(a.Y, b.Y);
+            foreach (var r in lines)
+            {
+                if (horizontal)
+                {
+                    if (r.Height > r.Width && r.Y < a.Y && a.Y < r.Y + r.Height
+                        && Math.Min(hi, r.X + r.Width) - Math.Max(lo, r.X) > 0.0)
+                    {
+                        count++;
+                    }
+                }
+                else if (r.Width > r.Height && r.X < a.X && a.X < r.X + r.Width
+                    && Math.Min(hi, r.Y + r.Height) - Math.Max(lo, r.Y) > 0.0)
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
     }
 
     /// <summary>
@@ -413,7 +644,19 @@ public static class ConnectorRouter
     /// keep-out strips and switches on the stricter end-leg, face-choice, end-zone and crossing rules.
     /// </summary>
     /// <param name="WallsFor">Returns the wall keep-out strips applying to the connection at the given index.</param>
-    internal sealed record RoutingProfile(Func<int, IReadOnlyList<RouterWall>> WallsFor);
+    /// <param name="ExistingLinesFor">
+    /// Optional. Returns the lines that already exist in the containers enclosing the connection's two
+    /// endpoints (their interior connectors, routed by the nested scopes before this batch). They are not
+    /// part of the batch and never move; each is a crossing cost for the connection at the given index.
+    /// The batch is routed without them first; a connector that then crosses one is searched again over the
+    /// finished batch (see <see cref="AvoidExistingLines"/>) and replaced by a route that crosses fewer
+    /// lines when one exists — a crossing is accepted only when no alternative exists.
+    /// <see langword="null"/> (the default), or an empty list for a connection, leaves that connection's
+    /// routing exactly as without the cost.
+    /// </param>
+    internal sealed record RoutingProfile(
+        Func<int, IReadOnlyList<RouterWall>> WallsFor,
+        Func<int, IReadOnlyList<LayoutLine>>? ExistingLinesFor = null);
 
     /// <summary>
     /// Smallest inset kept between a port that was slid along its face and the face's corner or
@@ -456,6 +699,28 @@ public static class ConnectorRouter
 
     /// <summary>Cost charged for crossing an already-routed connector at right angles (cross-hierarchy profile).</summary>
     private const double ProfileCrossingPenalty = 30.0;
+
+    /// <summary>
+    /// Extra cost charged, in the existing-line aware search, for crossing a line that already exists around
+    /// the connection (see <see cref="RoutingProfile.ExistingLinesFor"/>) at right angles, on top of the
+    /// ordinary soft cost and <see cref="ProfileCrossingPenalty"/>: high enough that the search takes a detour
+    /// of a few bends or a different port rather than cut across an interior connector of an endpoint
+    /// container, while a route that cannot avoid one still crosses it.
+    /// </summary>
+    private const double ExistingLineCrossingPenalty = 150.0;
+
+    /// <summary>
+    /// The sliver, in logical pixels, trimmed off each end of an existing line when its crossing
+    /// rectangles are built: effectively none, so the whole line (end runs included) counts — it only has
+    /// to be positive for <see cref="AddLineObstacles"/> to include the end segments.
+    /// </summary>
+    private const double ExistingLineEndInset = 1e-3;
+
+    /// <summary>
+    /// How far, as a multiple of the obstacle clearance, an existing line may lie from a connection's
+    /// first route and still be counted against when the route search ranks its candidates.
+    /// </summary>
+    private const double ExistingLineReachFactor = 4.0;
 
     /// <summary>
     /// Minimum straight leg wanted at the source end of a connector: the theme's connector stub.
@@ -767,7 +1032,8 @@ public static class ConnectorRouter
         RoutingProfile? profile,
         IReadOnlyList<RouterWall>? walls,
         Rect[][] endZones,
-        RouteResult initial)
+        RouteResult initial,
+        RefineContext? refine = null)
     {
         var connection = connections[index];
         var current = anchors[index];
@@ -790,7 +1056,17 @@ public static class ConnectorRouter
             }
         }
 
+        // In the existing-line avoidance pass the existing lines also carry a crossing penalty in the
+        // search, and the number of crossings — of those and of the other connectors of the batch — is the
+        // first criterion of the ranking (fewest wins); the clearance level and the search cost only rank
+        // candidates that cross equally often. Outside that pass every count is zero, so the ranking is
+        // exactly the one without this criterion.
         var hints = BuildHints(connection, options, profile, walls);
+        if (refine is not null)
+        {
+            hints = hints with { ExistingLines = refine.ExistingRects, ExistingLineCrossingPenalty = ExistingLineCrossingPenalty };
+        }
+
         var edgeRouting = options.EdgeRouting;
         if (edgeRouting != EdgeRouting.Orthogonal)
         {
@@ -800,6 +1076,7 @@ public static class ConnectorRouter
         FacePair? bestPair = null;
         RouteResult? best = null;
         var bestScore = double.PositiveInfinity;
+        var bestCrossings = int.MaxValue;
         foreach (var pair in CandidateFacePairs(connection, current, alternatives: profile is not null))
         {
             var sourceRange = BuildPortRange(connection.From, pair.SourceSide, connection.To, index, true, connections, anchors, occupied, clearance);
@@ -816,19 +1093,32 @@ public static class ConnectorRouter
                 continue;
             }
 
+            var crossings = refine is null ? 0 : CountLineCrossings(result.Waypoints, refine.CrossingRects);
             var score = result.Cost + (pair.IsNatural ? 0.0 : AlternativeFacePenalty);
             var better = best is null
-                || result.ClearanceUsed > best.Value.ClearanceUsed + 1e-9
-                || (Math.Abs(result.ClearanceUsed - best.Value.ClearanceUsed) <= 1e-9 && score < bestScore);
+                || crossings < bestCrossings
+                || (crossings == bestCrossings
+                    && (result.ClearanceUsed > best.Value.ClearanceUsed + 1e-9
+                        || (Math.Abs(result.ClearanceUsed - best.Value.ClearanceUsed) <= 1e-9 && score < bestScore)));
             if (better)
             {
                 best = result;
                 bestPair = pair;
                 bestScore = score;
+                bestCrossings = crossings;
             }
         }
 
         if (best is not { } chosen || bestPair is null)
+        {
+            return null;
+        }
+
+        // The avoidance pass keeps a result only when it crosses strictly fewer lines than the route it
+        // replaces, at the full clearance.
+        if (refine is not null
+            && (bestCrossings >= CountLineCrossings(initial.Waypoints, refine.CrossingRects)
+                || chosen.ClearanceUsed + 1e-9 < clearance))
         {
             return null;
         }

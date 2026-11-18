@@ -158,7 +158,9 @@ internal sealed class ComponentPacker : ILayoutStage
     /// <param name="graph">The graph whose nodes and edges are partitioned.</param>
     /// <returns>
     /// One list of original node indices per component, components ordered by their lowest original
-    /// node index, nodes within each component ordered by ascending original index.
+    /// node index, nodes within each component ordered by ascending original index. When any node carries
+    /// an <see cref="LayerNode.OrderRank"/>, nodes are instead ordered by (rank, index) and components by
+    /// their first node's (rank, index).
     /// </returns>
     private static List<List<int>> FindComponents(LayeredGraph graph)
     {
@@ -192,7 +194,20 @@ internal sealed class ComponentPacker : ILayoutStage
             members.Add(node);
         }
 
-        return [.. order.Select(root => rootToComponent[root])];
+        var components = order.Select(root => rootToComponent[root]).ToList();
+
+        // Order-rank hint: when any node is ranked, members are listed by (rank, index) and components
+        // by their first (lowest) member, so the caller steers both the in-component insertion order and
+        // the order the components are packed in. With no ranks this block is skipped, which keeps the
+        // ascending-index order (and so every default output) byte-identical.
+        if (LayerOrdering.AnyRanked(graph.Nodes.Select(node => node.OrderRank)))
+        {
+            double RankOf(int node) => graph.Nodes[node].OrderRank;
+            components = [.. components.Select(members => LayerOrdering.Sort(members, RankOf))];
+            components.Sort((a, b) => LayerOrdering.Compare(RankOf(a[0]), a[0], RankOf(b[0]), b[0]));
+        }
+
+        return components;
     }
 
     /// <summary>Finds the representative root of a node with path compression.</summary>
@@ -331,7 +346,7 @@ internal sealed class ComponentPacker : ILayoutStage
     /// bounding box, and routed edge waypoints.
     /// </summary>
     /// <param name="graph">The parent graph supplying node sizes, edges, and flow direction.</param>
-    /// <param name="members">Original node indices belonging to this component (ascending order).</param>
+    /// <param name="members">Original node indices belonging to this component (ascending order, or (rank, index) order when nodes carry an <see cref="LayerNode.OrderRank"/>).</param>
     /// <returns>The laid-out component, normalized against its own content bounding box.</returns>
     private ComponentLayout LayoutComponent(LayeredGraph graph, List<int> members)
     {
