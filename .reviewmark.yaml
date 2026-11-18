@@ -379,6 +379,7 @@ reviews:
       - "src/DemaConsulting.Rendering.Layout/Engine/InterconnectionLayoutEngine.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/Engine/InterconnectionLayoutEngineTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/BackEdgeEntryApproachTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayerSpacingTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/design/rendering-layout/engine/engine.md"
@@ -408,7 +409,9 @@ reviews:
       - "docs/design/rendering-layout/engine/layout-tree-packer.md"
       - "docs/verification/rendering-layout/engine/layout-tree-packer.md"
       - "src/DemaConsulting.Rendering.Layout/Engine/LayoutTreePacker.cs"
+      - "src/DemaConsulting.Rendering.Layout/Engine/EmptySpaceMeter.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/Engine/LayoutTreePackerTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/Engine/EmptySpaceMeterTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/design/rendering-layout/engine/engine.md"
@@ -439,6 +442,7 @@ reviews:
       - "docs/verification/rendering-layout/engine/canvas-fitter.md"
       - "src/DemaConsulting.Rendering.Layout/Engine/CanvasFitter.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/Engine/CanvasFitterTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/CanvasMarginTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/design/rendering-layout/engine/engine.md"
@@ -467,6 +471,12 @@ reviews:
       - "test/DemaConsulting.Rendering.Layout.Tests/EdgeKeywordLabelLayoutTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/DirectionScenes.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/LayoutGeometryAssert.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayerSpacingTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/OrderRankPlumbingTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/CanvasMarginTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityBaseline.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityMetrics.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityScenes.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/reqstream/rendering-layout.yaml"
@@ -478,7 +488,10 @@ reviews:
       - "docs/design/rendering-layout/connector-router.md"
       - "docs/verification/rendering-layout/connector-router.md"
       - "src/DemaConsulting.Rendering.Layout/ConnectorRouter.cs"
+      - "src/DemaConsulting.Rendering.Layout/Engine/RouteQuality.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/ConnectorRouterTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/Engine/RouteQualityTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityMetrics.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/EndLabelPassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/DiamondShapeAnchorTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/FaceAlignmentTests.cs"
@@ -521,6 +534,8 @@ reviews:
       - "docs/verification/rendering-layout/containment-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/ContainmentLayoutAlgorithm.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/OrderRankPlumbingTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/CanvasMarginTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/AlgorithmNotationPassThroughTests.cs"
     context:
@@ -534,7 +549,17 @@ reviews:
       - "docs/design/rendering-layout/hierarchical-layout-algorithm.md"
       - "docs/verification/rendering-layout/hierarchical-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/HierarchicalLayoutAlgorithm.cs"
+      - "src/DemaConsulting.Rendering.Layout/HierarchicalLayoutAlgorithm.CrossOrdering.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/HierarchicalCrossOrderingTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/CrossHierarchyOrderingTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/OrderRankPlumbingTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayerSpacingTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutCompactnessTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/CanvasMarginTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityBaseline.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityMetrics.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityScenes.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/PortAppearancePassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/EndLabelPassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/DiamondShapeAnchorTests.cs"
@@ -572,6 +597,12 @@ reviews:
       - "docs/verification/rendering-layout/auto-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/AutoLayoutAlgorithm.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/AutoLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/OrderRankPlumbingTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutCompactnessTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/CanvasMarginTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityBaseline.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityMetrics.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityScenes.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/PortAppearancePassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/EndLabelPassThroughTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs"
@@ -736,6 +767,12 @@ reviews:
       # image is valid. The generated images and index under docs/gallery/** are
       # not in `needs-review` and are intentionally left out of this set.
       - "test/DemaConsulting.Rendering.Gallery/**/*.cs"
+      # Shared layout-quality helpers (metrics, benchmark scenes, baseline numbers) are compiled
+      # into the gallery as linked files (Shared/LayoutQuality*.cs); the physical files live in
+      # the Layout.Tests project.
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityBaseline.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityMetrics.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LayoutQualityScenes.cs"
 
   # OTS Items
   - id: OTS-BuildMark

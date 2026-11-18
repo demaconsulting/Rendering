@@ -259,6 +259,24 @@ before returning it. The fitter places the labels exactly as the renderers do an
 label lies outside the canvas, translates the tree and grows the canvas (see *CanvasFitter Unit Design*); a
 layout that already fits is returned as the same instance, so existing output is byte-identical.
 
+**Canvas padding.** The final fit is called with the layered padding (20 pixels), so the canvas is the
+drawn content (boxes, connectors, resolved labels and ports) plus that padding on every side. A Left or Up flow,
+which the axis transform reflects about the far content edge, no longer leaves the content one padding
+off-center, and a label that reached into the padding band keeps the padding beyond it. A layout whose content
+already hugs the canvas is returned as the same instance. The placed geometry is not changed.
+
+**Layer spacing.** `ResolveLayerSpacing` resolves `CoreOptions.LayerSpacing` (the graph's own explicit value
+first, then the options, then the property default of 70) and passes it to `InterconnectionLayoutEngine.Place`
+for every flow direction. The value is a floor on the corridor between adjacent layers: the corridor is the
+larger of the value and what its routing and end labels need (see the layered pipeline design), so a value
+below that never crowds connectors or shortens the final run into an end marker, and a larger value widens the
+corridor exactly. Each edge also carries its target end decoration's required straight approach
+(`ResolveEndApproach`, rendered marker length plus corner radius plus clean-leg margin; the same formula as the
+back-edge entry approach) so the corridor it enters through keeps that run.
+
+**Order ranks.** A node's order rank from the internal `HierarchicalLayoutAlgorithm.OrderRanks` hint (keyed by
+node, absent meaning unranked) is copied onto the `LayerNode`; the pipeline uses it only as a tie-break (see
+the layered pipeline design), so an unranked graph lays out exactly as before.
 **Parallel keyword-labeled edges.** Several same-kind relationships into one node (for example many
 `«satisfy»` arrowheads) rely on the face minimum anchor separation of at least 16 px and on the
 obstacle-aware label placer; this behavior is unchanged and is guarded by a regression test.
@@ -298,3 +316,6 @@ the Engine subsystem. It is the entry point resolved by renderers through the la
 | Rendering-Layout-LayeredAlgorithm-IsolatedNodesNoOverlap | Isolated nodes and canvas fit, component extents |
 | Rendering-Layout-LayeredAlgorithm-ContentInsideCanvas | Isolated nodes and canvas fit, `CanvasFitter` |
 | Rendering-Layout-LayeredAlgorithm-ParallelKeywordEdgeSeparation | Isolated nodes and canvas fit, anchor pitch |
+| Rendering-Layout-LayeredAlgorithm-LayerSpacing | Isolated nodes and canvas fit, layer spacing |
+| Rendering-Layout-LayeredAlgorithm-OrderRanks | Isolated nodes and canvas fit, order ranks |
+| Rendering-Layout-LayeredAlgorithm-CanvasPadding | Isolated nodes and canvas fit, canvas padding |

@@ -104,6 +104,15 @@ value set on an options bag reads back correctly.
 
 **Covers**: `Rendering-Model-Options-AssumedFontSize`.
 
+#### LayerSpacing defaults to 70
+
+Test `LayerSpacing_DefaultValue_Is70` confirms the unset default is `70.0`, the corridor width the layered engine
+used before the property was honored. The floor semantic (a smaller value never crowds connectors) and the
+cascade are verified by the layered algorithm and pipeline tests (`LayerSpacingTests`,
+`BrandesKopfPlacerTests`).
+
+**Covers**: `Rendering-Model-Options-LayerSpacing`.
+
 ### Requirements Coverage
 
 - **`Rendering-Model-Options-Default`**: Get_UnsetProperty_ReturnsDefault
@@ -120,3 +129,4 @@ value set on an options bag reads back correctly.
   MergeParallelEdges_SetOnGraph_ReadsBackExplicitValue
 - **`Rendering-Model-Options-AssumedFontSize`**: AssumedFontSize_DefaultValue_Is12,
   AssumedFontSize_SetOnOptions_ReadsBackExplicitValue
+- **`Rendering-Model-Options-LayerSpacing`**: LayerSpacing_DefaultValue_Is70

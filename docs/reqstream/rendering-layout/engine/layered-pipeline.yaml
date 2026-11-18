@@ -498,3 +498,51 @@ sections:
           - InterconnectionLayoutEngine_Place_EdgeLabelAlong_WidensCorridorAndPushesFirstBend
           - CycleBreaker_ReversedEdge_SwapsEndLabelReservations
           - Pipeline_MatchesLegacyOracle_OnRandomGraphs
+
+      - id: Rendering-Layout-LayeredPipeline-LayerSpacingCorridor
+        title: >-
+          The layered pipeline shall size each corridor between adjacent layers as the larger of the
+          requested layer spacing and the routing floor (the connector slots, the end-marker approach
+          that fits the historical corridor, plus the end-label space), shall carry the layer spacing
+          through every level of a recursive combined pass, and shall ignore a non-finite value.
+        justification: |
+          Honoring the layer spacing as a floor in the coordinate-assignment stage is what lets a caller
+          widen a corridor exactly and lets a narrow value shrink an unlabeled corridor without ever
+          shortening the final run into an arrowhead or cramping the connector slots. Carrying it per
+          level keeps a hierarchy's inner scopes consistent with the outer one.
+        tests:
+          - LayeredGraph_Constructor_LayerSpacing_DefaultsToHistoricalCorridor
+          - BrandesKopfPlacer_Apply_LayerSpacingAboveFloor_SetsCorridorExactly
+          - BrandesKopfPlacer_Apply_LayerSpacingBelowFloor_ClampsToRoutingFloor
+          - BrandesKopfPlacer_Apply_EndLabelsWithSmallLayerSpacing_CorridorIsFloorPlusLabels
+          - MergeRegionGraphAssembler_BuildAllLevelGraphs_LayerSpacing_InheritedAndOverriddenPerLevel
+
+      - id: Rendering-Layout-LayeredPipeline-OrderRank
+        title: >-
+          The layered pipeline shall order disconnected components, the members of a component and the
+          initial order within a layer by ascending order rank, ties and unranked nodes keeping the input
+          order, shall never let a rank override a crossing reduction, and shall behave identically to
+          the unranked pipeline when every rank is unset.
+        justification: |
+          A rank is only a tie-break for choices the pipeline would otherwise make by input order, so it
+          can steer a container's interior toward the position of its connection partners without
+          degrading the crossing count or changing any graph that supplies no ranks.
+        tests:
+          - CrossingMinimizer_OrderRank_FreeNodes_FollowRank
+          - CrossingMinimizer_OrderRank_DoesNotOverrideCrossingReduction
+          - CrossingMinimizer_OrderRank_NaNRanks_IdenticalToUnranked
+          - ComponentPacker_OrderRank_OrdersComponentsByRank
+          - ComponentPacker_OrderRank_ComponentOrderUsesLowestMemberRank
+          - ComponentPacker_OrderRank_OrdersMembersWithinComponent
+          - ComponentPacker_OrderRank_NaNRanks_IdenticalToUnranked
+
+      - id: Rendering-Layout-LayeredPipeline-ComponentPackingFreeSpace
+        title: >-
+          The component packer shall place isolated nodes into free space beside a taller connected
+          component instead of appending them in a further row, without overlap.
+        justification: |
+          Row-by-row packing leaves a large empty block beside a tall component when isolated nodes are
+          appended below it; filling that block shrinks the canvas without changing any connected
+          component's geometry.
+        tests:
+          - ComponentPacker_Apply_TallComponentPlusIsolatedNodes_TucksIsolatedNodesBesideIt

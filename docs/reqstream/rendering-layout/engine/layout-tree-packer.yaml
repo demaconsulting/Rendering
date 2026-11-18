@@ -96,3 +96,54 @@ sections:
           engine boundary.
         tests:
           - Pack_NullTrees_ThrowsArgumentNullException
+
+      - id: Rendering-Layout-LayoutTreePacker-FreeSpacePacking
+        title: >-
+          LayoutTreePacker shall arrange trees by searching the free space left beside already-placed
+          trees (for several row widths and orders), so a small tree may fill the hole beside a tall tree,
+          honoring an optional outer margin, and shall tuck pieces into holes of a packed tree without
+          overlap, keeping the required spacing, and report that nothing fits when it does not.
+        justification: |
+          Row packing leaves large empty blocks beside a tall piece; a free-space search fills them and
+          shrinks the combined canvas for an auto-routed graph of mixed pieces.
+        tests:
+          - Arrange_SmallPiecesAfterTallPiece_FillsHoleBesideTallPiece
+          - Pack_TallTreePlusSmallTrees_TucksSmallTreesBesideTallTree
+          - Pack_WithMargin_OffsetsContentAndGrowsCanvasOnEverySide
+          - TuckIntoHoles_PieceFitsBesideHostContent_PlacesInsideCanvasKeepingSpacing
+          - TuckIntoHoles_PieceFitsNowhere_ReturnsNull
+          - TuckIntoHoles_NoPieces_ReturnsNull
+
+      - id: Rendering-Layout-LayoutTreePacker-NeverWorseThanShelf
+        title: >-
+          LayoutTreePacker shall return the free-space arrangement only when its canvas is strictly
+          smaller than the shelf arrangement's and its aspect-penalized score is no worse, otherwise the
+          shelf arrangement, shall never overlap pieces, shall be deterministic, and shall leave an empty
+          or single-piece input unchanged.
+        justification: |
+          The free-space search is an optimization of the existing packing; guaranteeing it never
+          produces a larger, overlapping or non-reproducible result means packing a graph can only get
+          better.
+        tests:
+          - Arrange_RandomPieces_NeverLargerThanShelfAndNeverOverlaps
+          - Arrange_NoGain_KeepsShelfArrangement
+          - Arrange_SameInputTwice_IsIdentical
+          - Arrange_EmptyAndSingle_AreUnchanged
+
+      - id: Rendering-Layout-LayoutTreePacker-EmptySpaceMeasure
+        title: >-
+          The empty-space measure shall report the side of the largest empty square of a layout tree on
+          an occupancy grid in which leaf boxes and connectors occupy space and container outlines are
+          transparent, equal to the smaller canvas side for an empty tree, and the passing-square size
+          (three times the mean leaf-box height), zero without leaf boxes.
+        justification: |
+          Packing and ordering decisions compare candidate layouts by how large an unused block they
+          leave; one shared, container-transparent measure keeps the packer, the Auto algorithm and the
+          ordering refinement consistent and detects a large wasted hole.
+        tests:
+          - EmptySpaceMeter_LargestEmptySquare_EmptyTree_IsSmallerCanvasSide
+          - EmptySpaceMeter_LargestEmptySquare_CentralLeafBox_ReducesSquare
+          - EmptySpaceMeter_LargestEmptySquare_ContainerOutline_IsTransparent
+          - EmptySpaceMeter_LargestEmptySquare_ConnectorAcrossCanvas_SplitsSpace
+          - EmptySpaceMeter_PassingSquare_LeafBoxes_IsThreeTimesMeanHeight
+          - EmptySpaceMeter_PassingSquare_NoLeafBox_IsZero

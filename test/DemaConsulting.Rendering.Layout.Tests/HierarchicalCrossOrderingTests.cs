@@ -108,7 +108,7 @@ public sealed class HierarchicalCrossOrderingTests
 
     /// <summary>
     ///     Proves the ordering refinement is bounded: a scope is laid out and routed at most seven times
-    ///     (the first pass and the proposals), and a scene with a refinable scope really was refined.
+    ///     (the first pass and the proposals), and a scene with a scope that can be refined really was refined.
     /// </summary>
     /// <param name="scene">The benchmark scene name.</param>
     /// <param name="refined">Whether the scene has a scope the refinement must have worked on.</param>

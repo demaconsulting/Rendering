@@ -9,29 +9,27 @@ attach to entries here until they are actually implemented).
 ## Unimplemented `CoreOptions` behavior
 
 All six `CoreOptions` properties now cascade correctly through the layout hierarchy (nearest-ancestor
-inheritance via `PropertyHolder.OverlayOnto`, landed alongside this file). `CoreOptions.NodeSpacing` is
-now honored by the bundled `layered` algorithm (see below). The following properties are still accepted
-and cascade correctly, but are not yet *read* by any bundled algorithm's layout logic. Effort below is
-ranked from easiest to hardest — it is not uniform across the two, despite both sharing the same
-already-working cascading mechanism:
+inheritance via `PropertyHolder.OverlayOnto`, landed alongside this file). `CoreOptions.NodeSpacing` and
+`CoreOptions.LayerSpacing` are honored by the bundled `layered` algorithm (and so by `auto` and
+`hierarchical`, which lay out through it); `LayerSpacing` is a floor on the corridor between layers, default
+70, and the corridor is widened to whatever routing slots, end markers and end labels need. The following
+property is still accepted and cascades correctly, but is not yet *read* by any bundled algorithm's layout
+logic:
 
-- **`CoreOptions.LayerSpacing`** (needs a design decision first) — advisory; the bundled `layered`
-  algorithm uses a fixed engine constant (`LayeredLayoutMetrics.CorridorMinWidth`, 70.0) instead. Unlike
-  `NodeSpacing`, there is no clean 1:1 replacement: `CorridorMinWidth` is *derived* from connector-routing
-  slot math (`2×ConnectorClearance + (edgeCount−1)×EdgeSpacing`), not a free-standing spacing value. A
-  user-supplied `LayerSpacing` smaller than what routing needs must not silently override the
-  routing-derived minimum, or connectors will overlap — implementation must decide whether the option
-  acts as an additional floor on top of the routing minimum, a validated hard override, or something
-  else, before any code is written.
 - **`CoreOptions.HierarchyHandling`** (hardest) — only `HierarchyHandling.SeparateChildren` exists and
   is implicitly what the bundled `HierarchicalLayoutAlgorithm` does; no algorithm branches on this
   property's value, and no second mode exists yet. Cross-hierarchy edge anchoring is delivered as the
   default behavior: an edge declared on an ancestor graph is routed from the actual nested source node to
   the actual nested target node, and the declaring scope's placement accounts for it (through layout-only
-  proxy edges), while each container's interior is still laid out in isolation. What remains is an
-  ELK-style "include children in the parent's own layout space" mode (one joint layout pass across
-  container boundaries, which would also let such an edge reshuffle the interior of the container holding
-  both its endpoints, and let boundary-port hierarchies place around cross-hierarchy edges). That is
+  proxy edges), while each container's interior is still laid out in isolation. ELK's
+  `INCLUDE_CHILDREN` is **partially delivered** without a joint pass: the interior of each container is
+  ordered by the position of its cross-hierarchy connection partners (an order-independent result for the
+  benchmark scenes), and the router counts the lines drawn inside the containers a connector enters as
+  a crossing cost. What remains is: (1) a true joint layout pass across container boundaries (which would
+  also let boundary-port hierarchies place around cross-hierarchy edges); (2) face constraints that put
+  typing connectors (leaf to definition) on a different face than composite connectors (the dense usage
+  tree benchmark keeps its 43 crossings, a floor of about 30 for the current face rules); and (3) the
+  remaining diagram-quality criteria (B4 empty space, B5 block-area ratio) on dense usage trees. That is
   genuine new layout logic in `HierarchicalLayoutAlgorithm` — not a matter of reading an already-cascaded
   value — and introduces new user-visible layout behavior, so it belongs in a proper
   planning/implementation pass rather than an opportunistic fix.

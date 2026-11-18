@@ -41,6 +41,24 @@ arrowhead on the edge is never clipped.
 5. **Grow.** On an axis whose content (after any translation) ends beyond the canvas size, the size becomes
    that maximum plus `FitMargin`. An axis whose content already fits is left unchanged.
 
+**Padded fit.** `Fit(tree, fontSize, padding)` with a padding argument sizes the canvas to the measured content
+plus that padding on every side instead of only correcting a clipped one: the content extent covers every box
+(recursing through `Children`), connector waypoint, resolved label, port glyph and outward port label. When the
+content already hugs the canvas within a tolerance of 0.005 the same instance is returned; otherwise the tree is
+translated so the content starts at the padding (on an off-center content, a surplus ring or a label inside the
+padding band) and the canvas becomes the content plus the padding on both sides. A tree with an unrecognized
+node is returned unchanged. The layered algorithm passes its 20 pixel padding, and the hierarchical algorithm
+passes the margin its leaf output kept. `MeasureMargin(tree, fontSize)` returns the smallest margin between the
+content and a canvas edge (or `null` for a tree without content), which is how the hierarchical algorithm learns
+the padding a leaf (for example a containment leaf with its 12 pixel packing padding) kept.
+
+**Trim to content.** `TrimToContent(tree, fontSize, bendInset)` moves the top-left corner of the measured content
+to the origin and shrinks the canvas to the content, sharing the measuring code of `Fit` (the label resolver only
+runs when a line has a label). A connector bend contributes `bendInset` of room beyond itself, so the trimmed
+interior of a container keeps connector bends clear of the container border; an empty tree or an already trimmed
+tree is returned as the same instance, and a null tree throws `ArgumentNullException`. The hierarchical algorithm
+uses it to size a container to its content.
+
 #### CanvasFitter Error Handling
 
 A null `tree` throws `ArgumentNullException`. A tree containing a node type outside the closed set
@@ -68,3 +86,5 @@ connectors and labels inside the canvas.
 | Rendering-Layout-CanvasFitter-IncludesConnectorLabels | CanvasFitter behavior described above (measure) |
 | Rendering-Layout-CanvasFitter-UnrecognizedNodeUnchanged | CanvasFitter behavior described above (collect) |
 | Rendering-Layout-CanvasFitter-Validation | CanvasFitter behavior described above |
+| Rendering-Layout-CanvasFitter-PaddedFit | CanvasFitter behavior described above (padded fit) |
+| Rendering-Layout-CanvasFitter-TrimToContent | CanvasFitter behavior described above (trim to content) |

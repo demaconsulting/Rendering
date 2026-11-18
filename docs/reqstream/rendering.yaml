@@ -85,6 +85,7 @@ sections:
           - Rendering-Model-Options-CopyOverrides
           - Rendering-Model-Options-MergeParallelEdges
           - Rendering-Model-Options-AssumedFontSize
+          - Rendering-Model-Options-LayerSpacing
         tests:
           - Get_UnsetProperty_ReturnsDefault
           - Get_AfterSet_ReturnsStoredValue

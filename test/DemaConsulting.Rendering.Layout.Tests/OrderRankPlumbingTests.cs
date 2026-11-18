@@ -296,10 +296,10 @@ public sealed class OrderRankPlumbingTests
 
     /// <summary>
     ///     Proves a hint that names no node of the scope (or an absent hint) leaves a hierarchical layout
-    ///     identical to the unhinted layout.
+    ///     identical to the layout without any hint.
     /// </summary>
     [Fact]
-    public void HierarchicalLayoutAlgorithm_OrderRanks_UnrelatedKeys_IdenticalToUnhinted()
+    public void HierarchicalLayoutAlgorithm_OrderRanks_UnrelatedKeys_IdenticalToUnordered()
     {
         // Arrange: two equal graphs; the hint of one holds only a foreign node.
         LayoutGraph Build()
@@ -320,15 +320,15 @@ public sealed class OrderRankPlumbingTests
             Ranks(new Dictionary<LayoutGraphNode, double> { [new LayoutGraph().AddNode("foreign", 10, 10)] = 0 }));
 
         // Act
-        var unhinted = new HierarchicalLayoutAlgorithm().ApplyCore(Build(), LayoutOptions.ForAlgorithm("layered"));
+        var withoutHint = new HierarchicalLayoutAlgorithm().ApplyCore(Build(), LayoutOptions.ForAlgorithm("layered"));
         var withHint = new HierarchicalLayoutAlgorithm().ApplyCore(Build(), hinted);
 
         // Assert
-        var expected = unhinted.Nodes.OfType<LayoutBox>().Select(b => (b.Label, b.X, b.Y)).ToList();
+        var expected = withoutHint.Nodes.OfType<LayoutBox>().Select(b => (b.Label, b.X, b.Y)).ToList();
         var actual = withHint.Nodes.OfType<LayoutBox>().Select(b => (b.Label, b.X, b.Y)).ToList();
         Assert.Equal(expected, actual);
-        Assert.Equal(unhinted.Width, withHint.Width);
-        Assert.Equal(unhinted.Height, withHint.Height);
+        Assert.Equal(withoutHint.Width, withHint.Width);
+        Assert.Equal(withoutHint.Height, withHint.Height);
     }
 
     /// <summary>Builds a root graph of two connected components and two singleton boxes, outputting its nodes by id.</summary>

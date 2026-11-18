@@ -17,6 +17,7 @@ obstacle avoidance, and produced `LayoutLine` styling are all observed on real o
 - **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ConnectorRouterTests.cs`, plus
+  `Engine/RouteQualityTests.cs` (the route-quality measure) and
   `NotationPrimitivePassThroughTests.cs` (folder-tab resolution, port corner margin, and new end-marker
   clearance) in the same project.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
@@ -207,6 +208,34 @@ the routed line carries them.
 
 **Covers**: `Rendering-Layout-ConnectorRouter-EndLabelPropagation`.
 
+#### Existing-line crossing cost
+
+`RouteBatch_ExistingInteriorLine_AvoidsCrossingWhenAlternativeExists` supplies an interior line through
+`RoutingProfile.ExistingLinesFor` that a first route would cross and asserts the routed connector avoids it;
+`RouteBatch_ExistingInteriorLine_NoAlternative_StillRoutes` closes every alternative and asserts the connector is
+still routed (and crosses the line); `RouteBatch_NoExistingLines_ByteIdentical` asserts a batch without existing
+lines routes byte-identically whether the provider is absent, null, or returns an empty list.
+
+**Covers**: `Rendering-Layout-ConnectorRouter-ExistingLineCrossingCost`.
+
+#### Tidy replacement rule
+
+The `IsTidyReplacement_*` tests call the replacement rule directly on hand-built polylines: a modest detour that
+removes a crossing is accepted, a long wrap, a replacement with many more bends, one that adds a hairpin and one
+that runs nearly on top of another connector are rejected, and at equal crossings only a lower visual cost is
+accepted.
+
+**Covers**: `Rendering-Layout-ConnectorRouter-TidyReplacement`.
+
+#### Route quality measure
+
+`RouteQualityTests` (`Engine/RouteQualityTests.cs`) tests `RouteQuality` on hand-built polylines: path length,
+bend count (collinear waypoints are not bends), hairpins, close parallel length (only squeezed runs with enough
+overlap count, a gap of exactly 16 pixels does not) and its weighted variant, the summary over several connectors,
+and, on a benchmark scene, that the engine's measure equals the test metrics' measure.
+
+**Covers**: `Rendering-Layout-ConnectorRouter-RouteQuality`.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`**:
@@ -299,3 +328,15 @@ occupied face position moves to a free spot), and TryResolveFaceAnchor_PointOnFa
   LayeredLayout_DiamondSingleEdge_KeepsRequestedSizeAndVertexAnchor,
   LayeredLayout_RectangleTarget_ThreeSources_SizeAndAnchorsUnchanged
 - **`Rendering-Layout-ConnectorRouter-EndLabelPropagation`**: ConnectorRouter_Connection_EndLabelsReachRoutedLine
+- **`Rendering-Layout-ConnectorRouter-ExistingLineCrossingCost`**:
+  RouteBatch_ExistingInteriorLine_AvoidsCrossingWhenAlternativeExists,
+  RouteBatch_ExistingInteriorLine_NoAlternative_StillRoutes, RouteBatch_NoExistingLines_ByteIdentical
+- **`Rendering-Layout-ConnectorRouter-TidyReplacement`**: IsTidyReplacement_FewerCrossingsModestDetour_Accepts,
+  IsTidyReplacement_FewerCrossingsLongWrap_Rejects, IsTidyReplacement_FewerCrossingsManyMoreBends_Rejects,
+  IsTidyReplacement_AddsHairpin_Rejects, IsTidyReplacement_RunsNearlyOnTopOfAnotherConnector_Rejects,
+  IsTidyReplacement_EqualCrossings_AcceptsOnlyLowerVisualCost
+- **`Rendering-Layout-ConnectorRouter-RouteQuality`**: RouteQuality_PathLength_Polyline_SumsSegments,
+  RouteQuality_BendCount_CollinearWaypoints_AreNotBends, RouteQuality_HairpinCount_EastSouthWest_IsOneHairpin,
+  RouteQuality_CloseParallelLength_GapAndOverlap_CountsOnlySqueezedRuns,
+  RouteQuality_WeightedCloseParallelLength_NearerRunsWeighMore, RouteQuality_Measure_TwoConnectors_SumsAllMetrics,
+  RouteQuality_Measure_BenchmarkScene_AgreesWithLayoutQualityMetrics

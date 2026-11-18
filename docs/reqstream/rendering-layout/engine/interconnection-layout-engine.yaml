@@ -137,3 +137,15 @@ sections:
         tests:
           - InterconnectionLayoutEngine_DefaultApproach_EqualsExplicitConnectorClearance
           - InterconnectionLayoutEngine_LargerApproach_LengthensBackEdgeFinalRun
+
+      - id: Rendering-Layout-InterconnectionEngine-LayerSpacing
+        title: >-
+          InterconnectionLayoutEngine shall accept an optional minimum layer-to-layer corridor width
+          that defaults to 70.0 (the historical corridor) and shall apply it to every connected
+          component it places.
+        justification: |
+          The public layered algorithm resolves CoreOptions.LayerSpacing and must thread it through this
+          facade to the placement stage; the default must reproduce the former fixed corridor so every
+          caller that predates the parameter sees identical geometry.
+        tests:
+          - Place_LayerSpacing_DefaultsTo70AndReachesEveryComponent

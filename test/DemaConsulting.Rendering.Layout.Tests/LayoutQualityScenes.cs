@@ -133,7 +133,7 @@ internal static class LayoutQualityScenes
     {
         var graph = Root("hierarchical", direction);
         var design = Folder(graph, "design", "Design", "layered");
-        var reqs = Folder(graph, "reqs", "Requirements", "layered");
+        var reqFolder = Folder(graph, "reqFolder", "Requirements", "layered");
         var tests = Folder(graph, "tests", "Verification", "layered");
         var lib = Folder(graph, "lib", "Library", "layered");
         var power = Folder(design.Children, "power", "Power", "layered");
@@ -144,9 +144,9 @@ internal static class LayoutQualityScenes
         var battery = Definition(power.Children, "battery", "Battery");
         var charger = Definition(power.Children, "charger", "Charger");
         var inverter = Definition(power.Children, "inverter", "Inverter");
-        var massReq = Definition(reqs.Children, "massReq", "MassReq", "requirement def");
-        var rangeReq = Definition(reqs.Children, "rangeReq", "RangeReq", "requirement def");
-        var safetyReq = Definition(reqs.Children, "safetyReq", "SafetyReq", "requirement def");
+        var massReq = Definition(reqFolder.Children, "massReq", "MassReq", "requirement def");
+        var rangeReq = Definition(reqFolder.Children, "rangeReq", "RangeReq", "requirement def");
+        var safetyReq = Definition(reqFolder.Children, "safetyReq", "SafetyReq", "requirement def");
         var massTest = Definition(tests.Children, "massTest", "MassTest", "verification def");
         var rangeTest = Definition(tests.Children, "rangeTest", "RangeTest", "verification def");
         var mass = Definition(lib.Children, "mass", "Mass", "attribute def");
@@ -156,7 +156,7 @@ internal static class LayoutQualityScenes
         Specialize(design.Children, "s2", body, vehicle);
         Composite(power.Children, "c1", charger, battery);
         Composite(power.Children, "c2", inverter, battery);
-        Specialize(reqs.Children, "s3", rangeReq, massReq);
+        Specialize(reqFolder.Children, "s3", rangeReq, massReq);
 
         Reference(graph, "satisfyMass", massReq, vehicle, "«satisfy»");
         Reference(graph, "satisfyRange", rangeReq, battery, "«satisfy»");
@@ -165,9 +165,9 @@ internal static class LayoutQualityScenes
         Reference(graph, "massType", battery, mass, null);
         Reference(graph, "lengthType", chassis, length, null);
         Reference(graph, "importLib", design, lib, "«import»*");
-        Reference(graph, "importReqs", tests, reqs, "«import»*");
+        Reference(graph, "importReqFolder", tests, reqFolder, "«import»*");
         Composite(graph, "owns", inverter, vehicle);
-        Definition(reqs.Children, "unusedReq", "UnusedReq", "requirement def");
+        Definition(reqFolder.Children, "unusedReq", "UnusedReq", "requirement def");
         Definition(tests.Children, "unusedTest", "UnusedTest", "verification def");
         Definition(graph, "orphan1", "Orphan1");
         Definition(graph, "orphan2", "Orphan2");

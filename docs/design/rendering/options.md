@@ -27,7 +27,12 @@ by each property's identifier.
 - `LayoutOptions` (sealed class extending `PropertyHolder`) — with a `ForAlgorithm(string)` factory.
 - `CoreOptions` (static class) — well-known keys `Algorithm`, `HierarchyHandling`, `Direction`,
   `EdgeRouting`, `NodeSpacing`, `LayerSpacing`, `MergeParallelEdges`,
-  `AssumedFontSize`.
+  `AssumedFontSize`. `LayerSpacing` (default `70.0` logical pixels, the corridor the layered engine used before
+  the property was honored) is the minimum corridor between adjacent layers: a floor, as in ELK's
+  `spacing.nodeNodeBetweenLayers`, so the layered algorithm (and the `auto` and `hierarchical` algorithms that
+  lay out through it) widens a corridor to whatever its routing slots, end-marker approach and end labels need
+  and a smaller value never crowds connectors. It cascades per scope by nearest-ancestor override like every other
+  property.
 - `LayoutFlowDirection` (enum) — `Right`, `Left`, `Down`, `Up`.
 - `HierarchyHandling` (enum) — `SeparateChildren` (the only shipped mode). Mirrors ELK's
   `elk.hierarchyHandling`; selects how a hierarchical layout engine treats a container node's nested
@@ -143,3 +148,4 @@ using its own self-contained `PortLabelWidthEstimator` heuristic.
 | Rendering-Model-Options-CopyOverrides | `PropertyHolder.CopyOverridesTo` |
 | Rendering-Model-Options-MergeParallelEdges | `CoreOptions.MergeParallelEdges` |
 | Rendering-Model-Options-AssumedFontSize | `CoreOptions.AssumedFontSize` |
+| Rendering-Model-Options-LayerSpacing | `CoreOptions.LayerSpacing` |

@@ -80,3 +80,38 @@ sections:
           engine boundary.
         tests:
           - CanvasFitter_Fit_NullTree_Throws
+
+      - id: Rendering-Layout-CanvasFitter-PaddedFit
+        title: >-
+          CanvasFitter shall, given a padding, size the canvas to the measured content (boxes,
+          connectors, resolved labels, ports and port glyphs) plus that padding on every side, translating
+          the tree when the content is off-center or the padding is surplus, return the same tree
+          instance when the content already hugs the canvas within a tolerance of 0.005, report the
+          smallest content margin, and leave a tree with an unrecognized node unchanged.
+        justification: |
+          A reflected flow or a label reaching into the padding band left an uneven or surplus margin.
+          Measuring the content with the padding gives every algorithm a uniform margin without
+          disturbing a layout that already has it.
+        tests:
+          - CanvasFitter_FitWithPadding_ContentHuggedByPadding_ReturnsSameTree
+          - CanvasFitter_FitWithPadding_SurplusRing_ShrinksCanvasAndTranslatesContent
+          - CanvasFitter_FitWithPadding_ContentOffCenter_CentersWithoutChangingCanvasSize
+          - CanvasFitter_FitWithPadding_LabelInsidePaddingBand_KeepsPaddingBeyondLabel
+          - CanvasFitter_MeasureMargin_Boxes_ReturnsSmallestMargin
+          - CanvasFitter_FitWithPadding_UnrecognizedNode_ReturnsSameTree
+
+      - id: Rendering-Layout-CanvasFitter-TrimToContent
+        title: >-
+          CanvasFitter shall trim a tree to its content, moving the content's top-left corner to the
+          origin and shrinking the canvas to the content, honoring a bend inset for connector bends,
+          returning the same instance when already trimmed or empty, and rejecting a null tree with an
+          argument-null error.
+        justification: |
+          A container interior is sized to its content, so the interior must be measured exactly (with
+          the room connector bends keep from a border) before the container is drawn around it.
+        tests:
+          - CanvasFitter_TrimToContent_Boxes_StartsAtOriginAndHugsContent
+          - CanvasFitter_TrimToContent_BendLeftOfBoxes_IsContentAndHonorsBendInset
+          - CanvasFitter_TrimToContent_EmptyTree_ReturnsSameTree
+          - CanvasFitter_TrimToContent_AlreadyTrimmed_ReturnsSameTree
+          - CanvasFitter_TrimToContent_NullTree_Throws

@@ -267,6 +267,43 @@ layered pipeline is handled by its `PortAligner` stage, and a regression test ke
 copies onto the routed `LayoutLine`. The router does not place or reserve room for the labels (placement is the
 renderers' job, through `ConnectorLabelPlacer.PlaceEndLabels`).
 
+#### Existing-line crossing cost and tidy re-routing
+
+`RoutingProfile.ExistingLinesFor` is an optional per-connection callback. It returns the lines already drawn
+inside the containers that enclose the connection's two endpoints (their interior connectors, routed by the
+nested scopes before this batch). Those lines are not part of the batch and never move; each is a crossing cost
+for that connection. The batch is first routed without them; a connector that then crosses one, and every
+connector the tidy pass selects, is searched again over the finished batch (`RerouteBatch`) with the existing
+lines and every other connector as soft costs (a crossing of an existing line carries an extra cost high enough
+to prefer a detour of a few bends or a different port, while a route that cannot avoid one still crosses it).
+`ExistingLinesFor` returning `null` or no line leaves the routing exactly as without the cost.
+
+A re-routed path replaces the original only when `IsTidyReplacement` accepts it:
+
+- it adds no hairpin and no run within 4 pixels of another connector (one nearly on top of it);
+- when it crosses fewer lines it is at most `MaxDetourFactor` (1.25) times as long plus two clearances and has at
+  most `MaxExtraBends` (2) more bends, so a crossing is worth a modest detour, never a wrap around a box;
+- when it crosses as many it has no more bends and a lower visual cost (length plus the price of its bends,
+  hairpins and closeness-weighted close parallel runs).
+
+The tidy pass (`tidy`) looks at connectors with a hairpin, many bends (six or more) or a run closer than the 16
+pixel lane separation to another connector; the first (crossing) pass can only reduce crossings. A batch with
+close parallel runs is routed a second time with 4 pixel half-thick line obstacles (so a later connector keeps a
+full lane from an earlier one) and that result replaces the first only if its crossings, hairpins and bends are
+no worse and its close parallel runs fewer (`RouteBatch` over `RouteBatchCore`). A batch without
+`ExistingLinesFor` and without close parallel runs is routed byte-identically to before.
+
+#### Route quality measure
+
+`RouteQuality` (internal, `Engine/RouteQuality.cs`) is the shared definition of how good a set of routed
+orthogonal connectors looks, used by the tidy re-routing above, by the hierarchical algorithm's tightening gate
+and ordering guard, and by the test metrics. `Measure(lines)` returns the total path length, the bend count
+(collinear waypoints are not bends), the hairpin count (three consecutive legs of which the first and the third
+run in opposite directions along one axis), and the total length of the close parallel runs of different
+connectors: runs closer than `CloseParallelGap` (16 pixels), overlapping by more than `CloseParallelOverlap`
+(20 pixels); a gap of exactly 16 pixels is not close (the comparison keeps a 1e-6 tolerance), and a weighted
+variant makes nearer runs weigh more.
+
 ### ConnectorRouter Error Handling
 
 Null `boxes`, `connections`, `connection`, `options`, or a connection's `From`/`To` throw
@@ -349,3 +386,6 @@ any set of placed boxes.
 | Rendering-Layout-ConnectorRouter-FolderTabResolution | Folder tab resolution |
 | Rendering-Layout-ConnectorRouter-PortCornerMargin | Port sliding (`PortCornerMarginFor`) |
 | Rendering-Layout-ConnectorRouter-NewEndMarkerClearance | Minimum end legs |
+| Rendering-Layout-ConnectorRouter-ExistingLineCrossingCost | Existing-line crossing cost and tidy re-routing |
+| Rendering-Layout-ConnectorRouter-TidyReplacement | Tidy re-routing, `IsTidyReplacement` |
+| Rendering-Layout-ConnectorRouter-RouteQuality | Route quality measure, `RouteQuality` |

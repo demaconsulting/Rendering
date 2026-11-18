@@ -19,7 +19,9 @@ production code paths.
   `NotationPrimitivePassThroughTests.cs` (appearance pass-through) and `BackEdgeEntryApproachTests.cs`
   (back-edge entry approach and label clearance) in the same project. `DirectionLayoutGeometryTests.cs`
   and `EdgeKeywordLabelLayoutTests.cs` (with the shared `DirectionScenes.cs` and `LayoutGeometryAssert.cs`
-  helpers) cover isolated-node packing, canvas containment, and keyword-label separation; the Gallery tests in
+  helpers) cover isolated-node packing, canvas containment, and keyword-label separation; `LayerSpacingTests.cs`
+  (layer spacing through the default engine), `OrderRankPlumbingTests.cs` (order ranks) and `CanvasMarginTests.cs`
+  (canvas padding) cover the layer-spacing, ordering and margin behavior; the Gallery tests in
   `test/DemaConsulting.Rendering.Gallery/GalleryShowcaseTests.cs` repeat the checks on rendered SVG and PNG.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and `LayoutOptions` instances.
@@ -198,6 +200,23 @@ failure.
   asserts no outward label overlaps a box, another port label, a connector segment, or an end label;
   `LayeredLayout_NoOutwardLabels_BoxesIdenticalWithAndWithoutAnInwardAppearance` asserts a layout without outward
   labels is unchanged; `LayeredLayout_OutwardLabels_WidenTheCorridorBetweenParts` asserts the corridor grows.
+- **Layer spacing** (`Rendering-Layout-LayeredAlgorithm-LayerSpacing`): `LayerSpacingTests` lays out
+  chains through the default engine for every algorithm and direction. An unset value is the 70 pixel corridor
+  (`LayoutEngine_Layout_LayerSpacingUnset_CorridorIs70`); a larger value sets the corridor exactly
+  (`..._LayerSpacing_HonoredAsCorridorWidth`); a value of zero or below the routing floor still routes cleanly and
+  keeps the straight run into the end marker (`..._LayerSpacingZero_KeepsMarkerRunPerStyle`,
+  `..._LayerSpacingBelowFloor_StillRoutesCleanly`); with end labels the corridor is the larger of the option and
+  what the labels need (`..._LayerSpacingWithEndLabels_CorridorIsMaxOfOptionAndNeeds`); a graph's own value wins
+  over the options (`LayeredLayoutAlgorithm_ApplyCore_LayerSpacingOnGraph_TakesPrecedenceOverOptions`).
+- **Order ranks** (`Rendering-Layout-LayeredAlgorithm-OrderRanks`):
+  `LayeredLayoutAlgorithm_OrderRanks_OrdersSiblingsByRank` ranks siblings against their input order and asserts
+  the placed order follows the ranks; `LayeredLayoutAlgorithm_NoOrderRanks_KeepsInsertionOrder` asserts an
+  unranked graph keeps its insertion order.
+- **Canvas padding** (`Rendering-Layout-LayeredAlgorithm-CanvasPadding`): `CanvasMarginTests` lays out the direction
+  scenes and chains in every flow direction and asserts the margin between the content (boxes, waypoints, resolved
+  labels, ports) and each canvas edge is the 20 pixel layout padding
+  (`LayoutEngine_Layout_DirectionScene_CanvasHugsContent`,
+  `LayoutEngine_Layout_LayeredAndHierarchicalChains_CanvasHugsContent`).
 
 ### Requirements Coverage
 
@@ -295,3 +314,13 @@ failure.
   Gallery_EdgeKeywordLabels_RendersSvgAndPngWithLabelsInsideCanvas
 - **`Rendering-Layout-LayeredAlgorithm-ParallelKeywordEdgeSeparation`**:
   LayeredLayout_ParallelKeywordLabeledEdgesIntoOneNode_KeepAnchorsApartAndLabelsClear
+- **`Rendering-Layout-LayeredAlgorithm-LayerSpacing`**:
+  LayoutEngine_Layout_LayerSpacingUnset_CorridorIs70, LayoutEngine_Layout_LayerSpacing_HonoredAsCorridorWidth,
+  LayoutEngine_Layout_LayerSpacingZero_KeepsMarkerRunPerStyle,
+  LayoutEngine_Layout_LayerSpacingBelowFloor_StillRoutesCleanly,
+  LayoutEngine_Layout_LayerSpacingWithEndLabels_CorridorIsMaxOfOptionAndNeeds,
+  LayeredLayoutAlgorithm_ApplyCore_LayerSpacingOnGraph_TakesPrecedenceOverOptions
+- **`Rendering-Layout-LayeredAlgorithm-OrderRanks`**:
+  LayeredLayoutAlgorithm_OrderRanks_OrdersSiblingsByRank, LayeredLayoutAlgorithm_NoOrderRanks_KeepsInsertionOrder
+- **`Rendering-Layout-LayeredAlgorithm-CanvasPadding`**: LayoutEngine_Layout_DirectionScene_CanvasHugsContent,
+  LayoutEngine_Layout_LayeredAndHierarchicalChains_CanvasHugsContent

@@ -69,6 +69,26 @@ rejects a null `graph`), then:
    one-box-per-node, input-order contract that `HierarchicalLayoutAlgorithm` relies on to attach each
    container's children to the right box.
 
+   **Packing candidates.** The packed tree is the smallest-area of up to four candidates; a candidate
+   replaces the previous one only when its canvas area is strictly smaller (ties keep the previous), and every
+   candidate keeps the input box order (`RestoreInputBoxOrder`) and never overlaps:
+   1. the pieces as laid out, packed by `LayoutTreePacker.Pack` (shelf or free-space arrangement);
+   2. the pieces trimmed to their content (`CanvasFitter.TrimToContent`) and packed with one 20 pixel outer
+      padding, the singleton bucket as one block;
+   3. the singleton bucket dissolved into separate pieces, so each isolated node is packed on its own and may
+      fill free space beside a tall piece;
+   4. the singletons tucked into a hole of the packed routed components (`LayoutTreePacker.TuckIntoHoles`),
+      accepted only when the largest empty square (`EmptySpaceMeter`) is not larger.
+
+   A tall cluster with isolated nodes therefore no longer gets a further row of orphans below it when they fit in
+   the free space beside it.
+
+   **Order ranks.** The internal `HierarchicalLayoutAlgorithm.OrderRanks` hint is honored on the single-group fast
+   path (passed to the leaf algorithm unchanged) and on a multi-group root, where it orders the components (by
+   their lowest-ranked member), the members of each component and the singleton bucket, and is translated
+   (keyed by the nodes of the sub-graphs this algorithm builds, including nested nodes) onto the cloned nodes
+   handed to the leaf algorithms. With no hint nothing changes.
+
 ### AutoLayoutAlgorithm Sub-Graph Construction
 
 When more than one group is produced, each group is laid out on its own freshly-built `LayoutGraph`
@@ -133,3 +153,5 @@ bundled algorithms and is resolved by renderers through the layout registry like
 | Rendering-Layout-AutoAlgorithm-PreservesInputBoxOrder | Genuine multi-group split (step 4) |
 | Rendering-Layout-AutoAlgorithm-PreservesLayoutOnlyMarker | Sub-Graph Construction (edge copying) |
 | Rendering-Layout-AutoAlgorithm-AppearancePassThrough | Sub-Graph Construction (node copying) |
+| Rendering-Layout-AutoAlgorithm-OrderRanks | Genuine multi-group split (step 4), order ranks |
+| Rendering-Layout-AutoAlgorithm-TrimmedAndTuckedPacking | Genuine multi-group split (step 4), packing candidates |

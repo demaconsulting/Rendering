@@ -795,7 +795,7 @@ public sealed partial class HierarchicalLayoutAlgorithm
 
         var coarseKeys = ComputePartnerKeys(graph, pass, coarse: true);
         var current = effective.Get(OrderRanks);
-        var childEffectives = new Dictionary<LayoutGraphNode, LayoutOptions>();
+        var childScopeOptions = new Dictionary<LayoutGraphNode, LayoutOptions>();
         var parents = new List<LayoutGraphNode>();
         foreach (var node in fineKeys.Keys)
         {
@@ -821,7 +821,7 @@ public sealed partial class HierarchicalLayoutAlgorithm
             var changed = false;
             foreach (var parent in parents)
             {
-                var childEffective = ChildEffective(parent, effective, pass, childEffectives);
+                var childEffective = ChildEffective(parent, effective, pass, childScopeOptions);
                 var crossIsY = childEffective.Get(CoreOptions.Direction) is LayoutFlowDirection.Right or LayoutFlowDirection.Left;
                 var useY = (variant & 1) == 0 ? crossIsY : !crossIsY;
                 changed |= AssignRanks(parent, keys, useY, (variant & 2) != 0, current, ranks, pass.Nesting);

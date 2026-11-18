@@ -22,7 +22,12 @@ hundreds of pseudo-random flat graphs to prove byte-identical behavior.
   `NotationPrimitivePassThroughTests.cs` (appearance pass-through and in-tab folder title reserve) in the
   same project. `DirectionLayoutGeometryTests.cs` and `EdgeKeywordLabelLayoutTests.cs` (with the shared
   `DirectionScenes.cs` and `LayoutGeometryAssert.cs` helpers) cover isolated-node packing and canvas
-  containment of connectors and labels; the Gallery tests in
+  containment of connectors and labels. The layout-quality tests (`CrossHierarchyOrderingTests.cs`,
+  `HierarchicalCrossOrderingTests.cs`, `OrderRankPlumbingTests.cs`, `LayerSpacingTests.cs`,
+  `LayoutCompactnessTests.cs` and `CanvasMarginTests.cs`, over the shared `LayoutQualityScenes.cs`,
+  `LayoutQualityMetrics.cs` and `LayoutQualityBaseline.cs` helpers) lay out benchmark scenes (the Repro and nested
+  scenes, the general view and the dense usage tree) and measure crossings, canvas area, route quality and margins
+  against the numbers of the layout before the change; the Gallery tests in
   `test/DemaConsulting.Rendering.Gallery/GalleryShowcaseTests.cs` repeat the checks on rendered SVG and PNG.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and `LayoutOptions` instances. Deterministic pseudo-random graphs use
@@ -286,6 +291,59 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   `Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps` and
   `Gallery_EdgeKeywordLabels_RendersSvgAndPngWithLabelsInsideCanvas` assert the same on rendered SVG and PNG.
 
+- **Layer spacing cascade** (`Rendering-Layout-HierarchicalLayout-LayerSpacingCascades`):
+  `LayoutEngine_Layout_LayerSpacingOnContainerChildren_CascadesToInterior` sets the value on a container's
+  `Children` graph and asserts the interior corridor follows it; `..._LayerSpacingOnBoundaryPortScope_IsHonored`
+  asserts the boundary-port combined pass honors the value, and `..._LayerSpacingBoundaryPortUnset_SameAsExplicit70`
+  asserts an unset value is the same layout as an explicit 70.
+- **Order ranks** (`Rendering-Layout-HierarchicalLayout-OrderRanks`):
+  `HierarchicalLayoutAlgorithm_OrderRanks_TranslatedThroughSizedView` and `..._InheritedByNestedScope` assert the
+  hint reaches the leaf algorithm and nested scopes; `..._DoesNotMutateCallerGraph` asserts the caller's graph is
+  untouched; `..._UnrelatedKeys_IdenticalToUnordered` asserts keys that match no node change nothing.
+- **Cross-hierarchy ordering** (`Rendering-Layout-HierarchicalLayout-CrossHierarchyOrdering`):
+  `LayoutEngine_Layout_Repro2_AnyInsertionOrder_ZeroCrossings` and
+  `LayoutEngine_Layout_Repro3_InteriorConnector_ZeroCrossings` (theories over every root, flow direction and insertion
+  order) assert zero crossings; `..._Repro3_InteriorMemberInsertedFirst_ZeroCrossings` and
+  `..._NestedDepth_LeafPartnerAcrossTwoLevels_ZeroCrossings` cover the member-inserted-first and two-level cases;
+  `..._Repro2_InsertionOrderIndependent_SameCrossingsAndCompactCanvas` asserts the same crossings and a compact canvas
+  for every insertion order; `LayoutEngine_Layout_GeneralViewUp_AnyInsertionOrder_CrossingsNotAboveMainOrPrototype`
+  asserts the general view, in the fixed order and six shuffled orders, never has more crossings than the layout before
+  the change or the manual-order prototype (the recorded residual for the dense usage tree, 43 crossings, is an
+  unchanged baseline, not a bound met by this work).
+- **Ordering is bounded and deterministic** (`Rendering-Layout-HierarchicalLayout-OrderingBounded`):
+  `HierarchicalLayoutAlgorithm_ApplyCore_RefinementPassBudget_AtMostSevenLayouts` counts the routed layouts of a
+  refined scope; `..._NoCrossContainerEdges_NotRefined` asserts a diagram without cross-container edges is not
+  refined; `..._NestedScene_ReusesUnchangedInteriorLayouts` asserts memoization hits;
+  `..._WithAndWithoutContext_IdenticalTree` and `LayoutEngine_Layout_LayoutTwice_IdenticalTree` assert
+  determinism; `LayoutEngine_Layout_NoCrossHierarchyEdges_FlatGeometryUnchanged` asserts a diagram without
+  cross-hierarchy edges keeps its geometry (a golden fingerprint taken before the change, after the margin).
+- **Interior-line crossing cost** (`Rendering-Layout-HierarchicalLayout-InteriorConnectorCrossingCost`):
+  `HierarchicalLayoutAlgorithm_CountCrossings_CrossingLines_CountsOne`,
+  `..._TouchingAndCollinearLines_CountsZero` and `..._InteriorLine_CountsAgainstOuterLine` test the counter; the
+  router-side behavior is verified by the `RouteBatch_ExistingInteriorLine_*` tests (see the ConnectorRouter
+  verification).
+- **Container tightening** (`Rendering-Layout-HierarchicalLayout-ContainerTightening`):
+  `LayoutEngine_Layout_Container_TightensToContentPlusPadding` (a theory over the flow directions) asserts each
+  container keeps its padding (12 pixels, or the 16.37 pixel arrowhead room where a decorated connector enters)
+  from the content and the title band above it, on the scenes whose scope keeps tightening;
+  `LayoutEngine_Layout_BenchmarkScene_StrictlyBetterThanBaseline` asserts the improving scenes have a smaller
+  canvas together with a smaller empty-square ratio or a larger block-area ratio than before.
+- **Tightening route-quality gate** (`Rendering-Layout-HierarchicalLayout-TighteningRouteQualityGate`):
+  `LayoutEngine_Layout_BenchmarkScene_RouteQualityNotWorseThanBaseline` asserts, for every benchmark scene,
+  connector length and bends within 110% of the layout before the change and hairpins and close parallel runs no
+  worse;   `..._NeverWorseThanBaseline` asserts crossings, the largest empty square, the block-area ratio and the canvas
+  area never get worse than before the change;
+  `..._GeometryStaysClean` asserts no sibling overlap, everything inside the canvas and no label over a box or
+  another label.
+- **Entry arrowhead room** (`Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom`):
+  `LayoutEngine_Layout_BenchmarkScene_MarkersClearContainerBorders` asserts no end marker of any benchmark scene
+  (and, through the gallery writer, of any gallery image) overlaps a container border.
+- **Canvas padding** (`Rendering-Layout-HierarchicalLayout-CanvasPadding`): `CanvasMarginTests` asserts the margin
+  between the content and each canvas edge is the leaf output's padding for the benchmark, cross-hierarchy and
+  nested-package scenes in every flow direction and root
+  (`LayoutEngine_Layout_BenchmarkScene_CanvasHugsContent`, `..._CrossHierarchyScenes_CanvasHugsContent`,
+  `..._NestedPackagesAndGeneralView_CanvasHugsContent`).
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-HierarchicalLayout-Identity`**:
@@ -374,3 +432,40 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   HierarchicalLayout_KeywordLabeledView_LabelsInsideCanvasAndAnchorsApart,
   Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps,
   Gallery_EdgeKeywordLabels_RendersSvgAndPngWithLabelsInsideCanvas
+- **`Rendering-Layout-HierarchicalLayout-LayerSpacingCascades`**:
+  LayoutEngine_Layout_LayerSpacingOnContainerChildren_CascadesToInterior,
+  LayoutEngine_Layout_LayerSpacingOnBoundaryPortScope_IsHonored,
+  LayoutEngine_Layout_LayerSpacingBoundaryPortUnset_SameAsExplicit70
+- **`Rendering-Layout-HierarchicalLayout-OrderRanks`**:
+  HierarchicalLayoutAlgorithm_OrderRanks_TranslatedThroughSizedView,
+  HierarchicalLayoutAlgorithm_OrderRanks_InheritedByNestedScope,
+  HierarchicalLayoutAlgorithm_OrderRanks_DoesNotMutateCallerGraph,
+  HierarchicalLayoutAlgorithm_OrderRanks_UnrelatedKeys_IdenticalToUnordered
+- **`Rendering-Layout-HierarchicalLayout-CrossHierarchyOrdering`**:
+  LayoutEngine_Layout_Repro2_AnyInsertionOrder_ZeroCrossings,
+  LayoutEngine_Layout_Repro3_InteriorConnector_ZeroCrossings,
+  LayoutEngine_Layout_Repro3_InteriorMemberInsertedFirst_ZeroCrossings,
+  LayoutEngine_Layout_Repro2_InsertionOrderIndependent_SameCrossingsAndCompactCanvas,
+  LayoutEngine_Layout_NestedDepth_LeafPartnerAcrossTwoLevels_ZeroCrossings,
+  LayoutEngine_Layout_GeneralViewUp_AnyInsertionOrder_CrossingsNotAboveMainOrPrototype
+- **`Rendering-Layout-HierarchicalLayout-OrderingBounded`**:
+  HierarchicalLayoutAlgorithm_ApplyCore_RefinementPassBudget_AtMostSevenLayouts,
+  HierarchicalLayoutAlgorithm_ApplyCore_NoCrossContainerEdges_NotRefined,
+  HierarchicalLayoutAlgorithm_ApplyCore_NestedScene_ReusesUnchangedInteriorLayouts,
+  HierarchicalLayoutAlgorithm_ApplyCore_WithAndWithoutContext_IdenticalTree,
+  LayoutEngine_Layout_NoCrossHierarchyEdges_FlatGeometryUnchanged, LayoutEngine_Layout_LayoutTwice_IdenticalTree
+- **`Rendering-Layout-HierarchicalLayout-InteriorConnectorCrossingCost`**:
+  HierarchicalLayoutAlgorithm_CountCrossings_CrossingLines_CountsOne,
+  HierarchicalLayoutAlgorithm_CountCrossings_TouchingAndCollinearLines_CountsZero,
+  HierarchicalLayoutAlgorithm_CountCrossings_InteriorLine_CountsAgainstOuterLine
+- **`Rendering-Layout-HierarchicalLayout-ContainerTightening`**:
+  LayoutEngine_Layout_Container_TightensToContentPlusPadding,
+  LayoutEngine_Layout_BenchmarkScene_StrictlyBetterThanBaseline
+- **`Rendering-Layout-HierarchicalLayout-TighteningRouteQualityGate`**:
+  LayoutEngine_Layout_BenchmarkScene_RouteQualityNotWorseThanBaseline,
+  LayoutEngine_Layout_BenchmarkScene_NeverWorseThanBaseline, LayoutEngine_Layout_BenchmarkScene_GeometryStaysClean
+- **`Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom`**:
+  LayoutEngine_Layout_BenchmarkScene_MarkersClearContainerBorders
+- **`Rendering-Layout-HierarchicalLayout-CanvasPadding`**:
+  LayoutEngine_Layout_BenchmarkScene_CanvasHugsContent, LayoutEngine_Layout_CrossHierarchyScenes_CanvasHugsContent,
+  LayoutEngine_Layout_NestedPackagesAndGeneralView_CanvasHugsContent

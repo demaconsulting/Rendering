@@ -23,28 +23,33 @@ with `ConnectorWaypoints`.
 
 #### InterconnectionLayoutEngine Methods
 
-`Place(nodes, edges, direction, nodeSpacing, mergeParallelEdges, backEdgeEntryApproach)` builds a
-`LayeredGraph` from the inputs, wraps the
-default stage sequence with `Engine.Layered.ComponentPacker.WithDefaultStages(nodeSpacing)` for the
-requested `direction` (defaulting to Right), and runs it — so a disconnected input is automatically
-split into its connected components, each laid out independently, and packed without overlap, with no
-special action required by the caller (see the Layered Pipeline Unit Design document's `ComponentPacker`
-section). The optional `nodeSpacing` argument (defaulting to the engine's original fixed constant)
-is stored on the `LayeredGraph` and consumed by the Brandes-Köpf placement stage as the minimum gap
-between same-layer nodes; omitting it reproduces the engine's original geometry exactly. The optional
-`backEdgeEntryApproach` argument (defaulting to `LayeredLayoutMetrics.ConnectorClearance`, so omitting it
-is byte-identical to the original engine) is stored on the `LayeredGraph` as
-`LayeredGraph.BackEdgeEntryApproach`: the minimum straight run the orthogonal-routing stage reserves for a
-reversed (back) edge's final sub-edge, which ends where the consumer draws the end marker. A caller whose
-edges carry a long end decoration raises it so the rounded corner before the decoration never intrudes
-into it; `LayeredLayoutAlgorithm` derives the value from the decorations its edges carry (see its design
-and the Layered Pipeline Unit Design document's back-edge entry approach section). It then reads
-the placed coordinates, column extents, layer assignments, and waypoints from the graph state and
-assembles the `LayerResult`. Because the pipeline drops self-loops, de-duplicates identical directed
-pairs, and reverses back edges, `ConnectorWaypoints` holds one polyline per acyclic edge; consumers key
-a `(source, target)` lookup on `AcyclicEdges` (reversing the polyline for a reversed back edge) to
+`Place(nodes, edges, direction, nodeSpacing, mergeParallelEdges, backEdgeEntryApproach, alignPorts, layerSpacing)`
+builds a `LayeredGraph` from the inputs, wraps the default stage sequence with
+`Engine.Layered.ComponentPacker.WithDefaultStages(nodeSpacing)` for the requested `direction` (defaulting to Right), and
+runs it — so a disconnected input is automatically split into its connected components, each laid out independently, and
+packed without overlap, with no special action required by the caller (see the Layered Pipeline Unit Design document's
+`ComponentPacker` section). The optional `nodeSpacing` argument (defaulting to the engine's original fixed constant) is
+stored on the `LayeredGraph` and consumed by the Brandes-Köpf placement stage as the minimum gap between same-layer
+nodes; omitting it reproduces the engine's original geometry exactly. The optional `backEdgeEntryApproach` argument
+(defaulting to `LayeredLayoutMetrics.ConnectorClearance`, so omitting it is byte-identical to the original engine) is
+stored on the `LayeredGraph` as `LayeredGraph.BackEdgeEntryApproach`: the minimum straight run the orthogonal-routing
+stage reserves for a reversed (back) edge's final sub-edge, which ends where the consumer draws the end marker. A caller
+whose edges carry a long end decoration raises it so the rounded corner before the decoration never intrudes into it;
+`LayeredLayoutAlgorithm` derives the value from the decorations its edges carry (see its design and the Layered Pipeline
+Unit Design document's back-edge entry approach section). It then reads the placed coordinates, column extents, layer
+assignments, and waypoints from the graph state and assembles the `LayerResult`. Because the pipeline drops self-loops,
+de-duplicates identical directed pairs, and reverses back edges, `ConnectorWaypoints` holds one polyline per acyclic
+edge; consumers key a `(source, target)` lookup on `AcyclicEdges` (reversing the polyline for a reversed back edge) to
 recover each input edge's route.
 
+The optional `layerSpacing` argument (defaulting to `LayeredLayoutMetrics.DefaultLayerSpacing`, 70 pixels,
+the engine's historical fixed corridor, so omitting it is byte-identical for unlabeled graphs) is stored on the
+`LayeredGraph` as `LayeredGraph.LayerSpacing`, copied into every connected component's child graph, and consumed
+by the Brandes-Köpf placement stage as a floor on the corridor between adjacent layers: each corridor is the
+larger of it and what its routing and end labels need (see the Layered Pipeline Unit Design document).
+`LayerNode.OrderRank` (an optional ordering hint, `NaN` meaning unranked) and `LayerEdge.TargetApproach` (the
+straight run an edge keeps into its target's end marker, zero meaning none) are further optional inputs;
+`LayerOrdering` is the shared (rank, index) ordering rule. All default to no effect.
 The reported total dimensions are direction-aware. The pipeline's axis-transform stage places the
 nodes along the requested direction, so a top-to-bottom (Down) or bottom-to-top (Up) flow transposes
 the layout relative to the left-to-right (Right) and right-to-left (Left) flows. The engine computes
@@ -95,3 +100,4 @@ strategy to obtain a placement result.
 | Rendering-Layout-InterconnectionEngine-NodeSpacing | See above |
 | Rendering-Layout-InterconnectionEngine-Deterministic | InterconnectionLayoutEngine behavior described above |
 | Rendering-Layout-InterconnectionEngine-BackEdgeEntryApproachParameter | See above (`backEdgeEntryApproach`) |
+| Rendering-Layout-InterconnectionEngine-LayerSpacing | See above (`layerSpacing`) |

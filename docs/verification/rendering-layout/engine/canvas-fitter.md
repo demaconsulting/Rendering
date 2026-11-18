@@ -54,6 +54,19 @@ missing null-argument guard constitutes a failure.
   closed set is returned unchanged.
 - **Validation** (`Rendering-Layout-CanvasFitter-Validation`): `CanvasFitter_Fit_NullTree_Throws` confirms
   a null tree argument is rejected with an argument-null error.
+- **Padded fit** (`Rendering-Layout-CanvasFitter-PaddedFit`):
+  `CanvasFitter_FitWithPadding_ContentHuggedByPadding_ReturnsSameTree` confirms a tree whose content already hugs
+  the canvas is returned as the same instance; `..._SurplusRing_ShrinksCanvasAndTranslatesContent` confirms a
+  surplus margin shrinks the canvas and translates the content; `..._ContentOffCenter_CentersWithoutChangingCanvasSize`
+  confirms an off-center content is centered with the canvas size unchanged;
+  `..._LabelInsidePaddingBand_KeepsPaddingBeyondLabel` confirms the padding is kept beyond a resolved label;
+  `CanvasFitter_MeasureMargin_Boxes_ReturnsSmallestMargin` confirms the reported smallest margin;
+  `..._UnrecognizedNode_ReturnsSameTree` confirms an unknown node leaves the tree unchanged.
+- **Trim to content** (`Rendering-Layout-CanvasFitter-TrimToContent`):
+  `CanvasFitter_TrimToContent_Boxes_StartsAtOriginAndHugsContent` confirms the content starts at the origin and the
+  canvas hugs it; `..._BendLeftOfBoxes_IsContentAndHonorsBendInset` confirms a connector bend counts as content
+  with its inset; `..._EmptyTree_ReturnsSameTree` and `..._AlreadyTrimmed_ReturnsSameTree` confirm the identity
+  cases; `..._NullTree_Throws` confirms the argument-null error.
 
 #### Requirements Coverage
 
@@ -72,3 +85,14 @@ missing null-argument guard constitutes a failure.
   CanvasFitter_Fit_UnrecognizedNode_ReturnsSameTree
 - **`Rendering-Layout-CanvasFitter-Validation`**:
   CanvasFitter_Fit_NullTree_Throws
+- **`Rendering-Layout-CanvasFitter-PaddedFit`**:
+  CanvasFitter_FitWithPadding_ContentHuggedByPadding_ReturnsSameTree,
+  CanvasFitter_FitWithPadding_SurplusRing_ShrinksCanvasAndTranslatesContent,
+  CanvasFitter_FitWithPadding_ContentOffCenter_CentersWithoutChangingCanvasSize,
+  CanvasFitter_FitWithPadding_LabelInsidePaddingBand_KeepsPaddingBeyondLabel,
+  CanvasFitter_MeasureMargin_Boxes_ReturnsSmallestMargin, CanvasFitter_FitWithPadding_UnrecognizedNode_ReturnsSameTree
+- **`Rendering-Layout-CanvasFitter-TrimToContent`**:
+  CanvasFitter_TrimToContent_Boxes_StartsAtOriginAndHugsContent,
+  CanvasFitter_TrimToContent_BendLeftOfBoxes_IsContentAndHonorsBendInset,
+  CanvasFitter_TrimToContent_EmptyTree_ReturnsSameTree, CanvasFitter_TrimToContent_AlreadyTrimmed_ReturnsSameTree,
+  CanvasFitter_TrimToContent_NullTree_Throws
