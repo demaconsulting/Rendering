@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="438.00" height="914.00" viewBox="0 0 438.00 914.00">
+<svg xmlns="http://www.w3.org/2000/svg" width="375.49" height="851.49" viewBox="0 0 375.49 851.49">
   <defs>
     <marker id="line-end-open-chevron" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
       <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#C0C0D8" stroke-width="1.50" stroke-linejoin="bevel"/>
@@ -30,34 +30,34 @@
       <feComposite in="SourceGraphic" operator="over"/>
     </filter>
   </defs>
-  <rect x="159.00" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="219.00" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Customer</text>
-  <path d="M 20.00 164.00 L 20.00 140.00 L 84.80 140.00 L 84.80 164.00 L 204.00 164.00 L 204.00 422.00 L 20.00 422.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="112.00" y="177.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Ordering</text>
-  <rect x="52.00" y="220.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="112.00" y="245.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Cart</text>
-  <rect x="52.00" y="340.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="112.00" y="365.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Checkout</text>
-  <path d="M 112.00 270.00 L 112.00 340.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 234.00 164.00 L 234.00 140.00 L 294.00 140.00 L 294.00 164.00 L 418.00 164.00 L 418.00 422.00 L 234.00 422.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="326.00" y="177.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Billing</text>
-  <rect x="266.00" y="220.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="326.00" y="245.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Invoice</text>
-  <rect x="266.00" y="340.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="326.00" y="365.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Payment</text>
-  <path d="M 326.00 270.00 L 326.00 340.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 127.00 516.00 L 127.00 492.00 L 209.80 492.00 L 209.80 516.00 L 311.00 516.00 L 311.00 774.00 L 127.00 774.00 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="219.00" y="529.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Fulfillment</text>
-  <rect x="159.00" y="572.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="219.00" y="597.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Inventory</text>
-  <rect x="159.00" y="692.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="219.00" y="717.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Shipping</text>
-  <path d="M 219.00 622.00 L 219.00 692.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <rect x="159.00" y="844.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
-  <text x="219.00" y="869.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Notifier</text>
-  <path d="M 189.00 70.00 L 189.00 102.00 A 4.00 4.00 0 0 1 185.00 106.00 L 166.80 106.00 A 4.00 4.00 0 0 0 162.80 110.00 L 162.80 220.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 279.00 45.00 L 369.20 45.00 A 4.00 4.00 0 0 1 373.20 49.00 L 373.20 220.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 103.00 390.00 L 103.00 593.00 A 4.00 4.00 0 0 0 107.00 597.00 L 159.00 597.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 335.00 390.00 L 335.00 713.00 A 4.00 4.00 0 0 1 331.00 717.00 L 279.00 717.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
-  <path d="M 219.00 742.00 L 219.00 844.00" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="127.74" y="20.00" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="187.74" y="45.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Customer</text>
+  <path d="M 20.00 164.00 L 20.00 140.00 L 84.80 140.00 L 84.80 164.00 L 172.74 164.00 L 172.74 390.74 L 20.00 390.74 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="96.37" y="177.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Ordering</text>
+  <rect x="36.37" y="204.37" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="96.37" y="229.37" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Cart</text>
+  <rect x="36.37" y="324.37" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="96.37" y="349.37" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Checkout</text>
+  <path d="M 96.37 254.37 L 96.37 324.37" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 202.74 164.00 L 202.74 140.00 L 262.74 140.00 L 262.74 164.00 L 355.49 164.00 L 355.49 390.74 L 202.74 390.74 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="279.11" y="177.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Billing</text>
+  <rect x="219.11" y="204.37" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="279.11" y="229.37" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Invoice</text>
+  <rect x="219.11" y="324.37" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="279.11" y="349.37" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Payment</text>
+  <path d="M 279.11 254.37 L 279.11 324.37" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 111.37 484.74 L 111.37 460.74 L 180.11 460.74 L 180.11 484.74 L 264.11 484.74 L 264.11 711.49 L 111.37 711.49 Z" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="187.74" y="497.74" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Fulfillment</text>
+  <rect x="127.74" y="525.11" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="187.74" y="550.11" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Inventory</text>
+  <rect x="127.74" y="645.11" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="187.74" y="670.11" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Shipping</text>
+  <path d="M 187.74 575.11 L 187.74 645.11" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <rect x="127.74" y="781.49" width="120.00" height="50.00" fill="#1E1E2E" stroke="#C0C0D8" stroke-width="1.50"/>
+  <text x="187.74" y="806.49" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#C0C0D8" text-anchor="middle" dominant-baseline="middle">Notifier</text>
+  <path d="M 147.17 70.00 L 147.17 204.37" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 247.74 45.00 L 322.31 45.00 A 4.00 4.00 0 0 1 326.31 49.00 L 326.31 204.37" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 87.37 374.37 L 87.37 546.11 A 4.00 4.00 0 0 0 91.37 550.11 L 127.74 550.11" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 288.11 374.37 L 288.11 666.11 A 4.00 4.00 0 0 1 284.11 670.11 L 247.74 670.11" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
+  <path d="M 187.74 695.11 L 187.74 781.49" fill="none" stroke="#C0C0D8" stroke-width="1.50" marker-end="url(#line-end-filled-arrow)"/>
 </svg>
