@@ -17,7 +17,7 @@ constants in the test project; *after* is measured when this page is generated, 
 | `Repro3Right` | 2 → 0 | 1148x308 → 1076.7x264.6 | 353584 → 284860 (-19.4%) |
 | `NestedDepthRight` | 1 → 0 | 1276x548 → 1276x542 | 699248 → 691592 (-1.1%) |
 | `NestedPackagesRight` | 3 → 3 | 1564x616 → 1550x616 | 963424 → 954800 (-0.9%) |
-| `NestedPackagesUp` | 7 → 4 | 879.4x1808 → 857.1x1776.7 | 1589955 → 1522924 (-4.2%) |
+| `NestedPackagesUp` | 7 → 4 | 879.4x1808 → 687.1x1776.7 | 1589955 → 1220877 (-23.2%) |
 | `GeneralViewUp` | 22 → 12 | 1310.4x1690 → 1098x1746 | 2214576 → 1917108 (-13.4%) |
 | `DenseUsageTree` | 43 → 43 | 2474x898 → 2474x794 | 2221652 → 1964356 (-11.6%) |
 | `InterconnectionLabeledCorridors` | 0 → 0 | 2237.1x319.6 → 2158.6x319.6 | 714984 → 689891 (-3.5%) |
@@ -34,7 +34,7 @@ constants in the test project; *after* is measured when this page is generated, 
 | `Repro3Right` | 132 → 108 | 2.36 → 1.93 | 0.133 → 0.165 |
 | `NestedDepthRight` | 344 → 344 | 6.14 → 6.14 | 0.078 → 0.079 |
 | `NestedPackagesRight` | 268 → 268 | 4.79 → 4.79 | 0.138 → 0.140 |
-| `NestedPackagesUp` | 496 → 484 | 8.86 → 8.64 | 0.084 → 0.088 |
+| `NestedPackagesUp` | 496 → 324 | 8.86 → 5.79 | 0.084 → 0.109 |
 | `GeneralViewUp` | 440 → 412 | 7.86 → 7.36 | 0.094 → 0.108 |
 | `DenseUsageTree` | 388 → 244 | 6.93 → 4.36 | 0.100 → 0.113 |
 | `InterconnectionLabeledCorridors` | 128 → 128 | 1.04 → 1.04 | 0.204 → 0.212 |
