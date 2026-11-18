@@ -322,26 +322,46 @@ public static class ConnectorRouter
         // The lines that already exist around a connection's endpoints (interior connectors of the
         // containers it enters) were not known while the batch was routed, so a connector may have been
         // routed straight across one; those connectors get a second look now that every line is known.
-        if (profile?.ExistingLinesFor is { } existingLinesFor)
+        // A connector routed before the lines that now surround it may also have ended up with a hairpin,
+        // many bends, or a run squeezed beside another connector; those get a second look as well.
+        if (profile is not null)
         {
-            AvoidExistingLines(
-                connections, options, obstaclesFor, anchors, occupied, profile, endZones, lines, existingLinesFor,
-                penalizeLongEndSegments ? options.Clearance : 0.0);
+            var existingLinesFor = profile.ExistingLinesFor;
+            var endInset = penalizeLongEndSegments ? options.Clearance : 0.0;
+            if (existingLinesFor is not null)
+            {
+                RerouteBatch(connections, options, obstaclesFor, anchors, occupied, profile, endZones, lines, existingLinesFor, endInset, tidy: false);
+            }
+
+            RerouteBatch(connections, options, obstaclesFor, anchors, occupied, profile, endZones, lines, existingLinesFor ?? (_ => []), endInset, tidy: true);
         }
 
         return lines;
     }
 
     /// <summary>
-    /// Re-routes, one at a time, each connector of an already-routed batch that crosses a line existing
-    /// around its endpoints (see <see cref="RoutingProfile.ExistingLinesFor"/>), when a route that crosses
-    /// fewer lines exists. The batch is routed exactly as without the existing lines first; this pass then
-    /// searches each affected connector again over the finished batch — every other connector of the batch
-    /// and the nearby existing lines are crossing costs, so the new route is judged against the lines as
-    /// they really are — and keeps it only when it crosses strictly fewer lines than the one it replaces.
-    /// Every other connector stays as it was, so the pass can only reduce the crossings of the batch.
+    /// Re-routes, one at a time, the connectors of an already-routed batch that a second look can improve,
+    /// searching each again over the finished batch: every other connector of the batch and the nearby
+    /// existing lines (see <see cref="RoutingProfile.ExistingLinesFor"/>) are costs, so the new route is
+    /// judged against the lines as they really are. Every other connector stays as it was.
     /// </summary>
-    private static void AvoidExistingLines(
+    /// <remarks>
+    ///     <para>
+    ///     Without <paramref name="tidy"/> the pass looks at each connector that crosses a line existing
+    ///     around its endpoints and keeps the new route only when it crosses strictly fewer lines, so the
+    ///     pass can only reduce the crossings of the batch.
+    ///     </para>
+    ///     <para>
+    ///     With <paramref name="tidy"/> it looks at each connector with a hairpin, many bends, or a run
+    ///     squeezed beside another connector, and keeps the new route when it crosses no more lines.
+    ///     </para>
+    ///     <para>
+    ///     Either way a new route replaces the old one only when its visual cost (see
+    ///     <see cref="IsTidyReplacement"/>: length, bends, hairpins, close parallel runs, and the price of
+    ///     every crossing) is lower, so a crossing is never traded for a long wrap around a container.
+    ///     </para>
+    /// </remarks>
+    private static void RerouteBatch(
         IReadOnlyList<Connection> connections,
         ConnectorRouteOptions options,
         Func<int, IReadOnlyList<LayoutBox>> obstaclesFor,
@@ -351,14 +371,15 @@ public static class ConnectorRouter
         Rect[][] endZones,
         List<LayoutLine> lines,
         Func<int, IReadOnlyList<LayoutLine>> existingLinesFor,
-        double endInset)
+        double endInset,
+        bool tidy)
     {
         var reach = ExistingLineReachFactor * options.Clearance;
         for (var index = 0; index < lines.Count; index++)
         {
             var existing = existingLinesFor(index);
             var current = lines[index].Waypoints;
-            if (existing.Count == 0 || CountCrossedLines(current, existing, limit: 1) == 0)
+            if (!tidy && (existing.Count == 0 || CountCrossedLines(current, existing, limit: 1) == 0))
             {
                 continue;
             }
@@ -376,18 +397,37 @@ public static class ConnectorRouter
                 }
             }
 
+            List<LayoutLine> against = [.. existing, .. otherLines];
+            if (tidy && RouteQuality.HairpinCount(current) == 0 && RouteQuality.BendCount(current) < TidyBendThreshold
+                && !against.Any(line => RouteQuality.CloseParallelLength(current, line.Waypoints, NearlyCoincidentGap) > 0.0))
+            {
+                continue;
+            }
+
             var existingRects = ExistingLineRects(LinesNearPath(existing, current, reach));
             List<Rect> soft = [.. others.Where(r => IsRectNearPath(r, current, reach)), .. existingRects];
-            var refine = new RefineContext(existingRects, [.. others, .. existingRects]);
+            var refine = new RefineContext(existingRects, [.. others, .. existingRects], tidy);
             var better = SearchBetterRoute(
                 index, connections, options, obstaclesFor(index), anchors, occupied, soft, profile, profile.WallsFor(index), endZones,
                 new RouteResult(current, false), refine);
 
             // The search only ranked rectangles near the current route; confirm with the exact lines that
-            // the new route really crosses fewer of them than the one it replaces.
-            if (better is not { } accepted
-                || CountCrossedLines(accepted.Waypoints, existing) + CountCrossedLines(accepted.Waypoints, otherLines)
-                    >= CountCrossedLines(current, existing) + CountCrossedLines(current, otherLines))
+            // the new route really crosses fewer of them (or no more, when tidying) than the one it replaces,
+            // and that it does not buy that with a visibly worse route (a long detour, extra bends, a
+            // hairpin, a run squeezed beside another connector).
+            if (better is not { } accepted)
+            {
+                continue;
+            }
+
+            var currentCrossings = CountCrossedLines(current, existing) + CountCrossedLines(current, otherLines);
+            var acceptedCrossings = CountCrossedLines(accepted.Waypoints, existing) + CountCrossedLines(accepted.Waypoints, otherLines);
+            if (tidy ? acceptedCrossings > currentCrossings : acceptedCrossings >= currentCrossings)
+            {
+                continue;
+            }
+
+            if (!IsTidyReplacement(current, accepted.Waypoints, currentCrossings, acceptedCrossings, against, options.Clearance))
             {
                 continue;
             }
@@ -398,14 +438,21 @@ public static class ConnectorRouter
         }
     }
 
+    /// <summary>A route with at least this many bends (a hairpin, or a run nearly on top of another connector) is looked at again by the tidying pass.</summary>
+    private const int TidyBendThreshold = 6;
+
     /// <summary>
-    /// What the existing-line avoidance pass hands the route search: the rectangles of the existing lines
+    /// What the re-routing pass hands the route search: the rectangles of the existing lines
     /// near the route (which also earn a crossing penalty in the search), and every rectangle crossings are
     /// counted against (the existing lines plus every other connector of the batch).
     /// </summary>
     /// <param name="ExistingRects">The rectangles of the nearby existing lines.</param>
     /// <param name="CrossingRects">Every rectangle a candidate's crossings are counted against.</param>
-    private sealed record RefineContext(IReadOnlyList<Rect> ExistingRects, IReadOnlyList<Rect> CrossingRects);
+    /// <param name="AllowEqualCrossings">
+    /// Whether a candidate that crosses as many lines as the route it would replace is acceptable (the
+    /// tidying pass), instead of only one that crosses fewer.
+    /// </param>
+    private sealed record RefineContext(IReadOnlyList<Rect> ExistingRects, IReadOnlyList<Rect> CrossingRects, bool AllowEqualCrossings = false);
 
     /// <summary>
     /// Builds the thin soft-obstacle rectangles of <paramref name="existingLines"/> (see
@@ -467,6 +514,67 @@ public static class ConnectorRouter
 
         return count;
     }
+
+    /// <summary>
+    /// The price, in logical pixels of connector length, of one more bend (see <see cref="RouteCost"/>).
+    /// </summary>
+    private const double BendCost = 40.0;
+
+    /// <summary>The price, in logical pixels of connector length, of one more hairpin (a leg running back against its own direction).</summary>
+    private const double HairpinCost = 80.0;
+
+    /// <summary>The price of one logical pixel of run closer than <see cref="RouteQuality.CloseParallelGap"/> to another connector.</summary>
+    private const double CloseParallelCost = 4.0;
+
+    /// <summary>
+    /// A run closer than this, in logical pixels, to a run of another connector (without lying on it) cannot
+    /// be told apart from it: a replacement route never introduces one.
+    /// </summary>
+    private const double NearlyCoincidentGap = 4.0;
+
+    /// <summary>
+    /// How much longer than the route it replaces a connector may become, as a factor (plus two clearances),
+    /// when the replacement removes a crossing: a crossing is worth a modest detour, never a wrap around a box.
+    /// </summary>
+    private const double MaxDetourFactor = 1.25;
+
+    /// <summary>How many more bends than the route it replaces a connector may have when the replacement removes a crossing.</summary>
+    private const int MaxExtraBends = 2;
+
+    /// <summary>
+    /// Returns whether <paramref name="candidate"/> is a tidy replacement of <paramref name="current"/>. It
+    /// never introduces a run nearly on top of another connector and never adds a hairpin. When it crosses
+    /// fewer lines it must also be no more than <see cref="MaxDetourFactor"/> times as long (plus two
+    /// clearances) with at most <see cref="MaxExtraBends"/> more bends; when it crosses as many it must have a
+    /// lower visual cost: length, bends, hairpins and closeness-weighted parallel runs.
+    /// </summary>
+    internal static bool IsTidyReplacement(
+        IReadOnlyList<Point2D> current,
+        IReadOnlyList<Point2D> candidate,
+        int currentCrossings,
+        int candidateCrossings,
+        IReadOnlyList<LayoutLine> others,
+        double clearance)
+    {
+        if (others.Sum(line => RouteQuality.CloseParallelLength(candidate, line.Waypoints, NearlyCoincidentGap))
+                > others.Sum(line => RouteQuality.CloseParallelLength(current, line.Waypoints, NearlyCoincidentGap))
+            || RouteQuality.HairpinCount(candidate) > RouteQuality.HairpinCount(current))
+        {
+            return false;
+        }
+
+        return candidateCrossings < currentCrossings
+            ? RouteQuality.PathLength(candidate) <= (MaxDetourFactor * RouteQuality.PathLength(current)) + (2.0 * clearance)
+                && RouteQuality.BendCount(candidate) <= RouteQuality.BendCount(current) + MaxExtraBends
+            : RouteCost(candidate, others) < RouteCost(current, others);
+    }
+
+    /// <summary>Returns the visual cost of a route: length plus the price of its bends, hairpins and close parallel runs.</summary>
+    private static double RouteCost(IReadOnlyList<Point2D> w, IReadOnlyList<LayoutLine> others) =>
+        RouteQuality.PathLength(w)
+        + (RouteQuality.BendCount(w) * BendCost)
+        + (RouteQuality.HairpinCount(w) * HairpinCost)
+        + (others.Sum(line => RouteQuality.WeightedCloseParallelLength(w, line.Waypoints)) * CloseParallelCost);
 
     /// <summary>
     /// Returns the lines of <paramref name="lines"/> that come within <paramref name="reach"/> logical
@@ -649,7 +757,7 @@ public static class ConnectorRouter
     /// endpoints (their interior connectors, routed by the nested scopes before this batch). They are not
     /// part of the batch and never move; each is a crossing cost for the connection at the given index.
     /// The batch is routed without them first; a connector that then crosses one is searched again over the
-    /// finished batch (see <see cref="AvoidExistingLines"/>) and replaced by a route that crosses fewer
+    /// finished batch (see <see cref="RerouteBatch"/>) and replaced by a route that crosses fewer
     /// lines when one exists — a crossing is accepted only when no alternative exists.
     /// <see langword="null"/> (the default), or an empty list for a connection, leaves that connection's
     /// routing exactly as without the cost.
@@ -1088,7 +1196,7 @@ public static class ConnectorRouter
 
             (sourceRange, targetRange) = AddSharedLanes(sourceRange, targetRange);
             var result = OrthogonalEdgeRouter.RoutePorts(sourceRange, targetRange, obstacles, clearance, null, softObstacles, hints);
-            if (result.Crossed || HasReversal(result.Waypoints) || OverlapsRoutedLine(result.Waypoints, softObstacles))
+            if (result.Crossed || HasReversal(result.Waypoints) || OverlapsRoutedLine(result.Waypoints, softObstacles, refine is null ? 0.0 : NearlyCoincidentGap))
             {
                 continue;
             }
@@ -1115,9 +1223,11 @@ public static class ConnectorRouter
         }
 
         // The avoidance pass keeps a result only when it crosses strictly fewer lines than the route it
-        // replaces, at the full clearance.
+        // replaces (the tidying pass: no more), at the full clearance.
         if (refine is not null
-            && (bestCrossings >= CountLineCrossings(initial.Waypoints, refine.CrossingRects)
+            && ((refine.AllowEqualCrossings
+                    ? bestCrossings > CountLineCrossings(initial.Waypoints, refine.CrossingRects)
+                    : bestCrossings >= CountLineCrossings(initial.Waypoints, refine.CrossingRects))
                 || chosen.ClearanceUsed + 1e-9 < clearance))
         {
             return null;
@@ -1164,7 +1274,7 @@ public static class ConnectorRouter
     /// Returns whether any segment of <paramref name="waypoints"/> runs along an already-routed
     /// connector (one of the thin <paramref name="routed"/> rectangles) for more than a trivial stretch.
     /// </summary>
-    private static bool OverlapsRoutedLine(IReadOnlyList<Point2D> waypoints, IReadOnlyList<Rect> routed)
+    private static bool OverlapsRoutedLine(IReadOnlyList<Point2D> waypoints, IReadOnlyList<Rect> routed, double tolerance = 0.0)
     {
         const double trivialOverlap = 5.0;
         for (var i = 0; i < waypoints.Count - 1; i++)
@@ -1176,13 +1286,13 @@ public static class ConnectorRouter
             {
                 if (horizontal)
                 {
-                    if (r.Width > r.Height && r.Y < a.Y && a.Y < r.Y + r.Height
+                    if (r.Width > r.Height && r.Y - tolerance < a.Y && a.Y < r.Y + r.Height + tolerance
                         && Math.Min(Math.Max(a.X, b.X), r.X + r.Width) - Math.Max(Math.Min(a.X, b.X), r.X) > trivialOverlap)
                     {
                         return true;
                     }
                 }
-                else if (r.Height > r.Width && r.X < a.X && a.X < r.X + r.Width
+                else if (r.Height > r.Width && r.X - tolerance < a.X && a.X < r.X + r.Width + tolerance
                     && Math.Min(Math.Max(a.Y, b.Y), r.Y + r.Height) - Math.Max(Math.Min(a.Y, b.Y), r.Y) > trivialOverlap)
                 {
                     return true;

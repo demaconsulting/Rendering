@@ -28,6 +28,11 @@ namespace DemaConsulting.Rendering.Layout.Tests;
 /// <param name="CanvasWidth">Canvas width.</param>
 /// <param name="CanvasHeight">Canvas height.</param>
 /// <param name="CanvasArea">Canvas area.</param>
+/// <param name="TotalConnectorLength">Sum of the lengths of every connector segment.</param>
+/// <param name="TotalBends">Number of connector bends (waypoints where the direction changes).</param>
+/// <param name="UTurns">Number of connector hairpins (three consecutive segments whose first and last run in opposite directions).</param>
+/// <param name="ParallelRunLength">Total length of parallel connector runs of different connectors closer than 16 px for more than 20 px.</param>
+/// <param name="Margins">Distance between the content and each canvas edge.</param>
 internal sealed record LayoutQualityReport(
     int Crossings,
     int LeafCount,
@@ -40,7 +45,29 @@ internal sealed record LayoutQualityReport(
     double BlockAreaRatio,
     double CanvasWidth,
     double CanvasHeight,
-    double CanvasArea);
+    double CanvasArea,
+    double TotalConnectorLength,
+    int TotalBends,
+    int UTurns,
+    double ParallelRunLength,
+    CanvasMargins Margins);
+
+/// <summary>
+///     The distance, in logical pixels, between the drawn content of a placed tree (boxes, connector waypoints,
+///     resolved labels, ports) and each edge of its canvas.
+/// </summary>
+/// <param name="Left">Distance from the left canvas edge to the leftmost content.</param>
+/// <param name="Top">Distance from the top canvas edge to the topmost content.</param>
+/// <param name="Right">Distance from the rightmost content to the right canvas edge.</param>
+/// <param name="Bottom">Distance from the lowest content to the bottom canvas edge.</param>
+internal sealed record CanvasMargins(double Left, double Top, double Right, double Bottom)
+{
+    /// <summary>Gets the largest of the four margins.</summary>
+    public double Largest => Math.Max(Math.Max(Left, Top), Math.Max(Right, Bottom));
+
+    /// <inheritdoc/>
+    public override string ToString() => $"L{Left:0.#} T{Top:0.#} R{Right:0.#} B{Bottom:0.#}";
+}
 
 /// <summary>
 ///     Layout-quality metrics over a placed <see cref="LayoutTree"/>, written against the public API only
@@ -79,7 +106,222 @@ internal static class LayoutQualityMetrics
             BlockAreaRatio(tree),
             tree.Width,
             tree.Height,
-            CanvasArea(tree));
+            CanvasArea(tree),
+            TotalConnectorLength(tree),
+            TotalBends(tree),
+            UTurns(tree),
+            ParallelRunLength(tree),
+            Margins(tree));
+    }
+
+    /// <summary>Sums the lengths of every connector segment of the whole flattened tree.</summary>
+    /// <param name="tree">The placed tree.</param>
+    /// <returns>The total connector length, in logical pixels.</returns>
+    public static double TotalConnectorLength(LayoutTree tree)
+    {
+        var total = 0.0;
+        foreach (var line in AllLines(tree))
+        {
+            for (var i = 0; i + 1 < line.Waypoints.Count; i++)
+            {
+                total += Distance(line.Waypoints[i], line.Waypoints[i + 1]);
+            }
+        }
+
+        return total;
+    }
+
+    /// <summary>
+    ///     Counts the bends of every connector: the waypoints at which the direction changes (collinear and
+    ///     duplicate waypoints are not bends).
+    /// </summary>
+    /// <param name="tree">The placed tree.</param>
+    /// <returns>The number of bends.</returns>
+    public static int TotalBends(LayoutTree tree) => AllLines(tree).Sum(line => Math.Max(0, Segments(line).Count - 1));
+
+    /// <summary>
+    ///     Counts the hairpins of every connector: three consecutive segments of which the first and the last run
+    ///     in opposite directions along one axis (a connector that leaves its target's side, turns, and comes
+    ///     back, for example east, south, west). A U-detour around a box and a loop both contain one.
+    /// </summary>
+    /// <param name="tree">The placed tree.</param>
+    /// <returns>The number of hairpins.</returns>
+    public static int UTurns(LayoutTree tree)
+    {
+        var count = 0;
+        foreach (var line in AllLines(tree))
+        {
+            var segments = Segments(line);
+            for (var i = 0; i + 2 < segments.Count; i++)
+            {
+                var (ax, ay) = segments[i];
+                var (cx, cy) = segments[i + 2];
+                if ((Math.Abs(ax) > Epsilon && Math.Abs(cx) > Epsilon && Math.Sign(ax) != Math.Sign(cx) && Math.Abs(ay) < Epsilon && Math.Abs(cy) < Epsilon)
+                    || (Math.Abs(ay) > Epsilon && Math.Abs(cy) > Epsilon && Math.Sign(ay) != Math.Sign(cy) && Math.Abs(ax) < Epsilon && Math.Abs(cx) < Epsilon))
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    ///     Sums the overlap length of parallel orthogonal runs of two different connectors that lie closer
+    ///     than 16 px (but not on the same coordinate) and overlap for more than 20 px: connectors that run
+    ///     side by side too close to tell apart.
+    /// </summary>
+    /// <param name="tree">The placed tree.</param>
+    /// <returns>The total overlap length, in logical pixels.</returns>
+    public static double ParallelRunLength(LayoutTree tree)
+    {
+        const double minGap = 0.5;
+        const double maxGap = 16.0;
+        const double minOverlap = 20.0;
+        var lines = AllLines(tree);
+        var total = 0.0;
+        for (var i = 0; i < lines.Count; i++)
+        {
+            for (var j = i + 1; j < lines.Count; j++)
+            {
+                for (var a = 0; a + 1 < lines[i].Waypoints.Count; a++)
+                {
+                    for (var b = 0; b + 1 < lines[j].Waypoints.Count; b++)
+                    {
+                        total += ParallelOverlap(lines[i].Waypoints[a], lines[i].Waypoints[a + 1], lines[j].Waypoints[b], lines[j].Waypoints[b + 1], minGap, maxGap, minOverlap);
+                    }
+                }
+            }
+        }
+
+        return total;
+    }
+
+    /// <summary>
+    ///     Measures the distance between the drawn content of the tree and each edge of its canvas. The content
+    ///     is every box, connector waypoint, resolved connector label, port glyph and outward port label: what
+    ///     the layout engine's canvas fit sees, and what a renderer draws.
+    /// </summary>
+    /// <param name="tree">The placed tree.</param>
+    /// <returns>The four margins (all zero for a tree without content).</returns>
+    public static CanvasMargins Margins(LayoutTree tree)
+    {
+        var boxes = AllBoxes(tree);
+        var lines = AllLines(tree);
+        var ports = new List<LayoutPort>();
+        Collect(tree.Nodes, null, null, ports);
+        var left = double.PositiveInfinity;
+        var top = double.PositiveInfinity;
+        var right = double.NegativeInfinity;
+        var bottom = double.NegativeInfinity;
+        void Include(double x1, double y1, double x2, double y2)
+        {
+            left = Math.Min(left, x1);
+            top = Math.Min(top, y1);
+            right = Math.Max(right, x2);
+            bottom = Math.Max(bottom, y2);
+        }
+
+        foreach (var box in boxes)
+        {
+            Include(box.X, box.Y, box.X + box.Width, box.Y + box.Height);
+        }
+
+        foreach (var point in lines.SelectMany(line => line.Waypoints))
+        {
+            Include(point.X, point.Y, point.X, point.Y);
+        }
+
+        var theme = Themes.Light;
+        var labels = ConnectorLabelPlacer.ResolveLabels(lines, boxes, ports, theme);
+        foreach (var placement in labels.Midpoints.Values)
+        {
+            Include(placement.X - placement.HalfWidth, placement.Y - placement.HalfHeight, placement.X + placement.HalfWidth, placement.Y + placement.HalfHeight);
+        }
+
+        foreach (var placement in labels.EndLabels)
+        {
+            Include(placement.X - placement.HalfWidth, placement.Y - placement.HalfHeight, placement.X + placement.HalfWidth, placement.Y + placement.HalfHeight);
+        }
+
+        foreach (var port in ports)
+        {
+            var glyph = NotationMetrics.PortGlyphBounds(port);
+            Include(glyph.X - glyph.HalfWidth, glyph.Y - glyph.HalfHeight, glyph.X + glyph.HalfWidth, glyph.Y + glyph.HalfHeight);
+            if (NotationMetrics.IsOutwardLabel(port))
+            {
+                var label = NotationMetrics.PortOutwardLabelBounds(port, port.ExternalLabel!, theme);
+                Include(label.X - label.HalfWidth, label.Y - label.HalfHeight, label.X + label.HalfWidth, label.Y + label.HalfHeight);
+            }
+        }
+
+        return double.IsInfinity(left)
+            ? new CanvasMargins(0.0, 0.0, 0.0, 0.0)
+            : new CanvasMargins(left, top, tree.Width - right, tree.Height - bottom);
+    }
+
+    /// <summary>
+    ///     Returns the direction vectors of the segments of a line after dropping duplicate waypoints and merging
+    ///     collinear consecutive segments (so the number of segments minus one is the number of bends).
+    /// </summary>
+    private static List<(double X, double Y)> Segments(LayoutLine line)
+    {
+        var segments = new List<(double X, double Y)>();
+        for (var i = 0; i + 1 < line.Waypoints.Count; i++)
+        {
+            var dx = line.Waypoints[i + 1].X - line.Waypoints[i].X;
+            var dy = line.Waypoints[i + 1].Y - line.Waypoints[i].Y;
+            if (Math.Abs(dx) < Epsilon && Math.Abs(dy) < Epsilon)
+            {
+                continue;
+            }
+
+            if (segments.Count > 0)
+            {
+                var (px, py) = segments[^1];
+                var sameAxis = (Math.Abs(px) > Epsilon && Math.Abs(dx) > Epsilon && Math.Abs(py) < Epsilon && Math.Abs(dy) < Epsilon)
+                    || (Math.Abs(py) > Epsilon && Math.Abs(dy) > Epsilon && Math.Abs(px) < Epsilon && Math.Abs(dx) < Epsilon);
+                if (sameAxis && Math.Sign(px) == Math.Sign(dx) && Math.Sign(py) == Math.Sign(dy))
+                {
+                    segments[^1] = (px + dx, py + dy);
+                    continue;
+                }
+            }
+
+            segments.Add((dx, dy));
+        }
+
+        return segments;
+    }
+
+    /// <summary>Returns the Euclidean distance between two points.</summary>
+    private static double Distance(Point2D a, Point2D b) => Math.Sqrt(((a.X - b.X) * (a.X - b.X)) + ((a.Y - b.Y) * (a.Y - b.Y)));
+
+    /// <summary>
+    ///     Returns the overlap length of two parallel orthogonal segments whose perpendicular distance is in
+    ///     <c>[minGap, maxGap)</c> and whose overlap exceeds <paramref name="minOverlap"/>; zero otherwise.
+    /// </summary>
+    private static double ParallelOverlap(Point2D a1, Point2D a2, Point2D b1, Point2D b2, double minGap, double maxGap, double minOverlap)
+    {
+        double distance;
+        double overlap;
+        if (Math.Abs(a1.Y - a2.Y) < Epsilon && Math.Abs(b1.Y - b2.Y) < Epsilon)
+        {
+            distance = Math.Abs(a1.Y - b1.Y);
+            overlap = Math.Min(Math.Max(a1.X, a2.X), Math.Max(b1.X, b2.X)) - Math.Max(Math.Min(a1.X, a2.X), Math.Min(b1.X, b2.X));
+        }
+        else if (Math.Abs(a1.X - a2.X) < Epsilon && Math.Abs(b1.X - b2.X) < Epsilon)
+        {
+            distance = Math.Abs(a1.X - b1.X);
+            overlap = Math.Min(Math.Max(a1.Y, a2.Y), Math.Max(b1.Y, b2.Y)) - Math.Max(Math.Min(a1.Y, a2.Y), Math.Min(b1.Y, b2.Y));
+        }
+        else
+        {
+            return 0.0;
+        }
+
+        return distance >= minGap && distance < maxGap && overlap > minOverlap ? overlap : 0.0;
     }
 
     /// <summary>

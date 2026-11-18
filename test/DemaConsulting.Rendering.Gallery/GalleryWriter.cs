@@ -9,6 +9,7 @@ using DemaConsulting.CanvasNet.Codecs;
 using DemaConsulting.Rendering.Abstractions;
 using DemaConsulting.Rendering.CanvasNet;
 using DemaConsulting.Rendering.Layout;
+using DemaConsulting.Rendering.Layout.Tests;
 using DemaConsulting.Rendering.Svg;
 
 namespace DemaConsulting.Rendering.Gallery;
@@ -45,6 +46,7 @@ internal static class GalleryWriter
     {
         var tree = LayoutEngine.Layout(graph);
         AssertMarkedEndsOnBoundaryOrPort(tree, fileName);
+        LayoutGeometryAssert.AssertCanvasMarginsWithin(tree, name: fileName);
         var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
@@ -95,6 +97,7 @@ internal static class GalleryWriter
     {
         var tree = LayoutEngine.Layout(graph);
         AssertMarkedEndsOnBoundaryOrPort(tree, fileName);
+        LayoutGeometryAssert.AssertCanvasMarginsWithin(tree, name: fileName);
         var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 

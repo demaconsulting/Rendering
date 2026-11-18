@@ -107,6 +107,16 @@ public sealed partial class HierarchicalLayoutAlgorithm
     private const double EmptySquareTolerance = EmptySpaceMeter.CellSize;
 
     /// <summary>
+    /// How many crossings a proposal must remove to be allowed an empty square larger than the limit it is
+    /// held to (by up to <see cref="EmptySquareReliefFactor"/>): removing this many crossings is worth a
+    /// little more empty space.
+    /// </summary>
+    private const int EmptySquareReliefCrossings = 5;
+
+    /// <summary>The factor of the empty-square limit a proposal that removes <see cref="EmptySquareReliefCrossings"/> crossings may reach.</summary>
+    private const double EmptySquareReliefFactor = 1.10;
+
+    /// <summary>
     /// Tolerance, in logical pixels, when classifying a connector segment as horizontal or vertical.
     /// </summary>
     private const double SegmentEpsilon = 1e-6;
@@ -377,6 +387,7 @@ public sealed partial class HierarchicalLayoutAlgorithm
         var best = first;
         var bestEffective = effective;
         var bestCost = CountCrossings(best.Tree);
+        var firstCost = bestCost;
         var bestArea = best.Tree.Width * best.Tree.Height;
         var bestEmptySquare = EmptySpaceMeter.LargestEmptySquare(best.Tree);
         var passingSquare = EmptySpaceMeter.PassingSquare(best.Tree);
@@ -390,6 +401,7 @@ public sealed partial class HierarchicalLayoutAlgorithm
         context.RecordPlacementPass();
         var current = ScorePlacement(graph, LayoutScopePass(graph, algo, effective, route: false));
         var layouts = 1;
+        RouteQuality.Summary? firstQuality = null;
         var rounds = heavy ? 1 : MaxOrderingRounds;
         for (var round = 0; round < rounds && proposals.Count > 0; round++)
         {
@@ -435,7 +447,11 @@ public sealed partial class HierarchicalLayoutAlgorithm
                 if (cost < bestCost || (cost == bestCost && area < bestArea - AreaTolerance))
                 {
                     var emptySquare = EmptySpaceMeter.LargestEmptySquare(candidate.Tree);
-                    if (cost == 0 || emptySquare <= Math.Max(bestEmptySquare, passingSquare) + EmptySquareTolerance)
+                    var squareLimit = Math.Max(bestEmptySquare, passingSquare);
+                    var squareOk = emptySquare <= squareLimit + EmptySquareTolerance
+                        || (bestCost - cost >= EmptySquareReliefCrossings && emptySquare <= squareLimit * EmptySquareReliefFactor);
+                    if ((cost == 0 || squareOk)
+                        && KeepsRouteQuality(MeasureRoutes(candidate.Tree), firstQuality ??= MeasureRoutes(first.Tree), Math.Max(0, firstCost - cost)))
                     {
                         best = candidate;
                         bestEffective = candidateEffective;
@@ -985,6 +1001,59 @@ public sealed partial class HierarchicalLayoutAlgorithm
         var middle = sorted.Count / 2;
         return sorted.Count % 2 == 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2.0;
     }
+
+    /// <summary>
+    /// How much worse than the first pass, as a factor, the length and the bends of a refined scope may be:
+    /// a proposal that removes a crossing by wrapping connectors around containers is not worth it.
+    /// </summary>
+    private const double RouteQualityTolerance = 1.25;
+
+    /// <summary>
+    /// What one crossing a proposal removes is worth, in the units of <see cref="RouteQualityPenalty"/>: the
+    /// proposal's connectors may cost that much more than the first pass's, per crossing removed.
+    /// </summary>
+    private const double CrossingAllowance = 250.0;
+
+    /// <summary>The price, in logical pixels of connector length, of one bend.</summary>
+    private const double BendPenalty = 40.0;
+
+    /// <summary>The price, in logical pixels of connector length, of one hairpin.</summary>
+    private const double HairpinPenalty = 80.0;
+
+    /// <summary>The price, in logical pixels of connector length, of one logical pixel of connector running within <see cref="RouteQuality.CloseParallelGap"/> of another.</summary>
+    private const double ParallelPenalty = 0.5;
+
+    /// <summary>
+    /// Measures the visual quality (length, bends, hairpins, close parallel runs) of every connector of the
+    /// tree, at every nesting depth.
+    /// </summary>
+    /// <param name="tree">The placed tree.</param>
+    /// <returns>The measured summary.</returns>
+    private static RouteQuality.Summary MeasureRoutes(LayoutTree tree)
+    {
+        var lines = new List<IReadOnlyList<Point2D>>();
+        CollectLines(tree.Nodes, lines);
+        return RouteQuality.Measure(lines);
+    }
+
+    /// <summary>Returns the visual cost of a set of connectors: length plus the price of its bends, hairpins and close parallel runs.</summary>
+    private static double RouteQualityPenalty(RouteQuality.Summary summary) =>
+        summary.Length + (summary.Bends * BendPenalty) + (summary.Hairpins * HairpinPenalty) + (summary.ParallelLength * ParallelPenalty);
+
+    /// <summary>
+    /// Returns whether a proposal's connectors are no visibly worse than the first pass's: no more than
+    /// <see cref="RouteQualityTolerance"/> times the length and bends (so crossings are not bought with a
+    /// wrap around a container), and a visual cost (see <see cref="RouteQualityPenalty"/>) that exceeds the
+    /// first pass's by no more than <see cref="CrossingAllowance"/> per crossing the proposal removes.
+    /// </summary>
+    /// <param name="candidate">The proposal's connector quality.</param>
+    /// <param name="reference">The first pass's connector quality.</param>
+    /// <param name="removedCrossings">How many crossings the proposal removes relative to the first pass.</param>
+    /// <returns><see langword="true"/> when the proposal keeps the first pass's route quality.</returns>
+    private static bool KeepsRouteQuality(RouteQuality.Summary candidate, RouteQuality.Summary reference, int removedCrossings) =>
+        candidate.Length <= reference.Length * RouteQualityTolerance
+        && candidate.Bends <= Math.Floor(reference.Bends * RouteQualityTolerance)
+        && RouteQualityPenalty(candidate) <= RouteQualityPenalty(reference) + (removedCrossings * CrossingAllowance);
 
     /// <summary>
     /// Counts the proper crossings between distinct connectors over the whole tree, at every nesting depth:

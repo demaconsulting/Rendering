@@ -132,6 +132,13 @@ public sealed class GalleryLayoutQualityTests
             Assert.True(after.B4Ratio <= before.B4Ratio + Slack, $"{scene.Name}: B4 {after.B4Ratio} > {before.B4Ratio}");
             Assert.True(after.BlockAreaRatio >= before.BlockAreaRatio - Slack, $"{scene.Name}: B5 {after.BlockAreaRatio} < {before.BlockAreaRatio}");
             Assert.True(after.CanvasArea <= before.CanvasArea + Slack, $"{scene.Name}: area {after.CanvasArea} > {before.CanvasArea}");
+
+            // Assert: the connectors are no visibly worse (length and bends within 10%, hairpins and close parallel runs)
+            var limit = LayoutQualityBaseline.RouteQualityLimits(scene.Name);
+            Assert.True(after.TotalConnectorLength <= limit.TotalConnectorLength + Slack, $"{scene.Name}: connector length {after.TotalConnectorLength} > {limit.TotalConnectorLength}");
+            Assert.True(after.TotalBends <= limit.TotalBends, $"{scene.Name}: bends {after.TotalBends} > {limit.TotalBends}");
+            Assert.True(after.UTurns <= limit.UTurns, $"{scene.Name}: hairpins {after.UTurns} > {limit.UTurns}");
+            Assert.True(after.ParallelRunLength <= limit.ParallelRunLength + Slack, $"{scene.Name}: close parallel runs {after.ParallelRunLength} > {limit.ParallelRunLength}");
         }
 
         // Assert: the scenes a fix targets are strictly better: a smaller canvas with a better B4 or B5
@@ -142,6 +149,15 @@ public sealed class GalleryLayoutQualityTests
             Assert.True(
                 after.B4Ratio < before.B4Ratio - Slack || after.BlockAreaRatio > before.BlockAreaRatio + Slack,
                 $"{name}: neither B4 ({after.B4Ratio} vs {before.B4Ratio}) nor B5 ({after.BlockAreaRatio} vs {before.BlockAreaRatio}) improved");
+        }
+
+        // Assert: the canvas hugs the content: one padding of 20 px on every side
+        foreach (var (scene, _, after) in measured)
+        {
+            Assert.True(
+                Math.Abs(after.Margins.Left - 20.0) <= 1.0 && Math.Abs(after.Margins.Top - 20.0) <= 1.0
+                && Math.Abs(after.Margins.Right - 20.0) <= 1.0 && Math.Abs(after.Margins.Bottom - 20.0) <= 1.0,
+                $"{scene.Name}: canvas margins {after.Margins}");
         }
 
         // Assert: LayerSpacing is honored as a floor for the corridor between the layers
@@ -196,6 +212,42 @@ public sealed class GalleryLayoutQualityTests
             builder.Append(CultureInfo.InvariantCulture, $"| `{scene.Name}` | {before.LargestEmptySquare:F0} → {after.LargestEmptySquare:F0} ")
                 .Append(CultureInfo.InvariantCulture, $"| {before.B4Ratio:F2} → {after.B4Ratio:F2} ")
                 .Append(CultureInfo.InvariantCulture, $"| {before.BlockAreaRatio:F3} → {after.BlockAreaRatio:F3} |\n");
+        }
+
+        builder.Append("\n## Connector routes\n\n");
+        builder.Append(GalleryIndex.WrapParagraph(
+            "How the connectors themselves read. *Length* is the total connector length in logical pixels, "
+            + "*bends* the number of direction changes, *hairpins* the legs that run back against the direction "
+            + "of the leg two before them, and *close parallel* the length, in logical pixels, of runs of "
+            + "different connectors that lie closer than 16 px for more than 20 px. The generating test holds "
+            + "length and bends to within 10% of the baseline and hairpins and close parallel runs to the "
+            + "baseline, except for the scenes listed under *Exceptions*.")).Append("\n\n");
+        builder.Append("| Scene | Length | Bends | Hairpins | Close parallel |\n| --- | --- | --- | --- | --- |\n");
+        foreach (var (scene, before, after) in measured)
+        {
+            builder.Append(CultureInfo.InvariantCulture, $"| `{scene.Name}` | {before.TotalConnectorLength:F0} → {after.TotalConnectorLength:F0} ({Change(before.TotalConnectorLength, after.TotalConnectorLength)}) ")
+                .Append(CultureInfo.InvariantCulture, $"| {before.TotalBends} → {after.TotalBends} ")
+                .Append(CultureInfo.InvariantCulture, $"| {before.UTurns} → {after.UTurns} ")
+                .Append(CultureInfo.InvariantCulture, $"| {before.ParallelRunLength:F0} → {after.ParallelRunLength:F0} |\n");
+        }
+
+        builder.Append("\n### Exceptions\n\n");
+        foreach (var (scene, allowance) in LayoutQualityBaseline.RouteQualityExceptions)
+        {
+            var wrapped = GalleryIndex.WrapParagraph($"- `{scene}`: {allowance.Reason}.", 118).Split('\n');
+            builder.Append(string.Join("\n  ", wrapped)).Append('\n');
+        }
+
+        builder.Append("\n## Canvas margin\n\n");
+        builder.Append(GalleryIndex.WrapParagraph(
+            "The canvas of every scene is its content (boxes, connectors, labels, ports) plus one padding of "
+            + "20 px on all four sides; the generating test fails when a margin is not 20 px. The previous engine "
+            + "left the content of a Left or Up flow against the top or left edge with a double margin at the "
+            + "opposite edge, and put a connector that detoured beyond the origin 10 px from it.")).Append("\n\n");
+        builder.Append("| Scene | Margin (left, top, right, bottom) |\n| --- | --- |\n");
+        foreach (var (scene, _, after) in measured)
+        {
+            builder.Append(CultureInfo.InvariantCulture, $"| `{scene.Name}` | {after.Margins.Left:0.#}, {after.Margins.Top:0.#}, {after.Margins.Right:0.#}, {after.Margins.Bottom:0.#} |\n");
         }
 
         builder.Append("\n## LayerSpacing\n\n");

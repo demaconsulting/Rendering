@@ -71,6 +71,56 @@ public sealed class LayoutCompactnessTests
     }
 
     /// <summary>
+    ///     Proves no benchmark scene's connectors got visibly worse than main@219650c: the total connector
+    ///     length and the number of bends stay within 10% of main's, the number of hairpins and the length of
+    ///     close parallel runs (closer than 16 px for more than 20 px) stay at or below main's — except where
+    ///     <see cref="LayoutQualityBaseline.RouteQualityExceptions"/> states why a scene may be a little worse
+    ///     on one metric. A crossing is not worth a wrap around a container.
+    /// </summary>
+    /// <param name="scene">The benchmark scene name.</param>
+    [Theory]
+    [MemberData(nameof(AllScenes))]
+    public void LayoutEngine_Layout_BenchmarkScene_RouteQualityNotWorseThanBaseline(string scene)
+    {
+        // Arrange
+        var limit = LayoutQualityBaseline.RouteQualityLimits(scene);
+
+        // Act
+        var report = LayoutQualityMetrics.Measure(LayoutEngine.Layout(Build(scene)));
+
+        // Assert
+        Assert.True(report.TotalConnectorLength <= limit.TotalConnectorLength + Slack, $"{scene}: length {report.TotalConnectorLength:0.#} > {limit.TotalConnectorLength:0.#}");
+        Assert.True(report.TotalBends <= limit.TotalBends, $"{scene}: bends {report.TotalBends} > {limit.TotalBends}");
+        Assert.True(report.UTurns <= limit.UTurns, $"{scene}: hairpins {report.UTurns} > {limit.UTurns}");
+        Assert.True(report.ParallelRunLength <= limit.ParallelRunLength + Slack, $"{scene}: close parallel runs {report.ParallelRunLength:0.#} > {limit.ParallelRunLength:0.#}");
+    }
+
+    /// <summary>
+    ///     Proves the exceptions of <see cref="LayoutQualityBaseline.RouteQualityExceptions"/> stay exceptions: each
+    ///     names a benchmark scene, gives a reason, and is only needed because the scene would otherwise exceed
+    ///     main's numbers (a limit that is no longer needed must be removed).
+    /// </summary>
+    [Fact]
+    public void LayoutQualityBaseline_RouteQualityExceptions_AreStillNeeded()
+    {
+        foreach (var (scene, allowance) in LayoutQualityBaseline.RouteQualityExceptions)
+        {
+            // Arrange
+            var baseline = LayoutQualityBaseline.Scenes[scene];
+
+            // Act
+            var report = LayoutQualityMetrics.Measure(LayoutEngine.Layout(Build(scene)));
+
+            // Assert
+            Assert.False(string.IsNullOrWhiteSpace(allowance.Reason), $"{scene}: an exception needs a reason");
+            var needed = (allowance.Bends is { } && report.TotalBends > Math.Floor((baseline.TotalBends * 1.10) + 1e-9))
+                || (allowance.UTurns is { } && report.UTurns > baseline.UTurns)
+                || (allowance.ParallelRunLength is { } && report.ParallelRunLength > baseline.ParallelRunLength + Slack);
+            Assert.True(needed, $"{scene}: the layout no longer exceeds main@219650c's route quality, remove the exception");
+        }
+    }
+
+    /// <summary>
     ///     Proves each scene a fix targets is strictly better than main@219650c: a smaller canvas together
     ///     with a smaller empty-square ratio (B4) or a larger block area ratio (B5).
     /// </summary>

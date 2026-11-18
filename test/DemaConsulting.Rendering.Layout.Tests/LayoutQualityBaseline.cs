@@ -15,6 +15,10 @@ namespace DemaConsulting.Rendering.Layout.Tests;
 /// <param name="CanvasWidth">Canvas width.</param>
 /// <param name="CanvasHeight">Canvas height.</param>
 /// <param name="CanvasArea">Canvas area.</param>
+/// <param name="TotalConnectorLength">Sum of the lengths of every connector segment.</param>
+/// <param name="TotalBends">Number of connector bends.</param>
+/// <param name="UTurns">Number of connector hairpins.</param>
+/// <param name="ParallelRunLength">Total length of parallel connector runs of different connectors closer than 16 px for more than 20 px.</param>
 internal sealed record BaselineMetrics(
     int Crossings,
     double LargestEmptySquare,
@@ -23,7 +27,30 @@ internal sealed record BaselineMetrics(
     double BlockAreaRatio,
     double CanvasWidth,
     double CanvasHeight,
-    double CanvasArea);
+    double CanvasArea,
+    double TotalConnectorLength,
+    int TotalBends,
+    int UTurns,
+    double ParallelRunLength);
+
+/// <summary>
+///     A justified departure, for one benchmark scene, from the rule that the route-quality metrics stay within
+///     main@219650c's numbers (<see langword="null"/> keeps the normal limit of that metric).
+/// </summary>
+/// <param name="Bends">The most connector bends the scene may have.</param>
+/// <param name="UTurns">The most connector hairpins the scene may have.</param>
+/// <param name="ParallelRunLength">The most close parallel run length the scene may have.</param>
+/// <param name="Reason">Why the departure is accepted.</param>
+internal sealed record RouteQualityAllowance(int? Bends, int? UTurns, double? ParallelRunLength, string Reason);
+
+/// <summary>
+///     The limits a scene's route-quality metrics must stay within.
+/// </summary>
+/// <param name="TotalConnectorLength">The longest total connector length.</param>
+/// <param name="TotalBends">The most connector bends.</param>
+/// <param name="UTurns">The most connector hairpins.</param>
+/// <param name="ParallelRunLength">The longest total close parallel run.</param>
+internal sealed record RouteQualityLimit(double TotalConnectorLength, int TotalBends, int UTurns, double ParallelRunLength);
 
 /// <summary>
 ///     The layout-quality baseline: the numbers the benchmark scenes of <see cref="LayoutQualityScenes"/>
@@ -92,19 +119,62 @@ internal static class LayoutQualityBaseline
     /// <summary>The per-scene baseline, keyed by <see cref="QualityScene.Name"/>. main@219650c.</summary>
     public static readonly IReadOnlyDictionary<string, BaselineMetrics> Scenes = new Dictionary<string, BaselineMetrics>
     {
-        ["Repro2Right"] = new(1, 132, 56, 2.357142857142857, 0.13568521031207598, 938, 308, 288904),
-        ["Repro3Right"] = new(2, 132, 56, 2.357142857142857, 0.13303769401330376, 1148, 308, 353584),
-        ["NestedDepthRight"] = new(1, 344, 56, 6.142857142857143, 0.07848431457794659, 1276, 548, 699248),
-        ["NestedPackagesRight"] = new(3, 268, 56, 4.785714285714286, 0.1383399209486166, 1564, 616, 963424),
-        ["NestedPackagesUp"] = new(7, 496, 56, 8.857142857142858, 0.08382626126824202, 879.4, 1808, 1589955.2),
-        ["GeneralViewUp"] = new(22, 440, 56, 7.857142857142857, 0.09381479795680979, 1310.4, 1690, 2214576),
-        ["DenseUsageTree"] = new(43, 388, 56, 6.928571428571429, 0.099817613199547, 2474, 898, 2221652),
-        ["InterconnectionLabeledCorridors"] = new(0, 128, 122.62857142857145, 1.0438024231127678, 0.2041584307662507, 2237.12, 319.6, 714983.552),
-        ["InterconnectionLayerSpacing40"] = new(0, 128, 122.62857142857145, 1.0438024231127678, 0.2041584307662507, 2237.12, 319.6, 714983.552),
-        ["ActionFlow"] = new(0, 232, 40, 5.8, 0.10892093630111571, 432.84137678665, 1086, 470065.7351903019),
-        ["StateMachine"] = new(0, 96, 44, 2.1818181818181817, 0.20863829279416213, 318.20723405160044, 654, 208107.53106974668),
-        ["AutoTallPlusIsolated"] = new(0, 332, 56, 5.928571428571429, 0.2101313320825516, 492, 910, 447720),
+        ["Repro2Right"] = new(1, 132, 56, 2.357142857142857, 0.13568521031207598, 938, 308, 288904, 1083.5, 6, 1, 60.5),
+        ["Repro3Right"] = new(2, 132, 56, 2.357142857142857, 0.13303769401330376, 1148, 308, 353584, 1593.5, 6, 1, 0.0),
+        ["NestedDepthRight"] = new(1, 344, 56, 6.142857142857143, 0.07848431457794659, 1276, 548, 699248, 2214.5, 10, 2, 76.5),
+        ["NestedPackagesRight"] = new(3, 268, 56, 4.785714285714286, 0.1383399209486166, 1564, 616, 963424, 4266.0, 28, 7, 482.0),
+        ["NestedPackagesUp"] = new(7, 496, 56, 8.857142857142858, 0.08382626126824202, 879.4, 1808, 1589955.2, 5439.4, 23, 8, 684.0),
+        ["GeneralViewUp"] = new(22, 440, 56, 7.857142857142857, 0.09381479795680979, 1310.4, 1690, 2214576, 12061.37, 49, 7, 896.73),
+        ["DenseUsageTree"] = new(43, 388, 56, 6.928571428571429, 0.099817613199547, 2474, 898, 2221652, 20219.12, 57, 4, 929.36),
+        ["InterconnectionLabeledCorridors"] = new(0, 128, 122.62857142857145, 1.0438024231127678, 0.2041584307662507, 2237.12, 319.6, 714983.552, 3480.63, 10, 1, 0.0),
+        ["InterconnectionLayerSpacing40"] = new(0, 128, 122.62857142857145, 1.0438024231127678, 0.2041584307662507, 2237.12, 319.6, 714983.552, 3480.63, 10, 1, 0.0),
+        ["ActionFlow"] = new(0, 232, 40, 5.8, 0.10892093630111571, 432.84137678665, 1086, 470065.7351903019, 1696.5, 8, 0, 0.0),
+        ["StateMachine"] = new(0, 96, 44, 2.1818181818181817, 0.20863829279416213, 318.20723405160044, 654, 208107.53106974668, 1296.77, 10, 0, 0.0),
+        ["AutoTallPlusIsolated"] = new(0, 332, 56, 5.928571428571429, 0.2101313320825516, 492, 910, 447720, 350.0, 0, 0, 0.0),
     };
+
+    /// <summary>
+    ///     The scenes whose connectors are, for a stated reason, allowed to be somewhat worse than main@219650c on
+    ///     one of the route-quality metrics (bends, hairpins, parallel runs), with the limit they must stay
+    ///     within. Every other scene is held to main's numbers (see <see cref="RouteQualityLimits"/>). The limits are
+    ///     what the layout measures today: they must not be raised.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, RouteQualityAllowance> RouteQualityExceptions = new Dictionary<string, RouteQualityAllowance>
+    {
+        ["NestedDepthRight"] = new(
+            Bends: null,
+            UTurns: null,
+            ParallelRunLength: 277.0,
+            Reason: "the crossing main leaves (1) is removed (0) in a canvas 31% smaller; the two connectors that leave container B share its bottom edge corridor 9 to 11 px apart"),
+        ["NestedPackagesRight"] = new(
+            Bends: 32,
+            UTurns: 9,
+            ParallelRunLength: 674.0,
+            Reason: "the canvas is 24% smaller because the packages are tightened to 12 px of padding; that leaves the connectors of the Design package less room: the Chassis to Length connector needs a hairpin and Inverter to Vehicle two more bends"),
+        ["GeneralViewUp"] = new(
+            Bends: null,
+            UTurns: null,
+            ParallelRunLength: 964.0,
+            Reason: "crossings fall from 22 to 13 and the canvas shrinks 11%; some connectors share a corridor 12 px apart"),
+    };
+
+    /// <summary>
+    ///     The limits the route-quality metrics of a benchmark scene must stay within: no more than 10% above
+    ///     main@219650c's connector length and bends, no more hairpins and no more close parallel runs than main,
+    ///     unless the scene has an entry in <see cref="RouteQualityExceptions"/>.
+    /// </summary>
+    /// <param name="scene">The benchmark scene name.</param>
+    /// <returns>The limits.</returns>
+    public static RouteQualityLimit RouteQualityLimits(string scene)
+    {
+        var baseline = Scenes[scene];
+        RouteQualityExceptions.TryGetValue(scene, out var allowance);
+        return new RouteQualityLimit(
+            baseline.TotalConnectorLength * 1.10,
+            allowance?.Bends ?? (int)Math.Floor((baseline.TotalBends * 1.10) + 1e-9),
+            allowance?.UTurns ?? baseline.UTurns,
+            allowance?.ParallelRunLength ?? baseline.ParallelRunLength);
+    }
 
     /// <summary>
     ///     The scenes a layout-quality fix must make strictly better: a smaller canvas together with a better

@@ -509,6 +509,13 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
 
         var (composed, indexOf) = ComposeBoxes(graph, placedBoxes, subLayouts);
 
+        // The composed scope keeps the padding its leaf algorithm gave its own content (the smallest margin
+        // of the placed view): the final canvas fit below makes the canvas exactly the composed content plus
+        // that padding on every side, whatever the cross-container connectors and labels add to it.
+        var fontSize = effective.Get(CoreOptions.AssumedFontSize);
+        var leafPadding = CanvasFitter.MeasureMargin(placed, fontSize);
+        double? scopePadding = leafPadding is > 0.0 ? leafPadding : null;
+
         // Resolve any boundary (delegation) ports of this scope's direct-member containers: an edge
         // referencing such a port crosses the container boundary and cannot be routed by an ordinary
         // per-scope leaf pass. Gating on a non-empty discovery keeps every boundary-port-free scope on
@@ -536,7 +543,8 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             return new ScopePass(
                 CanvasFitter.Fit(
                     new LayoutTree(widenedWidth, placed.Height, leafNodes),
-                    effective.Get(CoreOptions.AssumedFontSize)),
+                    fontSize,
+                    scopePadding),
                 routedEdges,
                 descendantToDirect,
                 nesting);
@@ -580,7 +588,8 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         return new ScopePass(
             CanvasFitter.Fit(
                 new LayoutTree(decomposed.Width, decomposed.Height, nodes),
-                effective.Get(CoreOptions.AssumedFontSize)),
+                fontSize,
+                scopePadding),
             null,
             descendantToDirect,
             nesting);

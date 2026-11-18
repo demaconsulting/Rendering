@@ -2043,6 +2043,99 @@ public sealed class ConnectorRouterTests
         Assert.Equal(1, CountCrossings(line.Waypoints, wall.Waypoints));
     }
 
+    /// <summary>The obstacle clearance the tidy-replacement tests use, in logical pixels.</summary>
+    private const double TidyClearance = 10.0;
+
+    /// <summary>Builds a plain connector for the tidy-replacement tests.</summary>
+    private static LayoutLine Connector(params Point2D[] waypoints) =>
+        new(waypoints, EndMarkerStyle.None, EndMarkerStyle.None, LineStyle.Solid, null);
+
+    /// <summary>
+    ///     A route that removes a crossing with a modest detour (a little longer, one bend more) replaces the
+    ///     route it replaces.
+    /// </summary>
+    [Fact]
+    public void IsTidyReplacement_FewerCrossingsModestDetour_Accepts()
+    {
+        // Arrange: a two-bend route crossing one line; the candidate bends the same way, 40 px further out
+        Point2D[] current = [new(0, 100), new(100, 100), new(100, 40), new(400, 40)];
+        Point2D[] candidate = [new(0, 100), new(60, 100), new(60, 0), new(400, 0)];
+
+        // Act / Assert
+        Assert.True(ConnectorRouter.IsTidyReplacement(current, candidate, 1, 0, [], TidyClearance));
+    }
+
+    /// <summary>
+    ///     A crossing is not worth a wrap: a candidate more than a quarter (plus two clearances) longer than the
+    ///     route it replaces is refused, however many crossings it removes.
+    /// </summary>
+    [Fact]
+    public void IsTidyReplacement_FewerCrossingsLongWrap_Rejects()
+    {
+        // Arrange: the candidate goes 200 px up and back to avoid the crossing
+        Point2D[] current = [new(0, 100), new(400, 100)];
+        Point2D[] candidate = [new(0, 100), new(20, 100), new(20, -100), new(380, -100), new(380, 100), new(400, 100)];
+
+        // Act / Assert
+        Assert.False(ConnectorRouter.IsTidyReplacement(current, candidate, 1, 0, [], TidyClearance));
+    }
+
+    /// <summary>A candidate with more than two extra bends is refused even when it is short.</summary>
+    [Fact]
+    public void IsTidyReplacement_FewerCrossingsManyMoreBends_Rejects()
+    {
+        // Arrange: a staircase of five bends against a straight route
+        Point2D[] current = [new(0, 100), new(400, 100)];
+        Point2D[] candidate = [new(0, 100), new(80, 100), new(80, 90), new(160, 90), new(160, 100), new(240, 100), new(240, 90), new(320, 90), new(320, 100), new(400, 100)];
+
+        // Act / Assert
+        Assert.False(ConnectorRouter.IsTidyReplacement(current, candidate, 1, 0, [], TidyClearance));
+    }
+
+    /// <summary>A replacement that adds a hairpin (a leg running back against the leg two before it) is refused.</summary>
+    [Fact]
+    public void IsTidyReplacement_AddsHairpin_Rejects()
+    {
+        // Arrange
+        Point2D[] current = [new(0, 100), new(400, 100)];
+        Point2D[] candidate = [new(0, 100), new(300, 100), new(300, 70), new(280, 70), new(280, 40), new(400, 40)];
+
+        // Act / Assert
+        Assert.False(ConnectorRouter.IsTidyReplacement(current, candidate, 1, 0, [], TidyClearance));
+    }
+
+    /// <summary>
+    ///     A replacement that runs for a stretch within 4 px of another connector (so the two read as one thick
+    ///     line) is refused, even though it removes a crossing.
+    /// </summary>
+    [Fact]
+    public void IsTidyReplacement_RunsNearlyOnTopOfAnotherConnector_Rejects()
+    {
+        // Arrange: another connector runs at y = 62 for 100 px; the candidate runs at y = 60
+        Point2D[] current = [new(0, 100), new(400, 100)];
+        Point2D[] candidate = [new(0, 100), new(150, 100), new(150, 60), new(250, 60), new(250, 100), new(400, 100)];
+        var other = Connector(new Point2D(100, 62), new Point2D(300, 62));
+
+        // Act / Assert
+        Assert.False(ConnectorRouter.IsTidyReplacement(current, candidate, 1, 0, [other], TidyClearance));
+    }
+
+    /// <summary>
+    ///     Without a crossing removed (the tidying pass) a replacement must be cheaper by visual cost: fewer bends
+    ///     and a shorter run wins, a worse route is refused.
+    /// </summary>
+    [Fact]
+    public void IsTidyReplacement_EqualCrossings_AcceptsOnlyLowerVisualCost()
+    {
+        // Arrange: a four-bend route and a one-bend route between the same ends
+        Point2D[] bent = [new(0, 0), new(0, 50), new(100, 50), new(100, 20), new(300, 20), new(300, 100)];
+        Point2D[] direct = [new(0, 0), new(0, 100), new(300, 100)];
+
+        // Act / Assert
+        Assert.True(ConnectorRouter.IsTidyReplacement(bent, direct, 0, 0, [], TidyClearance));
+        Assert.False(ConnectorRouter.IsTidyReplacement(direct, bent, 0, 0, [], TidyClearance));
+    }
+
     /// <summary>
     ///     A profile that supplies no interior lines (none, a null provider, or an empty list for every
     ///     connection) routes exactly like the profile without the provider: the cost is strictly additive.

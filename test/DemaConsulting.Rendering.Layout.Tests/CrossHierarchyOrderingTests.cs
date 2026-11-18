@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering;
+using DemaConsulting.Rendering.Layout.Engine;
 
 namespace DemaConsulting.Rendering.Layout.Tests;
 
@@ -198,7 +199,10 @@ public sealed class CrossHierarchyOrderingTests
 
     /// <summary>
     ///     Guard: a flat graph with no container and no cross-hierarchy edge keeps exactly the geometry
-    ///     main@219650c produced (the ordering and compaction work must not touch it).
+    ///     main@219650c produced (the ordering and compaction work must not touch it). The one deliberate
+    ///     difference is the Left and Up flows: main left the content one padding (20 px) off-center, against
+    ///     the top or left canvas edge with a double margin at the opposite edge; the canvas now hugs the
+    ///     content, so the geometry is main's translated by that 20 px (the canvas size is unchanged).
     /// </summary>
     /// <param name="direction">The flow direction.</param>
     /// <param name="expected">The fingerprint of the main@219650c geometry.</param>
@@ -215,8 +219,15 @@ public sealed class CrossHierarchyOrderingTests
         // Act
         var tree = LayoutEngine.Layout(graph);
 
-        // Assert
-        Assert.Equal(expected, LayoutQualityMetrics.Fingerprint(tree));
+        // Assert: main's geometry, once the off-center offset of the reflected flows is taken back
+        var (dx, dy) = direction switch
+        {
+            LayoutFlowDirection.Left => (-20.0, 0.0),
+            LayoutFlowDirection.Up => (0.0, -20.0),
+            _ => (0.0, 0.0),
+        };
+        var shifted = tree with { Nodes = [.. tree.Nodes.Select(node => LayoutTreePacker.TranslateNode(node, dx, dy))] };
+        Assert.Equal(expected, LayoutQualityMetrics.Fingerprint(shifted));
     }
 
     /// <summary>

@@ -752,7 +752,11 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             }
         }
 
-        return CanvasFitter.Fit(new LayoutTree(result.TotalWidth, result.TotalHeight, nodes), assumedFontSize);
+        // The canvas is the drawn content plus one Padding on every side: the final canvas fit measures the
+        // boxes, connectors, resolved labels and ports, so the reflection of a Left or Up flow (which leaves
+        // the content one padding off-center), a label reaching into the padding band, and a connector
+        // detour all end with the same margin.
+        return CanvasFitter.Fit(new LayoutTree(result.TotalWidth, result.TotalHeight, nodes), assumedFontSize, LayeredLayoutMetrics.Padding);
     }
 
     /// <summary>
