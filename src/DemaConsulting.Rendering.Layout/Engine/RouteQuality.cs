@@ -168,7 +168,9 @@ internal static class RouteQuality
                     continue;
                 }
 
-                if (gap >= MinimumGap && gap < maxGap && overlap > CloseParallelOverlap)
+                // A gap of exactly the lane separation (the router places anchors 16 px apart) is not close:
+                // allow for the floating-point error of coordinates that were summed.
+                if (gap >= MinimumGap && gap < maxGap - Epsilon && overlap > CloseParallelOverlap)
                 {
                     total += weighted ? overlap * (1.0 - (gap / CloseParallelGap)) : overlap;
                 }

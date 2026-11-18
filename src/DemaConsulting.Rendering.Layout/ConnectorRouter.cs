@@ -276,6 +276,66 @@ public static class ConnectorRouter
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(obstaclesFor);
 
+        var lines = RouteBatchCore(connections, options, obstaclesFor, fixedAnchors, penalizeLongEndSegments, profile, null);
+
+        // A batch whose connectors run squeezed beside one another is routed once more with every routed
+        // line a thicker obstacle (so the later connectors keep a full lane's width from it); the second
+        // result replaces the first only when it is no worse in crossings, hairpins and bends and has
+        // fewer close parallel runs.
+        if (profile is null || connections.Count < 2)
+        {
+            return lines;
+        }
+
+        var first = BatchQuality(lines);
+        if (first.Summary.ParallelLength <= 0.0)
+        {
+            return lines;
+        }
+
+        var wide = RouteBatchCore(connections, options, obstaclesFor, fixedAnchors, penalizeLongEndSegments, profile, LaneHalfThickness);
+        var second = BatchQuality(wide);
+        return second.Crossings <= first.Crossings
+            && second.Summary.Hairpins <= first.Summary.Hairpins
+            && second.Summary.Bends <= first.Summary.Bends
+            && second.Summary.ParallelLength < first.Summary.ParallelLength
+            ? wide
+            : lines;
+    }
+
+    /// <summary>
+    /// The half thickness of the line obstacles of a batch routed with full lane width: with the router's
+    /// obstacle clearance on top it keeps a later connector at least <see cref="RouteQuality.CloseParallelGap"/>
+    /// from an earlier one.
+    /// </summary>
+    private const double LaneHalfThickness = 4.0;
+
+    /// <summary>Returns the crossings among, and the route quality of, a batch of routed lines.</summary>
+    private static (int Crossings, RouteQuality.Summary Summary) BatchQuality(IReadOnlyList<LayoutLine> lines)
+    {
+        var crossings = 0;
+        for (var i = 0; i < lines.Count; i++)
+        {
+            crossings += CountCrossedLines(lines[i].Waypoints, [.. lines.Skip(i + 1)]);
+        }
+
+        return (crossings, RouteQuality.Measure([.. lines.Select(line => line.Waypoints)]));
+    }
+
+    /// <summary>
+    /// Routes one batch (see <see cref="RouteBatch"/>), every routed line an obstacle of
+    /// <paramref name="laneHalfThickness"/> (hairline when <see langword="null"/>) for the connectors
+    /// routed after it.
+    /// </summary>
+    private static List<LayoutLine> RouteBatchCore(
+        IReadOnlyList<Connection> connections,
+        ConnectorRouteOptions options,
+        Func<int, IReadOnlyList<LayoutBox>> obstaclesFor,
+        IReadOnlyList<FixedAnchor>? fixedAnchors,
+        bool penalizeLongEndSegments,
+        RoutingProfile? profile,
+        double? laneHalfThickness)
+    {
         var anchors = new FaceAnchors[connections.Count];
         for (var i = 0; i < connections.Count; i++)
         {
@@ -316,7 +376,7 @@ public static class ConnectorRouter
             var line = RouteConnection(
                 index, connections, options, obstaclesFor(index), anchors, occupied, routedLineObstacles, profile, endZones);
             lines.Add(line);
-            AddLineObstacles(line.Waypoints, routedLineObstacles, penalizeLongEndSegments ? options.Clearance : 0.0);
+            AddLineObstacles(line.Waypoints, routedLineObstacles, penalizeLongEndSegments ? options.Clearance : 0.0, laneHalfThickness);
         }
 
         // The lines that already exist around a connection's endpoints (interior connectors of the
@@ -392,14 +452,14 @@ public static class ConnectorRouter
             {
                 if (j != index)
                 {
-                    AddLineObstacles(lines[j].Waypoints, others, endInset);
+                    AddLineObstacles(lines[j].Waypoints, others, endInset, tidy ? LaneHalfThickness : null);
                     otherLines.Add(lines[j]);
                 }
             }
 
             List<LayoutLine> against = [.. existing, .. otherLines];
             if (tidy && RouteQuality.HairpinCount(current) == 0 && RouteQuality.BendCount(current) < TidyBendThreshold
-                && !against.Any(line => RouteQuality.CloseParallelLength(current, line.Waypoints, NearlyCoincidentGap) > 0.0))
+                && !against.Any(line => RouteQuality.CloseParallelLength(current, line.Waypoints) > 0.0))
             {
                 continue;
             }
@@ -438,7 +498,7 @@ public static class ConnectorRouter
         }
     }
 
-    /// <summary>A route with at least this many bends (a hairpin, or a run nearly on top of another connector) is looked at again by the tidying pass.</summary>
+    /// <summary>A route with at least this many bends (or a hairpin, or a run closer than <see cref="RouteQuality.CloseParallelGap"/> to another connector) is looked at again by the tidying pass.</summary>
     private const int TidyBendThreshold = 6;
 
     /// <summary>
@@ -566,7 +626,7 @@ public static class ConnectorRouter
         return candidateCrossings < currentCrossings
             ? RouteQuality.PathLength(candidate) <= (MaxDetourFactor * RouteQuality.PathLength(current)) + (2.0 * clearance)
                 && RouteQuality.BendCount(candidate) <= RouteQuality.BendCount(current) + MaxExtraBends
-            : RouteCost(candidate, others) < RouteCost(current, others);
+            : RouteQuality.BendCount(candidate) <= RouteQuality.BendCount(current) && RouteCost(candidate, others) < RouteCost(current, others);
     }
 
     /// <summary>Returns the visual cost of a route: length plus the price of its bends, hairpins and close parallel runs.</summary>
@@ -1582,6 +1642,12 @@ public static class ConnectorRouter
     }
 
     /// <summary>
+    /// A hairline thickness is enough for the first routing of a batch: the router already keeps a clearance
+    /// gap between paths and any obstacle, so a wide slab would only double up on that margin.
+    /// </summary>
+    private const double HairlineHalfThickness = 1.0;
+
+    /// <summary>
     /// Appends a thin rectangle obstacle for every interior orthogonal segment of
     /// <paramref name="waypoints"/> to <paramref name="obstacles"/>, so a subsequently routed
     /// connector treats this already-routed line as something to steer clear of (by the router's usual
@@ -1597,12 +1663,9 @@ public static class ConnectorRouter
     /// <paramref name="endInset"/> logical pixels next to each endpoint free so the shared approach
     /// corridor stays usable.
     /// </remarks>
-    private static void AddLineObstacles(IReadOnlyList<Point2D> waypoints, List<Rect> obstacles, double endInset = 0.0)
+    private static void AddLineObstacles(IReadOnlyList<Point2D> waypoints, List<Rect> obstacles, double endInset = 0.0, double? thickness = null)
     {
-        // A hairline thickness is enough: the router already keeps a clearance gap between paths and
-        // any obstacle, so a wide slab here would only double up on that margin unnecessarily.
-        const double halfThickness = 1.0;
-
+        var halfThickness = thickness ?? HairlineHalfThickness;
         for (var i = 0; i < waypoints.Count - 1; i++)
         {
             var a = waypoints[i];

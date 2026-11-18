@@ -60,12 +60,14 @@ public sealed class RouteQualityTests
         Point2D[] reference = [new(0, 0), new(200, 0)];
         Point2D[] tight = [new(50, 10), new(150, 10)];
         Point2D[] apart = [new(50, 16), new(150, 16)];
+        Point2D[] roundedApart = [new(50, 16 - 1e-12), new(150, 16 - 1e-12)];
         Point2D[] onTop = [new(50, 0), new(150, 0)];
         Point2D[] brief = [new(190, 10), new(300, 10)];
 
         // Act / Assert
         Assert.Equal(100.0, RouteQuality.CloseParallelLength(reference, tight), 6);
         Assert.Equal(0.0, RouteQuality.CloseParallelLength(reference, apart), 6);
+        Assert.Equal(0.0, RouteQuality.CloseParallelLength(reference, roundedApart), 6);
         Assert.Equal(0.0, RouteQuality.CloseParallelLength(reference, onTop), 6);
         Assert.Equal(0.0, RouteQuality.CloseParallelLength(reference, brief), 6);
     }

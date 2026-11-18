@@ -34,16 +34,6 @@ internal sealed record BaselineMetrics(
     double ParallelRunLength);
 
 /// <summary>
-///     A justified departure, for one benchmark scene, from the rule that the route-quality metrics stay within
-///     main@219650c's numbers (<see langword="null"/> keeps the normal limit of that metric).
-/// </summary>
-/// <param name="Bends">The most connector bends the scene may have.</param>
-/// <param name="UTurns">The most connector hairpins the scene may have.</param>
-/// <param name="ParallelRunLength">The most close parallel run length the scene may have.</param>
-/// <param name="Reason">Why the departure is accepted.</param>
-internal sealed record RouteQualityAllowance(int? Bends, int? UTurns, double? ParallelRunLength, string Reason);
-
-/// <summary>
 ///     The limits a scene's route-quality metrics must stay within.
 /// </summary>
 /// <param name="TotalConnectorLength">The longest total connector length.</param>
@@ -134,46 +124,20 @@ internal static class LayoutQualityBaseline
     };
 
     /// <summary>
-    ///     The scenes whose connectors are, for a stated reason, allowed to be somewhat worse than main@219650c on
-    ///     one of the route-quality metrics (bends, hairpins, parallel runs), with the limit they must stay
-    ///     within. Every other scene is held to main's numbers (see <see cref="RouteQualityLimits"/>). The limits are
-    ///     what the layout measures today: they must not be raised.
-    /// </summary>
-    public static readonly IReadOnlyDictionary<string, RouteQualityAllowance> RouteQualityExceptions = new Dictionary<string, RouteQualityAllowance>
-    {
-        ["NestedDepthRight"] = new(
-            Bends: null,
-            UTurns: null,
-            ParallelRunLength: 277.0,
-            Reason: "the crossing main leaves (1) is removed (0) in a canvas 31% smaller; the two connectors that leave container B share its bottom edge corridor 9 to 11 px apart"),
-        ["NestedPackagesRight"] = new(
-            Bends: 32,
-            UTurns: 9,
-            ParallelRunLength: 674.0,
-            Reason: "the canvas is 24% smaller because the packages are tightened to 12 px of padding; that leaves the connectors of the Design package less room: the Chassis to Length connector needs a hairpin and Inverter to Vehicle two more bends"),
-        ["GeneralViewUp"] = new(
-            Bends: null,
-            UTurns: null,
-            ParallelRunLength: 964.0,
-            Reason: "crossings fall from 22 to 13 and the canvas shrinks 11%; some connectors share a corridor 12 px apart"),
-    };
-
-    /// <summary>
     ///     The limits the route-quality metrics of a benchmark scene must stay within: no more than 10% above
-    ///     main@219650c's connector length and bends, no more hairpins and no more close parallel runs than main,
-    ///     unless the scene has an entry in <see cref="RouteQualityExceptions"/>.
+    ///     main@219650c's connector length and bends, no more hairpins and no more close parallel runs than main.
+    ///     There are no exceptions: the limits are what the layout measures today and must not be raised.
     /// </summary>
     /// <param name="scene">The benchmark scene name.</param>
     /// <returns>The limits.</returns>
     public static RouteQualityLimit RouteQualityLimits(string scene)
     {
         var baseline = Scenes[scene];
-        RouteQualityExceptions.TryGetValue(scene, out var allowance);
         return new RouteQualityLimit(
             baseline.TotalConnectorLength * 1.10,
-            allowance?.Bends ?? (int)Math.Floor((baseline.TotalBends * 1.10) + 1e-9),
-            allowance?.UTurns ?? baseline.UTurns,
-            allowance?.ParallelRunLength ?? baseline.ParallelRunLength);
+            (int)Math.Floor((baseline.TotalBends * 1.10) + 1e-9),
+            baseline.UTurns,
+            baseline.ParallelRunLength);
     }
 
     /// <summary>

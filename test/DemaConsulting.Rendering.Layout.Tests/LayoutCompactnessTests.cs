@@ -3,7 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering;
-
+using DemaConsulting.Rendering.Abstractions;
 namespace DemaConsulting.Rendering.Layout.Tests;
 
 /// <summary>
@@ -73,9 +73,8 @@ public sealed class LayoutCompactnessTests
     /// <summary>
     ///     Proves no benchmark scene's connectors got visibly worse than main@219650c: the total connector
     ///     length and the number of bends stay within 10% of main's, the number of hairpins and the length of
-    ///     close parallel runs (closer than 16 px for more than 20 px) stay at or below main's — except where
-    ///     <see cref="LayoutQualityBaseline.RouteQualityExceptions"/> states why a scene may be a little worse
-    ///     on one metric. A crossing is not worth a wrap around a container.
+    ///     close parallel runs (closer than 16 px for more than 20 px) stay at or below main's, with no exceptions.
+    ///     A crossing is not worth a wrap around a container.
     /// </summary>
     /// <param name="scene">The benchmark scene name.</param>
     [Theory]
@@ -96,28 +95,20 @@ public sealed class LayoutCompactnessTests
     }
 
     /// <summary>
-    ///     Proves the exceptions of <see cref="LayoutQualityBaseline.RouteQualityExceptions"/> stay exceptions: each
-    ///     names a benchmark scene, gives a reason, and is only needed because the scene would otherwise exceed
-    ///     main's numbers (a limit that is no longer needed must be removed).
+    ///     Proves no connector decoration overlaps the border of a container the connector enters, in every
+    ///     benchmark scene: the gap between the border and the box the connector ends on is at least as long as
+    ///     the decoration (tightening a container may not squeeze an arrowhead into the border).
     /// </summary>
-    [Fact]
-    public void LayoutQualityBaseline_RouteQualityExceptions_AreStillNeeded()
+    /// <param name="scene">The benchmark scene name.</param>
+    [Theory]
+    [MemberData(nameof(AllScenes))]
+    public void LayoutEngine_Layout_BenchmarkScene_MarkersClearContainerBorders(string scene)
     {
-        foreach (var (scene, allowance) in LayoutQualityBaseline.RouteQualityExceptions)
-        {
-            // Arrange
-            var baseline = LayoutQualityBaseline.Scenes[scene];
+        // Act
+        var tree = LayoutEngine.Layout(Build(scene));
 
-            // Act
-            var report = LayoutQualityMetrics.Measure(LayoutEngine.Layout(Build(scene)));
-
-            // Assert
-            Assert.False(string.IsNullOrWhiteSpace(allowance.Reason), $"{scene}: an exception needs a reason");
-            var needed = (allowance.Bends is { } && report.TotalBends > Math.Floor((baseline.TotalBends * 1.10) + 1e-9))
-                || (allowance.UTurns is { } && report.UTurns > baseline.UTurns)
-                || (allowance.ParallelRunLength is { } && report.ParallelRunLength > baseline.ParallelRunLength + Slack);
-            Assert.True(needed, $"{scene}: the layout no longer exceeds main@219650c's route quality, remove the exception");
-        }
+        // Assert
+        LayoutGeometryAssert.AssertMarkersClearContainerBorders(tree, scene);
     }
 
     /// <summary>
@@ -173,12 +164,13 @@ public sealed class LayoutCompactnessTests
     [InlineData(LayoutFlowDirection.Up)]
     public void LayoutEngine_Layout_Container_TightensToContentPlusPadding(LayoutFlowDirection direction)
     {
-        // Arrange: unlabeled scenes, so the content is exactly the child boxes and connectors
+        // Arrange: unlabeled scenes, so the content is exactly the child boxes and connectors. NestedDepth is
+        // not one of them: tightening its containers leaves a crossing the loose layout does not have, so its
+        // scope keeps main@219650c's room (see HierarchicalLayoutAlgorithm.KeepsTightening).
         var graphs = new[]
         {
             LayoutQualityScenes.Repro2("hierarchical", direction, ["H", "C", "S"]),
             LayoutQualityScenes.Repro3("hierarchical", direction, ["H", "C", "S"]),
-            LayoutQualityScenes.NestedDepth("hierarchical", direction, ["H", "C", "S"]),
         };
 
         foreach (var graph in graphs)
@@ -251,9 +243,15 @@ public sealed class LayoutCompactnessTests
             }
         }
 
-        Assert.Equal(ContainerPadding, left - container.X, MarginTolerance);
-        Assert.Equal(ContainerPadding, (container.X + container.Width) - right, MarginTolerance);
-        Assert.Equal(ContainerPadding, (container.Y + container.Height) - bottom, MarginTolerance);
-        Assert.True(top - container.Y >= ContainerPadding - MarginTolerance, "the content starts above the container padding");
+        // A container a decorated connector enters keeps the room the decoration needs (an arrowhead is 15.4 px
+        // long) between its border and the box the connector ends on; every other container keeps the padding.
+        var padding = left - container.X;
+        var arrowPadding = NotationMetrics.RenderedAlongLineLength(EndMarkerStyle.HollowTriangle, Themes.Light) + Themes.Light.CleanLegMargin;
+        Assert.True(
+            Math.Abs(padding - ContainerPadding) <= MarginTolerance || Math.Abs(padding - arrowPadding) <= MarginTolerance,
+            $"the padding {padding:0.##} is neither {ContainerPadding} nor the {arrowPadding:0.##} an arrowhead needs");
+        Assert.Equal(padding, (container.X + container.Width) - right, MarginTolerance);
+        Assert.Equal(padding, (container.Y + container.Height) - bottom, MarginTolerance);
+        Assert.True(top - container.Y >= padding - MarginTolerance, "the content starts above the container padding");
     }
 }

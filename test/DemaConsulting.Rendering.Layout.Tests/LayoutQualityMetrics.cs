@@ -321,7 +321,9 @@ internal static class LayoutQualityMetrics
             return 0.0;
         }
 
-        return distance >= minGap && distance < maxGap && overlap > minOverlap ? overlap : 0.0;
+        // A gap of exactly the lane separation (the router places anchors 16 px apart) is not close: allow for
+        // the floating-point error of coordinates that were summed.
+        return distance >= minGap && distance < maxGap - 1e-6 && overlap > minOverlap ? overlap : 0.0;
     }
 
     /// <summary>

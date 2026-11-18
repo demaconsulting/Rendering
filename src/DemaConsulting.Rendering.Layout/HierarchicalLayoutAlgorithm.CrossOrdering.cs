@@ -130,6 +130,22 @@ public sealed partial class HierarchicalLayoutAlgorithm
         new("rendering.layout.hierarchical.refinementContext", null);
 
     /// <summary>
+    /// Internal hint: the containers, at any depth below the scope, that keep the room they had before
+    /// containers were tightened to their content. A scope that finds tightening makes its connectors worse
+    /// sets it for the scopes below.
+    /// </summary>
+    internal static readonly LayoutProperty<ISet<LayoutGraphNode>?> LooseContainerNodes =
+        new("rendering.layout.hierarchical.looseContainerNodes", null);
+
+    /// <summary>
+    /// Internal hint: the padding, in logical pixels, a tightened container needs beside its content so the
+    /// decoration (arrowhead, diamond) of a connector that enters it fits between the container's border and
+    /// the node the connector ends on (see <see cref="ContainerPadding"/> for the default).
+    /// </summary>
+    internal static readonly LayoutProperty<IReadOnlyDictionary<LayoutGraphNode, double>?> ContainerPaddings =
+        new("rendering.layout.hierarchical.containerPaddings", null);
+
+    /// <summary>
     /// The first pass of a hierarchical scope together with the structural facts the refinement needs.
     /// </summary>
     /// <param name="Tree">The placed, canvas-fitted tree of the scope.</param>
@@ -206,6 +222,11 @@ public sealed partial class HierarchicalLayoutAlgorithm
         private Dictionary<LayoutGraph, HashSet<LayoutGraphNode>> LooseContainers { get; } = [];
 
         /// <summary>
+        /// Gets the containers, at any depth, each scope's last routed pass settled on keeping loose.
+        /// </summary>
+        private Dictionary<LayoutGraph, ISet<LayoutGraphNode>> SettledLoose { get; } = [];
+
+        /// <summary>
         /// Returns the set of loose containers of <paramref name="scope"/>, created empty on first use.
         /// </summary>
         /// <param name="scope">The container scope.</param>
@@ -220,6 +241,33 @@ public sealed partial class HierarchicalLayoutAlgorithm
 
             return loose;
         }
+
+        /// <summary>
+        /// Records the containers the last routed pass of <paramref name="scope"/> settled on keeping loose
+        /// (at any depth), or <see langword="null"/> when tightening all of them was kept.
+        /// </summary>
+        /// <param name="scope">The container scope.</param>
+        /// <param name="loose">The containers that stay loose, or <see langword="null"/> for none.</param>
+        internal void SetSettledLooseNodes(LayoutGraph scope, ISet<LayoutGraphNode>? loose)
+        {
+            if (loose is null)
+            {
+                SettledLoose.Remove(scope);
+            }
+            else
+            {
+                SettledLoose[scope] = loose;
+            }
+        }
+
+        /// <summary>
+        /// Returns the containers the last routed pass of <paramref name="scope"/> settled on keeping loose
+        /// (see <see cref="SetSettledLooseNodes"/>), or <see langword="null"/> when it kept them all tight.
+        /// </summary>
+        /// <param name="scope">The container scope.</param>
+        /// <returns>The containers that stay loose, or <see langword="null"/>.</returns>
+        internal ISet<LayoutGraphNode>? SettledLooseNodes(LayoutGraph scope) =>
+            SettledLoose.TryGetValue(scope, out var loose) ? loose : null;
 
         /// <summary>
         /// Records one memo hit.
@@ -277,7 +325,15 @@ public sealed partial class HierarchicalLayoutAlgorithm
             return TrimInterior(LayoutScope(node.Children, childEffective), childEffective, tighten);
         }
 
-        var key = (node, RankSignature(node, childEffective.Get(OrderRanks)) + (tighten ? "|t" : "|u"));
+        var suffix = tighten ? "|t" : "|u";
+        var looseNodes = childEffective.Get(LooseContainerNodes);
+        var paddings = childEffective.Get(ContainerPaddings);
+        if (looseNodes is { Count: > 0 } || paddings is { Count: > 0 })
+        {
+            suffix += "|" + ContainerSignature(node, looseNodes, paddings);
+        }
+
+        var key = (node, RankSignature(node, childEffective.Get(OrderRanks)) + suffix);
         if (context.InteriorLayouts.TryGetValue(key, out var cached))
         {
             context.RecordMemoHit();
@@ -319,6 +375,58 @@ public sealed partial class HierarchicalLayoutAlgorithm
         var text = new StringBuilder();
         AppendSignature(container, ranks, text);
         return text.ToString();
+    }
+
+    /// <summary>
+    /// Builds the signature of which containers below <paramref name="container"/> are kept loose and how much
+    /// padding each needs, so an interior laid out with different ones is not served from the memo.
+    /// </summary>
+    /// <param name="container">The container whose subtree is signed.</param>
+    /// <param name="loose">The loose containers, or <see langword="null"/>.</param>
+    /// <param name="paddings">The container paddings, or <see langword="null"/>.</param>
+    /// <returns>The signature.</returns>
+    private static string ContainerSignature(
+        LayoutGraphNode container,
+        ISet<LayoutGraphNode>? loose,
+        IReadOnlyDictionary<LayoutGraphNode, double>? paddings)
+    {
+        var text = new StringBuilder();
+        AppendContainerSignature(container, loose, paddings, text);
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// Appends, for every container below <paramref name="node"/>, whether it is loose and its padding.
+    /// </summary>
+    /// <param name="node">The node whose children are appended.</param>
+    /// <param name="loose">The loose containers, or <see langword="null"/>.</param>
+    /// <param name="paddings">The container paddings, or <see langword="null"/>.</param>
+    /// <param name="text">The signature under construction.</param>
+    private static void AppendContainerSignature(
+        LayoutGraphNode node,
+        ISet<LayoutGraphNode>? loose,
+        IReadOnlyDictionary<LayoutGraphNode, double>? paddings,
+        StringBuilder text)
+    {
+        foreach (var child in node.Children.Nodes)
+        {
+            if (child.HasChildren)
+            {
+                text.Append(loose?.Contains(child) ?? false ? 'L' : 't');
+                if (paddings != null && paddings.TryGetValue(child, out var padding))
+                {
+                    text.Append(padding.ToString("R", CultureInfo.InvariantCulture));
+                }
+
+                text.Append('(');
+                AppendContainerSignature(child, loose, paddings, text);
+                text.Append(')');
+            }
+            else
+            {
+                text.Append('.');
+            }
+        }
     }
 
     /// <summary>
@@ -580,6 +688,87 @@ public sealed partial class HierarchicalLayoutAlgorithm
         var overlay = new LayoutOptions();
         overlay.Set<IReadOnlyDictionary<LayoutGraphNode, double>?>(OrderRanks, ranks);
         return overlay.OverlayOnto(effective);
+    }
+
+    /// <summary>
+    /// Returns <paramref name="effective"/> with <paramref name="loose"/> as the containers that keep their
+    /// former room (see <see cref="LooseContainerNodes"/>).
+    /// </summary>
+    /// <param name="effective">The scope's effective options.</param>
+    /// <param name="loose">The containers, at any depth, that stay loose.</param>
+    /// <returns>Options that keep those containers loose.</returns>
+    private static LayoutOptions WithLooseNodes(LayoutOptions effective, ISet<LayoutGraphNode> loose)
+    {
+        var overlay = new LayoutOptions();
+        overlay.Set<ISet<LayoutGraphNode>?>(LooseContainerNodes, loose);
+        return overlay.OverlayOnto(effective);
+    }
+
+    /// <summary>
+    /// Returns <paramref name="effective"/> with <paramref name="paddings"/> as the container paddings (see
+    /// <see cref="ContainerPaddings"/>).
+    /// </summary>
+    /// <param name="effective">The scope's effective options.</param>
+    /// <param name="paddings">The padding each container needs.</param>
+    /// <returns>Options that carry the paddings.</returns>
+    private static LayoutOptions WithContainerPaddings(LayoutOptions effective, IReadOnlyDictionary<LayoutGraphNode, double> paddings)
+    {
+        var overlay = new LayoutOptions();
+        overlay.Set<IReadOnlyDictionary<LayoutGraphNode, double>?>(ContainerPaddings, paddings);
+        return overlay.OverlayOnto(effective);
+    }
+
+    /// <summary>
+    /// Returns the padding every container enclosing the target of a routed edge needs so the target's
+    /// end decoration fits between the container's border and the node the connector ends on: the decoration's
+    /// length plus the clean-leg margin. The paddings an enclosing scope already decided are kept.
+    /// </summary>
+    /// <param name="routedEdges">The edges this scope routes.</param>
+    /// <param name="nesting">The parent of every descendant node of the scope.</param>
+    /// <param name="portOwner">The node that owns every named port of the scope's descendants.</param>
+    /// <param name="inherited">The paddings an enclosing scope decided, or <see langword="null"/>.</param>
+    /// <returns>The paddings, or <see langword="null"/> when no container needs any.</returns>
+    private static Dictionary<LayoutGraphNode, double>? EntryPaddings(
+        IReadOnlyList<LayoutGraphEdge> routedEdges,
+        Dictionary<LayoutGraphNode, (LayoutGraphNode? Parent, int Index)> nesting,
+        Dictionary<LayoutGraphPort, LayoutGraphNode> portOwner,
+        IReadOnlyDictionary<LayoutGraphNode, double>? inherited)
+    {
+        var paddings = new Dictionary<LayoutGraphNode, double>();
+        if (inherited != null)
+        {
+            foreach (var pair in inherited)
+            {
+                paddings[pair.Key] = pair.Value;
+            }
+        }
+        foreach (var edge in routedEdges)
+        {
+            var needed = NotationMetrics.RenderedAlongLineLength(edge.TargetEnd, Themes.Light);
+            if (needed <= 0.0)
+            {
+                continue;
+            }
+
+            var padding = needed + Themes.Light.CleanLegMargin;
+            var target = edge.Target switch
+            {
+                LayoutGraphNode node => node,
+                LayoutGraphPort port when portOwner.TryGetValue(port, out var owner) => owner,
+                _ => null,
+            };
+            if (target is null || !nesting.TryGetValue(target, out var link))
+            {
+                continue;
+            }
+
+            for (var container = link.Parent; container != null; container = nesting.TryGetValue(container, out var up) ? up.Parent : null)
+            {
+                paddings[container] = paddings.TryGetValue(container, out var existing) ? Math.Max(padding, existing) : padding;
+            }
+        }
+
+        return paddings.Count == 0 ? null : paddings;
     }
 
     /// <summary>
@@ -1022,6 +1211,142 @@ public sealed partial class HierarchicalLayoutAlgorithm
 
     /// <summary>The price, in logical pixels of connector length, of one logical pixel of connector running within <see cref="RouteQuality.CloseParallelGap"/> of another.</summary>
     private const double ParallelPenalty = 0.5;
+
+    /// <summary>
+    /// Returns whether a scope's tight layout (containers trimmed to their content) is kept over its loose
+    /// layout (containers keep their former room): its connectors must cross no more, double back no more,
+    /// run no more closely beside one another, bend no more and be no longer than the loose layout's.
+    /// </summary>
+    /// <param name="tight">The tight layout.</param>
+    /// <param name="loose">The loose layout.</param>
+    /// <returns><see langword="true"/> when tightening does not make the routes worse.</returns>
+    private static bool KeepsTightening(LayoutTree tight, LayoutTree loose)
+    {
+        var tightQuality = MeasureRoutes(tight);
+        var looseQuality = MeasureRoutes(loose);
+        return tightQuality.Hairpins <= looseQuality.Hairpins
+            && tightQuality.Bends <= looseQuality.Bends
+            && tightQuality.ParallelLength <= looseQuality.ParallelLength + TighteningTolerance
+            && tightQuality.Length <= looseQuality.Length + TighteningTolerance
+            && CountCrossings(tight) <= CountCrossings(loose)
+            && CountCrowdedMarkers(tight) <= CountCrowdedMarkers(loose);
+    }
+
+    /// <summary>
+    /// Counts the connector ends whose decoration (arrowhead, diamond) is crowded by a container border: the
+    /// border of a container the connector enters crosses the straight approach closer to the end than the
+    /// decoration is long, so the decoration overlaps the border.
+    /// </summary>
+    /// <param name="tree">The placed tree.</param>
+    /// <returns>The number of crowded decorated ends.</returns>
+    private static int CountCrowdedMarkers(LayoutTree tree)
+    {
+        var containers = new List<LayoutBox>();
+        var lines = new List<LayoutLine>();
+        var pending = new Stack<IReadOnlyList<LayoutNode>>();
+        pending.Push(tree.Nodes);
+        while (pending.Count > 0)
+        {
+            foreach (var node in pending.Pop())
+            {
+                if (node is LayoutBox { Children.Count: > 0 } box)
+                {
+                    containers.Add(box);
+                    pending.Push(box.Children);
+                }
+                else if (node is LayoutLine line)
+                {
+                    lines.Add(line);
+                }
+            }
+        }
+
+        var crowded = 0;
+        foreach (var line in lines)
+        {
+            var w = line.Waypoints;
+            if (w.Count < 2)
+            {
+                continue;
+            }
+
+            if (IsMarkerCrowded(w[^2], w[^1], line.TargetEnd, containers))
+            {
+                crowded++;
+            }
+
+            if (IsMarkerCrowded(w[1], w[0], line.SourceEnd, containers))
+            {
+                crowded++;
+            }
+        }
+
+        return crowded;
+    }
+
+    /// <summary>
+    /// Returns whether a container border crosses the segment from <paramref name="from"/> to the decorated
+    /// end <paramref name="end"/> closer to the end than the decoration is long.
+    /// </summary>
+    /// <param name="from">The other end of the final segment.</param>
+    /// <param name="end">The decorated end point.</param>
+    /// <param name="marker">The decoration at <paramref name="end"/>.</param>
+    /// <param name="containers">The container boxes of the tree.</param>
+    /// <returns><see langword="true"/> when the decoration would overlap a container border.</returns>
+    private static bool IsMarkerCrowded(Point2D from, Point2D end, EndMarkerStyle marker, List<LayoutBox> containers)
+    {
+        var needed = NotationMetrics.RenderedAlongLineLength(marker, Themes.Light);
+        if (needed <= 0.0)
+        {
+            return false;
+        }
+
+        var horizontal = Math.Abs(from.Y - end.Y) < SegmentEpsilon;
+        var vertical = Math.Abs(from.X - end.X) < SegmentEpsilon;
+        foreach (var box in containers)
+        {
+            double along;
+            double[] borders;
+            bool crosses;
+            if (horizontal)
+            {
+                crosses = end.Y > box.Y + SegmentEpsilon && end.Y < box.Y + box.Height - SegmentEpsilon;
+                along = end.X;
+                borders = [box.X, box.X + box.Width];
+            }
+            else if (vertical)
+            {
+                crosses = end.X > box.X + SegmentEpsilon && end.X < box.X + box.Width - SegmentEpsilon;
+                along = end.Y;
+                borders = [box.Y, box.Y + box.Height];
+            }
+            else
+            {
+                return false;
+            }
+
+            if (!crosses)
+            {
+                continue;
+            }
+
+            var start = horizontal ? from.X : from.Y;
+            foreach (var border in borders)
+            {
+                var distance = Math.Abs(along - border);
+                if (distance > SegmentEpsilon && distance < needed
+                    && border > Math.Min(start, along) + SegmentEpsilon && border < Math.Max(start, along) - SegmentEpsilon)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Tolerance, in logical pixels, when comparing the connector length of a tight and a loose layout.</summary>
+    private const double TighteningTolerance = 1.0;
 
     /// <summary>
     /// Measures the visual quality (length, bends, hairpins, close parallel runs) of every connector of the

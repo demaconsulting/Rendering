@@ -47,6 +47,7 @@ internal static class GalleryWriter
         var tree = LayoutEngine.Layout(graph);
         AssertMarkedEndsOnBoundaryOrPort(tree, fileName);
         LayoutGeometryAssert.AssertCanvasMarginsWithin(tree, name: fileName);
+        LayoutGeometryAssert.AssertMarkersClearContainerBorders(tree, fileName);
         var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
@@ -98,6 +99,7 @@ internal static class GalleryWriter
         var tree = LayoutEngine.Layout(graph);
         AssertMarkedEndsOnBoundaryOrPort(tree, fileName);
         LayoutGeometryAssert.AssertCanvasMarginsWithin(tree, name: fileName);
+        LayoutGeometryAssert.AssertMarkersClearContainerBorders(tree, fileName);
         var path = Path.Combine(GalleryOutput.ResolveDirectory(), fileName);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 

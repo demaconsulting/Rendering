@@ -221,7 +221,7 @@ public sealed class GalleryLayoutQualityTests
             + "of the leg two before them, and *close parallel* the length, in logical pixels, of runs of "
             + "different connectors that lie closer than 16 px for more than 20 px. The generating test holds "
             + "length and bends to within 10% of the baseline and hairpins and close parallel runs to the "
-            + "baseline, except for the scenes listed under *Exceptions*.")).Append("\n\n");
+            + "baseline, without exceptions.")).Append("\n\n");
         builder.Append("| Scene | Length | Bends | Hairpins | Close parallel |\n| --- | --- | --- | --- | --- |\n");
         foreach (var (scene, before, after) in measured)
         {
@@ -229,13 +229,6 @@ public sealed class GalleryLayoutQualityTests
                 .Append(CultureInfo.InvariantCulture, $"| {before.TotalBends} → {after.TotalBends} ")
                 .Append(CultureInfo.InvariantCulture, $"| {before.UTurns} → {after.UTurns} ")
                 .Append(CultureInfo.InvariantCulture, $"| {before.ParallelRunLength:F0} → {after.ParallelRunLength:F0} |\n");
-        }
-
-        builder.Append("\n### Exceptions\n\n");
-        foreach (var (scene, allowance) in LayoutQualityBaseline.RouteQualityExceptions)
-        {
-            var wrapped = GalleryIndex.WrapParagraph($"- `{scene}`: {allowance.Reason}.", 118).Split('\n');
-            builder.Append(string.Join("\n  ", wrapped)).Append('\n');
         }
 
         builder.Append("\n## Canvas margin\n\n");

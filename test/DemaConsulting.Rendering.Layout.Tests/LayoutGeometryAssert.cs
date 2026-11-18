@@ -166,6 +166,54 @@ internal static class LayoutGeometryAssert
     public const double CanvasPadding = 20.0;
 
     /// <summary>
+    ///     Asserts that no connector end decoration (arrowhead, diamond, ...) overlaps the border of a container
+    ///     the connector enters: along the connector's straight approach, a container border crossed closer to the
+    ///     end than the decoration is long would run through the decoration (diagram-quality criteria C9 and C10).
+    /// </summary>
+    /// <param name="tree">The final placed tree.</param>
+    /// <param name="name">A name for failure messages.</param>
+    public static void AssertMarkersClearContainerBorders(LayoutTree tree, string? name = null)
+    {
+        const double tolerance = 0.05;
+        var containers = LayoutQualityMetrics.AllBoxes(tree).Where(box => box.Children.Count > 0).ToList();
+        foreach (var line in LayoutQualityMetrics.AllLines(tree))
+        {
+            var w = line.Waypoints;
+            if (w.Count < 2)
+            {
+                continue;
+            }
+
+            foreach (var (from, end, marker) in new[] { (w[^2], w[^1], line.TargetEnd), (w[1], w[0], line.SourceEnd) })
+            {
+                var needed = NotationMetrics.RenderedAlongLineLength(marker, Themes.Light);
+                var horizontal = Math.Abs(from.Y - end.Y) < tolerance;
+                foreach (var box in containers)
+                {
+                    var (across, lo, hi, ends) = horizontal
+                        ? (end.Y, box.Y, box.Y + box.Height, new[] { box.X, box.X + box.Width })
+                        : (end.X, box.X, box.X + box.Width, new[] { box.Y, box.Y + box.Height });
+                    if (needed <= 0.0 || across <= lo + tolerance || across >= hi - tolerance)
+                    {
+                        continue;
+                    }
+
+                    var along = horizontal ? end.X : end.Y;
+                    var start = horizontal ? from.X : from.Y;
+                    foreach (var border in ends)
+                    {
+                        var distance = Math.Abs(along - border);
+                        var crossed = border > Math.Min(start, along) + tolerance && border < Math.Max(start, along) - tolerance;
+                        Assert.False(
+                            crossed && distance > tolerance && distance < needed - tolerance,
+                            $"{name}: the {marker} decoration at ({end.X:0.#},{end.Y:0.#}) is {distance:0.#} px from the border of container '{box.Label}', closer than its {needed:0.#} px length");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
     ///     Asserts that the canvas of a final layout hugs its content whatever algorithm placed it: no margin
     ///     between the drawn content and a canvas edge exceeds <paramref name="maxMargin"/> (no empty ring of
     ///     canvas, and no more room on one side than the layout's padding) and none is smaller than
