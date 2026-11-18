@@ -218,6 +218,7 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// </summary>
     private const double SizingTolerance = 0.5;
 
+
     /// <summary>
     /// Default height, in logical pixels, of the title band reserved at the top of a container that
     /// carries a <see cref="LayoutGraphNode.Label"/> and does not set its own
@@ -340,7 +341,7 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         // The root scope's own explicit overrides (set directly on the graph) win over the supplied
         // options, giving the root the same "own overrides win" treatment every nested scope receives.
         var effective = graph.OverlayOnto(options);
-        return LayoutScope(graph, effective);
+        return LayoutScope(graph, WithRefinementContext(effective));
     }
 
     /// <summary>
@@ -367,6 +368,29 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             return algo.ApplyCore(graph, effective);
         }
 
+        // The first pass is the engine's ordinary result; the cross-hierarchy ordering refinement (see
+        // HierarchicalLayoutAlgorithm.CrossOrdering.cs) only ever replaces it by a measurably better one,
+        // and returns it untouched when the scope has nothing to refine.
+        var first = LayoutScopePass(graph, algo, effective);
+        return RefineCrossOrdering(graph, algo, effective, first);
+    }
+
+    /// <summary>
+    /// Runs one complete hierarchical pass over a scope that has at least one container among its direct
+    /// nodes: lays out every container child, places this level over a sized view, composes the
+    /// sub-layouts, and routes the cross-container edges.
+    /// </summary>
+    /// <param name="graph">The container scope to place.</param>
+    /// <param name="algo">The leaf algorithm the scope is placed with.</param>
+    /// <param name="effective">The scope's cascaded effective options (including any order-rank hint).</param>
+    /// <param name="route">
+    /// Whether the cross-container edges are routed. A placement-only pass (<see langword="false"/>) is
+    /// what the ordering refinement scores candidate orders with before it pays for a routed pass; it is
+    /// only valid for a scope without boundary ports.
+    /// </param>
+    /// <returns>The placed tree and the structural facts the ordering refinement needs.</returns>
+    private ScopePass LayoutScopePass(LayoutGraph graph, LayoutAlgorithmBase algo, LayoutOptions effective, bool route = true)
+    {
         // Hierarchical path (SeparateChildren): recurse into each container child, size it to fit, place
         // this level over a sized view, compose the sub-layouts, and route cross-container edges.
         var subLayouts = new Dictionary<LayoutGraphNode, LayoutTree>();
@@ -442,16 +466,22 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             var (widenedBoxes, widenedLines, widenedPorts, widenedWidth) = WidenSiblingContainerGaps(
                 composed, indexOf, routedEdges, descendantToDirect, placedLines, placedPorts, placed.Width);
 
-            var leafCrossLines = RouteCrossContainerEdges(routedEdges, widenedBoxes, indexOf, descendantToDirect, nesting, effective);
+            var leafCrossLines = route
+                ? RouteCrossContainerEdges(routedEdges, widenedBoxes, indexOf, descendantToDirect, nesting, effective)
+                : new List<LayoutLine>();
             var leafNodes = new List<LayoutNode>(
                 widenedBoxes.Length + widenedLines.Count + widenedPorts.Count + leafCrossLines.Count);
             leafNodes.AddRange(widenedBoxes);
             leafNodes.AddRange(widenedLines);
             leafNodes.AddRange(widenedPorts);
             leafNodes.AddRange(leafCrossLines);
-            return CanvasFitter.Fit(
-                new LayoutTree(widenedWidth, placed.Height, leafNodes),
-                effective.Get(CoreOptions.AssumedFontSize));
+            return new ScopePass(
+                CanvasFitter.Fit(
+                    new LayoutTree(widenedWidth, placed.Height, leafNodes),
+                    effective.Get(CoreOptions.AssumedFontSize)),
+                routedEdges,
+                descendantToDirect,
+                nesting);
         }
 
         // Deferred (see ROADMAP.md): extend the edge-count-aware sibling-gap widening above to the
@@ -489,9 +519,13 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         nodes.AddRange(decomposed.Lines);
         nodes.AddRange(decomposed.Ports);
         nodes.AddRange(crossLines);
-        return CanvasFitter.Fit(
-            new LayoutTree(decomposed.Width, decomposed.Height, nodes),
-            effective.Get(CoreOptions.AssumedFontSize));
+        return new ScopePass(
+            CanvasFitter.Fit(
+                new LayoutTree(decomposed.Width, decomposed.Height, nodes),
+                effective.Get(CoreOptions.AssumedFontSize)),
+            null,
+            descendantToDirect,
+            nesting);
     }
 
     /// <summary>
@@ -612,7 +646,7 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             var nodeEffective = node.OverlayOnto(parentEffective);
             var childEffective = node.Children.OverlayOnto(nodeEffective);
 
-            var sub = LayoutScope(node.Children, childEffective);
+            var sub = LayoutContainerScope(node, childEffective);
             subLayouts[node] = sub;
 
             // Size the container to enclose its sub-layout plus a padding inset on every side and, when
