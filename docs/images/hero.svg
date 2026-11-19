@@ -1,0 +1,308 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="640" viewBox="0 0 1600 640">
+  <!-- The README hero banner. A graph built in code - its nodes and edges, their sizes and ports, nested
+       containers, and layout options - flows into the Rendering LayoutEngine, which comes out with a placed
+       layout of nested boxes and routed orthogonal connectors, an SVG drawing, PNG and JPEG images, and light,
+       dark, and print themes.
+       The definitions and the left panel follow the shared DEMA Consulting hero (CanvasNet and BuildMark).
+       This file is docs/images/hero.svg, beside its rendered docs/images/hero.png (matching base names, per the
+       diagram documentation standard); the files it embeds are in docs/images/hero/. -->
+  <defs>
+    <style>
+      .word { font: bold 92px sans-serif; fill: #ffffff; }
+      .eyebrow { font: bold 25px sans-serif; fill: #a5b4fc; }
+      .tag { font: bold 40px sans-serif; fill: #f8fafc; }
+      .body { font: 25px sans-serif; fill: #cbd5e1; }
+      .cmd { font: 25px monospace; fill: #e2e8f0; }
+      .prompt { fill: #5eead4; }
+      .file { fill: #f9a8d4; }
+      .brandText { fill: url(#brand); }
+      .note { font: italic 25px sans-serif; fill: #94a3b8; }
+      .label { font: bold 25px sans-serif; fill: #f1f5f9; text-anchor: middle; }
+      .engine { font: bold 32px monospace; fill: #ffffff; }
+      .api { font: bold 25px sans-serif; fill: #c4b5fd; }
+      .card { fill: url(#glass); stroke: url(#rim); stroke-width: 1.5; filter: url(#shadow); }
+      .panel { fill: #0a1022; stroke: #ffffff; stroke-opacity: 0.06; }
+      .flow { fill: none; stroke-width: 3; stroke-linecap: round; }
+      .page { fill: #ffffff; filter: url(#paper); }
+    </style>
+
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070b1f"/>
+      <stop offset="0.55" stop-color="#130f3b"/>
+      <stop offset="1" stop-color="#071a2e"/>
+    </linearGradient>
+    <radialGradient id="glowViolet" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowCyan" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#06b6d4" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowPink" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#db2777" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#db2777" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="12" r="1.2" fill="#a5b4fc" fill-opacity="0.16"/>
+    </pattern>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="0.5" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.04"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="engineFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e1b4b"/>
+      <stop offset="1" stop-color="#0b1022"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <filter id="paper" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+    <filter id="blur" x="-30%" y="-150%" width="160%" height="400%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="heat" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+
+    <marker id="headPink" viewBox="0 0 10 10" refX="2.5" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+      <path d="M0,0 L10,5 L0,10 L2.5,5 z" fill="#f472b6"/>
+    </marker>
+    <marker id="headAmber" viewBox="0 0 10 10" refX="2.5" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+      <path d="M0,0 L10,5 L0,10 L2.5,5 z" fill="#fbbf24"/>
+    </marker>
+    <marker id="headCyan" viewBox="0 0 10 10" refX="2.5" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+      <path d="M0,0 L10,5 L0,10 L2.5,5 z" fill="#22d3ee"/>
+    </marker>
+    <marker id="headViolet" viewBox="0 0 10 10" refX="2.5" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+      <path d="M0,0 L10,5 L0,10 L2.5,5 z" fill="#a78bfa"/>
+    </marker>
+    <marker id="headBlue" viewBox="0 0 10 10" refX="2.5" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+      <path d="M0,0 L10,5 L0,10 L2.5,5 z" fill="#60a5fa"/>
+    </marker>
+    <marker id="headMint" viewBox="0 0 10 10" refX="2.5" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+      <path d="M0,0 L10,5 L0,10 L2.5,5 z" fill="#5eead4"/>
+    </marker>
+
+    <!-- The text and shapes inside the mini illustrations -->
+    <style>
+      .mini { font: bold 22px sans-serif; }
+      .miniMono { font: bold 22px monospace; }
+      .bar { fill: #cbd5e1; }
+      .ink { fill: #1e293b; }
+      .node { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.5; }
+      .wire { fill: none; stroke: #5eead4; stroke-width: 2.5; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <!-- Background: deep gradient, soft glows, and a dot grid -->
+  <rect width="1600" height="640" fill="url(#bg)"/>
+  <ellipse cx="250" cy="170" rx="420" ry="300" fill="url(#glowViolet)"/>
+  <ellipse cx="1070" cy="294" rx="420" ry="220" fill="url(#glowCyan)"/>
+  <ellipse cx="1480" cy="620" rx="380" ry="260" fill="url(#glowPink)"/>
+  <rect width="1600" height="640" fill="url(#dots)"/>
+
+  <!-- Wordmark and tagline -->
+  <image href="hero/dc-logo-dark.svg" x="46" y="54" width="50" height="50"/>
+  <text class="eyebrow" x="100" y="90">DEMA Consulting</text>
+  <text class="word" x="52" y="176">Render</text>
+  <text class="word brandText" x="368.9" y="176">ing</text>
+  <rect x="58" y="200" width="132" height="6" rx="3" fill="url(#brand)"/>
+  <text class="tag" x="56" y="266">Boxes and edges in.</text>
+  <text class="tag brandText" x="56" y="316">Tidy diagrams out.</text>
+  <text class="body" x="58" y="368">A .NET library that lays out nested</text>
+  <text class="body" x="58" y="402">graphs, routes orthogonal edges, and</text>
+  <text class="body" x="58" y="436">draws SVG, PNG, or JPEG diagrams.</text>
+  <!-- The command box: the one-call layout from the user guide quickstart -->
+  <rect x="56" y="468" width="480" height="90" rx="12" fill="#0a1022" fill-opacity="0.8" stroke="#a78bfa" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text class="cmd" x="78" y="503">var tree = LayoutEngine</text>
+  <text class="cmd" x="108" y="539">.Layout(</text>
+  <text class="cmd file" x="228" y="539">graph</text>
+  <text class="cmd" x="303" y="539">);</text>
+  <text class="note" x="58" y="604">SVG output with zero dependencies.</text>
+
+  <!-- Input cards -->
+  <g>
+    <!-- Input one: the graph built in code -->
+    <rect class="card" x="580" y="40" width="236" height="160" rx="16"/>
+    <rect x="642" y="40" width="112" height="3" rx="1.5" fill="#fbbf24"/>
+    <rect class="panel" x="588" y="48" width="220" height="112" rx="10"/>
+    <g transform="translate(588 48)">
+      <text class="miniMono" x="16" y="36" fill="#f8fafc">AddNode(</text>
+      <text class="miniMono" x="121.6" y="36" fill="#fde68a">"a"</text>
+      <text class="miniMono" x="161.2" y="36" fill="#f8fafc">)</text>
+      <text class="miniMono" x="16" y="66" fill="#f8fafc">AddNode(</text>
+      <text class="miniMono" x="121.6" y="66" fill="#fde68a">"b"</text>
+      <text class="miniMono" x="161.2" y="66" fill="#f8fafc">)</text>
+      <text class="miniMono" x="16" y="96" fill="#f8fafc">AddEdge(a, b)</text>
+    </g>
+    <text class="label" x="698" y="190">Graph in code</text>
+
+    <!-- Input two: a sized node with ports on its sides -->
+    <rect class="card" x="828" y="40" width="236" height="160" rx="16"/>
+    <rect x="890" y="40" width="112" height="3" rx="1.5" fill="#22d3ee"/>
+    <rect class="panel" x="836" y="48" width="220" height="112" rx="10"/>
+    <g transform="translate(836 48)">
+      <rect class="node" x="60" y="12" width="100" height="50" rx="6"/>
+      <text class="mini ink" x="110" y="45" text-anchor="middle">a</text>
+      <rect x="54" y="31" width="12" height="12" rx="2" fill="#22d3ee"/>
+      <rect x="154" y="31" width="12" height="12" rx="2" fill="#22d3ee"/>
+      <line x1="60" y1="74" x2="160" y2="74" stroke="#a5f3fc" stroke-width="1.5"/>
+      <line x1="60" y1="68" x2="60" y2="80" stroke="#a5f3fc" stroke-width="1.5"/>
+      <line x1="160" y1="68" x2="160" y2="80" stroke="#a5f3fc" stroke-width="1.5"/>
+      <text class="miniMono" x="110" y="102" fill="#a5f3fc" text-anchor="middle">80 x 40</text>
+    </g>
+    <text class="label" x="946" y="190">Sizes, ports</text>
+
+    <!-- Input three: a container holding two child nodes -->
+    <rect class="card" x="1076" y="40" width="236" height="160" rx="16"/>
+    <rect x="1138" y="40" width="112" height="3" rx="1.5" fill="#f472b6"/>
+    <rect class="panel" x="1084" y="48" width="220" height="112" rx="10"/>
+    <g transform="translate(1084 48)">
+      <rect x="22" y="10" width="176" height="94" rx="8" fill="#f472b6" fill-opacity="0.12" stroke="#f472b6" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <text class="mini" x="34" y="34" fill="#fbcfe8">pkg</text>
+      <rect class="node" x="38" y="46" width="56" height="44" rx="5"/>
+      <rect class="node" x="126" y="46" width="56" height="44" rx="5"/>
+      <line x1="94" y1="68" x2="126" y2="68" stroke="#fbcfe8" stroke-width="2.5"/>
+    </g>
+    <text class="label" x="1194" y="190">Containers</text>
+
+    <!-- Input four: layout options set on the graph -->
+    <rect class="card" x="1324" y="40" width="236" height="160" rx="16"/>
+    <rect x="1386" y="40" width="112" height="3" rx="1.5" fill="#60a5fa"/>
+    <rect class="panel" x="1332" y="48" width="220" height="112" rx="10"/>
+    <g transform="translate(1332 48)">
+      <text class="miniMono" x="12" y="34" fill="#f8fafc">Algorithm</text>
+      <text class="miniMono" x="208" y="34" fill="#93c5fd" text-anchor="end">auto</text>
+      <text class="miniMono" x="12" y="68" fill="#f8fafc">Direction</text>
+      <text class="miniMono" x="208" y="68" fill="#93c5fd" text-anchor="end">Down</text>
+      <text class="miniMono" x="12" y="102" fill="#f8fafc">LayerSpacing</text>
+      <text class="miniMono" x="208" y="102" fill="#93c5fd" text-anchor="end">70</text>
+      <line x1="12" y1="46" x2="208" y2="46" stroke="#ffffff" stroke-opacity="0.12"/>
+      <line x1="12" y1="80" x2="208" y2="80" stroke="#ffffff" stroke-opacity="0.12"/>
+    </g>
+    <text class="label" x="1442" y="190">Layout options</text>
+  </g>
+
+  <!-- Flows into the engine -->
+  <g class="flow">
+    <path d="M698,206 C698,236 950,226 950,253" stroke="#fbbf24" marker-end="url(#headAmber)"/>
+    <path d="M946,206 C946,236 1030,226 1030,253" stroke="#22d3ee" marker-end="url(#headCyan)"/>
+    <path d="M1194,206 C1194,236 1110,226 1110,253" stroke="#f472b6" marker-end="url(#headPink)"/>
+    <path d="M1442,206 C1442,236 1190,226 1190,253" stroke="#60a5fa" marker-end="url(#headBlue)"/>
+  </g>
+  <g stroke="#0a1022" stroke-width="2">
+    <circle cx="698" cy="206" r="5" fill="#fbbf24"/>
+    <circle cx="946" cy="206" r="5" fill="#22d3ee"/>
+    <circle cx="1194" cy="206" r="5" fill="#f472b6"/>
+    <circle cx="1442" cy="206" r="5" fill="#60a5fa"/>
+  </g>
+  <!-- The engine: the LayoutEngine facade, with a small connected-boxes glyph -->
+  <rect x="816" y="262" width="508" height="64" rx="32" fill="url(#brand)" opacity="0.55" filter="url(#blur)"/>
+  <rect x="816" y="262" width="508" height="64" rx="32" fill="url(#engineFill)" stroke="url(#brand)" stroke-width="2.5"/>
+  <rect x="840" y="276" width="36" height="36" rx="9" fill="url(#brand)"/>
+  <g fill="#ffffff">
+    <rect x="845" y="281" width="11" height="9" rx="1.5"/>
+    <rect x="860" y="298" width="11" height="9" rx="1.5"/>
+  </g>
+  <path d="M850.5 290 L850.5 302.5 L860 302.5" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <text class="engine" x="892" y="305">LayoutEngine</text>
+  <line x1="1134.4" y1="278" x2="1134.4" y2="310" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1.5"/>
+  <text class="api" x="1154.4" y="303">.NET library</text>
+
+  <!-- Flows out of the engine -->
+  <g class="flow" stroke="#5eead4">
+    <path d="M980,330 C980,356 728,356 728,381" marker-end="url(#headMint)"/>
+    <path d="M1040,330 C1040,356 999,356 999,381" marker-end="url(#headMint)"/>
+    <path d="M1100,330 C1100,356 1232,356 1232,381" marker-end="url(#headMint)"/>
+    <path d="M1160,330 C1160,356 1457,356 1457,381" marker-end="url(#headMint)"/>
+  </g>
+  <g fill="#5eead4" stroke="#0a1022" stroke-width="2">
+    <circle cx="980" cy="330" r="5"/>
+    <circle cx="1040" cy="330" r="5"/>
+    <circle cx="1100" cy="330" r="5"/>
+    <circle cx="1160" cy="330" r="5"/>
+  </g>
+
+  <!-- Output tiles -->
+  <g>
+    <!-- Output one: the placed layout, nested boxes joined by routed orthogonal connectors -->
+    <rect class="card" x="580" y="390" width="296" height="210" rx="16"/>
+    <rect class="panel" x="588" y="398" width="280" height="152" rx="10"/>
+    <rect x="690" y="408" width="164" height="132" rx="8" fill="#a78bfa" fill-opacity="0.12" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text class="mini" x="700" y="432" fill="#ddd6fe">pkg</text>
+    <rect class="node" x="602" y="422" width="56" height="36" rx="5"/>
+    <text class="mini ink" x="630" y="448" text-anchor="middle">A</text>
+    <rect class="node" x="708" y="444" width="52" height="34" rx="5"/>
+    <text class="mini ink" x="734" y="469" text-anchor="middle">B</text>
+    <rect class="node" x="790" y="444" width="52" height="34" rx="5"/>
+    <text class="mini ink" x="816" y="469" text-anchor="middle">C</text>
+    <rect class="node" x="749" y="498" width="52" height="34" rx="5"/>
+    <text class="mini ink" x="775" y="523" text-anchor="middle">D</text>
+    <g class="wire">
+      <path d="M658 440 L683 440 L683 461 L700 461" marker-end="url(#headMint)"/>
+      <path d="M760 461 L782 461" marker-end="url(#headMint)"/>
+      <path d="M734 478 L734 515 L741 515" marker-end="url(#headMint)"/>
+      <path d="M816 478 L816 515 L809 515" marker-end="url(#headMint)"/>
+    </g>
+    <text class="label" x="728" y="585">Routed layout</text>
+
+    <!-- Output two: an SVG drawing -->
+    <rect class="card" x="889" y="390" width="220" height="210" rx="16"/>
+    <rect class="panel" x="897" y="398" width="204" height="152" rx="10"/>
+    <path class="page" d="M944 408 L1038 408 L1054 424 L1054 542 L944 542 Z"/>
+    <path d="M1038 408 L1038 424 L1054 424 Z" fill="#cbd5e1"/>
+    <rect x="956" y="420" width="64" height="30" rx="7" fill="#7c3aed" fill-opacity="0.14" stroke="#7c3aed" stroke-width="1.5"/>
+    <text class="mini" x="988" y="442" fill="#6d28d9" text-anchor="middle">.svg</text>
+    <rect x="958" y="466" width="34" height="24" rx="4" fill="none" stroke="#334155" stroke-width="2"/>
+    <rect x="1006" y="502" width="34" height="24" rx="4" fill="none" stroke="#334155" stroke-width="2"/>
+    <path d="M992 478 L1023 478 L1023 502" fill="none" stroke="#0d9488" stroke-width="2.5"/>
+    <text class="label" x="999" y="585">SVG drawing</text>
+
+    <!-- Output three: PNG and JPEG raster images -->
+    <rect class="card" x="1122" y="390" width="220" height="210" rx="16"/>
+    <rect class="panel" x="1130" y="398" width="204" height="152" rx="10"/>
+    <rect x="1150" y="410" width="164" height="86" rx="8" fill="#1e293b" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1.5"/>
+    <circle cx="1280" cy="434" r="11" fill="#fbbf24"/>
+    <path d="M1152 494 L1196 446 L1226 476 L1248 456 L1312 494 Z" fill="url(#brand)" fill-opacity="0.85"/>
+    <rect x="1150" y="508" width="70" height="30" rx="15" fill="#22d3ee" fill-opacity="0.16" stroke="#22d3ee" stroke-width="1.5"/>
+    <text class="mini" x="1185" y="530" fill="#a5f3fc" text-anchor="middle">png</text>
+    <rect x="1232" y="508" width="82" height="30" rx="15" fill="#f472b6" fill-opacity="0.16" stroke="#f472b6" stroke-width="1.5"/>
+    <text class="mini" x="1273" y="530" fill="#fbcfe8" text-anchor="middle">jpeg</text>
+    <text class="label" x="1232" y="585">PNG / JPEG</text>
+
+    <!-- Output four: the same drawing in the light, dark, and print themes -->
+    <rect class="card" x="1355" y="390" width="205" height="210" rx="16"/>
+    <rect class="panel" x="1363" y="398" width="189" height="152" rx="10"/>
+    <g transform="translate(1373 418)">
+      <rect x="0" y="0" width="52" height="116" rx="6" fill="#f8fafc"/>
+      <rect x="10" y="14" width="32" height="22" rx="3" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+      <rect x="10" y="80" width="32" height="22" rx="3" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+      <line x1="26" y1="36" x2="26" y2="80" stroke="#2563eb" stroke-width="2"/>
+    </g>
+    <g transform="translate(1431 418)">
+      <rect x="0" y="0" width="52" height="116" rx="6" fill="#0f172a" stroke="#ffffff" stroke-opacity="0.3"/>
+      <rect x="10" y="14" width="32" height="22" rx="3" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+      <rect x="10" y="80" width="32" height="22" rx="3" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+      <line x1="26" y1="36" x2="26" y2="80" stroke="#5eead4" stroke-width="2"/>
+    </g>
+    <g transform="translate(1489 418)">
+      <rect x="0" y="0" width="52" height="116" rx="6" fill="#ffffff"/>
+      <rect x="10" y="14" width="32" height="22" rx="3" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+      <rect x="10" y="80" width="32" height="22" rx="3" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+      <line x1="26" y1="36" x2="26" y2="80" stroke="#000000" stroke-width="2"/>
+    </g>
+    <text class="label" x="1457" y="585">3 themes</text>
+  </g>
+</svg>
