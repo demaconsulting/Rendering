@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1098.00" height="1746.00" viewBox="0 0 1098.00 1746.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="14.747763" markerHeight="7" refX="14.747763" refY="3.5" orient="auto">
+      <polygon points="4.5 0, 14.5 3.5, 4.5 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+      <line x1="1" y1="0" x2="1" y2="7" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9.75" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2.75" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-two-dots" markerWidth="15.247763" markerHeight="7" refX="15.247763" refY="3.5" orient="auto">
+      <polygon points="5 0, 15 3.5, 5 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+      <circle cx="1.25" cy="1.25" r="1.25" fill="#1A1A2E"/>
+      <circle cx="1.25" cy="5.75" r="1.25" fill="#1A1A2E"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#FFFFFF"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <path d="M 716.50 1462.00 L 716.50 1438.00 L 806.50 1438.00 L 806.50 1462.00 L 904.50 1462.00 L 904.50 1726.00 L 716.50 1726.00 Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="722.50" y="1450.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Requirements</text>
+  <rect x="740.50" y="1486.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="810.50" y="1504.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«requirement def»</text>
+  <text x="810.50" y="1523.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">RangeReq</text>
+  <rect x="740.50" y="1566.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="810.50" y="1584.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«requirement def»</text>
+  <text x="810.50" y="1603.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">MassReq</text>
+  <rect x="740.50" y="1646.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="810.50" y="1664.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«requirement def»</text>
+  <text x="810.50" y="1683.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">UnusedReq</text>
+  <path d="M 20.00 982.00 L 20.00 958.00 L 80.00 958.00 L 80.00 982.00 L 1054.00 982.00 L 1054.00 1368.00 L 20.00 1368.00 Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="26.00" y="970.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Usages</text>
+  <rect x="52.00" y="1280.00" width="170.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="8.00" ry="8.00"/>
+  <text x="137.00" y="1298.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="137.00" y="1317.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">rearWheel : Wheel</text>
+  <rect x="652.00" y="1280.00" width="170.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="8.00" ry="8.00"/>
+  <text x="737.00" y="1298.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="737.00" y="1317.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">battery1 : Battery</text>
+  <rect x="503.07" y="1014.00" width="170.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="8.00" ry="8.00"/>
+  <text x="588.07" y="1032.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="588.07" y="1051.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">vehicle1 : Vehicle</text>
+  <rect x="247.77" y="1140.00" width="170.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="8.00" ry="8.00"/>
+  <text x="332.77" y="1158.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="332.77" y="1177.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">axle1 : Axle</text>
+  <rect x="452.00" y="1280.00" width="170.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="8.00" ry="8.00"/>
+  <text x="537.00" y="1298.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="537.00" y="1317.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">chassis1 : Chassis</text>
+  <rect x="252.00" y="1280.00" width="170.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="8.00" ry="8.00"/>
+  <text x="337.00" y="1298.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="337.00" y="1317.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">frontWheel : Wheel</text>
+  <rect x="852.00" y="1280.00" width="170.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" rx="8.00" ry="8.00"/>
+  <text x="937.00" y="1298.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part»</text>
+  <text x="937.00" y="1317.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">engine1 : Engine</text>
+  <path d="M 137.00 1280.00 L 137.00 1274.00 A 4.00 4.00 0 0 1 141.00 1270.00 L 291.27 1270.00 A 4.00 4.00 0 0 0 295.27 1266.00 L 295.27 1196.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 673.16 1280.00 L 673.16 1134.00 A 4.00 4.00 0 0 0 669.16 1130.00 L 610.82 1130.00 A 4.00 4.00 0 0 1 606.82 1126.00 L 606.82 1070.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 551.91 1280.00 L 551.91 1070.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 353.63 1280.00 L 353.63 1196.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 937.00 1280.00 L 937.00 1274.00 A 4.00 4.00 0 0 0 933.00 1270.00 L 798.41 1270.00 A 4.00 4.00 0 0 1 794.41 1266.00 L 794.41 1118.00 A 4.00 4.00 0 0 0 790.41 1114.00 L 648.32 1114.00 A 4.00 4.00 0 0 1 644.32 1110.00 L 644.32 1070.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 332.77 1140.00 L 332.77 1134.00 A 4.00 4.00 0 0 1 336.77 1130.00 L 527.82 1130.00 A 4.00 4.00 0 0 0 531.82 1126.00 L 531.82 1070.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+  <path d="M 463.25 322.00 L 463.25 298.00 L 535.61 298.00 L 535.61 322.00 L 837.25 322.00 L 837.25 888.00 L 463.25 888.00 Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="469.25" y="310.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Definitions</text>
+  <rect x="495.25" y="560.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="565.25" y="578.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="565.25" y="597.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Wheel</text>
+  <rect x="659.25" y="560.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="729.25" y="578.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="729.25" y="597.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">UnusedA</text>
+  <rect x="580.25" y="354.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="650.25" y="372.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="650.25" y="391.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Vehicle</text>
+  <rect x="659.25" y="640.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="729.25" y="658.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="729.25" y="677.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Battery</text>
+  <rect x="495.25" y="480.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="565.25" y="498.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="565.25" y="517.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Truck</text>
+  <rect x="495.25" y="800.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="565.25" y="818.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="565.25" y="837.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Engine</text>
+  <rect x="665.25" y="480.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="735.25" y="498.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="735.25" y="517.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Car</text>
+  <rect x="495.25" y="640.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="565.25" y="658.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="565.25" y="677.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Axle</text>
+  <rect x="659.25" y="720.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="729.25" y="738.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="729.25" y="757.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">UnusedB</text>
+  <rect x="495.25" y="720.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="565.25" y="738.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="565.25" y="757.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Chassis</text>
+  <path d="M 710.25 480.00 L 710.25 410.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle)"/>
+  <path d="M 590.25 480.00 L 590.25 410.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle)"/>
+  <path d="M 716.50 44.00 L 716.50 20.00 L 776.50 20.00 L 776.50 44.00 L 904.50 44.00 L 904.50 228.00 L 716.50 228.00 Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="722.50" y="32.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-weight="bold" fill="#1A1A2E" text-anchor="start" dominant-baseline="middle">Library</text>
+  <rect x="740.50" y="148.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="810.50" y="166.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«attribute def»</text>
+  <text x="810.50" y="185.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Power</text>
+  <rect x="740.50" y="68.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="810.50" y="86.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«attribute def»</text>
+  <text x="810.50" y="105.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Mass</text>
+  <rect x="200.00" y="20.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="270.00" y="38.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="270.00" y="57.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Orphan1</text>
+  <rect x="200.00" y="100.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="270.00" y="118.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="270.00" y="137.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Orphan2</text>
+  <rect x="200.00" y="180.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="270.00" y="198.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="270.00" y="217.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Orphan3</text>
+  <path d="M 916.50 1280.00 L 916.50 939.00 A 4.00 4.00 0 0 0 912.50 935.00 L 572.25 935.00 A 4.00 4.00 0 0 1 568.25 931.00 L 568.25 856.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)" stroke-dasharray="6 3"/>
+  <path d="M 740.50 1514.00 L 696.50 1514.00 A 4.00 4.00 0 0 1 692.50 1510.00 L 692.50 1336.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)" stroke-dasharray="6 3"/>
+  <path d="M 626.66 1014.00 L 626.66 939.00 A 4.00 4.00 0 0 1 630.66 935.00 L 671.12 935.00 A 4.00 4.00 0 0 0 675.12 931.00 L 675.12 792.00 A 4.00 4.00 0 0 0 671.12 788.00 L 651.25 788.00 A 4.00 4.00 0 0 1 647.25 784.00 L 647.25 410.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)" stroke-dasharray="6 3"/>
+  <path d="M 121.00 1280.00 L 121.00 608.00 A 4.00 4.00 0 0 1 125.00 604.00 L 495.25 604.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)" stroke-dasharray="6 3"/>
+  <path d="M 635.25 810.00 L 857.25 810.00 A 4.00 4.00 0 0 0 861.25 806.00 L 861.25 204.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <path d="M 316.77 1140.00 L 316.77 688.00 A 4.00 4.00 0 0 1 320.77 684.00 L 495.25 684.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)" stroke-dasharray="6 3"/>
+  <path d="M 740.50 1594.00 L 638.00 1594.00 A 4.00 4.00 0 0 1 634.00 1590.00 L 634.00 1146.00 A 4.00 4.00 0 0 0 630.00 1142.00 L 592.07 1142.00 A 4.00 4.00 0 0 1 588.07 1138.00 L 588.07 1070.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)" stroke-dasharray="6 3"/>
+  <path d="M 729.25 1280.00 L 729.25 1062.00 A 4.00 4.00 0 0 1 733.25 1058.00 L 912.50 1058.00 A 4.00 4.00 0 0 0 916.50 1054.00 L 916.50 676.00 A 4.00 4.00 0 0 0 912.50 672.00 L 799.25 672.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)" stroke-dasharray="6 3"/>
+  <path d="M 799.25 654.00 L 924.50 654.00 A 4.00 4.00 0 0 0 928.50 650.00 L 928.50 140.00 A 4.00 4.00 0 0 0 924.50 136.00 L 696.50 136.00 A 4.00 4.00 0 0 1 692.50 132.00 L 692.50 100.00 A 4.00 4.00 0 0 1 696.50 96.00 L 740.50 96.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <path d="M 567.91 1280.00 L 567.91 1110.00 A 4.00 4.00 0 0 0 563.91 1106.00 L 443.25 1106.00 A 4.00 4.00 0 0 1 439.25 1102.00 L 439.25 752.00 A 4.00 4.00 0 0 1 443.25 748.00 L 495.25 748.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)" stroke-dasharray="6 3"/>
+  <path d="M 337.00 1280.00 L 337.00 1212.00 A 4.00 4.00 0 0 1 341.00 1208.00 L 425.77 1208.00 A 4.00 4.00 0 0 0 429.77 1204.00 L 429.77 590.00 A 4.00 4.00 0 0 1 433.77 586.00 L 495.25 586.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle-two-dots)" stroke-dasharray="6 3"/>
+  <path d="M 716.50 1582.00 L 684.50 1582.00 A 4.00 4.00 0 0 1 680.50 1578.00 L 680.50 1418.00 A 4.00 4.00 0 0 1 684.50 1414.00 L 1074.00 1414.00 A 4.00 4.00 0 0 0 1078.00 1410.00 L 1078.00 658.00 A 4.00 4.00 0 0 0 1074.00 654.00 L 884.50 654.00 A 4.00 4.00 0 0 1 880.50 650.00 L 880.50 228.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)" stroke-dasharray="6 3"/>
+  <text x="692.50" y="1425.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">«satisfy»</text>
+  <text x="588.07" y="1106.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">«satisfy»</text>
+  <text x="880.50" y="441.00" font-family="Noto Sans, sans-serif" font-size="12.00" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle" filter="url(#label-bg)">«import»*</text>
+</svg>

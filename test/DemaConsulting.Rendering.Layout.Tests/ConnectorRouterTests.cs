@@ -1940,6 +1940,226 @@ public sealed class ConnectorRouterTests
     }
 
     /// <summary>
+    ///     Builds the Rendering#48 repro 3 router scene: a source box left of a target whose left face already
+    ///     holds the end of an interior connector, with two blockers between them (one above the other) so the
+    ///     connector has to come in over the upper blocker and drop into the gap just before the target.
+    /// </summary>
+    /// <param name="existing">Receives the interior connector (blocker to target) the new connector must not cross.</param>
+    /// <param name="boxes">Receives every obstacle box (source, target, blocker).</param>
+    /// <param name="occupied">Receives the anchor the interior connector already occupies on the target.</param>
+    /// <returns>The connection from the source to the target.</returns>
+    private static Connection BuildInteriorLineScene(
+        out LayoutLine existing,
+        out LayoutBox[] boxes,
+        out ConnectorRouter.FixedAnchor[] occupied)
+    {
+        var source = Box(52, 114, 140, 56);
+        var target = Box(746, 100, 140, 56);
+        var blocker = Box(536, 100, 140, 56);
+        var floor = Box(536, 170, 140, 56);
+        existing = InteriorLine(new Point2D(676, 128), new Point2D(746, 128));
+        boxes = [source, target, blocker, floor];
+        occupied = [new ConnectorRouter.FixedAnchor(target, PortSide.Left, 28.0)];
+        return new Connection(source, target, EndMarkerStyle.FilledArrow);
+    }
+
+    /// <summary>Builds a plain solid line between two points (an interior connector of a container).</summary>
+    private static LayoutLine InteriorLine(Point2D from, Point2D to) =>
+        new([from, to], EndMarkerStyle.None, EndMarkerStyle.None, LineStyle.Solid, null);
+
+    /// <summary>Counts the transversal crossings between a routed path and a line.</summary>
+    private static int CountCrossings(IReadOnlyList<Point2D> path, IReadOnlyList<Point2D> other)
+    {
+        var count = 0;
+        for (var i = 0; i < path.Count - 1; i++)
+        {
+            for (var j = 0; j < other.Count - 1; j++)
+            {
+                if (SegmentsCrossTransversally(path[i], path[i + 1], other[j], other[j + 1]))
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    ///     A connector routed by the declaring scope into a container whose interior connector already ends
+    ///     on the same face avoids crossing that interior connector when it can: it takes a free lane or
+    ///     port on the other side of it. Without the interior line supplied the same scene crosses it, which
+    ///     is the Rendering#48 defect this cost removes.
+    /// </summary>
+    [Fact]
+    public void RouteBatch_ExistingInteriorLine_AvoidsCrossingWhenAlternativeExists()
+    {
+        // Arrange
+        var connection = BuildInteriorLineScene(out var existing, out var boxes, out var occupied);
+        var withoutLines = new ConnectorRouter.RoutingProfile(_ => []);
+        var withLines = new ConnectorRouter.RoutingProfile(_ => [], ExistingLinesFor: _ => [existing]);
+
+        // Act
+        var unaware = ConnectorRouter.RouteBatch([connection], new ConnectorRouteOptions(), _ => boxes, occupied, true, withoutLines)[0];
+        var aware = ConnectorRouter.RouteBatch([connection], new ConnectorRouteOptions(), _ => boxes, occupied, true, withLines)[0];
+
+        // Assert: the scene really crosses without the cost, and no longer does with it
+        Assert.True(CountCrossings(unaware.Waypoints, existing.Waypoints) >= 1, "scene should cross when the interior line is unknown");
+        Assert.Equal(0, CountCrossings(aware.Waypoints, existing.Waypoints));
+        Assert.True(OnBoundary(aware.Waypoints[^1], boxes[1]), "the connector must still end on the target");
+    }
+
+    /// <summary>Determines whether a point lies on the outline of a box.</summary>
+    private static bool OnBoundary(Point2D p, LayoutBox box)
+    {
+        var withinX = p.X >= box.X - 1e-6 && p.X <= box.X + box.Width + 1e-6;
+        var withinY = p.Y >= box.Y - 1e-6 && p.Y <= box.Y + box.Height + 1e-6;
+        var onVerticalFace = withinY && (Math.Abs(p.X - box.X) < 1e-6 || Math.Abs(p.X - (box.X + box.Width)) < 1e-6);
+        var onHorizontalFace = withinX && (Math.Abs(p.Y - box.Y) < 1e-6 || Math.Abs(p.Y - (box.Y + box.Height)) < 1e-6);
+        return onVerticalFace || onHorizontalFace;
+    }
+
+    /// <summary>
+    ///     When every route has to cross the interior line (it spans the whole canvas) the connector is
+    ///     still routed — the line is a cost, never a hard obstacle — and crosses it only once.
+    /// </summary>
+    [Fact]
+    public void RouteBatch_ExistingInteriorLine_NoAlternative_StillRoutes()
+    {
+        // Arrange: a wall between source and target that no route can go around.
+        var source = Box(0, 0, 60, 40);
+        var target = Box(400, 0, 60, 40);
+        var wall = InteriorLine(new Point2D(230, -5000), new Point2D(230, 5000));
+        var connection = new Connection(source, target, EndMarkerStyle.FilledArrow);
+        var profile = new ConnectorRouter.RoutingProfile(_ => [], ExistingLinesFor: _ => [wall]);
+
+        // Act
+        var line = ConnectorRouter.RouteBatch([connection], new ConnectorRouteOptions(), _ => [source, target], null, true, profile)[0];
+
+        // Assert: routed from face to face, crossing the wall exactly once
+        Assert.True(line.Waypoints.Count >= 2);
+        Assert.Equal(source.X + source.Width, line.Waypoints[0].X, 6);
+        Assert.Equal(target.X, line.Waypoints[^1].X, 6);
+        Assert.Equal(1, CountCrossings(line.Waypoints, wall.Waypoints));
+    }
+
+    /// <summary>The obstacle clearance the tidy-replacement tests use, in logical pixels.</summary>
+    private const double TidyClearance = 10.0;
+
+    /// <summary>Builds a plain connector for the tidy-replacement tests.</summary>
+    private static LayoutLine Connector(params Point2D[] waypoints) =>
+        new(waypoints, EndMarkerStyle.None, EndMarkerStyle.None, LineStyle.Solid, null);
+
+    /// <summary>
+    ///     A route that removes a crossing with a modest detour (a little longer, one bend more) replaces the
+    ///     route it replaces.
+    /// </summary>
+    [Fact]
+    public void IsTidyReplacement_FewerCrossingsModestDetour_Accepts()
+    {
+        // Arrange: a two-bend route crossing one line; the candidate bends the same way, 40 px further out
+        Point2D[] current = [new(0, 100), new(100, 100), new(100, 40), new(400, 40)];
+        Point2D[] candidate = [new(0, 100), new(60, 100), new(60, 0), new(400, 0)];
+
+        // Act / Assert
+        Assert.True(ConnectorRouter.IsTidyReplacement(current, candidate, 1, 0, [], TidyClearance));
+    }
+
+    /// <summary>
+    ///     A crossing is not worth a wrap: a candidate more than a quarter (plus two clearances) longer than the
+    ///     route it replaces is refused, however many crossings it removes.
+    /// </summary>
+    [Fact]
+    public void IsTidyReplacement_FewerCrossingsLongWrap_Rejects()
+    {
+        // Arrange: the candidate goes 200 px up and back to avoid the crossing
+        Point2D[] current = [new(0, 100), new(400, 100)];
+        Point2D[] candidate = [new(0, 100), new(20, 100), new(20, -100), new(380, -100), new(380, 100), new(400, 100)];
+
+        // Act / Assert
+        Assert.False(ConnectorRouter.IsTidyReplacement(current, candidate, 1, 0, [], TidyClearance));
+    }
+
+    /// <summary>A candidate with more than two extra bends is refused even when it is short.</summary>
+    [Fact]
+    public void IsTidyReplacement_FewerCrossingsManyMoreBends_Rejects()
+    {
+        // Arrange: a staircase of five bends against a straight route
+        Point2D[] current = [new(0, 100), new(400, 100)];
+        Point2D[] candidate = [new(0, 100), new(80, 100), new(80, 90), new(160, 90), new(160, 100), new(240, 100), new(240, 90), new(320, 90), new(320, 100), new(400, 100)];
+
+        // Act / Assert
+        Assert.False(ConnectorRouter.IsTidyReplacement(current, candidate, 1, 0, [], TidyClearance));
+    }
+
+    /// <summary>A replacement that adds a hairpin (a leg running back against the leg two before it) is refused.</summary>
+    [Fact]
+    public void IsTidyReplacement_AddsHairpin_Rejects()
+    {
+        // Arrange
+        Point2D[] current = [new(0, 100), new(400, 100)];
+        Point2D[] candidate = [new(0, 100), new(300, 100), new(300, 70), new(280, 70), new(280, 40), new(400, 40)];
+
+        // Act / Assert
+        Assert.False(ConnectorRouter.IsTidyReplacement(current, candidate, 1, 0, [], TidyClearance));
+    }
+
+    /// <summary>
+    ///     A replacement that runs for a stretch within 4 px of another connector (so the two read as one thick
+    ///     line) is refused, even though it removes a crossing.
+    /// </summary>
+    [Fact]
+    public void IsTidyReplacement_RunsNearlyOnTopOfAnotherConnector_Rejects()
+    {
+        // Arrange: another connector runs at y = 62 for 100 px; the candidate runs at y = 60
+        Point2D[] current = [new(0, 100), new(400, 100)];
+        Point2D[] candidate = [new(0, 100), new(150, 100), new(150, 60), new(250, 60), new(250, 100), new(400, 100)];
+        var other = Connector(new Point2D(100, 62), new Point2D(300, 62));
+
+        // Act / Assert
+        Assert.False(ConnectorRouter.IsTidyReplacement(current, candidate, 1, 0, [other], TidyClearance));
+    }
+
+    /// <summary>
+    ///     Without a crossing removed (the tidying pass) a replacement must be cheaper by visual cost: fewer bends
+    ///     and a shorter run wins, a worse route is refused.
+    /// </summary>
+    [Fact]
+    public void IsTidyReplacement_EqualCrossings_AcceptsOnlyLowerVisualCost()
+    {
+        // Arrange: a four-bend route and a one-bend route between the same ends
+        Point2D[] bent = [new(0, 0), new(0, 50), new(100, 50), new(100, 20), new(300, 20), new(300, 100)];
+        Point2D[] direct = [new(0, 0), new(0, 100), new(300, 100)];
+
+        // Act / Assert
+        Assert.True(ConnectorRouter.IsTidyReplacement(bent, direct, 0, 0, [], TidyClearance));
+        Assert.False(ConnectorRouter.IsTidyReplacement(direct, bent, 0, 0, [], TidyClearance));
+    }
+
+    /// <summary>
+    ///     A profile that supplies no interior lines (none, a null provider, or an empty list for every
+    ///     connection) routes exactly like the profile without the provider: the cost is strictly additive.
+    /// </summary>
+    [Fact]
+    public void RouteBatch_NoExistingLines_ByteIdentical()
+    {
+        // Arrange: the same scene routed under three equivalent profiles
+        var connection = BuildInteriorLineScene(out _, out var boxes, out var occupied);
+        var plain = new ConnectorRouter.RoutingProfile(_ => []);
+        var nullProvider = new ConnectorRouter.RoutingProfile(_ => [], ExistingLinesFor: null);
+        var emptyProvider = new ConnectorRouter.RoutingProfile(_ => [], ExistingLinesFor: _ => []);
+
+        // Act
+        var expected = ConnectorRouter.RouteBatch([connection], new ConnectorRouteOptions(), _ => boxes, occupied, true, plain)[0];
+        var fromNull = ConnectorRouter.RouteBatch([connection], new ConnectorRouteOptions(), _ => boxes, occupied, true, nullProvider)[0];
+        var fromEmpty = ConnectorRouter.RouteBatch([connection], new ConnectorRouteOptions(), _ => boxes, occupied, true, emptyProvider)[0];
+
+        // Assert
+        Assert.Equal(expected.Waypoints, fromNull.Waypoints);
+        Assert.Equal(expected.Waypoints, fromEmpty.Waypoints);
+    }
+
+    /// <summary>
     ///     Asserts that no segment of the path passes through the strict interior of the obstacle.
     /// </summary>
     private static void AssertNoSegmentCrossesObstacle(IReadOnlyList<Point2D> path, Rect obstacle)

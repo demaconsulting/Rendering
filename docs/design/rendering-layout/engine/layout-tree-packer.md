@@ -26,22 +26,44 @@ is a single combined `LayoutTree`.
 
 #### LayoutTreePacker Methods
 
-`Pack(trees, spacing, aspect)` rejects a null `trees` argument with `ArgumentNullException`, then:
+`Pack(trees, spacing, aspect, margin)` rejects a null `trees` argument with `ArgumentNullException`, then:
 
 1. **Degenerate cases.** An empty list returns a zero-size, empty `LayoutTree`. A single-tree list is
    returned unchanged, since a lone tree needs no translation or merging.
-2. **Shelf packing.** Each sub-tree's overall `Width`/`Height` is treated as one packable item and
-   placed by a greedy shelf heuristic (target row width = the wider of the widest single tree and
-   `sqrt(totalArea) * aspect`), matching the heuristic `Engine.Layered.ComponentPacker` uses for its own
-   packing.
+2. **Arrangement.** Each sub-tree's overall `Width`/`Height` is treated as one packable item and placed by
+   `Arrange(sizes, spacing, aspect)`. It first computes the greedy shelf arrangement (`ArrangeShelf`; target
+   row width = the wider of the widest single tree and `sqrt(totalArea) * aspect`), the heuristic
+   `Engine.Layered.ComponentPacker` historically used. It then searches a free-space arrangement: a maximal-
+   rectangles search over the space left beside already-placed pieces, for nine candidate row widths and for
+   the input order and the tallest-first order, so a small piece may fill the hole beside a tall one. The
+   free-space result replaces the shelf arrangement only when its canvas is strictly smaller and its
+   aspect-penalized score (no penalty for an aspect within 0.5 to 2) is not worse (a tie within the tolerance
+   counts as not worse); otherwise (including a tie in both area and score, an empty input and a single piece) the
+   shelf arrangement is returned, so the search can never produce
+   a larger, overlapping or non-deterministic result. `ComponentPacker` uses the same `Arrange` for the
+   components of a layered graph.
 3. **Recursive translation.** Every node in a packed sub-tree is shifted by that sub-tree's assigned
-   shelf offset, recursively: a `LayoutBox`'s own `X`/`Y` and every nested `LayoutBox.Children` node, a
+   offset, recursively: a `LayoutBox`'s own `X`/`Y` and every nested `LayoutBox.Children` node, a
    `LayoutLine`'s every `Waypoints` point, and a `LayoutPort`'s `CentreX`/`CentreY`. `LayoutTree`
    coordinates are absolute (not parent-relative), so translating a placed sub-tree requires this
    recursive walk rather than a single offset applied once at the root.
-4. **Combined result.** The packed region's overall width/height (from the shelf layout) and the
-   concatenated, translated node lists from every sub-tree (in input order) are assembled into one
-   combined `LayoutTree`.
+4. **Combined result.** The packed region's overall width/height (from the arrangement, plus an optional outer
+   `margin` on every side) and the concatenated, translated node lists from every sub-tree (in input order) are
+   assembled into one combined `LayoutTree`.
+
+`TuckIntoHoles(host, pieces, spacing)` places small pieces (the isolated nodes of an auto-routed graph) into
+holes of an already packed host tree: a keep-out grid marks the host's content (and the required spacing), the
+position of each piece is the one that minimizes the largest remaining empty square, and the result is the
+host with the pieces inside its own canvas, or `null` when a piece fits nowhere or no piece is supplied. The
+caller (`AutoLayoutAlgorithm`) accepts the result only when the empty square is not larger.
+
+`EmptySpaceMeter` (internal, same engine folder) measures the largest empty axis-aligned square of a placed
+tree on a 4 pixel occupancy grid: a leaf box, a connector segment dilated by one cell and a resolved connector
+label occupy cells, a container outline is transparent (its interior is empty unless something inside it
+occupies it), and the largest all-empty square is found by the classic dynamic program over the grid (an empty
+tree measures its smaller canvas side). `PassingSquare` is the diagram-quality limit for that square, three times
+the mean leaf-box height (zero without a leaf box). The tuck step and the hierarchical ordering refinement use
+the measure to refuse a change that opens a larger empty block.
 
 #### LayoutTreePacker Error Handling
 
@@ -59,8 +81,8 @@ offending type.
 
 #### LayoutTreePacker Design Notes: Out of Scope
 
-The shelf packer always wraps a component onto the next row once the running row width would exceed
-the target, which suits the compact rectangular components every bundled leaf algorithm produces. A
+The arrangement is a shelf or maximal-rectangles heuristic, which suits the compact rectangular components every
+bundled leaf algorithm produces. A
 future enhancement could add a force-directed/spring-relaxation fallback that packs many small, sparse
 components more organically (for example a large field of unrelated singleton nodes) instead of a
 strict grid of shelves, but that is a materially different, self-contained algorithm and is explicitly
@@ -70,8 +92,9 @@ out of scope for this type today.
 
 `LayoutTreePacker` depends only on the `LayoutTree`, `LayoutNode`, `LayoutBox`, `LayoutLine`, and
 `LayoutPort` types from `DemaConsulting.Rendering.Abstractions` / `DemaConsulting.Rendering`. It is
-consumed solely by `AutoLayoutAlgorithm`, which packs one placed sub-tree per routed component into a
-single combined tree.
+consumed by `AutoLayoutAlgorithm`, which packs one placed sub-tree per routed component into a
+single combined tree, and (through `Arrange`) by `Engine.Layered.ComponentPacker`. `EmptySpaceMeter` is also
+consumed by `HierarchicalLayoutAlgorithm`'s ordering refinement.
 
 #### Requirements Traceability
 
@@ -85,3 +108,6 @@ single combined tree.
 | Rendering-Layout-LayoutTreePacker-UnsupportedNodeType | LayoutTreePacker behavior described above |
 | Rendering-Layout-LayoutTreePacker-PreservesWarnings | LayoutTreePacker behavior described above |
 | Rendering-Layout-LayoutTreePacker-Validation | LayoutTreePacker behavior described above |
+| Rendering-Layout-LayoutTreePacker-FreeSpacePacking | `Arrange` free-space search, `TuckIntoHoles` |
+| Rendering-Layout-LayoutTreePacker-NeverWorseThanShelf | `Arrange` acceptance rule |
+| Rendering-Layout-LayoutTreePacker-EmptySpaceMeasure | `EmptySpaceMeter` |

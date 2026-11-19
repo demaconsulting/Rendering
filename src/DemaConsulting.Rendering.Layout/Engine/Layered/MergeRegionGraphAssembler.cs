@@ -243,17 +243,24 @@ internal static class MergeRegionGraphAssembler
     /// Defaults to 0, which resolves every node's title reserve to 0 (no exclusion), for callers that
     /// pre-date this parameter.
     /// </param>
+    /// <param name="layerSpacing">
+    /// The scope's effective <c>CoreOptions.LayerSpacing</c>: the corridor floor of the root level, inherited
+    /// by every nested level unless that level's own scope declares one (so a container's
+    /// <c>Children</c> override cascades to its interior). Defaults to
+    /// <see cref="LayeredLayoutMetrics.DefaultLayerSpacing"/>.
+    /// </param>
     /// <returns>A lookup from each level to its assembled layered graph and crossing bookkeeping.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="region"/> is <see langword="null"/>.</exception>
     public static IReadOnlyDictionary<MergeRegionLevel, LevelLayeredGraph> BuildAllLevelGraphs(
         AssembledMergeRegion region,
         LayoutDirection direction,
-        double assumedFontSize = 0.0)
+        double assumedFontSize = 0.0,
+        double layerSpacing = LayeredLayoutMetrics.DefaultLayerSpacing)
     {
         ArgumentNullException.ThrowIfNull(region);
 
         var result = new Dictionary<MergeRegionLevel, LevelLayeredGraph>();
-        BuildAllLevelGraphs(region.Root, direction, assumedFontSize, result);
+        BuildAllLevelGraphs(region.Root, direction, assumedFontSize, layerSpacing, result);
         return result;
     }
 
@@ -264,6 +271,7 @@ internal static class MergeRegionGraphAssembler
     /// <param name="level">The level to build a graph for.</param>
     /// <param name="direction">The flow direction each level's graph is laid out along.</param>
     /// <param name="assumedFontSize">The font size used to resolve each node's title reserve.</param>
+    /// <param name="inheritedLayerSpacing">The layer spacing inherited from the enclosing level.</param>
     /// <param name="sink">The accumulating level-to-graph lookup.</param>
     /// <remarks>
     /// Populates <paramref name="sink"/> in pre-order (a level before its children) and
@@ -276,12 +284,16 @@ internal static class MergeRegionGraphAssembler
         MergeRegionLevel level,
         LayoutDirection direction,
         double assumedFontSize,
+        double inheritedLayerSpacing,
         Dictionary<MergeRegionLevel, LevelLayeredGraph> sink)
     {
-        sink[level] = BuildLevelGraph(level, direction, assumedFontSize);
+        var layerSpacing = level.Scope.TryGet(CoreOptions.LayerSpacing, out var declared)
+            ? declared
+            : inheritedLayerSpacing;
+        sink[level] = BuildLevelGraph(level, direction, assumedFontSize, layerSpacing);
         foreach (var (_, _, child) in level.Children)
         {
-            BuildAllLevelGraphs(child, direction, assumedFontSize, sink);
+            BuildAllLevelGraphs(child, direction, assumedFontSize, layerSpacing, sink);
         }
     }
 
@@ -291,7 +303,7 @@ internal static class MergeRegionGraphAssembler
     /// dummy for the same port can find the corresponding parent-scope placement once that parent level
     /// has been placed.
     /// </summary>
-    /// <param name="levels">Every nesting level's assembled graph, as built by <see cref="BuildAllLevelGraphs(AssembledMergeRegion, LayoutDirection, double)"/>.</param>
+    /// <param name="levels">Every nesting level's assembled graph, as built by <see cref="BuildAllLevelGraphs(AssembledMergeRegion, LayoutDirection, double, double)"/>.</param>
     /// <returns>A lookup from boundary port to the level owning its external-face crossing and that crossing's node index.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="levels"/> is <see langword="null"/>.</exception>
     public static IReadOnlyDictionary<LayoutGraphPort, (MergeRegionLevel Level, int NodeIndex)> BuildExternalCrossingIndex(
@@ -323,7 +335,7 @@ internal static class MergeRegionGraphAssembler
     /// <remarks>
     /// Must run after the parent level's own placement stages have completed - guaranteed by
     /// <c>LayeredLayoutPipeline.RunRecursive</c>'s parent-before-child level iteration order, itself a
-    /// consequence of <see cref="BuildAllLevelGraphs(AssembledMergeRegion, LayoutDirection, double)"/>'s pre-order
+    /// consequence of <see cref="BuildAllLevelGraphs(AssembledMergeRegion, LayoutDirection, double, double)"/>'s pre-order
     /// population (see that method's remarks) - and before this level's own <c>BrandesKopfPlacer</c> runs.
     /// The pin is read from whichever abstract axis carries the cross-axis semantic for
     /// <paramref name="direction"/>: for <see cref="LayoutDirection.Down"/>/<see cref="LayoutDirection.Up"/>
@@ -427,12 +439,17 @@ internal static class MergeRegionGraphAssembler
     /// from left/right port placement; defaults to 0 (no reserve) for callers that pre-date this
     /// parameter.
     /// </param>
+    /// <param name="layerSpacing">
+    /// The corridor floor between adjacent layers of this level, mirroring <c>CoreOptions.LayerSpacing</c>;
+    /// defaults to <see cref="LayeredLayoutMetrics.DefaultLayerSpacing"/>.
+    /// </param>
     /// <returns>The per-level layered graph and its hierarchy-crossing bookkeeping, ready to feed the recursive pipeline.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="level"/> is <see langword="null"/>.</exception>
     internal static LevelLayeredGraph BuildLevelGraph(
         MergeRegionLevel level,
         LayoutDirection direction = LayoutDirection.Right,
-        double assumedFontSize = 0.0)
+        double assumedFontSize = 0.0,
+        double layerSpacing = LayeredLayoutMetrics.DefaultLayerSpacing)
     {
         ArgumentNullException.ThrowIfNull(level);
 
@@ -464,7 +481,7 @@ internal static class MergeRegionGraphAssembler
             var target = ResolveMemberIndex(level, edge.Target);
             if (source >= 0 && target >= 0)
             {
-                edges.Add(new LayerEdge(source, target));
+                edges.Add(new LayerEdge(source, target, TargetApproach: LayeredLayoutAlgorithm.ResolveEndApproach(edge.TargetEnd)));
                 edgeRoles.Add(new LevelEdgeRole(LevelEdgeKind.Ordinary, edge, Boundary: null));
             }
         }
@@ -485,7 +502,7 @@ internal static class MergeRegionGraphAssembler
             AddOutgoingCrossing(level, boundary, nodes, edges, edgeRoles, crossings);
         }
 
-        return new LevelLayeredGraph(new LayeredGraph(nodes, edges, direction), crossings, edgeRoles);
+        return new LevelLayeredGraph(new LayeredGraph(nodes, edges, direction) { LayerSpacing = layerSpacing }, crossings, edgeRoles);
     }
 
     /// <summary>
@@ -612,7 +629,7 @@ internal static class MergeRegionGraphAssembler
                 wired = true;
             }
 
-            edges.Add(new LayerEdge(dummyIndex, target));
+            edges.Add(new LayerEdge(dummyIndex, target, TargetApproach: LayeredLayoutAlgorithm.ResolveEndApproach(edge.TargetEnd)));
             edgeRoles.Add(new LevelEdgeRole(LevelEdgeKind.InternalDelegation, edge, incoming));
         }
     }
@@ -642,6 +659,8 @@ internal static class MergeRegionGraphAssembler
 
         var dummyIndex = nodes.Count;
         var wired = false;
+        var linkIndex = -1;
+        var linkApproach = 0.0;
         foreach (var edge in boundary.ExternalEdges)
         {
             var sourceEndpoint = OtherEndpoint(edge, boundary.Port);
@@ -656,14 +675,23 @@ internal static class MergeRegionGraphAssembler
             if (!wired)
             {
                 nodes.Add(new LayerNode(0.0, 0.0, RealWidth: 0.0, RealHeight: 0.0));
+                linkIndex = edges.Count;
                 edges.Add(new LayerEdge(dummyIndex, containerIndex));
                 edgeRoles.Add(new LevelEdgeRole(LevelEdgeKind.ContainerLink, Edge: null, boundary));
                 crossings.Add(new LevelCrossing(dummyIndex, boundary, HierarchyCrossingFace.External));
                 wired = true;
             }
 
+            // The shared container link is the final segment of every external approach, so it carries the
+            // widest end-marker approach among them.
+            linkApproach = Math.Max(linkApproach, LayeredLayoutAlgorithm.ResolveEndApproach(edge.TargetEnd));
             edges.Add(new LayerEdge(source, dummyIndex));
             edgeRoles.Add(new LevelEdgeRole(LevelEdgeKind.ExternalApproach, edge, boundary));
+        }
+
+        if (wired)
+        {
+            edges[linkIndex] = edges[linkIndex] with { TargetApproach = linkApproach };
         }
     }
 

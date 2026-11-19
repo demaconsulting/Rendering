@@ -30,12 +30,14 @@ Engine (Subsystem)
   Detailed in InterconnectionLayoutEngine Unit Design.
 - **LayeredPipeline** — the whole `Engine/Layered` staged layout pipeline. Detailed in
   Layered Pipeline Unit Design.
-- **LayoutTreePacker** — shelf-packs independently placed layout trees into one combined tree. Detailed
-  in LayoutTreePacker Unit Design.
+- **LayoutTreePacker** — packs independently placed layout trees into one combined tree (shelf arrangement or
+  a free-space search that fills holes beside tall pieces), and measures the largest empty square
+  (`EmptySpaceMeter`). Detailed in LayoutTreePacker Unit Design.
 - **EdgeCountGapWidener** — computes the connector-corridor width for a gap that carries several
   connectors. Detailed in EdgeCountGapWidener Unit Design.
-- **CanvasFitter** — grows a placed layout tree's canvas (translating the tree when needed) so every
-  connector and connector label lies inside it. Detailed in CanvasFitter Unit Design.
+- **CanvasFitter** — fits a placed layout tree's canvas to its content (translating the tree and growing or
+  shrinking the canvas so every connector and connector label lies inside it with a uniform padding) and trims a
+  container interior to its content. Detailed in CanvasFitter Unit Design.
 
 This subsystem design intentionally does not restate unit internals; those details live in the unit
 design documents listed above.

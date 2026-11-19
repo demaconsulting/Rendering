@@ -162,6 +162,101 @@ internal static class LayoutGeometryAssert
         AssertLabelsClear(tree);
     }
 
+    /// <summary>The engine's uniform outer canvas padding, in logical pixels.</summary>
+    public const double CanvasPadding = 20.0;
+
+    /// <summary>
+    ///     Asserts that no connector end decoration (arrowhead, diamond, ...) overlaps the border of a container
+    ///     the connector enters: along the connector's straight approach, a container border crossed closer to the
+    ///     end than the decoration is long would run through the decoration (diagram-quality criteria C9 and C10).
+    /// </summary>
+    /// <param name="tree">The final placed tree.</param>
+    /// <param name="name">A name for failure messages.</param>
+    public static void AssertMarkersClearContainerBorders(LayoutTree tree, string? name = null)
+    {
+        const double tolerance = 0.05;
+        var containers = LayoutQualityMetrics.AllBoxes(tree).Where(box => box.Children.Count > 0).ToList();
+        foreach (var line in LayoutQualityMetrics.AllLines(tree))
+        {
+            var w = line.Waypoints;
+            if (w.Count < 2)
+            {
+                continue;
+            }
+
+            foreach (var (from, end, marker) in new[] { (w[^2], w[^1], line.TargetEnd), (w[1], w[0], line.SourceEnd) })
+            {
+                var needed = NotationMetrics.RenderedAlongLineLength(marker, Themes.Light);
+                var horizontal = Math.Abs(from.Y - end.Y) < tolerance;
+                foreach (var box in containers)
+                {
+                    var (across, lo, hi, ends) = horizontal
+                        ? (end.Y, box.Y, box.Y + box.Height, new[] { box.X, box.X + box.Width })
+                        : (end.X, box.X, box.X + box.Width, new[] { box.Y, box.Y + box.Height });
+                    if (needed <= 0.0 || across <= lo + tolerance || across >= hi - tolerance)
+                    {
+                        continue;
+                    }
+
+                    var along = horizontal ? end.X : end.Y;
+                    var start = horizontal ? from.X : from.Y;
+                    foreach (var border in ends)
+                    {
+                        var distance = Math.Abs(along - border);
+                        var crossed = border > Math.Min(start, along) + tolerance && border < Math.Max(start, along) - tolerance;
+                        Assert.False(
+                            crossed && distance > tolerance && distance < needed - tolerance,
+                            $"{name}: the {marker} decoration at ({end.X:0.#},{end.Y:0.#}) is {distance:0.#} px from the border of container '{box.Label}', closer than its {needed:0.#} px length");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Asserts that the canvas of a final layout hugs its content whatever algorithm placed it: no margin
+    ///     between the drawn content and a canvas edge exceeds <paramref name="maxMargin"/> (no empty ring of
+    ///     canvas, and no more room on one side than the layout's padding) and none is smaller than
+    ///     <paramref name="minMargin"/> (no content touching an edge). Used for the gallery, whose diagrams are
+    ///     placed by algorithms with different paddings: the layered engine keeps 20 px, the containment
+    ///     algorithm 12 px, and 4 px beside a connector that wraps around its boxes.
+    /// </summary>
+    /// <param name="tree">The final placed tree.</param>
+    /// <param name="minMargin">The smallest acceptable margin, in logical pixels.</param>
+    /// <param name="maxMargin">The largest acceptable margin, in logical pixels.</param>
+    /// <param name="tolerance">The permitted deviation, in logical pixels.</param>
+    /// <param name="name">A name for failure messages.</param>
+    public static void AssertCanvasMarginsWithin(LayoutTree tree, double minMargin = 4.0, double maxMargin = CanvasPadding, double tolerance = 1.0, string? name = null)
+    {
+        var margins = LayoutQualityMetrics.Margins(tree);
+        var smallest = Math.Min(Math.Min(margins.Left, margins.Top), Math.Min(margins.Right, margins.Bottom));
+        Assert.True(
+            smallest >= minMargin - tolerance && margins.Largest <= maxMargin + tolerance,
+            $"{name}: the {tree.Width:0.#}x{tree.Height:0.#} canvas does not hug its content (margins {margins}, expected {minMargin:0.#} to {maxMargin:0.#} px on every side)");
+    }
+
+    /// <summary>
+    ///     Asserts that the canvas of a final layout hugs its content: the distance between the drawn content
+    ///     (boxes, connector waypoints, resolved connector labels, ports and outward port labels, see
+    ///     <see cref="LayoutQualityMetrics.Margins"/>) and every canvas edge equals
+    ///     <paramref name="padding"/> within <paramref name="tolerance"/>, so no empty ring of canvas surrounds
+    ///     the diagram and no content touches an edge.
+    /// </summary>
+    /// <param name="tree">The final placed tree.</param>
+    /// <param name="padding">The expected margin on every side, in logical pixels.</param>
+    /// <param name="tolerance">The permitted deviation, in logical pixels.</param>
+    /// <param name="name">A name for failure messages.</param>
+    public static void AssertCanvasHugsContent(LayoutTree tree, double padding = CanvasPadding, double tolerance = 1.0, string? name = null)
+    {
+        var margins = LayoutQualityMetrics.Margins(tree);
+        Assert.True(
+            Math.Abs(margins.Left - padding) <= tolerance
+            && Math.Abs(margins.Top - padding) <= tolerance
+            && Math.Abs(margins.Right - padding) <= tolerance
+            && Math.Abs(margins.Bottom - padding) <= tolerance,
+            $"{name}: the {tree.Width:0.#}x{tree.Height:0.#} canvas does not hug its content (expected {padding:0.#} px on every side): margins {margins}");
+    }
+
     /// <summary>
     ///     Asserts that arrowheads (connector target ends carrying a marker) that land on the same face of the
     ///     same box are at least <paramref name="minimum"/> apart, so parallel connectors into one node never

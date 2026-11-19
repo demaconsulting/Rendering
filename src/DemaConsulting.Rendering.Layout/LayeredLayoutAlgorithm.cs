@@ -15,7 +15,9 @@ namespace DemaConsulting.Rendering.Layout;
 /// pipeline under <c>Engine/Layered/</c>. It honors <see cref="CoreOptions.Direction"/> so the layers
 /// progress right, left, down, or up (a downward flow lays action-flow and state-transition diagrams
 /// out top-to-bottom), <see cref="CoreOptions.NodeSpacing"/> so the minimum gap between nodes stacked
-/// in the same layer can be widened or narrowed from the engine's default, and
+/// in the same layer can be widened or narrowed from the engine's default, <see cref="CoreOptions.LayerSpacing"/>
+/// so the corridor between adjacent layers is at least that wide (a floor: the connector routing and end
+/// labels may still need more), and
 /// <see cref="CoreOptions.MergeParallelEdges"/> so parallel input edges either collapse to one
 /// rendered connector (the default) or each keep their own independently-routed line. An edge whose
 /// <see cref="LayoutGraphEdge.Source"/> or <see cref="LayoutGraphEdge.Target"/> is a
@@ -81,10 +83,12 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         var indexOf = new Dictionary<LayoutGraphNode, int>(count);
         var portOwnerIndex = new Dictionary<LayoutGraphPort, int>();
         var engineNodes = new LayerNode[count];
+        var orderRanks = options.Get(HierarchicalLayoutAlgorithm.OrderRanks);
         for (var i = 0; i < count; i++)
         {
             var node = graphNodes[i];
             indexOf[node] = i;
+            var orderRank = orderRanks != null && orderRanks.TryGetValue(node, out var ranked) ? ranked : double.NaN;
             // TitleReserveTop excludes a band from PortDistributor's left/right-face port placement
             // (see PortDistributor.TitleReserveFor) to keep a *named* port's rendered label clear of
             // the title. A node with no declared LayoutGraphPorts only has plain, unlabeled edge
@@ -107,7 +111,8 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                         HasBodyTitle(node),
                         node.Keyword != null,
                         assumedFontSize)
-                    : 0.0);
+                    : 0.0,
+                OrderRank: orderRank);
 
             if (!node.HasPorts)
             {
@@ -153,7 +158,8 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
                 EndLabelAlong(edge.SourceEndLabel, verticalFlow, assumedFontSize, EndMarkerStyle.None, sourcePort)
                     + OutwardPortLabelAlong(sourcePort, verticalFlow, assumedFontSize, EndMarkerStyle.None),
                 EndLabelAlong(edge.TargetEndLabel, verticalFlow, assumedFontSize, edge.TargetEnd, targetPort)
-                    + OutwardPortLabelAlong(targetPort, verticalFlow, assumedFontSize, EndMarkerStyle.None)));
+                    + OutwardPortLabelAlong(targetPort, verticalFlow, assumedFontSize, EndMarkerStyle.None),
+                ResolveEndApproach(edge.TargetEnd)));
             edgeSourcePorts.Add(sourcePort);
             edgeTargetPorts.Add(targetPort);
             edgeByEngineIndex.Add(edge);
@@ -169,6 +175,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
 
         var direction = ToEngineDirection(ResolveDirection(graph, options));
         var nodeSpacing = ResolveNodeSpacing(graph, options);
+        var layerSpacing = ResolveLayerSpacing(graph, options);
         var mergeParallelEdges = ResolveMergeParallelEdges(graph, options);
         var backEdgeEntryApproach = ResolveBackEdgeEntryApproach(edgeByEngineIndex);
 
@@ -218,7 +225,7 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             LayerNode[] nodesForPass)
         {
             var passResult = InterconnectionLayoutEngine.Place(
-                nodesForPass, engineEdges, direction, nodeSpacing, mergeParallelEdges, backEdgeEntryApproach);
+                nodesForPass, engineEdges, direction, nodeSpacing, mergeParallelEdges, backEdgeEntryApproach, layerSpacing: layerSpacing);
 
             // Build an engine-edge-index -> (waypoints, reversed) lookup from the acyclic edge set the
             // engine routed. When MergeParallelEdges is true, CycleBreaker has already collapsed
@@ -745,7 +752,11 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
             }
         }
 
-        return CanvasFitter.Fit(new LayoutTree(result.TotalWidth, result.TotalHeight, nodes), assumedFontSize);
+        // The canvas is the drawn content plus one Padding on every side: the final canvas fit measures the
+        // boxes, connectors, resolved labels and ports, so the reflection of a Left or Up flow (which leaves
+        // the content one padding off-center), a label reaching into the padding band, and a connector
+        // detour all end with the same margin.
+        return CanvasFitter.Fit(new LayoutTree(result.TotalWidth, result.TotalHeight, nodes), assumedFontSize, LayeredLayoutMetrics.Padding);
     }
 
     /// <summary>
@@ -1080,14 +1091,23 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         var approach = LayeredLayoutMetrics.ConnectorClearance;
         foreach (var edge in edges)
         {
-            var needed = NotationMetrics.RenderedAlongLineLength(edge.TargetEnd, Themes.Light)
-                + Themes.Light.LineCornerRadius
-                + Themes.Light.CleanLegMargin;
-            approach = Math.Max(approach, needed);
+            approach = Math.Max(approach, ResolveEndApproach(edge.TargetEnd));
         }
 
         return approach;
     }
+
+    /// <summary>
+    /// Returns the straight run a connector must keep into an end decoration so the rounded corner before
+    /// it never intrudes into the decoration: its rendered along-line length plus the corner radius plus the
+    /// clean-leg margin (the same formula the connector router uses for a forward edge's end leg).
+    /// </summary>
+    /// <param name="end">The decoration drawn at the connector end.</param>
+    /// <returns>The required straight approach, in logical pixels.</returns>
+    internal static double ResolveEndApproach(EndMarkerStyle end) =>
+        NotationMetrics.RenderedAlongLineLength(end, Themes.Light)
+            + Themes.Light.LineCornerRadius
+            + Themes.Light.CleanLegMargin;
 
     /// <summary>
     /// Returns whether a node has a name label that occupies the body title band: it has a label and
@@ -1188,6 +1208,26 @@ public sealed class LayeredLayoutAlgorithm : LayoutAlgorithmBase
         return options.TryGet(CoreOptions.NodeSpacing, out var fromOptions)
             ? fromOptions
             : CoreOptions.NodeSpacing.DefaultValue;
+    }
+
+    /// <summary>
+    /// Resolves the minimum corridor width between adjacent layers: an explicit
+    /// <see cref="CoreOptions.LayerSpacing"/> on the graph takes precedence, then one on the options,
+    /// falling back to the property default when neither declares one.
+    /// </summary>
+    /// <param name="graph">The graph whose explicit layer-spacing declaration takes precedence.</param>
+    /// <param name="options">The options consulted when the graph declares no layer spacing.</param>
+    /// <returns>The minimum layer-to-layer corridor width, in logical pixels, to lay the graph out with.</returns>
+    internal static double ResolveLayerSpacing(LayoutGraph graph, LayoutOptions options)
+    {
+        if (graph.TryGet(CoreOptions.LayerSpacing, out var fromGraph))
+        {
+            return fromGraph;
+        }
+
+        return options.TryGet(CoreOptions.LayerSpacing, out var fromOptions)
+            ? fromOptions
+            : CoreOptions.LayerSpacing.DefaultValue;
     }
 
     /// <summary>

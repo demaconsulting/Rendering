@@ -410,6 +410,156 @@ public sealed class ComponentPackerTests
         Assert.True(MaxBackEdgeBendX(large) > MaxBackEdgeBendX(small));
     }
 
+    /// <summary>
+    ///     Disconnected single nodes carrying order ranks are packed in ascending rank order (not input
+    ///     order), so a caller can steer the arrangement without reordering its node list.
+    /// </summary>
+    [Fact]
+    public void ComponentPacker_OrderRank_OrdersComponentsByRank()
+    {
+        // Arrange: three isolated nodes whose ranks reverse and rotate the input order (1, 2, 0).
+        var nodes = new List<LayerNode>
+        {
+            new(NodeWidth, NodeHeight, OrderRank: 2.0),
+            new(NodeWidth, NodeHeight, OrderRank: 0.0),
+            new(NodeWidth, NodeHeight, OrderRank: 1.0),
+        };
+        var graph = new LayeredGraph(nodes, [], LayoutDirection.Right);
+
+        // Act
+        ComponentPacker.WithDefaultStages().Apply(graph);
+
+        // Assert: shelf order (top to bottom, then left to right) follows the ranks.
+        var packedOrder = Enumerable.Range(0, 3).OrderBy(i => graph.AugY[i]).ThenBy(i => graph.AugX[i]).ToList();
+        Assert.Equal([1, 2, 0], packedOrder);
+    }
+
+    /// <summary>
+    ///     Two connected components are ordered by the lowest (rank, index) of their members: a component
+    ///     whose lowest member rank is smaller is packed first even when it comes later in the input.
+    /// </summary>
+    [Fact]
+    public void ComponentPacker_OrderRank_ComponentOrderUsesLowestMemberRank()
+    {
+        // Arrange: component A = {0, 1} with high ranks, component B = {2, 3} whose member 3 has rank 0.
+        var nodes = new List<LayerNode>
+        {
+            new(NodeWidth, NodeHeight, OrderRank: 5.0),
+            new(NodeWidth, NodeHeight, OrderRank: 6.0),
+            new(NodeWidth, NodeHeight, OrderRank: 7.0),
+            new(NodeWidth, NodeHeight, OrderRank: 0.0),
+        };
+        var edges = new List<LayerEdge> { new(0, 1), new(2, 3) };
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right);
+
+        // Act
+        ComponentPacker.WithDefaultStages().Apply(graph);
+
+        // Assert: B's origin precedes A's in shelf order (top to bottom, then left to right).
+        var originAY = Math.Min(graph.AugY[0], graph.AugY[1]);
+        var originAX = Math.Min(graph.AugX[0], graph.AugX[1]);
+        var originBY = Math.Min(graph.AugY[2], graph.AugY[3]);
+        var originBX = Math.Min(graph.AugX[2], graph.AugX[3]);
+        Assert.True(
+            originBY < originAY - 0.5 || (Math.Abs(originBY - originAY) <= 0.5 && originBX < originAX),
+            $"component B should be packed before A (A=({originAX},{originAY}), B=({originBX},{originBY}))");
+    }
+
+    /// <summary>
+    ///     The members of one component are handed to the layered stages in rank order, so unconstrained
+    ///     siblings stack in rank order within the component.
+    /// </summary>
+    [Fact]
+    public void ComponentPacker_OrderRank_OrdersMembersWithinComponent()
+    {
+        // Arrange: a fork 0 -> {1, 2} plus a disconnected pair so the multi-component path runs; the
+        // ranks put member 2 before member 1.
+        var nodes = new List<LayerNode>
+        {
+            new(NodeWidth, NodeHeight, OrderRank: 0.0),
+            new(NodeWidth, NodeHeight, OrderRank: 2.0),
+            new(NodeWidth, NodeHeight, OrderRank: 1.0),
+            new(NodeWidth, NodeHeight, OrderRank: 3.0),
+            new(NodeWidth, NodeHeight, OrderRank: 4.0),
+        };
+        var edges = new List<LayerEdge> { new(0, 1), new(0, 2), new(3, 4) };
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Right);
+
+        // Act
+        ComponentPacker.WithDefaultStages().Apply(graph);
+
+        // Assert: sibling 2 sits above sibling 1.
+        Assert.True(graph.AugY[2] < graph.AugY[1], $"member 2 (rank 1) should be above member 1 (rank 2): {graph.AugY[2]} vs {graph.AugY[1]}");
+    }
+
+    /// <summary>
+    ///     Nodes whose rank is NaN (the default) are packed exactly as if no rank existed: input order, and
+    ///     byte-identical coordinates.
+    /// </summary>
+    [Fact]
+    public void ComponentPacker_OrderRank_NaNRanks_IdenticalToUnranked()
+    {
+        // Arrange: the same disconnected graph with and without explicit NaN ranks.
+        LayeredGraph Build(double rank)
+        {
+            var nodes = new List<LayerNode>
+            {
+                new(NodeWidth, NodeHeight, OrderRank: rank),
+                new(NodeWidth, NodeHeight, OrderRank: rank),
+                new(NodeWidth, NodeHeight, OrderRank: rank),
+                new(NodeWidth, NodeHeight, OrderRank: rank),
+            };
+            return new LayeredGraph(nodes, [new LayerEdge(1, 2)], LayoutDirection.Right);
+        }
+
+        var unranked = new LayeredGraph(
+            [new(NodeWidth, NodeHeight), new(NodeWidth, NodeHeight), new(NodeWidth, NodeHeight), new(NodeWidth, NodeHeight)],
+            [new LayerEdge(1, 2)],
+            LayoutDirection.Right);
+        var nan = Build(double.NaN);
+
+        // Act
+        ComponentPacker.WithDefaultStages().Apply(unranked);
+        ComponentPacker.WithDefaultStages().Apply(nan);
+
+        // Assert
+        Assert.Equal(unranked.AugX.Take(4), nan.AugX.Take(4));
+        Assert.Equal(unranked.AugY.Take(4), nan.AugY.Take(4));
+    }
+
+    /// <summary>
+    ///     A tall component (a chain flowing down) followed by isolated nodes: the isolated nodes are tucked
+    ///     into the space beside the chain instead of wrapping onto a row below it, so the canvas ends with
+    ///     the chain and does not grow by another row.
+    /// </summary>
+    [Fact]
+    public void ComponentPacker_Apply_TallComponentPlusIsolatedNodes_TucksIsolatedNodesBesideIt()
+    {
+        // Arrange: a six-node chain flowing down (tall and narrow) and three isolated nodes.
+        var nodes = Enumerable.Range(0, 9).Select(_ => new LayerNode(NodeWidth, NodeHeight, RealWidth: NodeWidth, RealHeight: NodeHeight)).ToList();
+        var edges = Enumerable.Range(0, 5).Select(i => new LayerEdge(i, i + 1)).ToList();
+        var graph = new LayeredGraph(nodes, edges, LayoutDirection.Down);
+
+        // Act
+        ComponentPacker.WithDefaultStages().Apply(graph);
+
+        // Assert: no isolated node starts at or below the chain's last node (none wrapped under the chain)
+        // and no two nodes overlap.
+        var lastChainTop = graph.AugY[5];
+        foreach (var isolated in new[] { 6, 7, 8 })
+        {
+            Assert.True(graph.AugY[isolated] < lastChainTop, $"isolated node {isolated} is below the chain");
+        }
+
+        for (var a = 0; a < nodes.Count; a++)
+        {
+            for (var b = a + 1; b < nodes.Count; b++)
+            {
+                Assert.False(BoxesOverlap(graph, a, b), $"nodes {a} and {b} overlap");
+            }
+        }
+    }
+
     /// <summary>Finds the furthest first-bend-point X coordinate among a graph's reversed (back) edges.</summary>
     /// <param name="graph">The laid-out graph.</param>
     /// <returns>The maximum X coordinate of the first bend point across all reversed edges.</returns>

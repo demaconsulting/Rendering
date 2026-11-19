@@ -88,6 +88,21 @@ internal sealed record RouteHints
     public double CrossingPenalty { get; init; }
 
     /// <summary>
+    /// Gets the thin rectangles (one per segment, as built for soft obstacles) of lines that already
+    /// exist around the connector and are not part of its batch — the interior connectors of the
+    /// containers enclosing its endpoints — or <see langword="null"/> for none. They must also be
+    /// passed as soft obstacles; this only adds the <see cref="ExistingLineCrossingPenalty"/> to a
+    /// right-angle crossing of one of them, on top of the ordinary soft cost.
+    /// </summary>
+    public IReadOnlyList<Rect>? ExistingLines { get; init; }
+
+    /// <summary>
+    /// Gets the extra cost charged each time the route crosses one of the <see cref="ExistingLines"/>
+    /// at right angles; ignored when there are none.
+    /// </summary>
+    public double ExistingLineCrossingPenalty { get; init; }
+
+    /// <summary>
     /// Gets the shortest interior segment (one between two bends) the route may contain; zero allows any.
     /// The first and the last segment are exempt (the end-leg zones govern them) and a segment may never
     /// reverse direction to satisfy the minimum. It is a hard constraint on a first pass over every
@@ -442,6 +457,13 @@ internal static class OrthogonalEdgeRouter
 
         var starts = BuildTerminals(source, stubs.Source, xAxis, yAxis);
         var goals = BuildTerminals(target, stubs.Target, xAxis, yAxis);
+
+        // A range whose permitted intervals hold no grid line (every port of the face excluded) offers no terminal.
+        if (starts.Count == 0 || goals.Count == 0)
+        {
+            return null;
+        }
+
         extras?.SetTerminals(starts, goals);
 
         var found = AStar(xAxis, yAxis, starts, goals, obstacles, c, costBands, softObstacles, extras);
@@ -763,17 +785,32 @@ internal static class OrthogonalEdgeRouter
     /// <summary>The extra, hint-driven search terms resolved for one clearance level.</summary>
     private sealed class SearchExtras
     {
-        public SearchExtras(IReadOnlyList<ZoneSpec> zones, IReadOnlyList<WallSpec> walls, double crossingPenalty, double clearance, double minSegment)
+        public SearchExtras(
+            IReadOnlyList<ZoneSpec> zones,
+            IReadOnlyList<WallSpec> walls,
+            double crossingPenalty,
+            double clearance,
+            double minSegment,
+            IReadOnlyList<Rect>? existingLines = null,
+            double existingLinePenalty = 0.0)
         {
             Zones = zones;
             Walls = walls;
             CrossingPenalty = crossingPenalty;
             MinSegment = minSegment;
+            ExistingLines = existingLines is { Count: > 0 } && existingLinePenalty > 0.0 ? existingLines : null;
+            ExistingLinePenalty = existingLinePenalty;
             _rewardDistance = WallDistanceRewardScale * clearance;
         }
 
         /// <summary>Gets the minimum interior segment length enforced by the search; zero for none.</summary>
         public double MinSegment { get; }
+
+        /// <summary>Gets the rectangles of pre-existing lines charged an extra crossing penalty, or <see langword="null"/>.</summary>
+        public IReadOnlyList<Rect>? ExistingLines { get; }
+
+        /// <summary>Gets the extra cost of crossing one of <see cref="ExistingLines"/>.</summary>
+        public double ExistingLinePenalty { get; }
 
         public IReadOnlyList<ZoneSpec> Zones { get; }
 
@@ -952,7 +989,14 @@ internal static class OrthogonalEdgeRouter
             }
         }
 
-        return new SearchExtras(zones, walls, hints.CrossingPenalty, clearance, enforceMinSegment ? hints.MinInteriorSegment : 0.0);
+        return new SearchExtras(
+            zones,
+            walls,
+            hints.CrossingPenalty,
+            clearance,
+            enforceMinSegment ? hints.MinInteriorSegment : 0.0,
+            hints.ExistingLines,
+            hints.ExistingLineCrossingPenalty);
     }
 
     /// <summary>Registers one end's leg zone and the grid lines at its boundaries.</summary>
@@ -1053,6 +1097,16 @@ internal static class OrthogonalEdgeRouter
         // fresh empty array on every A* iteration.
         var resolvedSoftObstacles = softObstacles ?? [];
 
+        // A search whose goals cannot be reached over the grid at all (the free grid edges, ignoring costs,
+        // turns and the minimum interior segment, which can only remove moves) fails after expanding every
+        // state reachable from the starts, by far the most expensive way to find that out. A plain
+        // connectivity sweep over the nodes finds it out at a fraction of the cost and never disagrees
+        // with the search: every move the search may make is a free grid edge the sweep follows too.
+        if (!NodesConnected(xs, ys, starts, goals, obstacles, clearance, extras))
+        {
+            return (null, 0.0);
+        }
+
         while (open.Count > 0)
         {
             var current = open.Dequeue();
@@ -1129,6 +1183,11 @@ internal static class OrthogonalEdgeRouter
                     {
                         extraCost += extras.CrossingPenalty * SoftCrossingCount(xs, ys, ci, cj, ni, nj, resolvedSoftObstacles);
                     }
+
+                    if (extras.ExistingLines is not null)
+                    {
+                        extraCost += extras.ExistingLinePenalty * SoftCrossingCount(xs, ys, ci, cj, ni, nj, extras.ExistingLines);
+                    }
                 }
 
                 var tentative = g + (stepLength * bandMultiplier * channelMultiplier) + turnCost + softCost + extraCost;
@@ -1147,6 +1206,79 @@ internal static class OrthogonalEdgeRouter
         }
 
         return (null, 0.0);
+    }
+
+    /// <summary>
+    /// Returns whether any goal terminal can be reached from any start terminal over the free edges of the
+    /// grid, ignoring every cost, turn and minimum-segment rule: the hard blocks only (obstacles inflated by
+    /// the clearance, wall strips). It is a relaxation of the A* search, so a search for which this is
+    /// <see langword="false"/> can only fail.
+    /// </summary>
+    /// <param name="xs">The grid's x lines.</param>
+    /// <param name="ys">The grid's y lines.</param>
+    /// <param name="starts">The start terminals.</param>
+    /// <param name="goals">The goal terminals.</param>
+    /// <param name="obstacles">The hard obstacles.</param>
+    /// <param name="clearance">The clearance of the level searched.</param>
+    /// <param name="extras">The hint-driven terms (wall strips), or <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> when a goal node is reachable from a start node.</returns>
+    private static bool NodesConnected(
+        double[] xs,
+        double[] ys,
+        IReadOnlyList<Terminal> starts,
+        IReadOnlyList<Terminal> goals,
+        IReadOnlyList<Rect> obstacles,
+        double clearance,
+        SearchExtras? extras)
+    {
+        var nx = xs.Length;
+        var ny = ys.Length;
+        var seen = new bool[nx * ny];
+        var queue = new int[nx * ny];
+        var isGoal = new bool[nx * ny];
+        foreach (var goal in goals)
+        {
+            isGoal[(goal.I * ny) + goal.J] = true;
+        }
+
+        var head = 0;
+        var tail = 0;
+        foreach (var start in starts)
+        {
+            var id = (start.I * ny) + start.J;
+            if (!seen[id])
+            {
+                seen[id] = true;
+                queue[tail++] = id;
+            }
+        }
+
+        while (head < tail)
+        {
+            var id = queue[head++];
+            if (isGoal[id])
+            {
+                return true;
+            }
+
+            var ci = id / ny;
+            var cj = id % ny;
+            foreach (var (ni, nj, _) in Neighbors(ci, cj, nx, ny))
+            {
+                var next = (ni * ny) + nj;
+                if (seen[next]
+                    || SegmentBlocked(xs, ys, ci, cj, ni, nj, obstacles, clearance)
+                    || (extras is not null && extras.WallBlocked(xs, ys, ci, cj, ni, nj)))
+                {
+                    continue;
+                }
+
+                seen[next] = true;
+                queue[tail++] = next;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

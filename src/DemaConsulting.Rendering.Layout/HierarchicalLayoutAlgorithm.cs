@@ -98,7 +98,7 @@ namespace DemaConsulting.Rendering.Layout;
 ///     // new SvgRenderer().Render(tree, new RenderOptions(Themes.Light), stream);
 ///     </code>
 /// </example>
-public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
+public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
 {
     /// <summary>
     /// The stable algorithm identifier <c>"hierarchical"</c> under which this algorithm is selected and
@@ -141,6 +141,53 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     private static readonly object LayoutOnlyMarker = new();
 
     /// <summary>
+    /// Internal order-rank hint: a rank per node (keyed by node identity) that the bundled leaf
+    /// algorithms use to decide the order of nodes they would otherwise place in input order — the order
+    /// of disconnected components, of a component's members, and of unconstrained siblings. Smaller ranks
+    /// are placed first; a node missing from the dictionary is unranked and falls back to input order, so
+    /// a scope with no hint lays out exactly as it always has. The hint travels in the scopes' effective
+    /// <see cref="LayoutOptions"/> (never on the caller's graph or nodes, which are not mutated) and is
+    /// inherited by nested scopes; whenever an algorithm works on copies of the nodes (the sized view,
+    /// <see cref="AutoLayoutAlgorithm"/>'s split-off components) the keys are translated onto the copies
+    /// with <see cref="TranslateOrderRanks"/>.
+    /// </summary>
+    internal static readonly LayoutProperty<IReadOnlyDictionary<LayoutGraphNode, double>?> OrderRanks =
+        new("rendering.layout.hierarchical.orderRanks", null);
+
+    /// <summary>
+    /// Returns <paramref name="effective"/> with its <see cref="OrderRanks"/> hint re-keyed from the
+    /// original nodes onto their copies (<paramref name="copyOf"/>), leaving the rank values unchanged and
+    /// every other option as it is. When the options carry no hint, <paramref name="effective"/> itself is
+    /// returned. Neither <paramref name="effective"/> nor the original hint is modified.
+    /// </summary>
+    /// <param name="effective">The effective options of the scope being copied.</param>
+    /// <param name="copyOf">A map from each original node to its copy.</param>
+    /// <returns>Options whose hint is keyed by the copies.</returns>
+    internal static LayoutOptions TranslateOrderRanks(
+        LayoutOptions effective,
+        IReadOnlyDictionary<LayoutGraphNode, LayoutGraphNode> copyOf)
+    {
+        var ranks = effective.Get(OrderRanks);
+        if (ranks == null || ranks.Count == 0)
+        {
+            return effective;
+        }
+
+        var translated = new Dictionary<LayoutGraphNode, double>();
+        foreach (var pair in copyOf)
+        {
+            if (ranks.TryGetValue(pair.Key, out var rank))
+            {
+                translated[pair.Value] = rank;
+            }
+        }
+
+        var overlay = new LayoutOptions();
+        overlay.Set<IReadOnlyDictionary<LayoutGraphNode, double>?>(OrderRanks, translated);
+        return overlay.OverlayOnto(effective);
+    }
+
+    /// <summary>
     /// Marks <paramref name="edge"/> as layout-only: it influences placement but is never drawn.
     /// Marking an already-marked edge is a no-op.
     /// </summary>
@@ -170,6 +217,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// before the cascading-sizing pass grows it, so sub-pixel rounding never triggers a spurious re-run.
     /// </summary>
     private const double SizingTolerance = 0.5;
+
 
     /// <summary>
     /// Default height, in logical pixels, of the title band reserved at the top of a container that
@@ -293,7 +341,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         // The root scope's own explicit overrides (set directly on the graph) win over the supplied
         // options, giving the root the same "own overrides win" treatment every nested scope receives.
         var effective = graph.OverlayOnto(options);
-        return LayoutScope(graph, effective);
+        return LayoutScope(graph, WithRefinementContext(effective));
     }
 
     /// <summary>
@@ -320,11 +368,170 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             return algo.ApplyCore(graph, effective);
         }
 
+        // The first pass is the engine's ordinary result; the cross-hierarchy ordering refinement (see
+        // HierarchicalLayoutAlgorithm.CrossOrdering.cs) only ever replaces it by a measurably better one,
+        // and returns it untouched when the scope has nothing to refine.
+        var first = LayoutScopePass(graph, algo, effective);
+        return RefineCrossOrdering(graph, algo, effective, first);
+    }
+
+    /// <summary>
+    /// Runs one complete hierarchical pass over a scope that has at least one container among its direct
+    /// nodes: lays out every container child, places this level over a sized view, composes the
+    /// sub-layouts, and routes the cross-container edges.
+    /// </summary>
+    /// <param name="graph">The container scope to place.</param>
+    /// <param name="algo">The leaf algorithm the scope is placed with.</param>
+    /// <param name="effective">The scope's cascaded effective options (including any order-rank hint).</param>
+    /// <param name="route">
+    /// Whether the cross-container edges are routed. A placement-only pass (<see langword="false"/>) is
+    /// what the ordering refinement scores candidate orders with before it pays for a routed pass; it is
+    /// only valid for a scope without boundary ports.
+    /// </param>
+    /// <returns>The placed tree and the structural facts the ordering refinement needs.</returns>
+    private ScopePass LayoutScopePass(LayoutGraph graph, LayoutAlgorithmBase algo, LayoutOptions effective, bool route = true)
+    {
+        // Tightening a container to its content plus one ContainerPadding leaves less room beside the first
+        // box than the engine's comfort rule asks of a connector that enters the container (a run along the
+        // border keeps 2 x clearance from it). The scope is first laid out with every container tight; when
+        // a routed connector hugs the border of a container, it is laid out once more with every container
+        // a routed connector enters keeping the room it always had (the other containers stay tight), and
+        // the scope remembers that choice for its later passes.
+        //
+        // Tightening is only worth keeping when it does not make the routes worse: a routed pass is also
+        // laid out with every container loose (the room the containers always had) and the tight layout is
+        // kept only when its connectors cross no more, bend no more, double back no more and run no closer
+        // beside one another than the loose layout's. The decision is remembered so the placement-only
+        // passes of the ordering refinement see the same container sizes.
+        var context = effective.Get(RefinementContext);
+        var loose = context?.LooseContainersOf(graph) ?? [];
+        var containers = graph.Nodes.Where(node => node.HasChildren).ToHashSet();
+        var inherited = effective.Get(LooseContainerNodes);
+
+        // The direct-member containers kept loose: the scope's own comfort fallback plus those an ancestor
+        // scope (or this scope's decision) keeps loose.
+        HashSet<LayoutGraphNode> DirectLoose(ISet<LayoutGraphNode>? deep)
+        {
+            var direct = new HashSet<LayoutGraphNode>(loose);
+            direct.UnionWith(containers.Where(node => (inherited?.Contains(node) ?? false) || (deep?.Contains(node) ?? false)));
+            return direct;
+        }
+
+        // A placement-only pass uses the container sizes the last routed pass of the scope settled on.
+        var settled = route ? null : context?.SettledLooseNodes(graph);
+        if (settled != null)
+        {
+            return LayoutScopePassOnce(graph, algo, WithLooseNodes(effective, settled), route, DirectLoose(settled), [], []);
+        }
+
+        var violators = new HashSet<LayoutGraphNode>();
+        var entered = new HashSet<LayoutGraphNode>();
+        var enteredDeep = new HashSet<LayoutGraphNode>();
+        var pass = LayoutScopePassOnce(graph, algo, effective, route, DirectLoose(null), violators, entered, enteredDeep);
+        if (violators.Count > 0)
+        {
+            var before = loose.Count;
+            loose.UnionWith(entered);
+            if (loose.Count != before)
+            {
+                pass = LayoutScopePassOnce(graph, algo, effective, route, DirectLoose(null), [], []);
+            }
+        }
+
+        if (!route || pass.RoutedEdges is null || pass.RoutedEdges.Count == 0 || containers.IsSubsetOf(DirectLoose(null)))
+        {
+            return pass;
+        }
+
+        // The reference: every container of the scope and of every scope below it keeps its former room.
+        var everything = new HashSet<LayoutGraphNode>();
+        CollectContainers(graph, everything);
+        if (inherited != null)
+        {
+            everything.UnionWith(inherited);
+        }
+
+        var reference = LayoutScopePassOnce(graph, algo, WithLooseNodes(effective, everything), route, containers, [], []);
+        if (KeepsTightening(pass.Tree, reference.Tree))
+        {
+            context?.SetSettledLooseNodes(graph, null);
+            return pass;
+        }
+
+        // Tightening made the routes worse. Before every container keeps its former room, try keeping it only
+        // for the containers a routed connector enters (at any depth): the connectors cannot be worse beside
+        // a container they do not enter. Keep that when it is no worse than the reference either.
+        var middle = new HashSet<LayoutGraphNode>(enteredDeep);
+        if (inherited != null)
+        {
+            middle.UnionWith(inherited);
+        }
+
+        if (!everything.IsSubsetOf(middle))
+        {
+            var middlePass = LayoutScopePassOnce(graph, algo, WithLooseNodes(effective, middle), route, DirectLoose(middle), [], []);
+            if (KeepsTightening(middlePass.Tree, reference.Tree))
+            {
+                context?.SetSettledLooseNodes(graph, middle);
+                return middlePass;
+            }
+        }
+
+        context?.SetSettledLooseNodes(graph, everything);
+        return reference;
+    }
+
+    /// <summary>
+    /// Adds every container (node with children) of <paramref name="graph"/> and of every scope below it to
+    /// <paramref name="containers"/>.
+    /// </summary>
+    /// <param name="graph">The scope.</param>
+    /// <param name="containers">Receives the containers.</param>
+    private static void CollectContainers(LayoutGraph graph, HashSet<LayoutGraphNode> containers)
+    {
+        foreach (var node in graph.Nodes)
+        {
+            if (node.HasChildren)
+            {
+                containers.Add(node);
+                CollectContainers(node.Children, containers);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Runs one hierarchical pass of a scope (see <see cref="LayoutScopePass"/>) with the containers in
+    /// <paramref name="loose"/> kept at their untrimmed size.
+    /// </summary>
+    /// <param name="graph">The container scope to place.</param>
+    /// <param name="algo">The leaf algorithm the scope is placed with.</param>
+    /// <param name="effective">The scope's cascaded effective options (including any order-rank hint).</param>
+    /// <param name="route">Whether the cross-container edges are routed.</param>
+    /// <param name="loose">The direct-member containers that are not tightened to their content.</param>
+    /// <param name="violators">Receives the direct-member containers whose border a routed connector hugs.</param>
+    /// <param name="entered">Receives the direct-member containers that hold an endpoint of a routed connector.</param>
+    /// <param name="enteredDeep">Receives every container, at any depth, that holds an endpoint of a routed connector.</param>
+    /// <returns>The placed tree and the structural facts the ordering refinement needs.</returns>
+    private ScopePass LayoutScopePassOnce(
+        LayoutGraph graph,
+        LayoutAlgorithmBase algo,
+        LayoutOptions effective,
+        bool route,
+        HashSet<LayoutGraphNode> loose,
+        HashSet<LayoutGraphNode> violators,
+        HashSet<LayoutGraphNode> entered,
+        HashSet<LayoutGraphNode>? enteredDeep = null)
+    {
         // Hierarchical path (SeparateChildren): recurse into each container child, size it to fit, place
         // this level over a sized view, compose the sub-layouts, and route cross-container edges.
         var subLayouts = new Dictionary<LayoutGraphNode, LayoutTree>();
         var effectiveSize = new Dictionary<LayoutGraphNode, (double Width, double Height)>();
-        LayoutContainerChildren(graph, effective, subLayouts, effectiveSize);
+
+        // A scope with boundary (delegation) ports takes the recursive merge-region path below, which
+        // seeds and grows container sizes itself; it keeps the sub-layouts (and their canvas padding)
+        // exactly as the leaf algorithm placed them. Every other scope trims each container's interior to
+        // its content so the container is that content plus one ContainerPadding.
+        var boundaryPorts = HierarchyMergeRegionBuilder.Collect(graph);
 
         // Map every descendant node to the direct member of this scope that contains it, and every
         // descendant's named port to the node that owns it (needed before placement so edge
@@ -342,6 +549,36 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         }
 
         var (leafEdges, routedEdges) = ClassifyEdges(graph, descendantToDirect, portOwner, nesting);
+        foreach (var edge in routedEdges)
+        {
+            foreach (var end in new[] { edge.Source, edge.Target })
+            {
+                if (end is LayoutGraphNode endNode && descendantToDirect.TryGetValue(endNode, out var owner) && owner.HasChildren)
+                {
+                    entered.Add(owner);
+                }
+
+                if (enteredDeep != null && end is LayoutGraphNode deepNode)
+                {
+                    for (var current = deepNode; current != null; current = nesting.TryGetValue(current, out var link) ? link.Parent : null)
+                    {
+                        if (current.HasChildren)
+                        {
+                            enteredDeep.Add(current);
+                        }
+                    }
+                }
+            }
+        }
+
+        // A container a decorated connector enters needs room for the decoration between its border and
+        // the node the connector ends on; the others keep the plain container padding.
+        var paddings = boundaryPorts.Count == 0
+            ? EntryPaddings(routedEdges, nesting, portOwner, effective.Get(ContainerPaddings))
+            : null;
+        var childrenEffective = paddings is null ? effective : WithContainerPaddings(effective, paddings);
+        var usedPaddings = new Dictionary<LayoutGraphNode, double>();
+        LayoutContainerChildren(graph, childrenEffective, subLayouts, effectiveSize, boundaryPorts.Count == 0 ? loose : null, paddings, usedPaddings);
 
         // An edge between two different direct members is invisible to a leaf algorithm that only sees
         // the sized view, so — when the leaf algorithm is one of the bundled ones that understands
@@ -350,12 +587,13 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         // routed afterwards between the actual nested endpoints. A custom leaf algorithm gets the view
         // unchanged (backward compatible) and the real connector is still routed to the nested endpoints.
         var addProxies = algo is LayeredLayoutAlgorithm or ContainmentLayoutAlgorithm or AutoLayoutAlgorithm;
-        var (view, _, viewPortOf) = BuildSizedView(
+        var (view, viewOf, viewPortOf) = BuildSizedView(
             graph, effectiveSize, leafEdges, addProxies ? routedEdges : new List<LayoutGraphEdge>(), descendantToDirect);
 
         // Place this level with the resolved leaf algorithm over the sized view. The leaf algorithm
-        // emits one box per node in Nodes order, so placed boxes align with graph.Nodes by index.
-        var placed = algo.ApplyCore(view, effective);
+        // emits one box per node in Nodes order, so placed boxes align with graph.Nodes by index. The
+        // order-rank hint is keyed by the original nodes, so it is translated onto the view's copies.
+        var placed = algo.ApplyCore(view, TranslateOrderRanks(effective, viewOf));
         var placedBoxes = placed.Nodes.OfType<LayoutBox>().ToList();
         var placedLines = placed.Nodes.OfType<LayoutLine>().ToList();
         var placedPorts = placed.Nodes.OfType<LayoutPort>().ToList();
@@ -375,14 +613,19 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 .ToList();
         }
 
-        var (composed, indexOf) = ComposeBoxes(graph, placedBoxes, subLayouts);
+        var (composed, indexOf) = ComposeBoxes(graph, placedBoxes, subLayouts, usedPaddings);
+
+        // The composed scope keeps the padding its leaf algorithm gave its own content (the smallest margin
+        // of the placed view): the final canvas fit below makes the canvas exactly the composed content plus
+        // that padding on every side, whatever the cross-container connectors and labels add to it.
+        var fontSize = effective.Get(CoreOptions.AssumedFontSize);
+        var leafPadding = CanvasFitter.MeasureMargin(placed, fontSize);
+        double? scopePadding = leafPadding is > 0.0 ? leafPadding : null;
 
         // Resolve any boundary (delegation) ports of this scope's direct-member containers: an edge
         // referencing such a port crosses the container boundary and cannot be routed by an ordinary
         // per-scope leaf pass. Gating on a non-empty discovery keeps every boundary-port-free scope on
-        // its existing, byte-identical path.
-        var boundaryPorts = HierarchyMergeRegionBuilder.Collect(graph);
-
+        // its existing path.
         if (boundaryPorts.Count == 0)
         {
             // Hard invariant: a hierarchical scope with containers but zero boundary ports keeps its
@@ -394,16 +637,23 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             var (widenedBoxes, widenedLines, widenedPorts, widenedWidth) = WidenSiblingContainerGaps(
                 composed, indexOf, routedEdges, descendantToDirect, placedLines, placedPorts, placed.Width);
 
-            var leafCrossLines = RouteCrossContainerEdges(routedEdges, widenedBoxes, indexOf, descendantToDirect, nesting, effective);
+            var leafCrossLines = route
+                ? RouteCrossContainerEdges(routedEdges, widenedBoxes, indexOf, descendantToDirect, nesting, effective, violators)
+                : new List<LayoutLine>();
             var leafNodes = new List<LayoutNode>(
                 widenedBoxes.Length + widenedLines.Count + widenedPorts.Count + leafCrossLines.Count);
             leafNodes.AddRange(widenedBoxes);
             leafNodes.AddRange(widenedLines);
             leafNodes.AddRange(widenedPorts);
             leafNodes.AddRange(leafCrossLines);
-            return CanvasFitter.Fit(
-                new LayoutTree(widenedWidth, placed.Height, leafNodes),
-                effective.Get(CoreOptions.AssumedFontSize));
+            return new ScopePass(
+                CanvasFitter.Fit(
+                    new LayoutTree(widenedWidth, placed.Height, leafNodes),
+                    fontSize,
+                    scopePadding),
+                routedEdges,
+                descendantToDirect,
+                nesting);
         }
 
         // Deferred (see ROADMAP.md): extend the edge-count-aware sibling-gap widening above to the
@@ -429,7 +679,8 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         // longer-bend detour in the internal-fan-out boundary-port scenario. See ROADMAP.md for the
         // follow-up to extend the reservation here once that interaction is worked out.
         var region = MergeRegionGraphAssembler.Assemble(graph, boundaryPorts, effectiveSize);
-        var placement = RunRecursiveWithCascadingSizing(region, effectiveSize, engineDirection, assumedFontSize: 0.0);
+        var placement = RunRecursiveWithCascadingSizing(
+            region, effectiveSize, engineDirection, assumedFontSize: 0.0, layerSpacing: effective.Get(CoreOptions.LayerSpacing));
         var decomposed = MergeRegionDecomposer.Decompose(placement, engineDirection, composed);
 
         var crossLines = RouteCrossContainerEdges(routedEdges, decomposed.Boxes, decomposed.IndexOf, descendantToDirect, nesting, effective);
@@ -440,9 +691,14 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         nodes.AddRange(decomposed.Lines);
         nodes.AddRange(decomposed.Ports);
         nodes.AddRange(crossLines);
-        return CanvasFitter.Fit(
-            new LayoutTree(decomposed.Width, decomposed.Height, nodes),
-            effective.Get(CoreOptions.AssumedFontSize));
+        return new ScopePass(
+            CanvasFitter.Fit(
+                new LayoutTree(decomposed.Width, decomposed.Height, nodes),
+                fontSize,
+                scopePadding),
+            null,
+            descendantToDirect,
+            nesting);
     }
 
     /// <summary>
@@ -464,12 +720,14 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// The <c>CoreOptions.AssumedFontSize</c>-derived font size used to reserve each node's title band
     /// from left/right port placement.
     /// </param>
+    /// <param name="layerSpacing">The scope's effective <see cref="CoreOptions.LayerSpacing"/>, the corridor floor of every level.</param>
     /// <returns>The fully-placed, size-stable recursive layout result.</returns>
     private static RecursiveLayoutResult RunRecursiveWithCascadingSizing(
         AssembledMergeRegion region,
         Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize,
         LayoutDirection direction,
-        double assumedFontSize)
+        double assumedFontSize,
+        double layerSpacing)
     {
         var pipeline = LayeredLayoutPipeline.Builder()
             .Direction(direction)
@@ -481,7 +739,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         var sizingPairs = new List<(LayoutGraphNode Container, MergeRegionLevel Child)>();
         CollectSizingPairs(region.Root, sizingPairs);
 
-        var result = pipeline.RunRecursive(region, assumedFontSize);
+        var result = pipeline.RunRecursive(region, assumedFontSize, layerSpacing);
         for (var iteration = 0; iteration < MaxSizingIterations; iteration++)
         {
             var grew = false;
@@ -507,7 +765,7 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 break;
             }
 
-            result = pipeline.RunRecursive(region, assumedFontSize);
+            result = pipeline.RunRecursive(region, assumedFontSize, layerSpacing);
         }
 
         return result;
@@ -539,11 +797,21 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// <param name="parentEffective">This scope's own already-resolved cascaded effective options.</param>
     /// <param name="subLayouts">Receives each container's placed sub-tree in local coordinates.</param>
     /// <param name="effectiveSize">Receives each container's size enclosing its children plus padding/title.</param>
+    /// <param name="loose">
+    /// The containers that are not trimmed to their content (their interior keeps the leaf algorithm's own
+    /// canvas padding), or <see langword="null"/> to trim none (boundary-port scopes). Every other
+    /// container's interior is trimmed to its content before the container padding is added.
+    /// </param>
+    /// <param name="paddings">The padding each decorated-entry container needs, or <see langword="null"/>.</param>
+    /// <param name="usedPaddings">Receives the padding of each container that has more than the plain container padding.</param>
     private void LayoutContainerChildren(
         LayoutGraph graph,
         LayoutOptions parentEffective,
         Dictionary<LayoutGraphNode, LayoutTree> subLayouts,
-        Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize)
+        Dictionary<LayoutGraphNode, (double Width, double Height)> effectiveSize,
+        HashSet<LayoutGraphNode>? loose,
+        IReadOnlyDictionary<LayoutGraphNode, double>? paddings,
+        Dictionary<LayoutGraphNode, double> usedPaddings)
     {
         foreach (var node in graph.Nodes)
         {
@@ -561,15 +829,24 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             var nodeEffective = node.OverlayOnto(parentEffective);
             var childEffective = node.Children.OverlayOnto(nodeEffective);
 
-            var sub = LayoutScope(node.Children, childEffective);
+            var tightened = loose != null && !loose.Contains(node);
+            var sub = LayoutContainerScope(node, childEffective, tightened);
             subLayouts[node] = sub;
 
             // Size the container to enclose its sub-layout plus a padding inset on every side and, when
-            // the container is labeled, a title band above the children.
+            // the container is labeled, a title band above the children. A tightened container a decorated
+            // connector enters keeps the room that connector's decoration needs.
+            var padding = ContainerPadding;
+            if (tightened && paddings != null && paddings.TryGetValue(node, out var needed) && needed > ContainerPadding)
+            {
+                padding = needed;
+                usedPaddings[node] = needed;
+            }
+
             var titleHeight = ResolveContentOffsetHeight(node);
             effectiveSize[node] = (
-                sub.Width + (2 * ContainerPadding),
-                sub.Height + (2 * ContainerPadding) + titleHeight);
+                sub.Width + (2 * padding),
+                sub.Height + (2 * padding) + titleHeight);
         }
     }
 
@@ -744,11 +1021,13 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// <param name="graph">The scope whose nodes align with <paramref name="placedBoxes"/> by index.</param>
     /// <param name="placedBoxes">The leaf algorithm's placed boxes, one per node in input order.</param>
     /// <param name="subLayouts">The recursively laid-out sub-tree for each container node.</param>
+    /// <param name="usedPaddings">The padding of each container that has more than the plain container padding.</param>
     /// <returns>The composed boxes and a map from each node to its positional index.</returns>
     private static (LayoutBox[] Composed, Dictionary<LayoutGraphNode, int> IndexOf) ComposeBoxes(
         LayoutGraph graph,
         List<LayoutBox> placedBoxes,
-        Dictionary<LayoutGraphNode, LayoutTree> subLayouts)
+        Dictionary<LayoutGraphNode, LayoutTree> subLayouts,
+        Dictionary<LayoutGraphNode, double> usedPaddings)
     {
         var count = graph.Nodes.Count;
         var indexOf = new Dictionary<LayoutGraphNode, int>(count);
@@ -763,8 +1042,9 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             {
                 // Offset the nested content to the container's padded interior, below any title band.
                 var titleHeight = ResolveContentOffsetHeight(node);
-                var offsetX = box.X + ContainerPadding;
-                var offsetY = box.Y + ContainerPadding + titleHeight;
+                var padding = usedPaddings.TryGetValue(node, out var used) ? used : ContainerPadding;
+                var offsetX = box.X + padding;
+                var offsetY = box.Y + padding + titleHeight;
                 var children = new List<LayoutNode>(sub.Nodes.Count);
                 foreach (var childNode in sub.Nodes)
                 {
@@ -799,6 +1079,10 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// <param name="descendantToDirect">Map from every descendant node to the direct member that owns it.</param>
     /// <param name="placement">Parent and index-in-parent of every node of this scope's subtree.</param>
     /// <param name="effective">This scope's cascaded effective options, supplying <see cref="CoreOptions.EdgeRouting"/>.</param>
+    /// <param name="violators">
+    /// Optional. Receives the direct-member containers of this scope whose own border a routed connector
+    /// hugs (see <see cref="CollectWallHuggingContainers"/>).
+    /// </param>
     /// <returns>One routed line per edge in <paramref name="routedEdges"/>.</returns>
     private static List<LayoutLine> RouteCrossContainerEdges(
         List<LayoutGraphEdge> routedEdges,
@@ -806,7 +1090,8 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         Dictionary<LayoutGraphNode, int> indexOf,
         Dictionary<LayoutGraphNode, LayoutGraphNode> descendantToDirect,
         Dictionary<LayoutGraphNode, (LayoutGraphNode? Parent, int Index)> placement,
-        LayoutOptions effective)
+        LayoutOptions effective,
+        HashSet<LayoutGraphNode>? violators = null)
     {
         var routeOptions = new ConnectorRouteOptions(effective.Get(CoreOptions.EdgeRouting));
         var fontSize = effective.Get(CoreOptions.AssumedFontSize);
@@ -819,7 +1104,9 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         var connections = new List<Connection>(routedEdges.Count);
         var obstacleSets = new List<IReadOnlyList<LayoutBox>>(routedEdges.Count);
         var wallSets = new List<IReadOnlyList<RouterWall>>(routedEdges.Count);
+        var enclosingSets = new List<List<(LayoutBox Box, LayoutGraphNode Node)>>(routedEdges.Count);
         var fixedAnchors = new List<ConnectorRouter.FixedAnchor>();
+        var existingLineSets = new List<IReadOnlyList<LayoutLine>>(routedEdges.Count);
         foreach (var edge in routedEdges)
         {
             // ClassifyEdges only ever adds edges with LayoutGraphNode endpoints to routedEdges — a
@@ -872,18 +1159,71 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             connections.Add(new Connection(from, to, edge.TargetEnd, edge.LineStyle, edge.Label, edge.SourceEndLabel, edge.TargetEndLabel));
             obstacleSets.Add(obstacles);
             wallSets.Add(walls);
+            enclosingSets.Add(expanded);
+
+            // The interior connectors that end on either endpoint box (the lines its own enclosing scope
+            // already routed to it, which live in the parent container box's children) are crossing costs
+            // for this connector: it should reach its endpoint without cutting across them where it can.
+            var interiorLines = new List<LayoutLine>();
+            AddIncidentInteriorLines(from, fromAncestors, interiorLines);
+            AddIncidentInteriorLines(to, toAncestors, interiorLines);
+            existingLineSets.Add(interiorLines);
             AddOccupiedAnchors(from, fromAncestors, fixedAnchors);
             AddOccupiedAnchors(to, toAncestors, fixedAnchors);
         }
 
-        return new List<LayoutLine>(
-            ConnectorRouter.RouteBatch(
-                connections,
-                routeOptions,
-                index => obstacleSets[index],
-                fixedAnchors,
-                penalizeLongEndSegments: true,
-                profile: new ConnectorRouter.RoutingProfile(index => wallSets[index])));
+        var routed = ConnectorRouter.RouteBatch(
+            connections,
+            routeOptions,
+            index => obstacleSets[index],
+            fixedAnchors,
+            penalizeLongEndSegments: true,
+            profile: new ConnectorRouter.RoutingProfile(index => wallSets[index], index => existingLineSets[index]));
+
+        if (violators != null)
+        {
+            CollectWallHuggingContainers(routed, enclosingSets, indexOf, routeOptions.Clearance, violators);
+        }
+
+        return new List<LayoutLine>(routed);
+    }
+
+    /// <summary>
+    /// Finds the direct-member containers of this scope whose own border a routed connector runs along or
+    /// bends against closer than the comfort clearance (see <see cref="ConnectorRouter.HasWallViolation"/>).
+    /// A container's border can only be hugged when it holds less room beside its first box than the
+    /// connector needs, which is what tightening a container to its content may cause.
+    /// </summary>
+    /// <param name="routed">The routed lines, one per connection.</param>
+    /// <param name="enclosingSets">For each connection, the containers (and nodes) enclosing its two endpoints.</param>
+    /// <param name="indexOf">Map from each direct-member node to its positional index.</param>
+    /// <param name="clearance">The router's obstacle clearance.</param>
+    /// <param name="violators">Receives the direct-member containers whose border is hugged.</param>
+    private static void CollectWallHuggingContainers(
+        IReadOnlyList<LayoutLine> routed,
+        List<List<(LayoutBox Box, LayoutGraphNode Node)>> enclosingSets,
+        Dictionary<LayoutGraphNode, int> indexOf,
+        double clearance,
+        HashSet<LayoutGraphNode> violators)
+    {
+        var walls = new List<RouterWall>(6);
+        for (var i = 0; i < routed.Count; i++)
+        {
+            foreach (var (container, node) in enclosingSets[i])
+            {
+                if (!indexOf.ContainsKey(node) || violators.Contains(node))
+                {
+                    continue;
+                }
+
+                walls.Clear();
+                AddWalls(container, walls);
+                if (ConnectorRouter.HasWallViolation(routed[i].Waypoints, walls, clearance))
+                {
+                    violators.Add(node);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -947,6 +1287,40 @@ public sealed class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         else
         {
             walls.Add(new RouterWall(IsVertical: false, top, left, right, OutwardIsPositive: false));
+        }
+    }
+
+    /// <summary>
+    /// Collects, for a nested endpoint box, the interior connectors of its enclosing scope that end on it
+    /// (those lines live in the parent container box's children — the same lines
+    /// <see cref="AddOccupiedAnchors"/> reads the taken anchors from). They are what the cross-hierarchy
+    /// connector landing on the same box has to avoid crossing, so the router receives them as crossing
+    /// costs. Lines of the container that do not touch the endpoint are left out: reaching a box deep in a
+    /// dense interior rarely has an uncrossed route, and including them would make the router's search
+    /// far more expensive.
+    /// </summary>
+    /// <param name="endpoint">The endpoint's placed box.</param>
+    /// <param name="ancestors">The container boxes enclosing the endpoint, outermost first.</param>
+    /// <param name="lines">The accumulating list of interior lines.</param>
+    private static void AddIncidentInteriorLines(
+        LayoutBox endpoint,
+        List<(LayoutBox Box, LayoutGraphNode Node)> ancestors,
+        List<LayoutLine> lines)
+    {
+        if (ancestors.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var line in ancestors[^1].Box.Children.OfType<LayoutLine>())
+        {
+            if (line.Waypoints.Count > 0
+                && (ConnectorRouter.TryResolveFaceAnchor(endpoint, line.Waypoints[0], out _)
+                    || ConnectorRouter.TryResolveFaceAnchor(endpoint, line.Waypoints[^1], out _))
+                && !lines.Contains(line))
+            {
+                lines.Add(line);
+            }
         }
     }
 

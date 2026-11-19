@@ -121,16 +121,20 @@ public static class CoreOptions
         new("rendering.spacing.node", 30.0);
 
     /// <summary>
-    /// Advisory: minimum spacing, in logical pixels, between adjacent layers, mirroring ELK's
-    /// <c>spacing.nodeNodeBetweenLayers</c>. As with ELK's option, this is a floor, not an exact/desired
-    /// gap — the bundled layered algorithm's connector routing may already require a larger corridor
-    /// width than this value, in which case the routing-derived minimum takes precedence. Accepted but
-    /// not yet honored by the bundled layered algorithm, which uses a fixed engine constant instead.
-    /// Would cascade per scope by nearest-ancestor override, consistent with every other property in
-    /// this catalog, once an algorithm honors it.
+    /// Minimum spacing, in logical pixels, between adjacent layers (the corridor between two columns
+    /// of nodes), mirroring ELK's <c>spacing.nodeNodeBetweenLayers</c>. As with ELK's option, this is a
+    /// floor, not an exact/desired gap: the corridor is the larger of this value and what the connector
+    /// routing needs there (the routing slots, the end-marker approach of the connectors entering a node,
+    /// and the room for any end labels), so a small value never causes overlapping or cramped
+    /// connectors — it only stops the corridor growing beyond what the routing needs. Honored by the
+    /// bundled <c>layered</c> algorithm (and so by <c>auto</c> and <c>hierarchical</c>, which lay out
+    /// through it) for every flow direction. The default, <c>70.0</c>, matches the corridor width the
+    /// engine used internally before this property was honored, so a graph that never sets this
+    /// property keeps its unlabeled corridors unchanged. Cascades per scope by nearest-ancestor
+    /// override, consistent with every other property in this catalog.
     /// </summary>
     public static readonly LayoutProperty<double> LayerSpacing =
-        new("rendering.spacing.layer", 40.0);
+        new("rendering.spacing.layer", 70.0);
 
     /// <summary>
     /// Whether parallel edges (two or more input edges sharing the same source and target) are

@@ -110,3 +110,17 @@ sections:
         tests:
           - AssumedFontSize_DefaultValue_Is12
           - AssumedFontSize_SetOnOptions_ReadsBackExplicitValue
+
+      - id: Rendering-Model-Options-LayerSpacing
+        title: >-
+          CoreOptions.LayerSpacing shall default to 70.0, the corridor width the layered engine used
+          before the property was honored, and shall be a floor on the corridor between adjacent layers
+          rather than an exact gap.
+        justification: |
+          The property was advisory and unused, so callers could not narrow or widen the corridors between
+          layers. Making it effective needs a default that leaves every graph that never sets it unchanged
+          (the historical 70 px corridor), and a floor semantic (as in ELK) so a small value can never
+          crowd the connectors, whose routing slots, end-marker run and end labels keep the corridor
+          open.
+        tests:
+          - LayerSpacing_DefaultValue_Is70

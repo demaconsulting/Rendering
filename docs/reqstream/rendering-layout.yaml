@@ -56,6 +56,9 @@ sections:
           - Rendering-Layout-LayeredAlgorithm-OutwardPortLabelSpace
           - Rendering-Layout-LayeredAlgorithm-IsolatedNodesNoOverlap
           - Rendering-Layout-LayeredAlgorithm-ContentInsideCanvas
+          - Rendering-Layout-LayeredAlgorithm-LayerSpacing
+          - Rendering-Layout-LayeredAlgorithm-OrderRanks
+          - Rendering-Layout-LayeredAlgorithm-CanvasPadding
           - Rendering-Layout-LayeredAlgorithm-ParallelKeywordEdgeSeparation
         tests:
           - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
@@ -81,6 +84,8 @@ sections:
           - Rendering-Layout-CanvasFitter-IncludesConnectorLabels
           - Rendering-Layout-CanvasFitter-UnrecognizedNodeUnchanged
           - Rendering-Layout-CanvasFitter-Validation
+          - Rendering-Layout-CanvasFitter-PaddedFit
+          - Rendering-Layout-CanvasFitter-TrimToContent
         tests:
           - Apply_ChainGraph_PlacesLayeredBoxesAndRoutesEdges
 
@@ -124,6 +129,9 @@ sections:
           - Rendering-Layout-LayeredPipeline-PortAlignment
           - Rendering-Layout-LayeredPipeline-PortAlignmentOnlyMovesPorts
           - Rendering-Layout-LayeredPipeline-EndLabelReservation
+          - Rendering-Layout-LayeredPipeline-LayerSpacingCorridor
+          - Rendering-Layout-LayeredPipeline-OrderRank
+          - Rendering-Layout-LayeredPipeline-ComponentPackingFreeSpace
         tests:
           - LayeredLayoutPipeline_RunDefaultStages_ChainGraph_PopulatesWaypointsWithoutThrowing
           - Pipeline_MatchesLegacyOracle_OnRandomGraphs
@@ -163,6 +171,9 @@ sections:
           - Rendering-Layout-ConnectorRouter-NewEndMarkerClearance
           - Rendering-Layout-ConnectorRouter-DiamondOutlineAnchors
           - Rendering-Layout-ConnectorRouter-EndLabelPropagation
+          - Rendering-Layout-ConnectorRouter-ExistingLineCrossingCost
+          - Rendering-Layout-ConnectorRouter-TidyReplacement
+          - Rendering-Layout-ConnectorRouter-RouteQuality
         tests:
           - Route_TargetToTheRight_AnchorsFaceEachOther
           - Route_ObstacleBetweenEndpoints_RoutesAroundInterior
@@ -223,6 +234,8 @@ sections:
           - Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly
           - Rendering-Layout-ContainmentAlgorithm-AppearancePassThrough
           - Rendering-Layout-ContainmentAlgorithm-EndLabelPassThrough
+          - Rendering-Layout-ContainmentAlgorithm-OrderRanks
+          - Rendering-Layout-ContainmentAlgorithm-CanvasPadding
         tests:
           - Apply_Graph_PacksNodesNonOverlappingInInputOrderWithinCanvas
           - Id_IsContainment
@@ -271,6 +284,16 @@ sections:
           - Rendering-Layout-HierarchicalLayout-PortAppearancePassThrough
           - Rendering-Layout-HierarchicalLayout-IsolatedNodesNoOverlap
           - Rendering-Layout-HierarchicalLayout-ContentInsideCanvas
+          - Rendering-Layout-HierarchicalLayout-LayerSpacingCascades
+          - Rendering-Layout-HierarchicalLayout-OrderRanks
+          - Rendering-Layout-HierarchicalLayout-CrossHierarchyOrdering
+          - Rendering-Layout-HierarchicalLayout-OrderingBounded
+          - Rendering-Layout-HierarchicalLayout-InteriorConnectorCrossingCost
+          - Rendering-Layout-HierarchicalLayout-ContainerTightening
+          - Rendering-Layout-HierarchicalLayout-TighteningRouteQualityGate
+          - Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom
+          - Rendering-Layout-HierarchicalLayout-AnchorSeparation
+          - Rendering-Layout-HierarchicalLayout-CanvasPadding
         tests:
           - Id_IsHierarchical
           - Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly
@@ -338,6 +361,11 @@ sections:
           - Rendering-Layout-AutoAlgorithm-AppearancePassThrough
           - Rendering-Layout-AutoAlgorithm-EndLabelPassThrough
           - Rendering-Layout-AutoAlgorithm-PortAppearancePassThrough
+          - Rendering-Layout-AutoAlgorithm-OrderRanks
+          - Rendering-Layout-AutoAlgorithm-TrimmedAndTuckedPacking
+          - Rendering-Layout-LayoutTreePacker-FreeSpacePacking
+          - Rendering-Layout-LayoutTreePacker-NeverWorseThanShelf
+          - Rendering-Layout-LayoutTreePacker-EmptySpaceMeasure
         tests:
           - Id_IsAuto
           - Apply_ClusterPlusIsolatedSingletons_PacksBothGroupsWithoutOverlap

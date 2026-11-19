@@ -138,6 +138,23 @@ internal static class GalleryIndex
     }
 
     /// <summary>
+    ///     Wraps <paramref name="text"/> on word boundaries to the 120-column LintMark limit and joins the
+    ///     lines with newlines, for generated Markdown pages written outside <see cref="BuildGroupPage"/>.
+    /// </summary>
+    /// <param name="text">The paragraph text, without line breaks.</param>
+    /// <returns>The wrapped paragraph, without a trailing newline.</returns>
+    public static string WrapParagraph(string text) => string.Join('\n', WrapToWidth(text, MaxLineLength));
+
+    /// <summary>
+    ///     Wraps <paramref name="text"/> on word boundaries to <paramref name="width"/> columns (for a list item
+    ///     whose continuation lines are indented) and joins the lines with newlines.
+    /// </summary>
+    /// <param name="text">The paragraph text, without line breaks.</param>
+    /// <param name="width">The widest line, in columns.</param>
+    /// <returns>The wrapped paragraph, without a trailing newline.</returns>
+    public static string WrapParagraph(string text, int width) => string.Join('\n', WrapToWidth(text, width));
+
+    /// <summary>
     ///     Appends a paragraph — its text word-wrapped to <see cref="MaxLineLength"/> — followed by a
     ///     blank separator line, so headings and paragraphs are always blank-line separated.
     /// </summary>

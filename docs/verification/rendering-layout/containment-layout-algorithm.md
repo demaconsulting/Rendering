@@ -18,7 +18,8 @@ avoidance), and validation are all observed on production code paths.
 - **Project**: `test/DemaConsulting.Rendering.Layout.Tests/ContainmentLayoutAlgorithmTests.cs`, with the
   shared corridor-width helper covered by
   `test/DemaConsulting.Rendering.Layout.Tests/Engine/EdgeCountGapWidenerTests.cs`, and the appearance
-  pass-through covered by `test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs`.
+  pass-through covered by `test/DemaConsulting.Rendering.Layout.Tests/NotationPrimitivePassThroughTests.cs`, the
+  order-rank hint by `OrderRankPlumbingTests.cs`, and the canvas padding by `CanvasMarginTests.cs`.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and `LayoutOptions` instances.
 - **Isolation**: each test builds its own inputs; the algorithm is stateless between calls.
@@ -83,6 +84,15 @@ behavior constitutes a failure.
 - **End label pass-through** (`Rendering-Layout-ContainmentAlgorithm-EndLabelPassThrough`):
   `ContainmentLayout_EdgeEndLabels_ReachPlacedLine` asserts the labels reach the routed line.
 
+- **Order ranks** (`Rendering-Layout-ContainmentAlgorithm-OrderRanks`):
+  `ContainmentLayoutAlgorithm_OrderRanks_PacksInRankOrderKeepingInputBoxOrder` ranks the nodes against their input
+  order and asserts the packed (left-to-right) order follows the ranks while the boxes of the placed tree stay in
+  input order; `ContainmentLayoutAlgorithm_NoOrderRanks_PacksInInputOrder` asserts the unranked graph packs in input
+  order.
+- **Canvas padding** (`Rendering-Layout-ContainmentAlgorithm-CanvasPadding`):
+  `ContainmentLayoutAlgorithm_Apply_Boxes_CanvasHugsContentWithItsOwnPadding` (in `CanvasMarginTests`) asserts the
+  canvas keeps the packer's own padding around the packed boxes.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-ContainmentAlgorithm-Identity`**:
@@ -120,3 +130,8 @@ behavior constitutes a failure.
   ContainmentLayout_NodeAppearance_ReachesPlacedBox
 - **`Rendering-Layout-ContainmentAlgorithm-EndLabelPassThrough`**:
   ContainmentLayout_EdgeEndLabels_ReachPlacedLine
+- **`Rendering-Layout-ContainmentAlgorithm-OrderRanks`**:
+  ContainmentLayoutAlgorithm_OrderRanks_PacksInRankOrderKeepingInputBoxOrder,
+  ContainmentLayoutAlgorithm_NoOrderRanks_PacksInInputOrder
+- **`Rendering-Layout-ContainmentAlgorithm-CanvasPadding`**:
+  ContainmentLayoutAlgorithm_Apply_Boxes_CanvasHugsContentWithItsOwnPadding

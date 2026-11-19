@@ -227,6 +227,80 @@ the same instance, so existing output is byte-identical. The leaf layered algori
 their on-screen extents for every direction (see the layered pipeline design), so isolated nodes inside and
 outside a container do not overlap.
 
+**Layer spacing.** `CoreOptions.LayerSpacing` cascades with the other properties: each scope's leaf layered pass
+receives the resolved value (a container's own value lives on its `Children` graph, like every non-algorithm
+property), and the boundary-port combined pass (`MergeRegionGraphAssembler`) carries it per level, so an unset
+value behaves exactly like an explicit `70.0` at every depth.
+
+#### Cross-hierarchy ordering refinement
+
+A container interior is laid out in isolation, blind to the connectors its declaring scope routes between nested
+nodes of different containers, so the order of an interior's members was decided by insertion order alone and
+could force those connectors to cross. After a scope's first routed pass, the refinement driver
+(`HierarchicalLayoutAlgorithm.CrossOrdering.cs`, a second part of the sealed class) does the following.
+
+1. It counts the crossings over the whole subtree of the scope (`CountCrossings`: the scope's own connectors and
+   the interior connectors of every container; touching, collinear and shared-end-point lines do not count).
+2. For every node on the chain of a cross-container connector's endpoint it derives the position of the partner the
+   connector leads to (the median of the placed partner centers) and builds order variants that sort the keyed
+   members of each container interior by that position (cross or flow axis, ascending or descending, partners
+   taken from their own boxes or from the boxes that stand for them where the connector's two ends meet).
+3. Each variant is applied through the internal `OrderRanks` option (`LayoutProperty<IReadOnlyDictionary<
+   LayoutGraphNode, double>>`, a per-node ordering hint keyed by the caller's nodes). The sized view translates
+   the keys onto its copies, the nested scopes inherit it, and the leaf algorithms use it only as a tie-break for
+   choices they would otherwise make by input order (the order of components, of a component's members and of the
+   initial order within a layer), so a rank never overrides a crossing reduction and a graph without ranks lays
+   out exactly as before.
+4. Variants are first scored on a placement-only pass (the scope placed, its cross-container connectors replaced by
+   straight segments between the endpoint boxes); only the best-scored ones are routed for real.
+5. A routed proposal is accepted only when it strictly lowers the crossing count, or keeps it and strictly
+   shrinks the canvas, and does not open a larger empty square (`EmptySpaceMeter`) beyond the diagram-quality
+   limit and one occupancy-grid cell, and keeps the route quality (`KeepsRouteQuality`: length and bends within
+   1.25 times of the first pass and a visual cost no more than the first pass plus 250 per crossing removed).
+   Removing five or more crossings may open an empty square up to 10% larger. The first pass, laid out in the
+   caller's insertion order, is the baseline, so the result is never worse than it.
+
+The work is bounded: at most three rounds after the first pass, the first laying out four proposals and the
+others one each, so at most seven routed layouts of one scope (`MaxLayoutsPerRefinedScope`); a scope whose routing
+is expensive (cross-container connectors times boxes of at least 150) is refined in one round with at most two
+proposals that the placement-only score predicts to be no worse. Interior layouts are memoized per container and
+rank signature, so a proposal that does not change a container's subtree never lays that container out again,
+and a scope with no cross-container connector that has a nested endpoint inside a container of at least two
+members is returned exactly as the first pass produced it. The refinement state (memo and counters) travels in an
+internal option so a run never shares state with another run, and the result is deterministic.
+
+The router receives the interior lines of the container ancestors of an edge's endpoints
+(`RoutingProfile.ExistingLinesFor`), so a cross-hierarchy connector avoids crossing connectors drawn inside the
+containers it enters when an alternative exists (see *ConnectorRouter Unit Design*).
+
+#### Container tightening
+
+A container used to carry its child scope's canvas plus an extra 20 pixels of padding on every side. Each
+container interior is now trimmed to its content (`CanvasFitter.TrimToContent`, keeping 24 pixels between a
+connector bend and the border) and the container is the trimmed interior plus `ContainerPadding` (12 pixels)
+and the title band.
+
+- **Route-quality gate (per scope).** `LayoutScopePass` lays a routed scope out tight (with a comfort fallback
+  that restores the former room for a container a routed connector enters when a connector hugs its border), then
+  once more with every container of the scope and of all scopes below it loose (the former layout, carried by the
+  internal `LooseContainerNodes` option). The tight layout is kept only when `KeepsTightening` holds: crossings,
+  hairpins, bends, close parallel runs (16 pixels) and connector length are no worse and no decorated end is
+  crowded by a container border. Otherwise the layout with only the containers a routed connector enters (at any
+  depth) loose is tried, and otherwise everything is loose. The decision is remembered per scope
+  (`SettledLooseNodes`), so the placement-only passes of the ordering refinement see the same sizes.
+  Compaction is therefore never bought with a worse route: where tightening worsens routes (for example
+  deeply nested packages with parallel connectors) the former container room is kept.
+- **Entry arrowhead room.** A tightened container that a decorated connector enters keeps
+  `RenderedAlongLineLength(marker) + CleanLegMargin` (15.37 + 1 = 16.37 pixels for an arrowhead) between its
+  border and the boxes inside instead of 12 pixels (`EntryPaddings`, the internal `ContainerPaddings` option),
+  so an end marker never overlaps a container border.
+- **Canvas padding.** The scope's final `CanvasFitter.Fit` is called with the padding its leaf output kept
+  (`MeasureMargin`: the layered 20 pixels, or a containment leaf's own 12), so the canvas hugs the content with a
+  uniform margin for every flow direction.
+
+Tightening applies only to scopes laid out by the layered or containment leaf algorithms; boundary-port scopes
+keep their combined-pass sizes.
+
 ### HierarchicalLayoutAlgorithm Design Constraints
 
 - The flat-graph equivalence guarantee is load-bearing: the fast path must delegate directly to the
@@ -239,8 +313,9 @@ outside a container do not overlap.
   `CoreOptions.HierarchyHandling` option records this selection; only the separate-children mode is
   honored today. Edges declared on an ancestor graph are nevertheless routed between the actual nested
   endpoint nodes (the default behavior, with no separate mode), and the declaring scope's placement
-  accounts for them through layout-only proxy edges; sharing one layout pass across container
-  boundaries remains future work (see ROADMAP.md).
+  accounts for them through layout-only proxy edges. Sharing one layout pass across container boundaries (ELK's
+  `INCLUDE_CHILDREN`) remains future work (see ROADMAP.md); the cross-hierarchy ordering refinement and the
+  interior-line crossing cost described above deliver part of its benefit without a joint pass.
 
 ### HierarchicalLayoutAlgorithm Error Handling
 
@@ -274,7 +349,10 @@ would be in a flat graph.
   algorithms registered in the default registry, `ConnectorRouter` for LCA cross-container edge
   routing, `EdgeCountGapWidener` (internal engine helper) for the shared connector-corridor width the
   no-boundary-port sibling-gap widening pass reserves, `CanvasFitter` (internal engine helper) to keep
-  every connector and connector label inside each scope's canvas, and `HierarchyMergeRegionBuilder`,
+  every connector and connector label inside each scope's canvas (and to trim container interiors and
+  size the canvas with the padding the leaf output kept), `RouteQuality` (internal engine helper) to compare
+  routed layouts by length, bends, hairpins and close parallel runs, `EmptySpaceMeter` (internal engine
+  helper) to keep the ordering refinement from opening a larger empty block, and `HierarchyMergeRegionBuilder`,
   `MergeRegionGraphAssembler`, the recursive
   `LayeredLayoutPipeline`, `MergeRegionDecomposer`, and `BoundaryPortResolver.FaceForDirection`
   (layered-pipeline unit, `Engine/Layered`) for boundary-port detection, the combined recursive pass,
@@ -339,3 +417,12 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-FolderTabTitleReserve | Data model, `ResolveTitleHeight` in-tab rule |
 | Rendering-Layout-HierarchicalLayout-IsolatedNodesNoOverlap | Per-scope leaf layout, on-screen component extents |
 | Rendering-Layout-HierarchicalLayout-ContentInsideCanvas | Canvas fit of each scope result, `CanvasFitter.Fit` |
+| Rendering-Layout-HierarchicalLayout-LayerSpacingCascades | Layer spacing paragraph |
+| Rendering-Layout-HierarchicalLayout-OrderRanks | Ordering refinement, step 3 (`OrderRanks` hint) |
+| Rendering-Layout-HierarchicalLayout-CrossHierarchyOrdering | Ordering refinement, steps 1 to 5 |
+| Rendering-Layout-HierarchicalLayout-OrderingBounded | Ordering refinement, bounded work and determinism |
+| Rendering-Layout-HierarchicalLayout-InteriorConnectorCrossingCost | `CountCrossings`, router interior lines |
+| Rendering-Layout-HierarchicalLayout-ContainerTightening | Container tightening, trimmed interior |
+| Rendering-Layout-HierarchicalLayout-TighteningRouteQualityGate | Container tightening, `KeepsTightening` gate |
+| Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom | Container tightening, entry arrowhead room |
+| Rendering-Layout-HierarchicalLayout-CanvasPadding | Container tightening, canvas padding |

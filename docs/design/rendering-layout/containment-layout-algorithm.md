@@ -79,8 +79,13 @@ which returns a `LayoutTree` carrying the packed region size and a flat list of 
    outside of the packed boxes, for example the overflow of a face too short for the connectors converging
    on it), `FitCanvasToLines` extends the canvas to include it (with a 4 px padding for the stroke and
    rounded corner) and shifts the boxes and lines uniformly when it reaches the left or top edge, so the
-   connector is never clipped; with every connector inside, the canvas is exactly the packer's.
-
+   connector is never clipped; with every connector inside, the canvas is exactly the packer's. The canvas
+   keeps the packer's own 12 px padding (4 px beside a wrapping connector); the layered 20 px canvas padding does not
+   apply to this algorithm.
+7. **Order ranks.** When the internal order-rank hint (`HierarchicalLayoutAlgorithm.OrderRanks`) ranks any node,
+   the boxes are packed in (rank, index) order (`LayerOrdering.Sort`: ascending rank, unranked last, ties by input
+   index, the edge counts re-keyed by packed position) and then handed back in input order, so the output keeps the
+   one-box-per-node, input-order contract. Without a rank the boxes are packed in input order exactly as before.
 An empty graph yields an empty `LayoutTree` with a positive-size canvas, because the packer returns a
 padding-only region for no children and no connections are routed.
 
@@ -156,3 +161,5 @@ routing, adapting their combined output to the public `LayoutAlgorithmBase` cont
 | Rendering-Layout-ContainmentAlgorithm-LayoutOnlyEdges | Connection building (step 4) |
 | Rendering-Layout-ContainmentAlgorithm-UserEdgeIdNeverTreatedAsLayoutOnly | Connection building (step 4) |
 | Rendering-Layout-ContainmentAlgorithm-AppearancePassThrough | Leaf-box conversion (step 1) |
+| Rendering-Layout-ContainmentAlgorithm-OrderRanks | Assembly and order ranks (step 7) |
+| Rendering-Layout-ContainmentAlgorithm-CanvasPadding | Assembly (step 6), own packing padding |

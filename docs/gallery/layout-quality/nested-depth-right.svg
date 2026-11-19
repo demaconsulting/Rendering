@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1276.00" height="542.00" viewBox="0 0 1276.00 542.00">
+  <defs>
+    <marker id="line-end-open-chevron" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polyline points="0 0, 10 3.5, 0 7" fill="none" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-arrow" markerWidth="10.247763" markerHeight="7" refX="10.247763" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-hollow-triangle-crossbar" markerWidth="14.747763" markerHeight="7" refX="14.747763" refY="3.5" orient="auto">
+      <polygon points="4.5 0, 14.5 3.5, 4.5 7" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+      <line x1="1" y1="0" x2="1" y2="7" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-hollow-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-filled-diamond" markerWidth="14" markerHeight="8" refX="13.416025" refY="4" orient="auto">
+      <polygon points="1 4, 7 0, 13 4, 7 8" fill="#1A1A2E" stroke="#1A1A2E" stroke-width="1.50" stroke-linejoin="bevel"/>
+    </marker>
+    <marker id="line-end-circle" markerWidth="10" markerHeight="10" refX="9.75" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="4" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <marker id="line-end-bar" markerWidth="4" markerHeight="12" refX="2.75" refY="6" orient="auto">
+      <line x1="2" y1="0" x2="2" y2="12" stroke="#1A1A2E" stroke-width="1.50"/>
+    </marker>
+    <filter id="label-bg" x="-0.05" y="-0.05" width="1.1" height="1.1">
+      <feFlood flood-color="#FFFFFF"/>
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+  </defs>
+  <path d="M 20.00 290.50 L 20.00 266.50 L 80.00 266.50 L 80.00 290.50 L 434.00 290.50 L 434.00 520.50 L 20.00 520.50 Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="227.00" y="303.50" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">B</text>
+  <rect x="262.00" y="432.50" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="332.00" y="450.50" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="332.00" y="469.50" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">C</text>
+  <rect x="52.00" y="432.50" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="122.00" y="450.50" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="122.00" y="469.50" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">S</text>
+  <rect x="52.00" y="346.50" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="122.00" y="364.50" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="122.00" y="383.50" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">H</text>
+  <path d="M 192.00 460.50 L 262.00 460.50" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle)"/>
+  <path d="M 504.00 44.00 L 504.00 20.00 L 564.00 20.00 L 564.00 44.00 L 1046.00 44.00 L 1046.00 498.00 L 504.00 498.00 Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="775.00" y="57.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">P</text>
+  <path d="M 536.00 124.00 L 536.00 100.00 L 596.00 100.00 L 596.00 124.00 L 1014.00 124.00 L 1014.00 380.00 L 536.00 380.00 Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="775.00" y="137.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Q</text>
+  <path d="M 568.00 204.00 L 568.00 180.00 L 628.00 180.00 L 628.00 204.00 L 982.00 204.00 L 982.00 348.00 L 568.00 348.00 Z" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="775.00" y="217.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">R</text>
+  <rect x="810.00" y="260.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="880.00" y="278.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="880.00" y="297.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">X</text>
+  <rect x="600.00" y="260.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="670.00" y="278.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="670.00" y="297.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">Y</text>
+  <path d="M 740.00 288.00 L 810.00 288.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle)"/>
+  <rect x="536.00" y="410.00" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="606.00" y="428.00" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="606.00" y="447.00" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">E</text>
+  <rect x="1116.00" y="365.50" width="140.00" height="56.00" fill="#FFFFFF" stroke="#1A1A2E" stroke-width="1.50"/>
+  <text x="1186.00" y="383.50" font-family="Noto Sans, sans-serif" font-size="12.00" font-style="italic" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">«part def»</text>
+  <text x="1186.00" y="402.50" font-family="Noto Sans, sans-serif" font-size="14.00" font-weight="bold" fill="#1A1A2E" text-anchor="middle" dominant-baseline="middle">K</text>
+  <path d="M 192.00 374.50 L 386.00 374.50 A 4.00 4.00 0 0 0 390.00 370.50 L 390.00 252.00 A 4.00 4.00 0 0 1 394.00 248.00 L 770.00 248.00 A 4.00 4.00 0 0 1 774.00 252.00 L 774.00 268.00 A 4.00 4.00 0 0 0 778.00 272.00 L 810.00 272.00" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-hollow-triangle)"/>
+  <path d="M 950.00 288.00 L 1076.00 288.00 A 4.00 4.00 0 0 1 1080.00 292.00 L 1080.00 373.50 A 4.00 4.00 0 0 0 1084.00 377.50 L 1116.00 377.50" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-open-chevron)"/>
+  <path d="M 402.00 460.50 L 465.00 460.50 A 4.00 4.00 0 0 1 469.00 464.50 L 469.00 518.00 A 4.00 4.00 0 0 0 473.00 522.00 L 1076.00 522.00 A 4.00 4.00 0 0 0 1080.00 518.00 L 1080.00 413.50 A 4.00 4.00 0 0 1 1084.00 409.50 L 1116.00 409.50" fill="none" stroke="#1A1A2E" stroke-width="1.50" marker-end="url(#line-end-filled-diamond)"/>
+</svg>

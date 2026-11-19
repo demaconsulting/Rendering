@@ -122,6 +122,7 @@ public sealed class LayeredGraphTests
         {
             BackEdgeEntryApproach = 123.5,
             NodeSpacing = 456.5,
+            LayerSpacing = 789.5,
             MergeParallelEdges = false,
             AlignPorts = false,
         };

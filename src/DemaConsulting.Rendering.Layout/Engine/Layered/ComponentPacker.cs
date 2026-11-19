@@ -158,7 +158,9 @@ internal sealed class ComponentPacker : ILayoutStage
     /// <param name="graph">The graph whose nodes and edges are partitioned.</param>
     /// <returns>
     /// One list of original node indices per component, components ordered by their lowest original
-    /// node index, nodes within each component ordered by ascending original index.
+    /// node index, nodes within each component ordered by ascending original index. When any node carries
+    /// an <see cref="LayerNode.OrderRank"/>, nodes are instead ordered by (rank, index) and components by
+    /// their first node's (rank, index).
     /// </returns>
     private static List<List<int>> FindComponents(LayeredGraph graph)
     {
@@ -192,7 +194,20 @@ internal sealed class ComponentPacker : ILayoutStage
             members.Add(node);
         }
 
-        return [.. order.Select(root => rootToComponent[root])];
+        var components = order.Select(root => rootToComponent[root]).ToList();
+
+        // Order-rank hint: when any node is ranked, members are listed by (rank, index) and components
+        // by their first (lowest) member, so the caller steers both the in-component insertion order and
+        // the order the components are packed in. With no ranks this block is skipped, which keeps the
+        // ascending-index order (and so every default output) byte-identical.
+        if (LayerOrdering.AnyRanked(graph.Nodes.Select(node => node.OrderRank)))
+        {
+            double RankOf(int node) => graph.Nodes[node].OrderRank;
+            components = [.. components.Select(members => LayerOrdering.Sort(members, RankOf))];
+            components.Sort((a, b) => LayerOrdering.Compare(RankOf(a[0]), a[0], RankOf(b[0]), b[0]));
+        }
+
+        return components;
     }
 
     /// <summary>Finds the representative root of a node with path compression.</summary>
@@ -331,7 +346,7 @@ internal sealed class ComponentPacker : ILayoutStage
     /// bounding box, and routed edge waypoints.
     /// </summary>
     /// <param name="graph">The parent graph supplying node sizes, edges, and flow direction.</param>
-    /// <param name="members">Original node indices belonging to this component (ascending order).</param>
+    /// <param name="members">Original node indices belonging to this component (ascending order, or (rank, index) order when nodes carry an <see cref="LayerNode.OrderRank"/>).</param>
     /// <returns>The laid-out component, normalized against its own content bounding box.</returns>
     private ComponentLayout LayoutComponent(LayeredGraph graph, List<int> members)
     {
@@ -433,41 +448,26 @@ internal sealed class ComponentPacker : ILayoutStage
     }
 
     /// <summary>
-    /// Assigns each component a shelf offset using a greedy row (shelf) packer. The target row width is
-    /// the larger of the widest component and <c>sqrt(totalArea) * aspect</c>, which biases the overall
-    /// arrangement toward the requested aspect ratio.
+    /// Assigns each component an offset: the greedy row (shelf) arrangement (target row width the larger of
+    /// the widest component and <c>sqrt(totalArea) * aspect</c>, biasing the arrangement toward the
+    /// requested aspect ratio), or — when it needs a strictly smaller canvas — the free-space arrangement
+    /// that tucks small components (isolated nodes) into the space beside a tall one. See
+    /// <see cref="LayoutTreePacker.Arrange"/>.
     /// </summary>
     /// <param name="layouts">The laid-out components; their offsets are assigned in place.</param>
     private void PackComponents(List<ComponentLayout> layouts)
     {
-        var totalArea = 0.0;
-        var widest = 0.0;
-        foreach (var layout in layouts)
+        var sizes = new (double Width, double Height)[layouts.Count];
+        for (var i = 0; i < layouts.Count; i++)
         {
-            totalArea += layout.Width * layout.Height;
-            widest = Math.Max(widest, layout.Width);
+            sizes[i] = (layouts[i].Width, layouts[i].Height);
         }
 
-        var targetRowWidth = Math.Max(widest, Math.Sqrt(totalArea) * _aspect);
-
-        var cursorX = 0.0;
-        var shelfTop = 0.0;
-        var shelfHeight = 0.0;
-        foreach (var layout in layouts)
+        var arrangement = LayoutTreePacker.Arrange(sizes, _spacing, _aspect);
+        for (var i = 0; i < layouts.Count; i++)
         {
-            // Wrap to a new shelf when the running row width would exceed the target (but never leave a
-            // shelf empty — an over-wide component sits alone on its own shelf).
-            if (cursorX > 0.0 && cursorX + layout.Width > targetRowWidth)
-            {
-                shelfTop += shelfHeight + _spacing;
-                cursorX = 0.0;
-                shelfHeight = 0.0;
-            }
-
-            layout.OffsetX = cursorX;
-            layout.OffsetY = shelfTop;
-            cursorX += layout.Width + _spacing;
-            shelfHeight = Math.Max(shelfHeight, layout.Height);
+            layouts[i].OffsetX = arrangement.X[i];
+            layouts[i].OffsetY = arrangement.Y[i];
         }
     }
 

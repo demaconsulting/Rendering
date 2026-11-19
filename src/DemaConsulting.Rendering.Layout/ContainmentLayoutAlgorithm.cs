@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering.Abstractions;
+using DemaConsulting.Rendering.Layout.Engine;
 
 namespace DemaConsulting.Rendering.Layout;
 
@@ -186,17 +187,63 @@ public sealed class ContainmentLayoutAlgorithm : LayoutAlgorithmBase
             }
         }
 
+        // Order-rank hint: pack the boxes in (rank, index) order instead of input order, then hand the
+        // packed boxes back in input order (one box per node, in node order, is this algorithm's
+        // contract). packOrder[k] is the input index packed k-th; null means "pack in input order",
+        // which keeps a graph with no hint on its historical, byte-identical path.
+        var orderRanks = options.Get(HierarchicalLayoutAlgorithm.OrderRanks);
+        List<int>? packOrder = null;
+        if (orderRanks != null)
+        {
+            double RankOf(int index) => orderRanks.TryGetValue(graphNodes[index], out var rank) ? rank : double.NaN;
+            if (LayerOrdering.AnyRanked(Enumerable.Range(0, count).Select(RankOf)))
+            {
+                packOrder = LayerOrdering.Sort(Enumerable.Range(0, count), RankOf);
+            }
+        }
+
         // Pack the leaf boxes into rows within a width budget derived from a roughly 4:3 canvas, keeping
         // a connector-aware gap between boxes so edges can route around intervening ones. The edge-count
         // lookup additionally widens the horizontal gap between two same-row boxes joined by a fan of
         // parallel connectors so those connectors get distinct routing lanes.
+        IReadOnlyList<LayoutBox> toPack = boxes;
+        var packEdgeCounts = edgeCounts;
+        if (packOrder != null)
+        {
+            // The edge counts are keyed by input index pairs; re-key them by packed position.
+            var positionOf = new int[count];
+            for (var position = 0; position < count; position++)
+            {
+                positionOf[packOrder[position]] = position;
+            }
+
+            toPack = [.. packOrder.Select(index => boxes[index])];
+            packEdgeCounts = [];
+            foreach (var pair in edgeCounts)
+            {
+                var a = positionOf[pair.Key.First];
+                var b = positionOf[pair.Key.Second];
+                packEdgeCounts[a < b ? (a, b) : (b, a)] = pair.Value;
+            }
+        }
+
         var containmentOptions = new ContainmentOptions(
             ComputeContentWidth(boxes),
             HorizontalGap: NodeSpacing,
             VerticalGap: NodeSpacing,
-            EdgeCounts: edgeCounts);
-        var result = ContainmentLayout.Pack(boxes, containmentOptions);
-        var packedBoxes = result.Children;
+            EdgeCounts: packEdgeCounts);
+        var result = ContainmentLayout.Pack(toPack, containmentOptions);
+        IReadOnlyList<LayoutBox> packedBoxes = result.Children;
+        if (packOrder != null)
+        {
+            var inInputOrder = new LayoutBox[count];
+            for (var position = 0; position < count; position++)
+            {
+                inInputOrder[packOrder[position]] = result.Children[position];
+            }
+
+            packedBoxes = inInputOrder;
+        }
 
         // Build one connection per edge whose endpoints are both top-level nodes, carrying the edge's
         // styling; edges referencing out-of-graph nodes are skipped, as are layout-only edges (which

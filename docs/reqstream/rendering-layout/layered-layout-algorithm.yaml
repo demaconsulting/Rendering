@@ -449,3 +449,50 @@ sections:
           readable.
         tests:
           - LayeredLayout_ParallelKeywordLabeledEdgesIntoOneNode_KeepAnchorsApartAndLabelsClear
+
+      - id: Rendering-Layout-LayeredAlgorithm-LayerSpacing
+        title: >-
+          LayeredLayoutAlgorithm shall honor CoreOptions.LayerSpacing, a graph's own value taking
+          precedence over the options', as the minimum width of the corridor between adjacent layers in
+          every flow direction, defaulting to 70.0, and shall never narrow a corridor below what its
+          connector routing, end-marker run and end labels need.
+        justification: |
+          The layered algorithm is the only bundled algorithm that places columns, so it is where the
+          layer spacing takes effect. Treating the value as a floor keeps a small value from crowding
+          connectors or shortening the straight run into an arrowhead, while a larger value widens the
+          corridor exactly. The default equals the corridor the algorithm always used, so unset graphs
+          (other than labeled corridors, which are now the larger of the option and what the labels
+          need) are unchanged.
+        tests:
+          - LayoutEngine_Layout_LayerSpacingUnset_CorridorIs70
+          - LayoutEngine_Layout_LayerSpacing_HonoredAsCorridorWidth
+          - LayoutEngine_Layout_LayerSpacingZero_KeepsMarkerRunPerStyle
+          - LayoutEngine_Layout_LayerSpacingBelowFloor_StillRoutesCleanly
+          - LayoutEngine_Layout_LayerSpacingWithEndLabels_CorridorIsMaxOfOptionAndNeeds
+          - LayeredLayoutAlgorithm_ApplyCore_LayerSpacingOnGraph_TakesPrecedenceOverOptions
+
+      - id: Rendering-Layout-LayeredAlgorithm-OrderRanks
+        title: >-
+          LayeredLayoutAlgorithm shall honor the order-rank hint, placing nodes the layered stages leave
+          otherwise unconstrained in ascending rank order, and shall keep the input order, byte for byte,
+          when no rank is supplied.
+        justification: |
+          The hierarchical engine orders the members of a container interior by the position of their
+          connection partners elsewhere in the diagram to avoid crossings between scopes. The hint must
+          reach the leaf algorithm without changing any graph that does not carry it.
+        tests:
+          - LayeredLayoutAlgorithm_OrderRanks_OrdersSiblingsByRank
+          - LayeredLayoutAlgorithm_NoOrderRanks_KeepsInsertionOrder
+
+      - id: Rendering-Layout-LayeredAlgorithm-CanvasPadding
+        title: >-
+          LayeredLayoutAlgorithm shall return a canvas that hugs the drawn content, keeping exactly one
+          layout padding between the content (boxes, connectors, resolved labels and ports) and every
+          canvas edge for every flow direction.
+        justification: |
+          A Left or Up flow reflected its content one padding off-center and a connector detour or label
+          could reach into the padding band, so the canvas was uneven on opposite sides. Measuring the
+          content in the final fit gives a uniform margin without changing the placed geometry.
+        tests:
+          - LayoutEngine_Layout_DirectionScene_CanvasHugsContent
+          - LayoutEngine_Layout_LayeredAndHierarchicalChains_CanvasHugsContent

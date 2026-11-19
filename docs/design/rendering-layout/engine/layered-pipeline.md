@@ -35,6 +35,14 @@ the direction-agnostic stages space layers by the correct extent; it preserves e
 `LayerNode` field (`Shape`, `RoundedCornerRadius`, `FolderTabWidth`, `FolderTabHeight`, `Label`,
 `RealWidth`, `RealHeight`) unchanged, since only the abstract along/cross axes need to reorient.
 
+`LayeredGraph.LayerSpacing` (default `LayeredLayoutMetrics.DefaultLayerSpacing`, 70 pixels, the historical
+fixed corridor) is the requested minimum corridor width between adjacent layers. It is copied by
+`LayeredGraph.CreateChild` into every child graph and carried per level by `MergeRegionGraphAssembler` (an
+inherited or per-level override), so every component and every level of a recursive combined pass uses the
+same floor. `LayerNode.OrderRank` (default `NaN`, unranked) and `LayerEdge.TargetApproach` (default `0`) are
+the two further optional hints: the order rank steers the order of nodes the stages leave unconstrained, and the
+target approach is the straight run an edge keeps into the end marker at its real target. Both default to a
+no-op, so a caller that sets none sees unchanged output.
 `LayerNode` carries shape metadata alongside its abstract `Width`/`Height`: `Shape` (defaulting to
 `BoxShape.Rectangle`, which keeps every 2-arg call site's byte-identical full-face behavior),
 `RoundedCornerRadius`, `FolderTabWidth`, `FolderTabHeight`, and `Label` mirror the corresponding
@@ -98,9 +106,26 @@ The default stage sequence added by `AddDefaultStages` runs in this order:
    with no same-layer-adjacent neighbors in the current sweep direction falls back to a stable-index
    key unless it is genuinely isolated (zero incident augmented edges in either direction), in which
    case it is sorted to the trailing end of its layer instead — clustering every isolated node in a
-   layer together rather than letting it land arbitrarily beside an unrelated dummy chain.
+   layer together rather than letting it land arbitrarily beside an unrelated dummy chain. When any
+   node carries an order rank, the stage first reseeds each layer's initial order with the real nodes in
+   (rank, index) order followed by the long-edge dummies in their former order; the sweeps use the current
+   position as their tie-break, so a rank decides the order of nodes under no crossing pressure while
+   a genuine crossing reduction keeps priority. With no ranks the reseeding is skipped.
 5. **BrandesKopfPlacer.** Assigns every augmented node absolute coordinates, with layer columns
-   ordered left to right and symmetric forks centered between their targets. After coordinate
+   ordered left to right and symmetric forks centered between their targets. The corridor between two
+   adjacent columns is `max(LayerSpacing, routingFloor + sourceLabelAlong + targetLabelAlong)`. The routing
+   floor is the larger of the slot floor (two connector clearances plus the slot pitch for each connector
+   beyond the first) and the marker-approach floor: the last clearance raised to the straight run into the end
+   marker of the connectors entering a real node (and, for a reversed edge leaving a real node, its back-edge
+   entry approach), capped at the historical corridor width so a wide fan keeps exactly the width it always had
+   and the default output never widens. The one exception is a back-edge entry approach whose own need
+   (`BackEdgeEntryApproach` plus a clearance) exceeds that width: the corridor router bends the back edge that far
+   into the corridor, so the cap is lifted to what the approach needs and the bend never intrudes into the next
+   column. The slot pitch and the clearances are never reduced, so a small
+   requested spacing can never cramp the connectors or leave a final run shorter than its marker, and the end
+   labels (zero when none) keep their own space. A non-finite requested spacing is ignored. With the default
+   spacing an unlabeled corridor is exactly the former width; a labeled corridor is now the larger of the
+   spacing and what the labels need rather than the former sum. After coordinate
    assignment, a trailing run of isolated nodes at the end of a layer's order (as produced by
    `CrossingMinimizer`) has the gap ahead of it squeezed down to exactly `NodeSpacing`, without
    moving any edge-bearing node, so an isolated node can no longer inherit an inflated compaction
@@ -178,6 +203,15 @@ height as the width and the stored width as the height for Down and Up — befor
 packing, so isolated non-square nodes are packed on the correct pitch and never overlap the connected
 component or each other, for every direction. Right and Left are unaffected, so their output is unchanged.
 
+`ComponentPacker` orders members and components by order rank when any node carries one: members of a component
+are listed in (rank, index) order and components by their first (lowest) member, so a caller steers both the
+insertion order inside a component and the order the components are packed in (`LayerOrdering` holds the
+shared rule: ascending rank, an unranked node after every ranked one, ties by index, no ranked node means the
+historical ascending-index order). The placement of the components is computed by `LayoutTreePacker.Arrange`: the
+greedy shelf arrangement, or, when it needs a strictly smaller canvas, the free-space arrangement that tucks small
+components (typically isolated nodes) into the space beside a tall one (see *LayoutTreePacker Unit Design*), so
+isolated nodes no longer sit in a further row below a tall component.
+
 #### Layered Pipeline End-Label Reservation
 
 `LayerEdge` has two optional members, `SourceLabelAlong` and `TargetLabelAlong`: the space, along the flow
@@ -247,7 +281,12 @@ each boundary port to one shared physical anchor on the container face — the f
 external and internal faces collapse onto one point — and takes every converging edge's waypoints
 directly from the orthogonal corridor router's routed polylines (the external approach concatenates the
 approach and container-link polylines; each internal delegation prepends the shared anchor to its
-delegation polyline with at most one orthogonal corner). Boundary containers recurse to arbitrary depth;
+delegation polyline with at most one orthogonal corner). The synthetic edges `MergeRegionGraphAssembler`
+builds for the crossings carry the end-marker approach of the connector they finish (as an ordinary edge's
+`TargetApproach` does): each internal delegation the approach of its original edge's target marker, and the
+shared container link the widest approach among the external approaches that concatenate onto it, so the final
+straight run into a boundary port is never shorter than its marker even at a small layer spacing. Boundary
+containers recurse to arbitrary depth;
 leaf and non-boundary nodes rigid-shift into place. No endpoint is patched onto the anchor with a
 hand-built diagonal, which is what keeps external fan-in and multi-level delegation chains orthogonal.
 `BoundaryPortResolver` itself is now reduced to the single retained `FaceForDirection` helper (the
@@ -344,3 +383,6 @@ public layout result contract.
 | Rendering-Layout-LayeredPipeline-SharedState | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-InputValidation | Layered pipeline behavior described above |
 | Rendering-Layout-LayeredPipeline-ShapeAwareAnchors | Layered pipeline behavior described above |
+| Rendering-Layout-LayeredPipeline-LayerSpacingCorridor | `BrandesKopfPlacer` corridor formula |
+| Rendering-Layout-LayeredPipeline-OrderRank | `CrossingMinimizer`, `ComponentPacker`, `LayerOrdering` |
+| Rendering-Layout-LayeredPipeline-ComponentPackingFreeSpace | `ComponentPacker`, `LayoutTreePacker.Arrange` |

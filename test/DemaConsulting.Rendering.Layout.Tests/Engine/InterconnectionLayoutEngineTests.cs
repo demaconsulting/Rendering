@@ -304,6 +304,32 @@ public sealed class InterconnectionLayoutEngineTests
     }
 
     /// <summary>
+    ///     Omitting the optional layer-spacing argument preserves the engine's original 70 px corridor, and a
+    ///     larger value sets the corridor exactly — for a single component and for every component of a
+    ///     disconnected graph (each packed component inherits the option).
+    /// </summary>
+    [Fact]
+    public void Place_LayerSpacing_DefaultsTo70AndReachesEveryComponent()
+    {
+        // Arrange: two disconnected a -> b pairs
+        var nodes = new List<LayerNode> { new(80, 40), new(80, 40), new(80, 40), new(80, 40) };
+        var edges = new List<LayerEdge> { new(0, 1), new(2, 3) };
+
+        // Act
+        var @default = InterconnectionLayoutEngine.Place(nodes, edges);
+        var explicitDefault = InterconnectionLayoutEngine.Place(
+            nodes, edges, layerSpacing: LayeredLayoutMetrics.DefaultLayerSpacing);
+        var wide = InterconnectionLayoutEngine.Place(nodes, edges, layerSpacing: 130.0);
+
+        // Assert: default equals the explicit constant, and both pairs gained the same extra corridor
+        Assert.Equal(explicitDefault.Rects, @default.Rects);
+        Assert.Equal(70.0, @default.Rects[1].X - (@default.Rects[0].X + @default.Rects[0].Width), 6);
+        Assert.Equal(70.0, @default.Rects[3].X - (@default.Rects[2].X + @default.Rects[2].Width), 6);
+        Assert.Equal(130.0, wide.Rects[1].X - (wide.Rects[0].X + wide.Rects[0].Width), 6);
+        Assert.Equal(130.0, wide.Rects[3].X - (wide.Rects[2].X + wide.Rects[2].Width), 6);
+    }
+
+    /// <summary>
     ///     A larger node-spacing value strictly widens the gap between two same-layer siblings — a
     ///     regression guard against the parameter being silently ignored.
     /// </summary>

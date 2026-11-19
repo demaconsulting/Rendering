@@ -16,7 +16,8 @@ the unsupported-node-type guard are all measured on production output.
 
 - **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
-- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/Engine/LayoutTreePackerTests.cs`.
+- **Project**: `test/DemaConsulting.Rendering.Layout.Tests/Engine/LayoutTreePackerTests.cs` and
+  `test/DemaConsulting.Rendering.Layout.Tests/Engine/EmptySpaceMeterTests.cs` (the empty-space measure).
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutTree` instances.
 - **Isolation**: each test builds its own inputs; the engine holds no state between calls.
@@ -56,6 +57,25 @@ null-argument guard constitutes a failure.
   appear in the combined tree.
 - **Validation** (`Rendering-Layout-LayoutTreePacker-Validation`): `Pack_NullTrees_ThrowsArgumentNullException`
   confirms a null `trees` argument is rejected with an argument-null error.
+- **Free-space packing** (`Rendering-Layout-LayoutTreePacker-FreeSpacePacking`):
+  `Arrange_SmallPiecesAfterTallPiece_FillsHoleBesideTallPiece` confirms small pieces fill the hole beside a tall one;
+  `Pack_TallTreePlusSmallTrees_TucksSmallTreesBesideTallTree` confirms the same through `Pack`;
+  `Pack_WithMargin_OffsetsContentAndGrowsCanvasOnEverySide` confirms the optional margin;
+  `TuckIntoHoles_PieceFitsBesideHostContent_PlacesInsideCanvasKeepingSpacing` confirms a tucked piece lies inside the
+  host canvas clear of its content; `TuckIntoHoles_PieceFitsNowhere_ReturnsNull` and
+  `TuckIntoHoles_NoPieces_ReturnsNull` confirm the no-fit and no-piece results.
+- **Never worse than the shelf** (`Rendering-Layout-LayoutTreePacker-NeverWorseThanShelf`):
+  `Arrange_RandomPieces_NeverLargerThanShelfAndNeverOverlaps` (random pieces) confirms the arrangement is never larger
+  than the shelf arrangement and never overlaps; `Arrange_NoGain_KeepsShelfArrangement` confirms the shelf arrangement
+  is returned when the search gains nothing; `Arrange_TiedScoreWithSmallerArea_ChoosesFreeSpace` confirms a free-space
+  canvas whose penalized score ties the shelf's is taken when its area is strictly smaller, and
+  `Arrange_TiedScoreAndArea_KeepsShelfArrangement` confirms a tie in both keeps the shelf;
+  `Arrange_SameInputTwice_IsIdentical` confirms determinism; `Arrange_EmptyAndSingle_AreUnchanged` confirms the
+  degenerate inputs.
+- **Empty-space measure** (`Rendering-Layout-LayoutTreePacker-EmptySpaceMeasure`): the `EmptySpaceMeter_*` tests
+  (`Engine/EmptySpaceMeterTests.cs`) confirm an empty tree measures its smaller canvas side, a central leaf box
+  reduces the square, a container outline is transparent, a connector across the canvas splits the space, and the
+  passing square is three times the mean leaf-box height (zero without a leaf box).
 
 #### Requirements Coverage
 
@@ -75,3 +95,18 @@ null-argument guard constitutes a failure.
   Pack_TreesWithWarnings_PreservesAllWarnings
 - **`Rendering-Layout-LayoutTreePacker-Validation`**:
   Pack_NullTrees_ThrowsArgumentNullException
+- **`Rendering-Layout-LayoutTreePacker-FreeSpacePacking`**:
+  Arrange_SmallPiecesAfterTallPiece_FillsHoleBesideTallPiece, Pack_TallTreePlusSmallTrees_TucksSmallTreesBesideTallTree,
+  Pack_WithMargin_OffsetsContentAndGrowsCanvasOnEverySide,
+  TuckIntoHoles_PieceFitsBesideHostContent_PlacesInsideCanvasKeepingSpacing, TuckIntoHoles_PieceFitsNowhere_ReturnsNull,
+  TuckIntoHoles_NoPieces_ReturnsNull
+- **`Rendering-Layout-LayoutTreePacker-NeverWorseThanShelf`**:
+  Arrange_RandomPieces_NeverLargerThanShelfAndNeverOverlaps, Arrange_NoGain_KeepsShelfArrangement,
+  Arrange_TiedScoreWithSmallerArea_ChoosesFreeSpace, Arrange_TiedScoreAndArea_KeepsShelfArrangement,
+  Arrange_SameInputTwice_IsIdentical, Arrange_EmptyAndSingle_AreUnchanged
+- **`Rendering-Layout-LayoutTreePacker-EmptySpaceMeasure`**:
+  EmptySpaceMeter_LargestEmptySquare_EmptyTree_IsSmallerCanvasSide,
+  EmptySpaceMeter_LargestEmptySquare_CentralLeafBox_ReducesSquare,
+  EmptySpaceMeter_LargestEmptySquare_ContainerOutline_IsTransparent,
+  EmptySpaceMeter_LargestEmptySquare_ConnectorAcrossCanvas_SplitsSpace,
+  EmptySpaceMeter_PassingSquare_LeafBoxes_IsThreeTimesMeanHeight, EmptySpaceMeter_PassingSquare_NoLeafBox_IsZero

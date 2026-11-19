@@ -330,3 +330,57 @@ sections:
           must copy the labels or they would be lost for every hierarchical diagram.
         tests:
           - ConnectorRouter_Connection_EndLabelsReachRoutedLine
+
+      - id: Rendering-Layout-ConnectorRouter-ExistingLineCrossingCost
+        title: >-
+          ConnectorRouter shall, when the caller supplies the lines already drawn in the scope (for
+          example the interior connectors of a container an edge enters), count a crossing of such a
+          line as a routing defect and avoid it when an alternative route exists, still routing the edge
+          when none does, and shall route byte-identically when no lines are supplied.
+        justification: |
+          A connector that crosses a line drawn inside a container it only passes cannot be seen by the
+          scope that routes it unless the interior lines are supplied as obstacles. Treating the crossing
+          as a defect, not a prohibition, keeps every edge routed and leaves graphs without such lines
+          unchanged.
+        tests:
+          - RouteBatch_ExistingInteriorLine_AvoidsCrossingWhenAlternativeExists
+          - RouteBatch_ExistingInteriorLine_NoAlternative_StillRoutes
+          - RouteBatch_NoExistingLines_ByteIdentical
+
+      - id: Rendering-Layout-ConnectorRouter-TidyReplacement
+        title: >-
+          ConnectorRouter shall replace a routed connector by an alternative only when the replacement
+          has fewer crossings within a bounded detour (at most 1.25 times the length plus two clearances,
+          at most two more bends), or equal crossings, no more bends and a lower visual cost, and in
+          either case adds no hairpin and no run within 4 pixels of another connector.
+        justification: |
+          Avoiding a crossing by wrapping a connector around a container or squeezing it beside another
+          connector trades a crossing for a worse picture. Bounding the replacement keeps every
+          re-route a net improvement.
+        tests:
+          - IsTidyReplacement_FewerCrossingsModestDetour_Accepts
+          - IsTidyReplacement_FewerCrossingsLongWrap_Rejects
+          - IsTidyReplacement_FewerCrossingsManyMoreBends_Rejects
+          - IsTidyReplacement_AddsHairpin_Rejects
+          - IsTidyReplacement_RunsNearlyOnTopOfAnotherConnector_Rejects
+          - IsTidyReplacement_EqualCrossings_AcceptsOnlyLowerVisualCost
+
+      - id: Rendering-Layout-ConnectorRouter-RouteQuality
+        title: >-
+          The route-quality measure shall report, for a set of routed polylines, the total path length,
+          the bend count (collinear waypoints are not bends), the hairpin count (a U-turn made of two
+          consecutive opposite bends), and the length of the runs closer than the lane separation of
+          another connector, a gap of exactly the separation not counting as close, weighted so nearer
+          runs weigh more.
+        justification: |
+          The router's re-route acceptance, the hierarchical engine's tightening gate and the ordering
+          refinement all compare layouts by the same four measures; one shared definition keeps their
+          decisions consistent and lets the test metrics be checked against the engine.
+        tests:
+          - RouteQuality_PathLength_Polyline_SumsSegments
+          - RouteQuality_BendCount_CollinearWaypoints_AreNotBends
+          - RouteQuality_HairpinCount_EastSouthWest_IsOneHairpin
+          - RouteQuality_CloseParallelLength_GapAndOverlap_CountsOnlySqueezedRuns
+          - RouteQuality_WeightedCloseParallelLength_NearerRunsWeighMore
+          - RouteQuality_Measure_TwoConnectors_SumsAllMetrics
+          - RouteQuality_Measure_BenchmarkScene_AgreesWithLayoutQualityMetrics

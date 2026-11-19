@@ -16,13 +16,61 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
     {
         ArgumentNullException.ThrowIfNull(graph);
         var (sourceLabelAlong, targetLabelAlong) = CorridorLabelAlong(graph);
+        var (forwardApproach, backApproach) = CorridorApproach(graph);
         var (augX, augY, columnX, maxColWidth) = AssignCoordinatesAug(
-            graph.AugNodes, graph.Groups, graph.AugEdges, graph.NodeSpacing, sourceLabelAlong, targetLabelAlong);
+            graph.AugNodes,
+            graph.Groups,
+            graph.AugEdges,
+            graph.NodeSpacing,
+            graph.LayerSpacing,
+            sourceLabelAlong,
+            targetLabelAlong,
+            forwardApproach,
+            backApproach);
         graph.CorridorSourceLabelAlong = sourceLabelAlong;
         graph.AugX = augX;
         graph.AugY = augY;
         graph.ColumnX = columnX;
         graph.MaxColWidth = maxColWidth;
+    }
+
+    /// <summary>
+    /// Computes, per corridor (index = source layer), the longest straight run into an end marker the
+    /// connectors crossing it ask for: <c>Forward</c> is the largest <see cref="LayerEdge.TargetApproach"/>
+    /// of a connector entering its real target node through the corridor, and <c>Back</c> is
+    /// <see cref="LayeredGraph.BackEdgeEntryApproach"/> when a reversed (back) edge leaves its real node
+    /// through the corridor (the end marker of a reversed edge sits on that face). All zero — and so a
+    /// no-op — unless an edge carries an end marker whose approach exceeds the standard clearance.
+    /// </summary>
+    /// <param name="graph">The graph whose acyclic edges and augmented sub-edges are read.</param>
+    /// <returns>The per-corridor forward and back-edge marker approach.</returns>
+    private static (double[] Forward, double[] Back) CorridorApproach(LayeredGraph graph)
+    {
+        var corridors = Math.Max(1, graph.Groups.Count - 1);
+        var forward = new double[corridors];
+        var back = new double[corridors];
+        foreach (var ae in graph.AugEdges)
+        {
+            var corridor = graph.AugNodes[ae.Source].Layer;
+            if (corridor < 0 || corridor >= corridors || ae.OrigEdgeIndex < 0 || ae.OrigEdgeIndex >= graph.Acyclic.Count)
+            {
+                continue;
+            }
+
+            if (graph.AcyclicReversed[ae.OrigEdgeIndex])
+            {
+                if (!graph.AugNodes[ae.Source].IsDummy)
+                {
+                    back[corridor] = Math.Max(back[corridor], graph.BackEdgeEntryApproach);
+                }
+            }
+            else if (!graph.AugNodes[ae.Target].IsDummy)
+            {
+                forward[corridor] = Math.Max(forward[corridor], graph.Acyclic[ae.OrigEdgeIndex].TargetApproach);
+            }
+        }
+
+        return (forward, back);
     }
 
     /// <summary>
@@ -84,8 +132,11 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
         List<List<int>> groups,
         List<AugEdge> augEdges,
         double nodeSpacing,
+        double layerSpacing,
         double[] sourceLabelAlong,
-        double[] targetLabelAlong)
+        double[] targetLabelAlong,
+        double[] forwardApproach,
+        double[] backApproach)
     {
         var layerCount = groups.Count;
         var numAug = augNodes.Count;
@@ -111,19 +162,44 @@ internal sealed class BrandesKopfPlacer : ILayoutStage
             }
         }
 
-        // Column X positions. Corridor width: ELK routingWidth = 2*edgeNodeSpacing + (n-1)*edgeEdgeSpacing.
+        // Column X positions. The corridor between two columns is the larger of the requested layer
+        // spacing and what its connector routing and end labels need (corridor(l) = max(LayerSpacing,
+        // routingFloor(l) + labelAlong(l))). routingFloor starts from ELK's routingWidth =
+        // 2*edgeNodeSpacing + (n-1)*edgeEdgeSpacing; the marker approach — the last clearance raised to the
+        // straight run into the end marker of the connectors entering a real node — is added on top whenever
+        // it fits the historical corridor (DefaultLayerSpacing) — except a back-edge entry approach that itself
+        // needs more than the historical corridor, which is honored in full. That keeps a small LayerSpacing from
+        // leaving a final run shorter than its marker, while a wide fan whose slots alone already fill the
+        // historical corridor keeps exactly the width it always had (so default output never widens). The
+        // slot pitch EdgeSpacing and the clearances are never reduced.
         var columnX = new double[layerCount];
         columnX[0] = Padding;
+
+        // A non-finite requested spacing (NaN or infinity) cannot be honored and is ignored; the routing
+        // minimum below still applies.
+        var spacingFloor = double.IsNaN(layerSpacing) || double.IsInfinity(layerSpacing) ? 0.0 : layerSpacing;
         for (var l = 1; l < layerCount; l++)
         {
             var cnt = corridorEdgeCounts[l - 1];
-            var corridorWidth = cnt > 0
-                ? Math.Max(CorridorMinWidth, (2.0 * ConnectorClearance) + ((cnt - 1) * EdgeSpacing))
-                : CorridorMinWidth;
+            var routingFloor = 0.0;
+            if (cnt > 0)
+            {
+                var slots = (cnt - 1) * EdgeSpacing;
+                var slotFloor = (2.0 * ConnectorClearance) + slots;
+                var forwardFloor = ConnectorClearance + slots + Math.Max(ConnectorClearance, forwardApproach[l - 1]);
+                var backFloor = backApproach[l - 1] > 0.0 ? backApproach[l - 1] + ConnectorClearance : 0.0;
+                // The marker approach is capped at the historical corridor so default output never widens;
+                // only a back-edge entry approach that itself needs more than that (an explicit, larger
+                // BackEdgeEntryApproach) lifts the cap to what it needs, because the corridor router bends the
+                // back edge that far into the corridor and a narrower corridor would push the bend into the
+                // next column.
+                var approachFloor = Math.Min(Math.Max(forwardFloor, backFloor), Math.Max(DefaultLayerSpacing, backFloor));
+                routingFloor = Math.Max(slotFloor, approachFloor);
+            }
 
-            // End labels need straight run on both sides of the jog: widen the corridor by the space
-            // they ask for (zero, and so byte-identical, when no edge has end labels).
-            corridorWidth += sourceLabelAlong[l - 1] + targetLabelAlong[l - 1];
+            // End labels need straight run on both sides of the jog: the corridor also holds the space
+            // they ask for (zero when no edge has end labels).
+            var corridorWidth = Math.Max(spacingFloor, routingFloor + sourceLabelAlong[l - 1] + targetLabelAlong[l - 1]);
             columnX[l] = columnX[l - 1] + maxColWidth[l - 1] + corridorWidth;
         }
 

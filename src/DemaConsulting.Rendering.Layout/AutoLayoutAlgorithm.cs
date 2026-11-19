@@ -127,6 +127,12 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
     /// </summary>
     private const double ComponentAspectRatio = 4.0 / 3.0;
 
+    /// <summary>
+    /// Outer padding, in logical pixels, around content-trimmed pieces packed together: the engine's uniform
+    /// canvas padding (the layered engine's own), added once instead of once per piece.
+    /// </summary>
+    private const double OuterPadding = 20.0;
+
     private readonly HierarchicalLayoutAlgorithm _hierarchical;
     private readonly LayeredLayoutAlgorithm _layered = new();
     private readonly ContainmentLayoutAlgorithm _containment = new();
@@ -313,23 +319,126 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
         // container scopes are re-classified rather than defaulting to a fixed leaf choice.
         var effective = graph.OverlayOnto(options);
 
-        var trees = new List<LayoutTree>(routedGroups.Count + (singletons.Count > 0 ? 1 : 0));
-        var packedOrder = new List<int>(count);
+        // Order-rank hint: when the cascaded options carry ranks, list the routed groups by the lowest
+        // (rank, index) of their members, each group's members (the node order of its sub-graph) and the
+        // singleton bucket's members by (rank, index), so the caller steers the packing order. The
+        // bucket itself stays last. Without ranks this is skipped and the input order is kept.
+        var orderRanks = effective.Get(HierarchicalLayoutAlgorithm.OrderRanks);
+        if (orderRanks != null)
+        {
+            double RankOf(int index) => orderRanks.TryGetValue(nodes[index], out var rank) ? rank : double.NaN;
+            if (LayerOrdering.AnyRanked(Enumerable.Range(0, count).Select(RankOf)))
+            {
+                routedGroups = [.. routedGroups.Select(group => (Members: LayerOrdering.Sort(group.Members, RankOf), group.Algorithm))];
+                routedGroups.Sort((a, b) => LayerOrdering.Compare(RankOf(a.Members[0]), a.Members[0], RankOf(b.Members[0]), b.Members[0]));
+                singletons = LayerOrdering.Sort(singletons, RankOf);
+            }
+        }
+
+        var routedTrees = new List<LayoutTree>(routedGroups.Count);
+        var routedOrder = new List<int>(count);
         foreach (var (members, algorithm) in routedGroups)
         {
-            var subGraph = BuildComponentGraph(graph, members);
-            trees.Add(algorithm.ApplyCore(subGraph, effective));
-            packedOrder.AddRange(members);
+            // The split-off piece is built from node copies, so the hint's keys are translated onto them.
+            var subGraph = BuildComponentGraph(graph, members, out var nodeMap);
+            routedTrees.Add(algorithm.ApplyCore(subGraph, HierarchicalLayoutAlgorithm.TranslateOrderRanks(effective, nodeMap)));
+            routedOrder.AddRange(members);
         }
 
+        LayoutTree? bucketTree = null;
         if (singletons.Count > 0)
         {
-            var subGraph = BuildComponentGraph(graph, singletons);
-            trees.Add(_containment.ApplyCore(subGraph, effective));
-            packedOrder.AddRange(singletons);
+            var subGraph = BuildComponentGraph(graph, singletons, out var nodeMap);
+            bucketTree = _containment.ApplyCore(subGraph, HierarchicalLayoutAlgorithm.TranslateOrderRanks(effective, nodeMap));
         }
 
-        return RestoreInputBoxOrder(LayoutTreePacker.Pack(trees, ComponentSpacing, ComponentAspectRatio), packedOrder);
+        // Candidate 1 is the long-standing packing: every piece as laid out, each carrying its own canvas
+        // padding, the singleton bucket one block.
+        var untrimmed = new List<LayoutTree>(routedTrees);
+        var untrimmedOrder = new List<int>(routedOrder);
+        if (bucketTree != null)
+        {
+            untrimmed.Add(bucketTree);
+            untrimmedOrder.AddRange(singletons);
+        }
+
+        var best = RestoreInputBoxOrder(LayoutTreePacker.Pack(untrimmed, ComponentSpacing, ComponentAspectRatio), untrimmedOrder);
+        var bestArea = best.Width * best.Height;
+
+        // Candidates 2 and 3 pack the pieces trimmed to their content (so the canvas padding of every piece
+        // is not added between them) and add one outer padding around the result: with the singleton bucket
+        // as one block, and with every singleton as its own piece so it can fill free space beside a tall
+        // component. A candidate replaces the current best only with a strictly smaller canvas, so ties
+        // keep the long-standing arrangement.
+        var fontSize = effective.Get(CoreOptions.AssumedFontSize);
+        var trimmedRouted = routedTrees.Select(tree => CanvasFitter.TrimToContent(tree, fontSize)).ToList();
+        if (bucketTree != null)
+        {
+            var block = new List<LayoutTree>(trimmedRouted) { CanvasFitter.TrimToContent(bucketTree, fontSize) };
+            var blockOrder = new List<int>(routedOrder);
+            blockOrder.AddRange(singletons);
+            Consider(block, blockOrder, ref best, ref bestArea);
+
+            if (singletons.Count > 0)
+            {
+                var pieces = new List<LayoutTree>(singletons.Count);
+                foreach (var singleton in singletons)
+                {
+                    var subGraph = BuildComponentGraph(graph, [singleton], out var nodeMap);
+                    var piece = _containment.ApplyCore(subGraph, HierarchicalLayoutAlgorithm.TranslateOrderRanks(effective, nodeMap));
+                    pieces.Add(CanvasFitter.TrimToContent(piece, fontSize));
+                }
+
+                if (singletons.Count > 1)
+                {
+                    var dissolved = new List<LayoutTree>(trimmedRouted);
+                    dissolved.AddRange(pieces);
+                    Consider(dissolved, [.. routedOrder, .. singletons], ref best, ref bestArea);
+                }
+
+                // Candidate 4 tucks the singletons into a hole of the packed routed components (when they fit
+                // in one), which no arrangement of bounding rectangles can do. It must not leave a larger
+                // empty square than the best candidate so far.
+                var host = LayoutTreePacker.Pack(trimmedRouted, ComponentSpacing, ComponentAspectRatio, OuterPadding);
+                var tucked = LayoutTreePacker.TuckIntoHoles(host, pieces, ComponentSpacing, ComponentAspectRatio, OuterPadding, fontSize);
+                if (tucked != null)
+                {
+                    var candidate = RestoreInputBoxOrder(tucked, [.. routedOrder, .. singletons]);
+                    var area = candidate.Width * candidate.Height;
+                    if (area < bestArea - 1e-6 && EmptySpaceMeter.LargestEmptySquare(candidate) <= EmptySpaceMeter.LargestEmptySquare(best) + 1e-6)
+                    {
+                        best = candidate;
+                    }
+                }
+            }
+        }
+        else
+        {
+            Consider(trimmedRouted, routedOrder, ref best, ref bestArea);
+        }
+
+        return best;
+    }
+
+    /// <summary>
+    /// Packs content-trimmed pieces with one outer <see cref="OuterPadding"/> and keeps the result in
+    /// <paramref name="best"/> when its canvas is strictly smaller than <paramref name="bestArea"/>.
+    /// </summary>
+    /// <param name="pieces">The content-trimmed pieces, in packing order.</param>
+    /// <param name="order">The input node index of each top-level box of the pieces, in packing order.</param>
+    /// <param name="best">The best packed tree so far; replaced when the candidate is smaller.</param>
+    /// <param name="bestArea">The canvas area of <paramref name="best"/>; updated with it.</param>
+    private static void Consider(List<LayoutTree> pieces, List<int> order, ref LayoutTree best, ref double bestArea)
+    {
+        var candidate = RestoreInputBoxOrder(
+            LayoutTreePacker.Pack(pieces, ComponentSpacing, ComponentAspectRatio, OuterPadding),
+            order);
+        var area = candidate.Width * candidate.Height;
+        if (area < bestArea - 1e-6)
+        {
+            best = candidate;
+            bestArea = area;
+        }
     }
 
     /// <summary>
@@ -454,10 +563,25 @@ public sealed class AutoLayoutAlgorithm : LayoutAlgorithmBase
     /// <param name="memberIndices">Top-level node indices, into <paramref name="original"/>'s
     /// <see cref="LayoutGraph.Nodes"/>, belonging to this component.</param>
     /// <returns>The newly-built sub-graph for the component.</returns>
-    internal static LayoutGraph BuildComponentGraph(LayoutGraph original, List<int> memberIndices)
+    internal static LayoutGraph BuildComponentGraph(LayoutGraph original, List<int> memberIndices) =>
+        BuildComponentGraph(original, memberIndices, out _);
+
+    /// <summary>
+    /// Builds the component sub-graph exactly like <see cref="BuildComponentGraph(LayoutGraph, List{int})"/>
+    /// and additionally surfaces the original-to-copy node map, so state keyed by node identity (the
+    /// order-rank hint) can be translated onto the copies.
+    /// </summary>
+    /// <param name="original">The graph the component's nodes are copied out of.</param>
+    /// <param name="memberIndices">Top-level node indices, into <paramref name="original"/>'s nodes, in this component.</param>
+    /// <param name="nodeMap">Receives a map from every copied original node (at every depth) to its copy.</param>
+    /// <returns>The newly-built sub-graph for the component.</returns>
+    private static LayoutGraph BuildComponentGraph(
+        LayoutGraph original,
+        List<int> memberIndices,
+        out Dictionary<LayoutGraphNode, LayoutGraphNode> nodeMap)
     {
         var target = new LayoutGraph();
-        var nodeMap = new Dictionary<LayoutGraphNode, LayoutGraphNode>();
+        nodeMap = [];
         var portMap = new Dictionary<LayoutGraphPort, LayoutGraphPort>();
         var pendingEdges = new List<(LayoutGraphEdge Edge, LayoutGraph Container)>();
 

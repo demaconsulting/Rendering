@@ -79,6 +79,7 @@ sections:
           - Rendering-Layout-InterconnectionEngine-NodeSpacing
           - Rendering-Layout-InterconnectionEngine-Deterministic
           - Rendering-Layout-InterconnectionEngine-BackEdgeEntryApproachParameter
+          - Rendering-Layout-InterconnectionEngine-LayerSpacing
         tests:
           - Place_LinearChain_MonotonicLayerAssignment
           - Place_WorkstationTopology_CorrectLayersAndNoOverlap

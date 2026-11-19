@@ -21,6 +21,7 @@ relevant, which bug it guards against. This page just points the way and shows a
 | [Parallel edges and ports](parallel-edges-and-ports/README.md) | Many edges between few boxes, named/boundary ports |
 | [Appearance and themes](appearance-and-themes/README.md) | Box shapes, keywords, compartments, and built-in themes |
 | [Layout regressions](layout-regressions/README.md) | Permanent visual proof that fixed layout bugs stay fixed |
+| [Layout quality (#48, #60)](layout-quality/README.md) | Crossing, compactness and LayerSpacing benchmark scenes |
 | [Custom rendering](custom-rendering/README.md) | Hand-built LayoutTrees, bypassing the layout engine entirely |
 
 ## A taste of what's inside

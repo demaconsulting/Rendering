@@ -77,6 +77,10 @@ geometry for identical input constitutes a failure.
   identical connector waypoints, and `InterconnectionLayoutEngine_LargerApproach_LengthensBackEdgeFinalRun`
   confirms raising the argument to 40 px never shortens the longest final run of any connector and never
   narrows the canvas.
+- **Layer spacing** (`Rendering-Layout-InterconnectionEngine-LayerSpacing`):
+  `Place_LayerSpacing_DefaultsTo70AndReachesEveryComponent` places two disconnected `a -> b` pairs with the
+  argument omitted and with 70 given explicitly (identical rectangles, a 70 pixel corridor in both pairs) and with 130
+  (a 130 pixel corridor in both pairs), confirming the default and that the value reaches every component.
 - **Validation** (supporting the documented error contract):
   `Place_NullNodes_ThrowsArgumentNullException` and `Place_NullEdges_ThrowsArgumentNullException`
   confirm null inputs are rejected before any pipeline stage executes.
@@ -106,3 +110,5 @@ geometry for identical input constitutes a failure.
 - **`Rendering-Layout-InterconnectionEngine-BackEdgeEntryApproachParameter`**:
   InterconnectionLayoutEngine_DefaultApproach_EqualsExplicitConnectorClearance,
   InterconnectionLayoutEngine_LargerApproach_LengthensBackEdgeFinalRun
+- **`Rendering-Layout-InterconnectionEngine-LayerSpacing`**:
+  Place_LayerSpacing_DefaultsTo70AndReachesEveryComponent

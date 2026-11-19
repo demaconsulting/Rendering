@@ -20,7 +20,9 @@ content equality, since record equality on a `LayoutTree` falls back to referenc
 - **Framework**: xUnit v4 running on the .NET SDK.
 - **Runner**: `dotnet test` invoked by `build.ps1` and the CI pipeline.
 - **Project**: `test/DemaConsulting.Rendering.Layout.Tests/AutoLayoutAlgorithmTests.cs`, plus
-  `NotationPrimitivePassThroughTests.cs` (appearance preserved by the component clone) in the same project.
+  `NotationPrimitivePassThroughTests.cs` (appearance preserved by the component clone), `OrderRankPlumbingTests.cs`
+  (order ranks), `LayoutCompactnessTests.cs` and `CanvasMarginTests.cs` (packing candidates and margins) in the same
+  project.
 - **Dependencies**: no external services, files, or network access; every test constructs its own
   in-memory `LayoutGraph` and `LayoutOptions` instances.
 - **Isolation**: each test builds its own inputs; the algorithm is stateless between calls.
@@ -100,6 +102,17 @@ argument-null validation behavior constitutes a failure.
   the placed output. `BuildComponentGraph_CopiesEveryPublicSettableMember` is the completeness tripwire: it
   sets every public settable member of the node, port and edge classes to a non-default value and fails, naming
   the member, if the copy does not carry it.
+- **Order ranks** (`Rendering-Layout-AutoAlgorithm-OrderRanks`):
+  `AutoLayoutAlgorithm_OrderRanks_SingleGroupFastPath_HonorsRanks` asserts the hint reaches the leaf algorithm on the
+  fast path; `..._MultiGroupRoot_OrdersComponentsMembersAndSingletons`, `..._MultiGroupRoot_OrdersMembersOfComponent`
+  and `..._MultiGroupRoot_TranslatesKeysOfNestedNodes` assert that after the component split the components, the
+  members of a component and the singleton bucket follow the ranks and that keys of nested nodes survive the copy.
+- **Trimmed and tucked packing** (`Rendering-Layout-AutoAlgorithm-TrimmedAndTuckedPacking`):
+  `Apply_TallChainPlusIsolatedNodes_KeepsInputBoxOrderWithoutOverlapAndIsDeterministic` lays out a tall chain beside
+  isolated nodes and asserts input box order, no overlap and determinism;
+  `AutoLayoutAlgorithm_Apply_TallComponentPlusIsolated_CanvasAreaBelowBaseline` asserts a canvas smaller than the one
+  before the change; `AutoLayoutAlgorithm_Apply_ClustersPlusIsolated_CanvasHugsContent` asserts the canvas hugs the
+  packed content.
 
 - **`Rendering-Layout-AutoAlgorithm-Identity`**:
   Id_IsAuto
@@ -159,3 +172,12 @@ argument-null validation behavior constitutes a failure.
   AutoLayout_PortAppearance_ReachesPlacedPorts (a port appearance survives the auto algorithm's cloned sub-graph),
   AutoLayout_PortAppearance_ConnectedPair_ReachesPlacedPorts (the zero-copy fast path),
   AutoLayout_BoundaryPortAppearance_ReachesTheSharedAnchor (a boundary port through the split)
+- **`Rendering-Layout-AutoAlgorithm-OrderRanks`**:
+  AutoLayoutAlgorithm_OrderRanks_SingleGroupFastPath_HonorsRanks,
+  AutoLayoutAlgorithm_OrderRanks_MultiGroupRoot_OrdersComponentsMembersAndSingletons,
+  AutoLayoutAlgorithm_OrderRanks_MultiGroupRoot_OrdersMembersOfComponent,
+  AutoLayoutAlgorithm_OrderRanks_MultiGroupRoot_TranslatesKeysOfNestedNodes
+- **`Rendering-Layout-AutoAlgorithm-TrimmedAndTuckedPacking`**:
+  Apply_TallChainPlusIsolatedNodes_KeepsInputBoxOrderWithoutOverlapAndIsDeterministic,
+  AutoLayoutAlgorithm_Apply_TallComponentPlusIsolated_CanvasAreaBelowBaseline,
+  AutoLayoutAlgorithm_Apply_ClustersPlusIsolated_CanvasHugsContent

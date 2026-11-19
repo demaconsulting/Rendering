@@ -170,6 +170,15 @@ and one of its own descendants cannot be drawn between two distinct boxes and is
 on a cross-container edge is not supported (it throws `NotSupportedException`), and an edge cannot
 rearrange the inside of the one container that holds both of its endpoints.
 
+The order of the members inside a container is chosen with the cross-container connectors in mind. After a
+first layout, the hierarchical engine orders the members of each container by the position of the nodes their
+cross-container connectors lead to, and keeps that order only when it strictly reduces the connector crossings
+(or keeps them and shrinks the canvas), so the number of crossings no longer depends on the order in which you
+add the nodes, and a layout is never worse than the first one. It costs extra layout time on dense scenes with many
+containers and cross-container connectors (about 1.5 to 2 times) and does nothing for a diagram without
+cross-container connectors. Known limit: connectors from many leaves to the same definition, in a dense usage
+tree, can still cross the composite connectors leaving the same leaf face.
+
 Anchors on one box face are kept at least 16 px apart (`MinFixedAnchorSeparation`, roughly the length of an
 arrowhead) from each other and from the anchors of connectors already drawn on that face inside a
 container. A short face (a 50 px box) holds only three such anchors, so when more connectors converge on it —
@@ -321,6 +330,9 @@ graph.Set(CoreOptions.Direction, LayoutFlowDirection.Down);   // flow the layers
 // Per-element overrides: any graph element is also a property holder.
 a.Set(CoreOptions.NodeSpacing, 32.0);
 
+// Minimum corridor between adjacent layers (a floor, default 70 px).
+graph.Set(CoreOptions.LayerSpacing, 100.0);
+
 // Routing style rides the same property system, mirroring ELK's elk.edgeRouting.
 graph.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
 ```
@@ -329,6 +341,17 @@ graph.Set(CoreOptions.EdgeRouting, EdgeRouting.Orthogonal);
 `Right` (the default) and `Left` flow the layers left-to-right and right-to-left, while `Down` and
 `Up` flow them top-to-bottom and bottom-to-top — the convention for action flows and state machines. A
 downward flow swaps each node's width and height before layering so layer spacing follows node height.
+
+`CoreOptions.LayerSpacing` is the minimum width, in logical pixels, of the corridor between two adjacent
+layers, as with ELK's `spacing.nodeNodeBetweenLayers`; it is honored by the `layered` algorithm (and so by
+`auto` and `hierarchical`) in every flow direction, and cascades to nested containers like the other
+options. It is a *floor*, not an exact gap: the corridor is the larger of your value and what the connectors need
+there (their routing slots, the straight run into an end marker, and the room for end labels), so a small value
+never crowds or overlaps connectors — it only stops the corridor growing beyond what the routing needs. The
+default is `70.0`, the corridor width the layered engine always used, so a graph that does not set it keeps its
+unlabeled corridors unchanged (a corridor that carries end labels is now the larger of the value and the label
+space instead of their sum, so it can be narrower than before). Raise the value to open more room between
+columns; lower it to tighten a diagram whose connectors do not need the room.
 
 ## Parallel edges and named ports
 
@@ -666,6 +689,15 @@ algorithm chosen with `CoreOptions.Algorithm` — the root inherits the graph's 
 (default `"layered"`), and any container can override it. A graph with no containers is laid out exactly
 as the selected leaf algorithm would lay it out, so the engine is a safe drop-in.
 
+A container is sized to its content: the border keeps 12 px from its children (16.4 px on a side where a
+connector with an arrowhead or other end marker enters, so the marker never touches the border) plus the title
+band, instead of the extra 20 px of padding earlier versions kept. The engine only keeps this tighter container
+when the routes inside and around it are no worse than with the former, roomier container (crossings, bends,
+hairpins, closely parallel runs and connector length are compared); where tightening would worsen the routes
+(for example, deeply nested packages with many parallel connectors) the container keeps its former room, so a
+compact layout never costs readability. The canvas hugs the drawn content, keeping 20 px (12 px for a
+containment leaf) between the content and each canvas edge in every flow direction.
+
 ```csharp
 // A container laid out "layered", packed by a "containment" root, plus a sibling leaf.
 var graph = new LayoutGraph();
@@ -722,6 +754,12 @@ default even when you are not sure a graph is disconnected. When a graph is spli
 edge's own options (for example a per-node `CoreOptions.Algorithm` or `Direction` on a container) and the options
 set on a container's `Children` graph are carried onto the copy, so a container is laid out the same way
 whether or not an unrelated node beside it forces the split.
+
+The pieces are packed into the free space they leave: isolated nodes beside a tall cluster fill the empty area
+next to it (or tuck into a hole of the packed clusters) instead of forming another row below it, so a mixture of one
+tall cluster and several isolated nodes has a markedly smaller canvas than a plain row-by-row packing. The packing
+keeps the order of your nodes, never overlaps pieces, and is only used when the resulting canvas is strictly
+smaller than the row-by-row one.
 
 ### Algorithm capabilities at a glance
 

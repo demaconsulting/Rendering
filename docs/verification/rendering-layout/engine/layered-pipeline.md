@@ -261,6 +261,25 @@ failure.
   right by exactly the requested source plus target space and the first bend by the source share;
   `CycleBreaker_ReversedEdge_SwapsEndLabelReservations` asserts a reversed edge swaps its reservations with its
   endpoints; `Pipeline_MatchesLegacyOracle_OnRandomGraphs` proves a layout without requests is unchanged.
+- **Layer spacing corridor** (`Rendering-Layout-LayeredPipeline-LayerSpacingCorridor`):
+  `LayeredGraph_Constructor_LayerSpacing_DefaultsToHistoricalCorridor` asserts the default is the 70 pixel corridor;
+  `BrandesKopfPlacer_Apply_LayerSpacingAboveFloor_SetsCorridorExactly` asserts a larger value sets the corridor
+  exactly; `..._LayerSpacingBelowFloor_ClampsToRoutingFloor` asserts a smaller value clamps to the routing floor;
+  `..._EndLabelsWithSmallLayerSpacing_CorridorIsFloorPlusLabels` asserts the corridor is the routing floor plus the
+  label space; `..._LargeBackEdgeApproachAtZeroSpacing_BendStaysInCorridor` asserts an explicit back-edge approach
+  above the historical corridor widens the corridor to hold it so the routed bend stays before the next column, and
+  `..._DefaultBackEdgeApproach_KeepsHistoricalCorridor` asserts the default approach keeps the capped corridor;
+  `MergeRegionGraphAssembler_BuildAllLevelGraphs_LayerSpacing_InheritedAndOverriddenPerLevel` asserts
+  the value is inherited and overridden per level of a recursive pass.
+- **Order rank** (`Rendering-Layout-LayeredPipeline-OrderRank`):
+  `CrossingMinimizer_OrderRank_FreeNodes_FollowRank` asserts nodes under no crossing pressure follow their ranks;
+  `..._DoesNotOverrideCrossingReduction` asserts a rank never undoes a crossing reduction;
+  `..._NaNRanks_IdenticalToUnranked` asserts unranked output is identical. `ComponentPacker_OrderRank_*` assert
+  components are ordered by rank (by their lowest member), members inside a component by (rank, index), and that
+  `NaN` ranks give the historical order.
+- **Component packing into free space** (`Rendering-Layout-LayeredPipeline-ComponentPackingFreeSpace`):
+  `ComponentPacker_Apply_TallComponentPlusIsolatedNodes_TucksIsolatedNodesBesideIt` asserts isolated nodes next to
+  a tall component are placed beside it without overlap instead of in a further row.
 
 ### Requirements Coverage
 
@@ -396,3 +415,18 @@ failure.
 - **`Rendering-Layout-LayeredPipeline-EndLabelReservation`**:
   InterconnectionLayoutEngine_Place_EdgeLabelAlong_WidensCorridorAndPushesFirstBend,
   CycleBreaker_ReversedEdge_SwapsEndLabelReservations, Pipeline_MatchesLegacyOracle_OnRandomGraphs
+- **`Rendering-Layout-LayeredPipeline-LayerSpacingCorridor`**:
+  LayeredGraph_Constructor_LayerSpacing_DefaultsToHistoricalCorridor,
+  BrandesKopfPlacer_Apply_LayerSpacingAboveFloor_SetsCorridorExactly,
+  BrandesKopfPlacer_Apply_LayerSpacingBelowFloor_ClampsToRoutingFloor,
+  BrandesKopfPlacer_Apply_EndLabelsWithSmallLayerSpacing_CorridorIsFloorPlusLabels,
+  BrandesKopfPlacer_Apply_LargeBackEdgeApproachAtZeroSpacing_BendStaysInCorridor,
+  BrandesKopfPlacer_Apply_DefaultBackEdgeApproach_KeepsHistoricalCorridor,
+  MergeRegionGraphAssembler_BuildAllLevelGraphs_LayerSpacing_InheritedAndOverriddenPerLevel
+- **`Rendering-Layout-LayeredPipeline-OrderRank`**:
+  CrossingMinimizer_OrderRank_FreeNodes_FollowRank, CrossingMinimizer_OrderRank_DoesNotOverrideCrossingReduction,
+  CrossingMinimizer_OrderRank_NaNRanks_IdenticalToUnranked, ComponentPacker_OrderRank_OrdersComponentsByRank,
+  ComponentPacker_OrderRank_ComponentOrderUsesLowestMemberRank, ComponentPacker_OrderRank_OrdersMembersWithinComponent,
+  ComponentPacker_OrderRank_NaNRanks_IdenticalToUnranked
+- **`Rendering-Layout-LayeredPipeline-ComponentPackingFreeSpace`**:
+  ComponentPacker_Apply_TallComponentPlusIsolatedNodes_TucksIsolatedNodesBesideIt

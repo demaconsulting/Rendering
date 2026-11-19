@@ -3215,16 +3215,19 @@ public sealed class HierarchicalLayoutAlgorithmTests
     ///     change to the boundary-port-free layout path (including forcing the combined pass) alters this.
     ///     Refreshed deliberately for cross-hierarchy edges: the genuine cross-container edge now joins
     ///     the two containers in the placement (so they sit side by side instead of stacked) and is routed
-    ///     between the nested children rather than between the container boxes.
+    ///     between the nested children rather than between the container boxes. Refreshed again when
+    ///     containers were tightened to their content (Rendering#60): each container is its child plus one
+    ///     12 px padding (and the title band) instead of an additional 20 px of canvas padding, so the
+    ///     whole canvas shrinks from 398 x 168 to 318 x 128 with the same topology and connector shapes.
     /// </summary>
     private const string NoBoundaryPortGolden =
-        "W=398 H=168\n" +
-        "BOX Left X=20 Y=20 W=144 H=128\n" +
-        "  BOX LeftChild X=52 Y=76 W=80 H=40\n" +
-        "BOX Right X=234 Y=20 W=144 H=128\n" +
-        "  BOX RightChild X=266 Y=76 W=80 H=40\n" +
-        "LINE (132,96) (266,96)\n" +
-        "LINE (164,84) (234,84)\n";
+        "W=318 H=128\n" +
+        "BOX Left X=20 Y=20 W=104 H=88\n" +
+        "  BOX LeftChild X=32 Y=56 W=80 H=40\n" +
+        "BOX Right X=194 Y=20 W=104 H=88\n" +
+        "  BOX RightChild X=206 Y=56 W=80 H=40\n" +
+        "LINE (112,76) (206,76)\n" +
+        "LINE (124,64) (194,64)\n";
 
     /// <summary>Deep-compares two layout trees for exact (bit-level) equality of every geometric field,
     ///     node kind, box attribute, and line attribute. No numeric tolerance is allowed.

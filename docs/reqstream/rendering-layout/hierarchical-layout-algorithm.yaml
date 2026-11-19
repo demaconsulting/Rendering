@@ -458,3 +458,161 @@ sections:
           - HierarchicalLayout_KeywordLabeledView_LabelsInsideCanvasAndAnchorsApart
           - Gallery_UpDirectionGeneralView_RendersSvgAndPngInsideCanvasWithoutOverlaps
           - Gallery_EdgeKeywordLabels_RendersSvgAndPngWithLabelsInsideCanvas
+
+      - id: Rendering-Layout-HierarchicalLayout-LayerSpacingCascades
+        title: >-
+          HierarchicalLayoutAlgorithm shall apply CoreOptions.LayerSpacing to every scope it lays out
+          through the layered algorithm, including a container's children scope (which inherits it by
+          nearest-ancestor override) and a scope laid out by the boundary-port pass, and an unset value
+          shall behave exactly like an explicit 70.0.
+        justification: |
+          A caller sets the layer spacing once for a diagram; every nested scope must use the same
+          corridor floor, and a boundary-port scope (laid out through a different pass) must not ignore it.
+          The synthetic delegation and container-link segments of that pass carry the end-marker approach of
+          the connector they belong to, so a small spacing never leaves the final run into a boundary port
+          shorter than the marker.
+        tests:
+          - LayoutEngine_Layout_LayerSpacingOnContainerChildren_CascadesToInterior
+          - LayoutEngine_Layout_LayerSpacingOnBoundaryPortScope_IsHonored
+          - LayoutEngine_Layout_LayerSpacingZeroOnBoundaryPortScope_KeepsMarkerRun
+          - LayoutEngine_Layout_LayerSpacingBoundaryPortUnset_SameAsExplicit70
+
+      - id: Rendering-Layout-HierarchicalLayout-OrderRanks
+        title: >-
+          HierarchicalLayoutAlgorithm shall carry the order-rank hint through the per-scope sized view
+          to the leaf algorithm and into nested scopes, keyed by the nodes of the caller's graph without
+          mutating it, shall ignore ranks for nodes not in the graph, and shall lay the graph out
+          exactly as without a hint when no key matches.
+        justification: |
+          The engine builds a copied view of each scope before delegating to a leaf algorithm; the hint
+          is keyed by node identity, so it must be translated onto the copies or it would be silently
+          lost.
+        tests:
+          - HierarchicalLayoutAlgorithm_OrderRanks_TranslatedThroughSizedView
+          - HierarchicalLayoutAlgorithm_OrderRanks_InheritedByNestedScope
+          - HierarchicalLayoutAlgorithm_OrderRanks_DoesNotMutateCallerGraph
+          - HierarchicalLayoutAlgorithm_OrderRanks_UnrelatedKeys_IdenticalToUnordered
+
+      - id: Rendering-Layout-HierarchicalLayout-CrossHierarchyOrdering
+        title: >-
+          HierarchicalLayoutAlgorithm shall order the members of each container interior by the
+          positions of their connection partners elsewhere in the diagram (re-laying out the scope with
+          order ranks derived from the partners and keeping a candidate only when it has strictly fewer
+          crossings, or equal crossings and a smaller canvas), so that the crossing count of a
+          cross-hierarchy diagram does not depend on the order in which the input declares its nodes.
+        justification: |
+          Each container interior was laid out without knowing where its connection partners are, so a
+          crossing between a nested connector and a connector to a node outside depended on the
+          insertion order. Ordering the interior by partner position removes those crossings for the
+          benchmark scenes in every root, direction and insertion order, and acceptance on strictly
+          better crossings guarantees the refinement can never make a layout worse.
+        tests:
+          - LayoutEngine_Layout_Repro2_AnyInsertionOrder_ZeroCrossings
+          - LayoutEngine_Layout_Repro3_InteriorConnector_ZeroCrossings
+          - LayoutEngine_Layout_Repro3_InteriorMemberInsertedFirst_ZeroCrossings
+          - LayoutEngine_Layout_Repro2_InsertionOrderIndependent_SameCrossingsAndCompactCanvas
+          - LayoutEngine_Layout_NestedDepth_LeafPartnerAcrossTwoLevels_ZeroCrossings
+          - LayoutEngine_Layout_GeneralViewUp_AnyInsertionOrder_CrossingsNotAboveMainOrPrototype
+
+      - id: Rendering-Layout-HierarchicalLayout-OrderingBounded
+        title: >-
+          HierarchicalLayoutAlgorithm shall bound the cross-hierarchy ordering refinement (at most seven
+          layouts per scope that can be refined, memoized unchanged interiors), shall not refine a diagram without
+          cross-container edges, shall produce the same tree with and without a refinement context and
+          for the same input twice, and shall leave a diagram without cross-hierarchy edges
+          geometrically unchanged.
+        justification: |
+          The refinement re-lays out scopes, so its cost must stay bounded and it must not perturb the
+          many diagrams it cannot improve; determinism keeps the output reproducible.
+        tests:
+          - HierarchicalLayoutAlgorithm_ApplyCore_RefinementPassBudget_AtMostSevenLayouts
+          - HierarchicalLayoutAlgorithm_ApplyCore_NoCrossContainerEdges_NotRefined
+          - HierarchicalLayoutAlgorithm_ApplyCore_NestedScene_ReusesUnchangedInteriorLayouts
+          - HierarchicalLayoutAlgorithm_ApplyCore_WithAndWithoutContext_IdenticalTree
+          - LayoutEngine_Layout_NoCrossHierarchyEdges_FlatGeometryUnchanged
+          - LayoutEngine_Layout_LayoutTwice_IdenticalTree
+
+      - id: Rendering-Layout-HierarchicalLayout-InteriorConnectorCrossingCost
+        title: >-
+          HierarchicalLayoutAlgorithm shall count a crossing between a connector and a line drawn inside
+          a container as a crossing of the scope that routes the connector (the crossing counter counts
+          interior lines against outer lines, never touching or collinear lines), and shall supply the
+          interior lines of the container ancestors of an edge's endpoints to the router so the
+          connector avoids them when an alternative exists.
+        justification: |
+          A connector that enters a container crosses the lines drawn inside it; without counting them
+          the ordering and the router cannot see the crossing the diagram shows.
+        tests:
+          - HierarchicalLayoutAlgorithm_CountCrossings_CrossingLines_CountsOne
+          - HierarchicalLayoutAlgorithm_CountCrossings_TouchingAndCollinearLines_CountsZero
+          - HierarchicalLayoutAlgorithm_CountCrossings_InteriorLine_CountsAgainstOuterLine
+
+      - id: Rendering-Layout-HierarchicalLayout-ContainerTightening
+        title: >-
+          HierarchicalLayoutAlgorithm shall size a container to its trimmed interior content plus 12
+          pixels and the title band (connector bends keeping 24 pixels from the border), so a container
+          hugs its children, wherever this does not worsen the scope's routes.
+        justification: |
+          Containers carried an extra 20 pixels of padding on every side, which wasted canvas area on
+          nested diagrams. Sizing a container to its content shrinks the canvas, and applying it only
+          where the routes stay as good keeps compaction from costing readability.
+        tests:
+          - LayoutEngine_Layout_Container_TightensToContentPlusPadding
+          - LayoutEngine_Layout_BenchmarkScene_StrictlyBetterThanBaseline
+
+      - id: Rendering-Layout-HierarchicalLayout-TighteningRouteQualityGate
+        title: >-
+          HierarchicalLayoutAlgorithm shall keep a tightened scope layout only when its crossings,
+          hairpins, bends, close parallel runs and connector length are no worse than the same scope
+          laid out loose (and no decorated connector end is crowded by a container border), otherwise
+          loosening the containers a routed connector enters, otherwise all containers, and shall remember
+          the decision per scope so every pass of the ordering refinement sees the same sizes.
+        justification: |
+          Tightening moves containers closer together, which can make routes bend, double back or squeeze
+          together. The gate makes compaction a pure gain: where the tight layout routes worse, the
+          former container room is kept and the canvas is no larger than before.
+        tests:
+          - LayoutEngine_Layout_BenchmarkScene_RouteQualityNotWorseThanBaseline
+          - LayoutEngine_Layout_BenchmarkScene_NeverWorseThanBaseline
+          - LayoutEngine_Layout_BenchmarkScene_GeometryStaysClean
+
+      - id: Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom
+        title: >-
+          HierarchicalLayoutAlgorithm shall keep, between the border of a tightened container that a
+          decorated connector enters and the boxes inside it, at least the rendered end-marker length plus
+          the clean-leg margin (16.37 pixels for an arrowhead), so an end marker never overlaps a
+          container border.
+        justification: |
+          With a 12 pixel container padding the arrowhead of a connector entering a container would sit
+          on the container border; reserving the marker length where a decorated connector enters keeps
+          every marker clear.
+        tests:
+          - LayoutEngine_Layout_BenchmarkScene_MarkersClearContainerBorders
+
+      - id: Rendering-Layout-HierarchicalLayout-AnchorSeparation
+        title: >-
+          HierarchicalLayoutAlgorithm shall keep every pair of connector ends on one box face at least 16
+          pixels apart (anchor separation) wherever the face has room, also when a re-routing pass moves a
+          connector onto a face another connector already uses: the connector's naive anchor is not offered
+          where it coincides with another connector's port.
+        justification: |
+          Two connectors that leave one face at the same point cannot be told apart and break the one port
+          per connector rule (diagram-quality C2, C6). A re-routing pass searching alternative faces used to
+          offer the naive anchor unconditionally, so a connector moved onto a face could land on the port of
+          the specialization already there.
+        tests:
+          - LayoutEngine_Layout_BenchmarkScene_AnchorsStaySeparatedOnSharedFace
+
+      - id: Rendering-Layout-HierarchicalLayout-CanvasPadding
+        title: >-
+          HierarchicalLayoutAlgorithm shall return a canvas that hugs its content, keeping the padding
+          its leaf output kept (the layered padding, or a containment leaf's own) on every side, for
+          every flow direction and root.
+        justification: |
+          The reflected flows and the shared canvas fit left an uneven or too small margin; fitting the
+          final canvas with the padding the leaf output kept gives a uniform margin without changing
+          the placed geometry.
+        tests:
+          - LayoutEngine_Layout_BenchmarkScene_CanvasHugsContent
+          - LayoutEngine_Layout_CrossHierarchyScenes_CanvasHugsContent
+          - LayoutEngine_Layout_NestedPackagesAndGeneralView_CanvasHugsContent

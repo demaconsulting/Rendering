@@ -20,7 +20,11 @@ extensible property system, and new algorithms, renderers, and options are added
 
 - **Pluggable layout algorithms** — layered (Sugiyama-style), containment packing, a recursive
   hierarchical engine for compound (nested-container) graphs, and an auto-routing meta-algorithm that
-  picks the best fit per connected component, each selected through the open property system.
+  picks the best fit per connected component, each selected through the open property system. Containers
+  hug their content, cross-container layouts do not depend on the order nodes are added in, and `auto`
+  packs isolated nodes into free space, so diagrams stay compact and tidy.
+- **Honored `LayerSpacing`** — `CoreOptions.LayerSpacing` (default 70 px) sets the minimum corridor between
+  layers; connectors, end markers and end labels keep whatever room they need.
 - **Orthogonal edge routing** — axis-aligned connectors in all four flow directions, with obstacle
   avoidance around intervening containers, and edges declared on an ancestor graph drawn between the
   actual nested nodes they reference (across container boundaries, at any nesting depth).

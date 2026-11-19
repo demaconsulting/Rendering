@@ -81,13 +81,21 @@ internal sealed class LayeredLayoutPipeline
     /// from left/right port placement; defaults to 0 (no reserve) for callers that pre-date this
     /// parameter.
     /// </param>
+    /// <param name="layerSpacing">
+    /// The scope's effective <c>CoreOptions.LayerSpacing</c> (the corridor floor between adjacent layers of
+    /// every level, unless a nested level's own scope declares one); defaults to
+    /// <see cref="LayeredLayoutMetrics.DefaultLayerSpacing"/>.
+    /// </param>
     /// <returns>The per-level placed graphs and crossing-placement lookup for the decomposition step.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="region"/> is <see langword="null"/>.</exception>
-    public RecursiveLayoutResult RunRecursive(AssembledMergeRegion region, double assumedFontSize = 0.0)
+    public RecursiveLayoutResult RunRecursive(
+        AssembledMergeRegion region,
+        double assumedFontSize = 0.0,
+        double layerSpacing = LayeredLayoutMetrics.DefaultLayerSpacing)
     {
         ArgumentNullException.ThrowIfNull(region);
 
-        var levels = MergeRegionGraphAssembler.BuildAllLevelGraphs(region, Direction, assumedFontSize);
+        var levels = MergeRegionGraphAssembler.BuildAllLevelGraphs(region, Direction, assumedFontSize, layerSpacing);
 
         // Stages 1-3 (+ crossing tag): normalize axes and break cycles per level, assign level-relative
         // layers across the whole region, then split long edges and tag the hierarchy-crossing dummies.

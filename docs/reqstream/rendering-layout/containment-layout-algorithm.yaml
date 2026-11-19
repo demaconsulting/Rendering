@@ -186,3 +186,27 @@ sections:
           there keeps a packed diagram's connection ends labeled.
         tests:
           - ContainmentLayout_EdgeEndLabels_ReachPlacedLine
+
+      - id: Rendering-Layout-ContainmentAlgorithm-OrderRanks
+        title: >-
+          ContainmentLayoutAlgorithm shall pack nodes in ascending order-rank order while keeping the
+          boxes of the placed tree in input order, and shall pack in input order when no rank is
+          supplied.
+        justification: |
+          The order-rank hint steers the reading order of a packed interior toward the partners of its
+          nodes elsewhere in the diagram; keeping the output box order stable preserves the contract
+          renderers and callers rely on.
+        tests:
+          - ContainmentLayoutAlgorithm_OrderRanks_PacksInRankOrderKeepingInputBoxOrder
+          - ContainmentLayoutAlgorithm_NoOrderRanks_PacksInInputOrder
+
+      - id: Rendering-Layout-ContainmentAlgorithm-CanvasPadding
+        title: >-
+          ContainmentLayoutAlgorithm shall return a canvas that hugs the packed boxes with its own
+          packing padding.
+        justification: |
+          The containment algorithm owns a tighter, fixed padding than the layered algorithm; the
+          canvas-margin rule added for the layered and hierarchical algorithms must not change it, and
+          this guards that.
+        tests:
+          - ContainmentLayoutAlgorithm_Apply_Boxes_CanvasHugsContentWithItsOwnPadding

@@ -213,3 +213,35 @@ sections:
           - AutoLayout_PortAppearance_ReachesPlacedPorts
           - AutoLayout_PortAppearance_ConnectedPair_ReachesPlacedPorts
           - AutoLayout_BoundaryPortAppearance_ReachesTheSharedAnchor
+
+      - id: Rendering-Layout-AutoAlgorithm-OrderRanks
+        title: >-
+          AutoLayoutAlgorithm shall honor the order-rank hint on the single-group fast path and on a
+          multi-group root, ordering its components, the members of each component and its singleton
+          bucket by rank, translating the keys onto the nodes of the sub-graphs it builds, and keeping
+          the input order when no rank is supplied.
+        justification: |
+          The hierarchical engine lays container interiors out through the auto algorithm; the ordering
+          hint must survive the component split or the cross-hierarchy ordering would be lost for any
+          interior that is split into pieces.
+        tests:
+          - AutoLayoutAlgorithm_OrderRanks_SingleGroupFastPath_HonorsRanks
+          - AutoLayoutAlgorithm_OrderRanks_MultiGroupRoot_OrdersComponentsMembersAndSingletons
+          - AutoLayoutAlgorithm_OrderRanks_MultiGroupRoot_OrdersMembersOfComponent
+          - AutoLayoutAlgorithm_OrderRanks_MultiGroupRoot_TranslatesKeysOfNestedNodes
+
+      - id: Rendering-Layout-AutoAlgorithm-TrimmedAndTuckedPacking
+        title: >-
+          AutoLayoutAlgorithm shall, for a multi-group graph, choose the smallest-area of the candidate
+          packings (the pieces as laid out, the pieces trimmed to their content with one outer padding,
+          the singleton bucket dissolved into separate pieces, and singletons tucked into a hole of the
+          packed components), keep the input box order and never overlap, and shall keep a canvas that
+          hugs its content.
+        justification: |
+          Isolated nodes appended below a tall cluster left a large empty block. Trying the alternatives
+          and keeping a candidate only when it is strictly smaller makes the canvas shrink without ever
+          making a graph worse.
+        tests:
+          - Apply_TallChainPlusIsolatedNodes_KeepsInputBoxOrderWithoutOverlapAndIsDeterministic
+          - AutoLayoutAlgorithm_Apply_TallComponentPlusIsolated_CanvasAreaBelowBaseline
+          - AutoLayoutAlgorithm_Apply_ClustersPlusIsolated_CanvasHugsContent
