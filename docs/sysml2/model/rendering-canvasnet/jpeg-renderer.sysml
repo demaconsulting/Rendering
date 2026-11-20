@@ -1,4 +1,4 @@
-package RenderingCanvasNet {
+package RenderingCanvasNet_JpegRenderer {
     private import SoftwareItemMetadata::*;
 
     part def JpegRenderer {

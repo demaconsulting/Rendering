@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_HierarchicalLayoutAlgorithm {
     private import SoftwareItemMetadata::*;
 
     part def HierarchicalLayoutAlgorithm {

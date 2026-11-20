@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_LayoutTreePacker {
     private import SoftwareItemMetadata::*;
 
     part def LayoutTreePacker {

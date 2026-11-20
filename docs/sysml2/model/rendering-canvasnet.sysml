@@ -1,7 +1,9 @@
 package RenderingCanvasNet {
+    private import RenderingCanvasNet_CanvasNetRasterRenderer::*;
+    private import RenderingCanvasNet_JpegRenderer::*;
+    private import RenderingCanvasNet_PngRenderer::*;
     private import SoftwareItemMetadata::*;
-
-    import OtsDependencies::*;
+    private import OtsDependencies::*;
 
     doc /* DemaConsulting.Rendering.CanvasNet renders a placed LayoutTree to PNG and JPEG using the CanvasNet raster library. */
 

@@ -1,4 +1,7 @@
 package RenderingModel {
+    private import RenderingModel_LayoutGraph::*;
+    private import RenderingModel_LayoutTree::*;
+    private import RenderingModel_Options::*;
     private import SoftwareItemMetadata::*;
 
     doc /* DemaConsulting.Rendering is the layout model: the LayoutTree intermediate representation, the open property system, and the unplaced input LayoutGraph. */

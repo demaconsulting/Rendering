@@ -1,4 +1,4 @@
-package RenderingAbstractions {
+package RenderingAbstractions_BoxMetrics {
     private import SoftwareItemMetadata::*;
 
     part def BoxMetrics {

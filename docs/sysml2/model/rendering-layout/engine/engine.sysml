@@ -1,4 +1,11 @@
-package RenderingLayout {
+package RenderingLayout_Engine {
+    private import RenderingLayout_CanvasFitter::*;
+    private import RenderingLayout_ContainmentPacker::*;
+    private import RenderingLayout_EdgeCountGapWidener::*;
+    private import RenderingLayout_InterconnectionLayoutEngine::*;
+    private import RenderingLayout_LayeredPipeline::*;
+    private import RenderingLayout_LayoutTreePacker::*;
+    private import RenderingLayout_OrthogonalEdgeRouter::*;
     private import SoftwareItemMetadata::*;
 
     part def Engine {

@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_EdgeCountGapWidener {
     private import SoftwareItemMetadata::*;
 
     part def EdgeCountGapWidener {

@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_OrthogonalEdgeRouter {
     private import SoftwareItemMetadata::*;
 
     part def OrthogonalEdgeRouter {

@@ -1,4 +1,4 @@
-package RenderingModel {
+package RenderingModel_LayoutTree {
     private import SoftwareItemMetadata::*;
 
     part def LayoutTree {

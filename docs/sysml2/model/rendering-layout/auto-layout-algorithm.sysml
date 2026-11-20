@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_AutoLayoutAlgorithm {
     private import SoftwareItemMetadata::*;
 
     part def AutoLayoutAlgorithm {

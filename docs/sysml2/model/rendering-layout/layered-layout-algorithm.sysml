@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_LayeredLayoutAlgorithm {
     private import SoftwareItemMetadata::*;
 
     part def LayeredLayoutAlgorithm {

@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_ConnectorRouter {
     private import SoftwareItemMetadata::*;
 
     part def ConnectorRouter {

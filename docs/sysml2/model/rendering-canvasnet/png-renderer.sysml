@@ -1,4 +1,4 @@
-package RenderingCanvasNet {
+package RenderingCanvasNet_PngRenderer {
     private import SoftwareItemMetadata::*;
 
     part def PngRenderer {

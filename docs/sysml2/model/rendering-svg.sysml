@@ -1,4 +1,5 @@
 package RenderingSvg {
+    private import RenderingSvg_SvgRenderer::*;
     private import SoftwareItemMetadata::*;
 
     doc /* DemaConsulting.Rendering.Svg renders a placed LayoutTree to SVG with no external dependencies. */

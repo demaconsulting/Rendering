@@ -1,4 +1,4 @@
-package RenderingAbstractions {
+package RenderingAbstractions_NotationMetrics {
     private import SoftwareItemMetadata::*;
 
     part def NotationMetrics {

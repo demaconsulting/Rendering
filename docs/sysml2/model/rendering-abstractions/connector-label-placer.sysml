@@ -1,4 +1,4 @@
-package RenderingAbstractions {
+package RenderingAbstractions_ConnectorLabelPlacer {
     private import SoftwareItemMetadata::*;
 
     part def ConnectorLabelPlacer {
