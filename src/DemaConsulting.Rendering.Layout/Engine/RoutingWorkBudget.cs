@@ -60,9 +60,6 @@ internal sealed class RoutingWorkBudget
     /// <summary>The work limits this budget enforces.</summary>
     private readonly RoutingWorkLimits _limits;
 
-    /// <summary>The token that stops the routing the budget serves, or <see cref="CancellationToken.None"/>.</summary>
-    private readonly CancellationToken _cancellation;
-
     /// <summary>Whether the scope's size alone put it in the <see cref="RoutingTier.Reduced"/> tier.</summary>
     private bool _forcedReduced;
 
@@ -73,21 +70,12 @@ internal sealed class RoutingWorkBudget
     /// Initializes a new instance of the <see cref="RoutingWorkBudget"/> class with no work spent.
     /// </summary>
     /// <param name="limits">The soft and hard work limits.</param>
-    /// <param name="cancellation">
-    /// An optional token that stops the routing the budget serves (see <see cref="ThrowIfCancellationRequested"/>).
-    /// It never influences a tier, so the routes drawn do not depend on it.
-    /// </param>
-    public RoutingWorkBudget(RoutingWorkLimits limits, CancellationToken cancellation = default)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="limits"/> is <see langword="null"/>.</exception>
+    public RoutingWorkBudget(RoutingWorkLimits limits)
     {
         ArgumentNullException.ThrowIfNull(limits);
         _limits = limits;
-        _cancellation = cancellation;
     }
-
-    /// <summary>
-    /// Throws an <see cref="OperationCanceledException"/> when the token the budget was created with is canceled.
-    /// </summary>
-    public void ThrowIfCancellationRequested() => _cancellation.ThrowIfCancellationRequested();
 
     /// <summary>Gets the work units spent so far.</summary>
     public long Spent { get; private set; }
@@ -112,9 +100,6 @@ internal sealed class RoutingWorkBudget
     /// the tier a hint to the user is about.
     /// </summary>
     public RoutingTier OwnTier => TierOf(_forcedReduced);
-
-    /// <summary>Gets the lowest tier (the largest reduction) the budget has been in.</summary>
-    public RoutingTier LowestTier { get; private set; }
 
     /// <summary>Gets the lowest tier the scope's own size and work have put it in (see <see cref="OwnTier"/>).</summary>
     public RoutingTier OwnLowestTier { get; private set; }
@@ -190,15 +175,9 @@ internal sealed class RoutingWorkBudget
         return reducedFromStart || Spent >= _limits.Soft ? RoutingTier.Reduced : RoutingTier.Full;
     }
 
-    /// <summary>Remembers the lowest tier reached.</summary>
+    /// <summary>Remembers the lowest tier the scope's own size and work have put it in.</summary>
     private void NoteTier()
     {
-        var tier = Tier;
-        if (tier > LowestTier)
-        {
-            LowestTier = tier;
-        }
-
         var own = OwnTier;
         if (own > OwnLowestTier)
         {

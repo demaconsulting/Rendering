@@ -233,12 +233,6 @@ internal static class OrthogonalEdgeRouter
     }
 
     /// <summary>
-    /// Gets the approximate bytes of search scratch the calling thread keeps for reuse (0 when it keeps
-    /// none). A hook for the tests that bound the retained memory.
-    /// </summary>
-    internal static long RetainedScratchBytes => SearchScratch.RetainedBytes;
-
-    /// <summary>
     /// Computes an orthogonal route from <paramref name="source"/> to <paramref name="target"/>
     /// avoiding the interiors of the given obstacles.
     /// </summary>
@@ -1304,9 +1298,6 @@ internal static class OrthogonalEdgeRouter
         /// <summary>Gets the number of nodes the node tables hold.</summary>
         private int NodeCapacity { get; set; }
 
-        /// <summary>Gets the bytes the calling thread's retained scratch holds, or 0 when it keeps none.</summary>
-        public static long RetainedBytes => s_retained?.ApproximateBytes ?? 0L;
-
         /// <summary>
         /// Gets the approximate size in bytes of the scratch's tables, from their real lengths (the state
         /// and overflow tables may have grown beyond what the grid first needed).
@@ -1653,7 +1644,6 @@ internal static class OrthogonalEdgeRouter
             // left needs no search at all: the connector falls back to the elbow
             if (_budget is not null)
             {
-                _budget.ThrowIfCancellationRequested();
                 _budget.Charge(Math.Min(_nodes / GridBuildWorkDivisor, _budget.RemainingHard));
                 if (_budget.Tier == RoutingTier.Minimal)
                 {
@@ -1689,7 +1679,6 @@ internal static class OrthogonalEdgeRouter
             var total = expansions + _probeSteps;
             budget.Charge(total - _charged);
             _charged = total;
-            budget.ThrowIfCancellationRequested();
             return budget.Tier == RoutingTier.Minimal;
         }
 

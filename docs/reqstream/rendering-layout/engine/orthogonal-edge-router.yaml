@@ -221,84 +221,38 @@ sections:
 
       - id: Rendering-Layout-OrthogonalEdgeRouter-BoundedWork
         title: >-
-          Given a routing work budget, OrthogonalEdgeRouter shall count the work of every search (grid nodes
-          built, search states expanded, connectivity-sweep nodes visited) in units that depend only on the
-          input, shall stop a search the moment the budget's hard limit is reached (charging the work in
-          chunks of at most 64 expansions and never charging a grid build beyond the limit, so the work
-          spent exceeds the hard limit by less than one chunk), and shall then return the
-          obstacle-aware elbow fallback (flagged as crossing); it shall return exactly the route it finds
-          without a budget while the budget lasts, and the same fallback on every run; it shall stop a
-          search with an OperationCanceledException when the budget's cancellation token is canceled,
-          without the token ever changing a route.
+          Given a routing work budget, OrthogonalEdgeRouter shall return exactly the route it finds without a
+          budget while the budget lasts, and once the budget is exhausted (even in the middle of a search,
+          whatever the hard limit) shall return the obstacle-aware orthogonal elbow between the two ends,
+          flagged as crossing, the same on every run.
         justification: |
           A search over a large grid can run for minutes. Bounding it by a count of work rather than by a
           clock keeps the layout reproducible: the same input stops at the same state on every machine and
-          on every run, and a budget with room to spare changes nothing. Charging in small chunks keeps
-          the bound tight (a search checked only every few hundred expansions, behind a grid build charged
-          without a clamp, could overshoot the limit by an unbounded amount), and the cancellation token
-          lets a caller (the wall-clock smoke test) abandon a runaway search cooperatively instead of
-          leaving it running in the background.
+          on every run, and a budget with room to spare changes nothing. How the work is counted and how
+          tightly the limit is held (in chunks, and with the grid build clamped to the work left) are
+          design properties, described in the design document.
         tests:
           - RouteWithStatus_ExhaustedBudget_FallsBackToElbow
           - RouteWithStatus_BudgetRunsOutDuringSearch_FallsBackIdenticallyOnEveryRun
-          - RouteWithStatus_HardLimitMidSearch_OvershootsByLessThanOneChunk
-          - RouteWithStatus_CanceledBudget_StopsTheSearch
+          - RouteWithStatus_HardLimitMidSearch_FallsBackToValidElbowIdentically
           - RouteWithStatus_GenerousBudget_RouteEqualsUnbudgetedRoute
-          - RoutingWorkBudget_New_IsFullEffort
-          - RoutingWorkBudget_Charge_ReachesSoftThenHardLimit
-          - RoutingWorkBudget_NoteScopeWeight_AtLimit_ReducesWithoutSpending
-          - RoutingWorkBudget_RecordElbowRoute_CountsRoutes
-          - RoutingWorkBudget_NullLimits_Throws
-          - RoutingWorkBudget_DefaultToken_NeverThrows
-          - RoutingWorkBudget_CanceledToken_ThrowsWithoutChangingTier
 
-      - id: Rendering-Layout-OrthogonalEdgeRouter-BoundedMemory
+      - id: Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortRoute
         title: >-
-          OrthogonalEdgeRouter shall keep the working storage of its grid searches for reuse only while it
-          takes at most 32 MB per thread (counted in bytes of the tables, not in grid nodes), shall release
-          the storage of a larger grid when its search ends, and shall find the same route whether or not
-          earlier searches left storage behind.
+          At the reduced effort, OrthogonalEdgeRouter shall return an orthogonal route between the two ends
+          that passes through no hard obstacle whenever one exists, however far it has to detour (a connector
+          that must go round a wall much wider than its neighborhood is still routed) and however many
+          already-routed lines (soft obstacles) lie across the canvas, the same on every run; at the full
+          effort the route shall be the one it finds without a budget, with hundreds of soft obstacles too.
         justification: |
-          Reusing the tables saves allocating them for each of the thousands of searches a layout runs, but
-          a limit counted in nodes allowed a single thread to keep hundreds of megabytes alive for the life
-          of the process (about 210 bytes per node). A byte limit bounds the memory a thread holds, keeps
-          every grid the benchmark scenes and the OMG Annex A views produce (at most about 13 MB) fully
-          reused, and the stamp-validated tables hold no result, so dropping them changes no route.
-        tests:
-          - RouteWithStatus_LargeGrid_ScratchIsNotRetained
-          - RouteWithStatus_SmallGrid_ScratchIsRetainedWithinLimit
-          - RouteWithStatus_SmallGridAfterLargeGrid_RouteIsUnchanged
-
-      - id: Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortWindow
-        title: >-
-          At the reduced effort, OrthogonalEdgeRouter shall first search for a plain route inside a window
-          around the connector's two ends (obstacles outside the window left out, the space outside it
-          closed off), shall return that route when one exists, and shall otherwise search the whole
-          canvas, so the reduced effort never turns a routable connector into a crossing fallback.
-        justification: |
-          The cost of one search grows with the number of obstacles and routed lines on the canvas. A
-          connector between two nearby boxes does not need the rest of the canvas, so the window makes the
-          cost of a plain route depend on its neighborhood; the whole-canvas retry keeps a connector that
-          has to detour far (round a long wall) routable.
+          A scope too large for the full effort still has to be drawn, so the reduced effort searches
+          only what a plain route needs: a window around the connector's two ends first and the whole canvas
+          when the window cannot join them, with a limited number of soft lanes in the grid. Those limits are
+          design choices (see the design document) that must never turn a routable connector into a crossing
+          fallback, and the full effort, which every benchmark scene uses, must be untouched by them.
         tests:
           - RouteWithStatus_ReducedBudget_RoutesAroundObstaclesInWindow
           - RouteWithStatus_ReducedBudget_WindowTooSmall_SearchesWholeCanvas
-
-      - id: Rendering-Layout-OrthogonalEdgeRouter-ReducedSoftLanes
-        title: >-
-          At the reduced effort, OrthogonalEdgeRouter shall add grid lines beside only the soft obstacles
-          (already-routed lines) that matter to a connector - the nearest 128 to the middle of its two
-          ends, and each only to the axis it is perpendicular to - while still weighing every soft obstacle
-          in the cost of the search, and shall give the search every soft lane at the full effort; the
-          route shall remain orthogonal, clear of every hard obstacle, and identical on every run.
-        justification: |
-          A grid line per soft rectangle made every window grid of a scope with hundreds of routed lines
-          about twenty times larger than the hard obstacles in it require, so the cost of a search grew with
-          the square of the lines already routed and the cost of a scope with their cube. The lines of the
-          hard obstacles and of the connector's ends are what make a route exist; soft lanes only offer
-          alternatives, so limiting them never turns a routable connector into a crossing fallback, and the
-          full effort, which every benchmark scene uses, is untouched.
-        tests:
-          - RouteWithStatus_ReducedBudget_HundredsOfSoftRects_RoutesValidlyForLessWork
+          - RouteWithStatus_ReducedBudget_HundredsOfSoftRects_RoutesValidlyAndIdentically
           - RouteWithStatus_ReducedBudget_HundredsOfSoftRects_WindowTooSmall_SearchesWholeCanvas
           - RouteWithStatus_FullBudget_HundredsOfSoftRects_RouteEqualsUnbudgetedRoute

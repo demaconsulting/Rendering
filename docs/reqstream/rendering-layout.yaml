@@ -295,8 +295,8 @@ sections:
           - Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom
           - Rendering-Layout-HierarchicalLayout-AnchorSeparation
           - Rendering-Layout-HierarchicalLayout-CanvasPadding
-          - Rendering-Layout-HierarchicalLayout-RoutingBudget
-          - Rendering-Layout-HierarchicalLayout-RoutingPerformance
+          - Rendering-Layout-HierarchicalLayout-ReducedEffortHint
+          - Rendering-Layout-HierarchicalLayout-LargeScopeLayout
         tests:
           - Id_IsHierarchical
           - Apply_FlatRandomGraphs_MatchLayeredAlgorithmExactly

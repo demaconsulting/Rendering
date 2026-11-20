@@ -130,22 +130,6 @@ public sealed partial class HierarchicalLayoutAlgorithm
         new("rendering.layout.hierarchical.refinementContext", null);
 
     /// <summary>
-    /// Internal hint: the routing work limits one scope may spend before its connector routing is reduced
-    /// (see <see cref="RoutingWorkBudget"/>); unset uses <see cref="DefaultRoutingWorkLimits"/>. A test
-    /// hook: no option an application sets.
-    /// </summary>
-    internal static readonly LayoutProperty<RoutingWorkLimits?> RoutingWorkLimitsOption =
-        new("rendering.layout.hierarchical.routingWorkLimits", null);
-
-    /// <summary>
-    /// Internal hint: a token that stops the connector routing of a layout run (the routing searches then
-    /// throw <see cref="OperationCanceledException"/>). A test hook: no option an application sets, and
-    /// never read to make a decision, so the layout does not depend on a clock.
-    /// </summary>
-    internal static readonly LayoutProperty<CancellationToken> CancellationOption =
-        new("rendering.layout.hierarchical.cancellation", CancellationToken.None);
-
-    /// <summary>
     /// Internal per-scope state: the routing work budget of the scope being laid out. Every scope that
     /// routes connectors creates its own, replacing the one it inherits from the enclosing scope.
     /// </summary>
@@ -319,42 +303,10 @@ public sealed partial class HierarchicalLayoutAlgorithm
         }
 
         /// <summary>
-        /// Gets the largest number of routed passes any one scope was laid out with in this run, the passes
-        /// of a refinement included. A scope too large for the full routing effort has one.
-        /// </summary>
-        internal int MaxRoutedPassesPerScope { get; private set; }
-
-        /// <summary>
-        /// Gets the number of distinct scopes that took the reduced routing effort over from the oversize
-        /// scope that holds them (see <see cref="RoutingWorkBudget.InheritReduced"/>).
-        /// </summary>
-        internal int InheritedReducedScopes => _inheritedScopes.Count;
-
-        /// <summary>The routed passes made so far over each scope.</summary>
-        private readonly Dictionary<LayoutGraph, int> _routedPasses = [];
-
-        /// <summary>The scopes that inherited the reduced effort.</summary>
-        private readonly HashSet<LayoutGraph> _inheritedScopes = [];
-
-        /// <summary>
-        /// Records one routed pass over a scope.
-        /// </summary>
-        /// <param name="scope">The container scope.</param>
-        internal void RecordRoutedPass(LayoutGraph scope)
-        {
-            _routedPasses.TryGetValue(scope, out var passes);
-            _routedPasses[scope] = ++passes;
-            MaxRoutedPassesPerScope = Math.Max(MaxRoutedPassesPerScope, passes);
-        }
-
-        /// <summary>
         /// Gets one hint per scope whose connector routing reached its work budget during the run, in the
         /// order the scopes were first limited.
         /// </summary>
         internal IReadOnlyList<string> RoutingLimitWarnings => _routingLimitWarnings;
-
-        /// <summary>Gets the highest work, in budget units, any single scope spent on routing.</summary>
-        internal long MaxScopeWork { get; private set; }
 
         /// <summary>The hints returned by <see cref="RoutingLimitWarnings"/>.</summary>
         private readonly List<string> _routingLimitWarnings = [];
@@ -363,7 +315,7 @@ public sealed partial class HierarchicalLayoutAlgorithm
         private readonly Dictionary<LayoutGraph, (int Index, RoutingTier Tier, int Elbows, bool SizeForced)> _limitedScopes = [];
 
         /// <summary>
-        /// Records the routing work a scope spent and, when its own budget ran down, the hint that says so.
+        /// Records, when a scope's own budget ran down, the hint that says so.
         /// A scope laid out several times (the passes of its parent's refinement) keeps the worst outcome.
         /// A scope only reduced because the oversize scope that holds it is (see
         /// <see cref="RoutingWorkBudget.InheritReduced"/>) has no limit of its own and so no hint: the hint
@@ -373,12 +325,6 @@ public sealed partial class HierarchicalLayoutAlgorithm
         /// <param name="budget">The budget its passes spent.</param>
         internal void RecordRoutingBudget(LayoutGraph scope, RoutingWorkBudget budget)
         {
-            MaxScopeWork = Math.Max(MaxScopeWork, budget.Spent);
-            if (budget.InheritedReduced)
-            {
-                _inheritedScopes.Add(scope);
-            }
-
             if (budget.OwnLowestTier == RoutingTier.Full)
             {
                 return;

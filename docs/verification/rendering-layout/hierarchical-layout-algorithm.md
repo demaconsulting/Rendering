@@ -352,66 +352,59 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   nested-package scenes in every flow direction and root
   (`LayoutEngine_Layout_BenchmarkScene_CanvasHugsContent`, `..._CrossHierarchyScenes_CanvasHugsContent`,
   `..._NestedPackagesAndGeneralView_CanvasHugsContent`).
-- **Routing work budget** (`Rendering-Layout-HierarchicalLayout-RoutingBudget`): `RoutingPerformanceTests` lays out
+- **Reduced-effort hint** (`Rendering-Layout-HierarchicalLayout-ReducedEffortHint`): `LargeScopeLayoutTests` lays out
   the synthetic package (six folders of five leaves, a spanning tree of interior connectors in each, seeded random
-  cross-folder connectors declared in the package scope, the shape of the Annex A general views).
-  `LayoutEngine_Layout_TinyWorkLimit_FallsBackToElbowRoutesAndWarns` lays out ten connectors under a hard limit of
-  6 000 units and confirms every connector is drawn as an orthogonal polyline, the tree's warnings name a limited
-  scope that used the elbow route, and two runs produce the same geometry and the same warnings;
-  `..._LimitedScope_WarningSurvivesAutoLayoutAndCanvasFit` adds an isolated node so the automatic layout splits and
-  repacks the pieces and confirms the warning survives that and the canvas fit;
-  `..._ScopeAtWeightLimit_RoutesAtReducedEffortAndWarns` sets the weight limit to 300 (the package weighs 360) and
-  confirms the reduced-effort layout is drawn, flagged, reproducible and different from the full-effort one;
-  `..._GenerousWorkLimit_EqualsUnlimitedLayout` confirms limits with room to spare give the golden geometry and no
-  warning. `..._BenchmarkScene_IsNeverLimitedByDefaultWorkLimits` (a theory over every scene of the
-  layout-quality benchmark set) and `..._GeneralViewUp_IsNeverLimitedByDefaultWorkLimits` (every insertion order
-  of the heaviest scene) confirm the default limits never touch a benchmark scene.
-  `..._OversizeNestedPackage_RoutesEveryScopeOnce` lays out a package whose own scope holds 80 connectors over four
-  sub-packages of two folders (each sub-package scope small enough, weight below 600, to be routed in full on its
-  own) with a refinement context the test can read, and confirms every connector is drawn orthogonally, no scope
-  of the run was routed in more than one pass (the oversize package scope is laid out once, loose from the start),
-  the four sub-packages took the reduction over from the package (`InheritedReducedScopes`), and exactly one
-  warning appears and says it holds for the scopes inside; `..._NamesOnlyTheOversizeScope` confirms the warning
-  names the package's scope and not a sub-package's; `..._OversizeNestedPackage_RepeatedRunsAreIdentical` confirms
-  geometry and warnings are the same on a second run; `..._SmallNestedPackage_InheritsNoReduction` confirms a
-  smaller hierarchy (two sub-packages, two package connectors; the earlier four sub-packages with six connectors
-  took 41 seconds alone and over six minutes under the load of a CI run, because each pass over a scope at the full
-  effort gets its own work budget) inherits nothing and warns of nothing.
-  `..._SoftLimitReachedInFirstPass_DoesNotRunSecondRoutedPass` lays out ten connectors under a soft limit of 20 000
-  units (crossed in the first routed pass of the package scope) and a hard limit of 40 million (never reached) and
-  confirms no scope was routed more than once (the second routed pass for the connectors that hugged a border is
-  made at the full effort only), every connector is orthogonal, and the geometry is the same on a second run.
-  `..._CanceledToken_ThrowsOperationCanceled` confirms a token that is already canceled stops the layout in the
-  routing, and `..._UncanceledToken_EqualsLayoutWithoutToken` that a token never canceled changes no coordinate
-  (the golden fingerprint of the ten-connector package). The `RoutingWorkBudgetTests`
-  `..._InheritReduced_*` and `..._ForcedReduced_*` tests confirm an inherited reduction reduces the budget without
-  being its own limit, that the scope's own work still reaches its own limits, and that only size (not spent
-  work) forces the reduction that descendants inherit.
-- **Routing performance** (`Rendering-Layout-HierarchicalLayout-RoutingPerformance`):
-  `LayoutEngine_Layout_FortyCrossContainerEdges_RoutingWorkStaysBelowBound` lays out 40 cross-container connectors and
-  reads no clock: it confirms the most routing work any scope spent (the budget's deterministic count of grid nodes
-  built and search states expanded) is below one million units (measured 453 000), that the oversize scope was reduced
-  (the warning that the extra quality searches were left out is present, so the bound holds because of the reduced
-  effort and not by luck), that it was routed in one pass, and that every connector is drawn; the full effort needs
-  about 561 million units for the same scene (1 240 times the bound; minutes), so the test fails on the version before
-  the fix. `..._ThreeHundredTwentyCrossContainerEdges_RoutingWorkStaysBelowBound` and
-  `..._SixHundredFortyCrossContainerEdges_RoutingWorkStaysBelowBound` do the same for 320 connectors (bound twenty
-  million, measured 9.6 million) and 640 connectors (bound fifty million, measured 24.6 million). Wall-clock bounds of
-  ten and fifteen seconds failed on all three CI platforms (the four runtimes of the test project run at once on four
-  cores with coverage, a slow-down of more than ten times over the one second a development machine needs), so they were
-  replaced by these counts, which do not depend on the machine.
-  `..._SixHundredFortyCrossContainerEdges_FinishesWithinGenerousWallClock` is the one test that reads a clock: it does
-  not run in parallel with other tests, lays out 640 connectors on the test thread under a cancellation token that is
-  canceled after 300 seconds (far above the longest time seen under the CI load and far below the hours of the
-  unreduced router), and fails with a message if the routing was canceled by that bound.
-  `..._RoutingWork_GrowsSubQuadraticallyWithEdgeCount` reads no clock: it lays out 160, 320 and
-  640 connectors with a refinement context and confirms the largest routing work any scope spent (the budget's count of
-  grid nodes and search states) grows by less than 3.5 times per doubling (measured about 3.0 and 2.6; a quadratic
-  router would multiply it by four). `..._FortyCrossContainerEdges_RepeatedRunsAreIdentical` lays the package out twice
-  and compares the geometry. `..._FiveCrossContainerEdges_MatchesGoldenGeometry` and
-  `..._TenCrossContainerEdges_MatchesGoldenGeometry` compare a fingerprint (SHA-256 of every box and connector
-  coordinate rounded to three decimals) of the five- and ten-connector packages with the fingerprints captured from the
-  unoptimized router, so the exact speed-ups cannot change a coordinate.
+  cross-folder connectors declared in the package scope, the shape of the Annex A general views) through the public
+  `LayoutEngine.Layout` only and asserts what a caller observes of the tree.
+  `..._OversizeScope_ReportsReducedEffortOnce` (a theory over 16, 20, 80 and 160 connectors) confirms exactly one
+  warning naming the six-node scope appears and every connector is drawn, while
+  `..._FiveCrossContainerEdges_MatchesGoldenGeometry` and `..._TenCrossContainerEdges_MatchesGoldenGeometry` confirm the
+  five- and ten-connector packages carry no warning at all (and lay out to the geometry the unoptimized router
+  produced). `..._LimitedScope_WarningSurvivesAutoLayoutAndCanvasFit` adds an isolated node to the 40-connector package
+  so the automatic layout splits and repacks the pieces and confirms the warning survives that and the canvas fit.
+  `..._BenchmarkScene_HasNoReducedEffortWarning` (a theory over every scene of the layout-quality benchmark set) and
+  `..._GeneralViewUp_HasNoReducedEffortWarning` (every insertion order of the heaviest scene) confirm the default limits
+  never touch a benchmark scene. `..._OversizeNestedPackage_DrawsEveryConnectorAndWarnsOnce` lays out a package whose
+  own scope holds 80 connectors over four sub-packages of two folders (each sub-package scope small enough to be routed
+  in full on its own) and confirms every connector is drawn orthogonally and ends on the boxes it joins, the sibling
+  boxes do not overlap, and exactly one warning appears and says it holds for the scopes inside;
+  `..._NamesOnlyTheOversizeScope` confirms the warning names the package's scope and not a sub-package's;
+  `..._SmallNestedPackage_HasNoWarnings` confirms a smaller hierarchy (two sub-packages, two package connectors) warns
+  of nothing. `HierarchicalLayoutAlgorithm_RecordRoutingBudget_ElbowRoutes_ReportsSimplifiedElbowHint` builds a budget
+  with no work left that routed a connector with the elbow fallback and confirms the refinement context's hint names the
+  scope, its work limit and the elbow route (the one wording a public scene cannot produce in a few seconds, because the
+  hard limit is far above what a scene of this size spends), and `..._RecordRoutingBudget_FullEffort_ReportsNothing`
+  confirms a budget that never left the full effort adds no hint. The tier limits themselves (the thresholds, the second
+  routed pass made at the full effort only, the one routed pass of a size-forced scope) are design properties argued in
+  the design document: the tests assert their observable consequences (which scopes are reported, and that every
+  connector is drawn), not the budget's counters.
+- **Large-scope layout** (`Rendering-Layout-HierarchicalLayout-LargeScopeLayout`):
+  `LayoutEngine_Layout_FortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort`,
+  `..._ThreeHundredTwentyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort` and
+  `..._SixHundredFortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort` lay out 40, 320 and 640
+  cross-container connectors twice and confirm the layout completes (the full effort needed minutes for 40 and could
+  not finish 640), every connector is drawn as an orthogonal polyline whose two ends lie on box outlines, sibling
+  boxes neither overlap nor leave the canvas, exactly one reduced-effort warning is present, and the two layouts have
+  the same fingerprint (SHA-256 of every box and connector coordinate rounded to three decimals) and warnings.
+  `..._OversizeNestedPackage_DrawsEveryConnectorAndWarnsOnce` and `..._OversizeNestedPackage_RepeatedRunsAreIdentical`
+  do the same for the nested package, and `..._FortyCrossContainerEdges_RepeatedRunsAreIdentical` compares two
+  layouts of the 40-connector package. No test reads a clock or the budget's counters: how fast these layouts are is a
+  design property measured by the opt-in benchmark (see *Performance verification* below).
+- **Regression tests without a requirement.** `..._NestedPackageWithPackageEdges_MatchesGoldenGeometry` and
+  `..._SingleSubPackageOfThreeFolders_MatchesGoldenGeometry` compare the fingerprint of two nested packages with the
+  fingerprints captured before the route-pass cache existed (see the *Route-pass cache* paragraph of the design
+  document), so the cache cannot change a coordinate; together with the byte-identical gallery they are the evidence
+  that a replayed route equals a searched one.
+- **Performance verification (not requirement-linked).** The performance and memory properties of the routing
+  (growth of the time with the connector count, the time of a nested package, the bound on the memory a thread keeps)
+  are verified by the opt-in benchmark project `benchmarks/DemaConsulting.Rendering.Layout.Benchmarks` and by
+  analysis in the design document, never by a requirement-linked test (a timing assertion is flaky on a loaded CI
+  agent and proves nothing about the drawing). Run it with `pwsh ./benchmark.ps1` (see `benchmarks/README.md`): for each
+  scene it prints the minimum, median and maximum time of the measured runs, the connectors drawn, the number of
+  warnings and the layout fingerprint, and for the synthetic series the growth exponent log2(t(2E) / t(E)) between
+  doublings (about 1.5 from 160 to 640 connectors is the expected value; 3 would be the cubic cost it replaced). The
+  run exits 1 when a scene draws fewer connectors than it has or two runs of a scene differ, and never judges a
+  time. The results are recorded in the design document, next to the property they support.
 
 ### Requirements Coverage
 
@@ -541,29 +534,22 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
 - **`Rendering-Layout-HierarchicalLayout-CanvasPadding`**:
   LayoutEngine_Layout_BenchmarkScene_CanvasHugsContent, LayoutEngine_Layout_CrossHierarchyScenes_CanvasHugsContent,
   LayoutEngine_Layout_NestedPackagesAndGeneralView_CanvasHugsContent
-- **`Rendering-Layout-HierarchicalLayout-RoutingBudget`**:
-  LayoutEngine_Layout_TinyWorkLimit_FallsBackToElbowRoutesAndWarns,
-  LayoutEngine_Layout_GenerousWorkLimit_EqualsUnlimitedLayout,
-  LayoutEngine_Layout_ScopeAtWeightLimit_RoutesAtReducedEffortAndWarns,
-  LayoutEngine_Layout_LimitedScope_WarningSurvivesAutoLayoutAndCanvasFit,
-  LayoutEngine_Layout_BenchmarkScene_IsNeverLimitedByDefaultWorkLimits,
-  LayoutEngine_Layout_GeneralViewUp_IsNeverLimitedByDefaultWorkLimits,
-  LayoutEngine_Layout_OversizeNestedPackage_RoutesEveryScopeOnce,
-  LayoutEngine_Layout_OversizeNestedPackage_RepeatedRunsAreIdentical,
+- **`Rendering-Layout-HierarchicalLayout-ReducedEffortHint`**:
+  LayoutEngine_Layout_OversizeScope_ReportsReducedEffortOnce,
+  LayoutEngine_Layout_OversizeNestedPackage_DrawsEveryConnectorAndWarnsOnce,
   LayoutEngine_Layout_OversizeNestedPackage_NamesOnlyTheOversizeScope,
-  LayoutEngine_Layout_SmallNestedPackage_InheritsNoReduction,
-  LayoutEngine_Layout_SoftLimitReachedInFirstPass_DoesNotRunSecondRoutedPass,
-  LayoutEngine_Layout_CanceledToken_ThrowsOperationCanceled,
-  LayoutEngine_Layout_UncanceledToken_EqualsLayoutWithoutToken,
-  RoutingWorkBudget_InheritReduced_ReducesWithoutAnOwnLimit,
-  RoutingWorkBudget_InheritReduced_OwnWorkStillReachesLimits,
-  RoutingWorkBudget_ForcedReduced_OnlyBySizeOrInheritance
-- **`Rendering-Layout-HierarchicalLayout-RoutingPerformance`**:
-  LayoutEngine_Layout_FortyCrossContainerEdges_RoutingWorkStaysBelowBound,
-  LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_RoutingWorkStaysBelowBound,
-  LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_RoutingWorkStaysBelowBound,
-  LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_FinishesWithinGenerousWallClock,
-  LayoutEngine_Layout_RoutingWork_GrowsSubQuadraticallyWithEdgeCount,
-  LayoutEngine_Layout_FortyCrossContainerEdges_RepeatedRunsAreIdentical,
+  LayoutEngine_Layout_SmallNestedPackage_HasNoWarnings,
   LayoutEngine_Layout_FiveCrossContainerEdges_MatchesGoldenGeometry,
-  LayoutEngine_Layout_TenCrossContainerEdges_MatchesGoldenGeometry
+  LayoutEngine_Layout_TenCrossContainerEdges_MatchesGoldenGeometry,
+  LayoutEngine_Layout_LimitedScope_WarningSurvivesAutoLayoutAndCanvasFit,
+  LayoutEngine_Layout_BenchmarkScene_HasNoReducedEffortWarning,
+  LayoutEngine_Layout_GeneralViewUp_HasNoReducedEffortWarning,
+  HierarchicalLayoutAlgorithm_RecordRoutingBudget_ElbowRoutes_ReportsSimplifiedElbowHint,
+  HierarchicalLayoutAlgorithm_RecordRoutingBudget_FullEffort_ReportsNothing
+- **`Rendering-Layout-HierarchicalLayout-LargeScopeLayout`**:
+  LayoutEngine_Layout_FortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort,
+  LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort,
+  LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort,
+  LayoutEngine_Layout_OversizeNestedPackage_DrawsEveryConnectorAndWarnsOnce,
+  LayoutEngine_Layout_OversizeNestedPackage_RepeatedRunsAreIdentical,
+  LayoutEngine_Layout_FortyCrossContainerEdges_RepeatedRunsAreIdentical

@@ -316,8 +316,7 @@ work budget, and a scope too large for the full effort is routed at a reduced ef
   carries it to every pass over that scope in its effective options (`RoutingBudget`); a nested scope creates its
   own. All passes of the scope — tight, loose, reference, middle, and every ordering proposal — spend the one
   budget, so the passes made last are the first to be reduced and a heavy scope can neither starve nor be starved
-  by another. The limits come from `DefaultRoutingWorkLimits`, or from the internal `RoutingWorkLimitsOption`
-  (a test hook).
+  by another. The limits come from `DefaultRoutingWorkLimits`.
 - **Weight.** A routed pass tells the budget the scope's *weight*, the number of connectors routed times the number
   of nodes under the scope; from the weight limit (600) the scope starts in the reduced tier, because spending part
   of the budget to find out that a 40-connector scope is too big only delays the same outcome. The weight of every
@@ -332,8 +331,8 @@ work budget, and a scope too large for the full effort is routed at a reduced ef
   35 to 41 seconds; the route-pass cache below removes about four fifths of that work without changing a coordinate).
   That is a known limitation of the per-scope budget, not changed here (the benchmark scenes and the
   gallery must stay byte-identical); a budget for the whole layout is a possible follow-up. The heaviest benchmark scene
-  needs about 53 million units, so no benchmark scene is ever limited (`RoutingPerformanceTests` asserts it, so a
-  future change that makes routing dearer is noticed).
+  needs about 53 million units, so no benchmark scene is ever limited (`LargeScopeLayoutTests` asserts that none of
+  them carries the reduced-effort warning, so a future change that makes routing dearer is noticed).
 - **Effect of the tier on the scope.** In the reduced tier the scope is not refined (`RefineCrossOrdering` returns the
   first pass), the reference and middle passes of `LayoutScopePass` are not made, and `RouteBatch` sheds the searches
   listed in *ConnectorRouter Unit Design*; the router also limits the soft lanes of every search (see
@@ -348,11 +347,6 @@ work budget, and a scope too large for the full effort is routed at a reduced ef
   *first* pass spent the soft limit (its budget is no longer at the full tier): the second routed pass for the
   connectors that hugged a border is made only while `RoutingBudget.Tier` is `Full`, the same test that skips the
   reference and middle passes, so a scope that is already running its work down does not start its dearest pass.
-- **Cancellation (a test hook).** The internal `CancellationOption` carries a `CancellationToken` into every scope's
-  `RoutingWorkBudget`, and the router's searches check it at the start and at every charge chunk and throw
-  `OperationCanceledException`. No public API carries it and production never sets it; it is never read to make a
-  decision, so a layout still depends on no clock. It lets the one wall-clock smoke test of `RoutingPerformanceTests`
-  stop a runaway search cooperatively.
 - **The scopes inside an oversize scope inherit the reduction.** The drawing of a size-forced scope is one
   oversize diagram, so the effort is a property of the whole drawing: `LayoutScope` calls
   `RoutingWorkBudget.InheritReduced()` on the budget of a scope whose enclosing scope's budget is `ForcedReduced`
@@ -372,7 +366,12 @@ work budget, and a scope too large for the full effort is routed at a reduced ef
 Determinism: the budget never reads a clock, the work units are counts of grid nodes and states, and the tier is a
 function of the counters, so the same graph produces the same routes and warnings on every run and platform.
 
-*Measured effect.* On the whole-model general view of the OMG Annex A SimpleVehicleModel (one scope of 87 routed
+*Performance design properties.* The properties below are design properties, not requirements: no test asserts a
+time or an amount of work (a timing assertion fails on a loaded machine and proves nothing about the drawing). They
+are measured by the opt-in benchmark `benchmarks/DemaConsulting.Rendering.Layout.Benchmarks` (`pwsh ./benchmark.ps1`;
+see *Performance verification* in the *HierarchicalLayoutAlgorithm Verification* document), which prints the time per
+scene and the growth exponent between doublings, and the numbers are recorded here. On the whole-model general view of
+the OMG Annex A SimpleVehicleModel (one scope of 87 routed
 connectors over about 370 descendants, laid out twice by the SysML2Tools general view) the layout fell from 9.8 s
 to about 1.6 s, and `sysml2tools render --auto` of the whole model from 33.7 s to about 13 s (of which about 8 s
 are loading the model). On the synthetic package of six folders of five leaves with E cross-container
@@ -381,16 +380,15 @@ connectors, one `LayoutEngine.Layout` takes (reference machine, best of three):
 | E | 40 | 80 | 160 | 320 | 640 |
 | --- | --- | --- | --- | --- | --- |
 | Time | 0.04 s | 0.11 s | 0.27 s | 0.87 s | 2.6 s |
-| Work (million units) | 0.45 | 1.3 | 3.2 | 9.6 | 24.6 |
 
-The work grows by 2.4 to 3.0 times per doubling of E: roughly E<sup>1.5</sup> from 160 to 640 connectors. That is well
+The time grows by 2.4 to 3.0 times per doubling of E: roughly E<sup>1.5</sup> from 160 to 640 connectors. That is well
 below the cube it was (and below a quadratic), but it is **not linear**. The remaining terms that grow faster than
 linearly are that each search weighs every routed line in its cost and that the window around a connector holds more
-hard obstacles as the scope spreads over a larger canvas. `RoutingPerformanceTests` guards the growth without a clock
-(less than 3.5 times the work per doubling from 160 to 640 connectors) and the work of each size with bounds of
-1, 20 and 50 million units for 40, 320 and 640 connectors (about twice the measured work). The times above are for a
+hard obstacles as the scope spreads over a larger canvas. (During development the work units the budget counts were
+recorded once with a temporary counter: 0.45, 1.3, 3.2, 9.6 and 24.6 million units for the same five sizes. The
+product no longer exposes them, so the benchmark reports time.) The times above are for a
 development machine; on a CI agent that runs the four runtimes of the test project at once with coverage the same
-layouts take more than ten times as long, which is why the guards count work and only one smoke test reads a clock.
+layouts take more than ten times as long, which is the reason no test asserts a time.
 
 #### Route-pass cache
 
@@ -549,5 +547,5 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-TighteningRouteQualityGate | Container tightening, `KeepsTightening` gate |
 | Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom | Container tightening, entry arrowhead room |
 | Rendering-Layout-HierarchicalLayout-CanvasPadding | Container tightening, canvas padding |
-| Rendering-Layout-HierarchicalLayout-RoutingBudget | Routing work budget |
-| Rendering-Layout-HierarchicalLayout-RoutingPerformance | Routing work budget; exact router speed-ups |
+| Rendering-Layout-HierarchicalLayout-ReducedEffortHint | Routing work budget: weight, tiers, hint |
+| Rendering-Layout-HierarchicalLayout-LargeScopeLayout | Routing work budget; route-pass cache |

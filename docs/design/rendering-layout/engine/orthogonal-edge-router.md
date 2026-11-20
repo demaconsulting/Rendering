@@ -126,7 +126,7 @@ set, while the final revisit cleanup remains as a defensive last line of defense
 **Search implementation (Rendering#75).** The search is an exact, allocation-free re-implementation of the
 state-keyed A\* described above, built so that its cost is proportional to the work the search really
 needs rather than to the size of the grid times the number of obstacles. It never changes which route is
-found — the five- and ten-connector scenes of `RoutingPerformanceTests` and every gallery image are
+found — the five- and ten-connector scenes of `LargeScopeLayoutTests` and every gallery image are
 byte-identical to those of the dictionary-based search it replaced — because every cost is the same sum of
 the same terms in the same order:
 
@@ -148,7 +148,11 @@ the same terms in the same order:
   64 152 nodes, about 13 MB, so every benchmark and gallery search reuses it); a larger grid, or a scratch whose state
   tables grew past the limit during a search, is released when the search ends, so a thread never holds hundreds of
   megabytes for the life of the process. The tables hold no result (every entry a search reads is one it wrote under
-  its own stamp), so dropping them changes no route. A queue entry whose state was
+  its own stamp), so dropping them changes no route; the router tests assert exactly that (a search after a large
+  one finds the route it finds before it). That a thread keeps at most 32 MB is a *memory design property*: it is
+  argued from the code (the retention check in `SearchScratch.Begin` and `ReleaseIfOversize` compares the real array
+  lengths with `RetainedByteLimit`), not asserted by a test, because a test could only observe it through allocated
+  bytes or thread identity. A queue entry whose state was
   already expanded at its best cost is skipped, since expanding it again could only find every neighbor
   already at the cost it would offer.
 - *Connectivity sweep.* A search whose goal is walled in used to expand every state reachable from its
@@ -158,27 +162,25 @@ the same terms in the same order:
   move the search may make is a free grid edge, and a free edge is free in both directions.
 
 **Work budget (Rendering#75).** Even an exact search grows faster than linearly in the number of connectors of a scope:
-the grid grows with every obstacle and every routed line, and so does the cost of each of the thousands of
-searches a scope runs. `RoutingWorkBudget` is therefore an optional parameter of `RouteWithStatus` and
-`RoutePorts`. It counts work in units that depend only on the input — one per four grid nodes built, one per
-state expanded, one per node the connectivity sweep visits — never time, so every run on every platform
-stops at the same state. A budget with room to spare changes no route. The work is charged to the budget while the
-search runs, in chunks of 64 expansions (`ChargeChunkSize`), so the account is current whenever another part of the
-layout reads it and the hard limit is checked at every chunk; the grid build is charged no more than the work the
-budget has left, and a search that starts with no work left returns at once. The work spent therefore exceeds the
-hard limit by less than one chunk, `63 * (1 + 4)` units (an expansion plus its four connectivity-sweep steps). The
-budget may also carry a `CancellationToken`, checked at the start of a search and at every chunk, that stops the
-routing with an `OperationCanceledException`; it never changes a tier or a route (see the *HierarchicalLayoutAlgorithm*
-design). When the budget reaches its hard
-limit, a search stops at once and the connector takes the obstacle-aware elbow fallback with
-`Crossed = true`; every later connector of the scope takes it without a search; the budget counts such
-routes. When the budget is at the reduced tier and no hints are given (the plain route), the route is first
-searched inside a *window* — the box around the two anchors and their stub ends, grown by a quarter of its
-larger extent and at least 120 pixels — where only the obstacles reaching into the window and the soft
-obstacles overlapping it are kept and four wall rectangles close off the rest of the canvas, so the grid
-holds the neighborhood of the connector rather than the whole canvas; a connector the window cannot join is
-then searched over the whole canvas. The window is used only at the reduced tier, so the full effort is
-never windowed.
+the grid grows with every obstacle and every routed line, and so does the cost of each of the thousands of searches a
+scope runs. `RoutingWorkBudget` is therefore an optional parameter of `RouteWithStatus` and `RoutePorts`. It counts work
+in units that depend only on the input — one per four grid nodes built, one per state expanded, one per node the
+connectivity sweep visits — never time, so every run on every platform stops at the same state. A budget with room to
+spare changes no route. The work is charged to the budget while the search runs, in chunks of 64 expansions
+(`ChargeChunkSize`), so the account is current whenever another part of the layout reads it and the hard limit is
+checked at every chunk; the grid build is charged no more than the work the budget has left, and a search that starts
+with no work left returns at once. The work spent therefore exceeds the hard limit by less than one chunk,
+`63 * (1 + 4)` units (an expansion plus its four connectivity-sweep steps); this bound is a *design property* of the
+accounting, argued from `ChargeChunkSize` and the clamped grid-build charge and not asserted by a test, because the
+account is internal state. The router tests assert what it causes: however small the hard limit, a cut-off search
+returns the valid elbow route, the same on every run. When the budget reaches its hard limit, a search stops at once and
+the connector takes the obstacle-aware elbow fallback with `Crossed = true`; every later connector of the scope takes it
+without a search. When the budget is at the reduced tier and no hints are given (the plain route), the route is first
+searched inside a *window* — the box around the two anchors and their stub ends, grown by a quarter of its larger extent
+and at least 120 pixels — where only the obstacles reaching into the window and the soft obstacles overlapping it are
+kept and four wall rectangles close off the rest of the canvas, so the grid holds the neighborhood of the connector
+rather than the whole canvas; a connector the window cannot join is then searched over the whole canvas. The window is
+used only at the reduced tier, so the full effort is never windowed.
 
 *Soft lanes at the reduced tier.* Every soft obstacle (an already-routed line) normally adds grid lines on either
 side of itself, so a search has an alternative lane beside every line already drawn. Profiling a whole SysML model
@@ -265,6 +267,4 @@ route individual connectors; the `Crossed` flag feeds their layout-warning handl
 | Rendering-Layout-OrthogonalEdgeRouter-CrossingCost | Crossing penalty (hints) |
 | Rendering-Layout-OrthogonalEdgeRouter-MinimumInteriorSegment | Minimum interior segment (hints) |
 | Rendering-Layout-OrthogonalEdgeRouter-BoundedWork | Work budget (`RoutingWorkBudget`) |
-| Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortWindow | Work budget: windowed plain route at the reduced tier |
-| Rendering-Layout-OrthogonalEdgeRouter-ReducedSoftLanes | Work budget: reduced-tier soft lanes (`SoftLanes`) |
-| Rendering-Layout-OrthogonalEdgeRouter-BoundedMemory | Search scratch retention (`RetainedByteLimit`) |
+| Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortRoute | Work budget: windowed route, reduced-tier soft lanes |

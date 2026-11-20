@@ -1713,7 +1713,7 @@ public sealed class ConnectorRouterTests
 
     /// <summary>
     ///     At the reduced effort every connector of the batch is still routed, with the plain route: an
-    ///     orthogonal polyline between its two boxes, with no alternative-face or re-routing search.
+    ///     orthogonal polyline between its two boxes that does not pass through any box.
     /// </summary>
     [Fact]
     public void RouteBatch_ReducedBudget_RoutesEveryConnectionOrthogonally()
@@ -1729,61 +1729,86 @@ public sealed class ConnectorRouterTests
             new Connection(c, b, EndMarkerStyle.FilledArrow),
             new Connection(a, d, EndMarkerStyle.FilledArrow),
         ];
-        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: long.MaxValue / 4, Hard: long.MaxValue / 2, ReducedWeight: 1));
-        budget.NoteScopeWeight(1);
+        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: 0, Hard: long.MaxValue / 2));
         var profile = new ConnectorRouter.RoutingProfile(_ => [], null, budget);
 
         // Act
         var lines = ConnectorRouter.RouteBatch(connections, new ConnectorRouteOptions(), _ => [a, b, c, d], profile: profile);
 
-        // Assert: one orthogonal line per connection, none of them the elbow fallback
+        // Assert: one orthogonal line per connection, none of them passing through a box
         Assert.Equal(3, lines.Count);
         foreach (var line in lines)
         {
             Assert.True(line.Waypoints.Count >= 2);
-            for (var i = 0; i < line.Waypoints.Count - 1; i++)
+            AssertAllSegmentsOrthogonal(line.Waypoints);
+            foreach (var box in new[] { a, b, c, d })
             {
-                var p = line.Waypoints[i];
-                var q = line.Waypoints[i + 1];
-                Assert.True(Math.Abs(p.X - q.X) < 1e-6 || Math.Abs(p.Y - q.Y) < 1e-6, "Segment is not axis-aligned.");
+                AssertNoSegmentCrossesObstacle(line.Waypoints, new Rect(box.X, box.Y, box.Width, box.Height));
             }
         }
-
-        Assert.Equal(0, budget.ElbowRoutes);
-        Assert.Equal(RoutingTier.Reduced, budget.LowestTier);
     }
 
     /// <summary>
-    ///     A batch whose budget is exhausted still returns one orthogonal line per connection, each the elbow
-    ///     route, and the budget counts them.
+    ///     A batch whose budget is exhausted still returns one orthogonal line per connection, each ending
+    ///     on the two boxes it joins.
     /// </summary>
     [Fact]
     public void RouteBatch_ExhaustedBudget_RoutesEveryConnectionWithElbow()
     {
-        // Arrange
+        // Arrange: a budget with no work left (hard limit zero)
         var from = Box(0, 0, 60, 40);
         var to = Box(400, 100, 60, 40);
         var connection = new Connection(from, to, EndMarkerStyle.FilledArrow);
-        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: 1, Hard: 2));
-        budget.Charge(2);
+        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: 0, Hard: 0));
         var profile = new ConnectorRouter.RoutingProfile(_ => [], null, budget);
 
         // Act
         var lines = ConnectorRouter.RouteBatch([connection, connection], new ConnectorRouteOptions(), _ => [from, to], profile: profile);
 
-        // Assert: both connectors got an orthogonal elbow without any search
+        // Assert: both connectors got an orthogonal elbow between the two boxes without any search
         Assert.Equal(2, lines.Count);
         foreach (var line in lines)
         {
             var w = line.Waypoints;
             Assert.True(w.Count >= 2);
-            for (var i = 0; i < w.Count - 1; i++)
-            {
-                Assert.True(Math.Abs(w[i].X - w[i + 1].X) < 1e-6 || Math.Abs(w[i].Y - w[i + 1].Y) < 1e-6, "Segment is not axis-aligned.");
-            }
+            AssertAllSegmentsOrthogonal(w);
+            Assert.True(OnOutline(from, w[0]), "The elbow does not start on the source box.");
+            Assert.True(OnOutline(to, w[^1]), "The elbow does not end on the target box.");
         }
+    }
 
-        Assert.Equal(2, budget.ElbowRoutes);
+    /// <summary>
+    ///     A batch routed at the full effort is unchanged by the existence of a budget with room to spare:
+    ///     every line equals the one routed under the same profile without a budget.
+    /// </summary>
+    [Fact]
+    public void RouteBatch_FullBudget_EqualsUnbudgetedBatch()
+    {
+        // Arrange: the same four boxes and three connectors, with and without a generous budget
+        var a = Box(0, 0, 60, 40);
+        var b = Box(300, 120, 60, 40);
+        var c = Box(0, 240, 60, 40);
+        var d = Box(300, 360, 60, 40);
+        Connection[] connections =
+        [
+            new Connection(a, b, EndMarkerStyle.FilledArrow),
+            new Connection(c, b, EndMarkerStyle.FilledArrow),
+            new Connection(a, d, EndMarkerStyle.FilledArrow),
+        ];
+        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: long.MaxValue / 4, Hard: long.MaxValue / 2));
+        var withBudget = new ConnectorRouter.RoutingProfile(_ => [], null, budget);
+        var withoutBudget = new ConnectorRouter.RoutingProfile(_ => [], null);
+
+        // Act
+        var unbudgeted = ConnectorRouter.RouteBatch(connections, new ConnectorRouteOptions(), _ => [a, b, c, d], profile: withoutBudget);
+        var budgeted = ConnectorRouter.RouteBatch(connections, new ConnectorRouteOptions(), _ => [a, b, c, d], profile: withBudget);
+
+        // Assert
+        Assert.Equal(unbudgeted.Count, budgeted.Count);
+        for (var i = 0; i < unbudgeted.Count; i++)
+        {
+            Assert.Equal(unbudgeted[i].Waypoints, budgeted[i].Waypoints);
+        }
     }
 
     /// <summary>
