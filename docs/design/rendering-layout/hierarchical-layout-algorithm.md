@@ -423,6 +423,13 @@ layout in a fresh process took, on the same machine and at similar load (indicat
 The geometry of E = 5 and 10 and of the nested scenes is identical in all four columns (the fingerprints are equal);
 from E = 16 beta.5 draws without the reduced effort and takes minutes.
 
+The everyday nested package is timed several times in this document, each at a different stage and machine load: 7.1 s
+is the stage with the route-pass cache alone (the "7 s" of the *Route-pass cache* section); 3.9 s is the final stage,
+the lean tier, in the release comparison above, taken as one run at the load of that comparison; and 4.4 s is the same
+final stage as the minimum of three benchmark runs in the table before it, while other jobs kept the machine about half
+busy (a later single benchmark run gave 4.25 s). They are the same code at different loads; compare times only within
+one table.
+
 #### Route-pass cache
 
 A scope is laid out and routed many times in one run: its own tight, loose, reference and middle layouts and ordering
@@ -499,8 +506,9 @@ the measure of `ReducedWeight`) keeps the full effort for itself and has the sco
   | 2 x 4 x 4 / 6 / 3 | 16 | 18 | different |
 
   So the drawings of the shapes most models have are byte-identical, the others differ by at most two crossings and
-  one by canvas size. The reward is the cost: the everyday package falls from 7 s with the cache alone to 3.9 s (35 s
-  before the cache), and the two sub-packages of three folders of six leaves from 70 s before the cache to 3 s.
+  one by canvas size. The reward is the cost: the everyday package falls from 7.1 s with the cache alone to 3.9 s (35 s
+  before the cache; the times of the release comparison above, taken at one load), and the two sub-packages of three
+  folders of six leaves from 70 s before the cache to 3 s.
 - **Where it never applies.** No scene of the gallery or of the layout-quality benchmark set has a scope that routes
   connectors nested inside another that does, so the 107 gallery files and `metrics.md` are byte-identical with the
   lean tier; the OMG Annex A views' package scopes are size-forced to the reduced tier (their inner scopes inherit

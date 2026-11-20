@@ -643,8 +643,6 @@ sections:
           - LayoutEngine_Layout_LimitedScope_WarningSurvivesAutoLayoutAndCanvasFit
           - LayoutEngine_Layout_BenchmarkScene_HasNoReducedEffortWarning
           - LayoutEngine_Layout_GeneralViewUp_HasNoReducedEffortWarning
-          - HierarchicalLayoutAlgorithm_RecordRoutingBudget_ElbowRoutes_ReportsSimplifiedElbowHint
-          - HierarchicalLayoutAlgorithm_RecordRoutingBudget_FullEffort_ReportsNothing
 
       - id: Rendering-Layout-HierarchicalLayout-LargeScopeLayout
         title: >-

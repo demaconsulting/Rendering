@@ -100,9 +100,6 @@ internal sealed class RoutingWorkBudget
     /// <summary>Gets a value indicating whether the scope's own size put it in the <see cref="RoutingTier.Reduced"/> tier.</summary>
     public bool SizeForced => _forcedReduced;
 
-    /// <summary>Gets a value indicating whether the scope took the reduced effort over from the scope that holds it.</summary>
-    public bool InheritedReduced => _inheritedReduced;
-
     /// <summary>
     /// Gets a value indicating whether the scope is laid out <em>lean</em>: with one routed pass at the full
     /// effort (the containers a routed connector enters keep their room from the start; no second pass for

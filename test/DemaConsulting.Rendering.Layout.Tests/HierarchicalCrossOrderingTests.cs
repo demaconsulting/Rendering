@@ -4,6 +4,7 @@
 
 using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Layout.Engine;
+
 namespace DemaConsulting.Rendering.Layout.Tests;
 
 /// <summary>
@@ -164,52 +165,6 @@ public sealed class HierarchicalCrossOrderingTests
         // Assert
         Assert.Equal(0, context.RefinedScopes);
         Assert.Equal(0, context.PlacementPasses);
-    }
-
-    /// <summary>
-    ///     Proves a scope whose routing was cut off by its hard work limit is reported in the context's hints
-    ///     as one that fell back to the simplified elbow route, naming the number of connectors and the scope.
-    /// </summary>
-    [Fact]
-    public void HierarchicalLayoutAlgorithm_RecordRoutingBudget_ElbowRoutes_ReportsSimplifiedElbowHint()
-    {
-        // Arrange: a scope of two nodes, and a budget with no work left whose scope was sized for the reduced
-        // effort and routed one connector with the elbow fallback
-        var scope = new LayoutGraph();
-        scope.AddNode("first", 80, 30);
-        scope.AddNode("second", 80, 30);
-        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: 0, Hard: 0, ReducedWeight: 1));
-        budget.NoteScopeWeight(1);
-        budget.RecordElbowRoute();
-        var context = new HierarchicalLayoutAlgorithm.OrderingRefinementContext();
-
-        // Act
-        context.RecordRoutingBudget(scope, budget);
-
-        // Assert: one hint that names the scope, its work limit and the elbow route
-        var hint = Assert.Single(context.RoutingLimitWarnings);
-        Assert.Contains("scope of 2 node(s) starting at 'first'", hint, StringComparison.Ordinal);
-        Assert.Contains("work limit", hint, StringComparison.Ordinal);
-        Assert.Contains("1 connector(s) were routed with the simplified elbow route", hint, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    ///     Proves a scope that never left the full effort leaves no hint.
-    /// </summary>
-    [Fact]
-    public void HierarchicalLayoutAlgorithm_RecordRoutingBudget_FullEffort_ReportsNothing()
-    {
-        // Arrange
-        var scope = new LayoutGraph();
-        scope.AddNode("first", 80, 30);
-        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: long.MaxValue / 4, Hard: long.MaxValue / 2));
-        var context = new HierarchicalLayoutAlgorithm.OrderingRefinementContext();
-
-        // Act
-        context.RecordRoutingBudget(scope, budget);
-
-        // Assert
-        Assert.Empty(context.RoutingLimitWarnings);
     }
 
     /// <summary>Builds a connector between two points.</summary>

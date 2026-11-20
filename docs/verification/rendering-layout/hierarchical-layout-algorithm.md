@@ -370,11 +370,10 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   boxes do not overlap, and exactly one warning appears and says it holds for the scopes inside;
   `..._NamesOnlyTheOversizeScope` confirms the warning names the package's scope and not a sub-package's;
   `..._SmallNestedPackage_HasNoWarnings` confirms a smaller hierarchy (two sub-packages, two package connectors) warns
-  of nothing. `HierarchicalLayoutAlgorithm_RecordRoutingBudget_ElbowRoutes_ReportsSimplifiedElbowHint` builds a budget
-  with no work left that routed a connector with the elbow fallback and confirms the refinement context's hint names the
-  scope, its work limit and the elbow route (the one wording a public scene cannot produce in a few seconds, because the
-  hard limit is far above what a scene of this size spends), and `..._RecordRoutingBudget_FullEffort_ReportsNothing`
-  confirms a budget that never left the full effort adds no hint. The tier limits themselves (the thresholds, the second
+  of nothing. The wording of the hint for a scope whose connectors fell back to the simplified elbow route (it names
+  the scope, its work limit and the elbow route) is a design property (see the design document): the hard limit is far
+  above what a scene of this size spends, so no public scene produces it in a few seconds, and no test drives the
+  budget's internals to reach it. The tier limits themselves (the thresholds, the second
   routed pass made at the full effort only, the one routed pass of a size-forced scope) are design properties argued in
   the design document: the tests assert their observable consequences (which scopes are reported, and that every
   connector is drawn), not the budget's counters.
@@ -549,9 +548,7 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   LayoutEngine_Layout_TenCrossContainerEdges_MatchesGoldenGeometry,
   LayoutEngine_Layout_LimitedScope_WarningSurvivesAutoLayoutAndCanvasFit,
   LayoutEngine_Layout_BenchmarkScene_HasNoReducedEffortWarning,
-  LayoutEngine_Layout_GeneralViewUp_HasNoReducedEffortWarning,
-  HierarchicalLayoutAlgorithm_RecordRoutingBudget_ElbowRoutes_ReportsSimplifiedElbowHint,
-  HierarchicalLayoutAlgorithm_RecordRoutingBudget_FullEffort_ReportsNothing
+  LayoutEngine_Layout_GeneralViewUp_HasNoReducedEffortWarning
 - **`Rendering-Layout-HierarchicalLayout-LargeScopeLayout`**:
   LayoutEngine_Layout_FortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort,
   LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort,

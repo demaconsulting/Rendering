@@ -2,7 +2,6 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
-
 using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Abstractions;
 
