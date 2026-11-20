@@ -50,6 +50,9 @@ documentation. The following topics are explicitly excluded:
 - Build pipeline and CI/CD process testing
 - Infrastructure and hosting environment testing
 - Test projects and test infrastructure
+- The opt-in benchmark under `benchmarks/` (measurement tooling, run by `benchmark.ps1`, not delivered software and
+  not part of the solution); performance and memory properties are design properties, verified by it and by analysis,
+  never by a requirement-linked test
 
 ## Verification Approach
 

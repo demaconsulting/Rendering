@@ -151,12 +151,7 @@ internal static class EmptySpaceMeter
     /// <param name="bottom">The bottom edge of the rectangle.</param>
     internal static void Fill(bool[,] grid, double left, double top, double right, double bottom)
     {
-        var columns = grid.GetLength(0);
-        var rows = grid.GetLength(1);
-        var firstColumn = Math.Max(0, (int)Math.Floor(left / CellSize));
-        var lastColumn = Math.Min(columns - 1, (int)Math.Ceiling(right / CellSize) - 1);
-        var firstRow = Math.Max(0, (int)Math.Floor(top / CellSize));
-        var lastRow = Math.Min(rows - 1, (int)Math.Ceiling(bottom / CellSize) - 1);
+        var (firstColumn, lastColumn, firstRow, lastRow) = FillBounds(grid.GetLength(0), grid.GetLength(1), left, top, right, bottom);
         for (var column = firstColumn; column <= lastColumn; column++)
         {
             for (var row = firstRow; row <= lastRow; row++)
@@ -167,33 +162,223 @@ internal static class EmptySpaceMeter
     }
 
     /// <summary>
+    /// Returns the first and last column and row <see cref="Fill"/> marks for a rectangle on a grid of the
+    /// given size (empty when the first exceeds the last).
+    /// </summary>
+    /// <param name="columns">The number of grid columns.</param>
+    /// <param name="rows">The number of grid rows.</param>
+    /// <param name="left">The left edge of the rectangle.</param>
+    /// <param name="top">The top edge of the rectangle.</param>
+    /// <param name="right">The right edge of the rectangle.</param>
+    /// <param name="bottom">The bottom edge of the rectangle.</param>
+    /// <returns>The inclusive column and row ranges, clipped to the canvas.</returns>
+    internal static (int FirstColumn, int LastColumn, int FirstRow, int LastRow) FillBounds(
+        int columns,
+        int rows,
+        double left,
+        double top,
+        double right,
+        double bottom) =>
+        (
+            Math.Max(0, (int)Math.Floor(left / CellSize)),
+            Math.Min(columns - 1, (int)Math.Ceiling(right / CellSize) - 1),
+            Math.Max(0, (int)Math.Floor(top / CellSize)),
+            Math.Min(rows - 1, (int)Math.Ceiling(bottom / CellSize) - 1));
+
+    /// <summary>
+    /// The largest-empty-square table of an occupancy grid, built once so the largest empty square of the
+    /// grid with one more rectangle filled in can be found without a pass over the whole grid.
+    /// </summary>
+    /// <remarks>
+    /// Filling a rectangle changes the side of a square ending at a cell only when the square reaches the
+    /// rectangle, and a square ending at (column, row) reaches only columns up to <c>column</c> and rows up to
+    /// <c>row</c>. The cells left of or above the rectangle therefore keep their table value, and the answer
+    /// for the filled grid is the larger of the best of those cells (two prefix maxima) and the best of the
+    /// cells right of and below the rectangle's first column and row, found by the same dynamic program over
+    /// only that part of the grid, started from the unchanged values beside it. The result is exactly the one
+    /// <see cref="LargestEmptySquareCells(bool[,], int)"/> gives for the filled grid.
+    /// </remarks>
+    internal sealed class SquareIndex
+    {
+        /// <summary>The occupancy grid the index describes.</summary>
+        private readonly bool[,] _grid;
+
+        /// <summary>The number of grid columns.</summary>
+        private readonly int _columns;
+
+        /// <summary>The number of grid rows.</summary>
+        private readonly int _rows;
+
+        /// <summary>The side of the largest empty square ending at each cell, indexed [column, row + 1] (row 0 is zero).</summary>
+        private readonly int[,] _table;
+
+        /// <summary>For each column c, the largest table value in any column before c.</summary>
+        private readonly int[] _columnPrefixMax;
+
+        /// <summary>For each row r, the largest table value in any row before r.</summary>
+        private readonly int[] _rowPrefixMax;
+
+        /// <summary>Initializes the index for <paramref name="grid"/>, which must not change while the index is used.</summary>
+        /// <param name="grid">The occupancy grid.</param>
+        public SquareIndex(bool[,] grid)
+        {
+            ArgumentNullException.ThrowIfNull(grid);
+            _grid = grid;
+            _columns = grid.GetLength(0);
+            _rows = grid.GetLength(1);
+            _table = new int[_columns, _rows + 1];
+            _columnPrefixMax = new int[_columns + 1];
+            _rowPrefixMax = new int[_rows + 1];
+
+            // The table, and the best per column and per row
+            var rowBest = new int[_rows];
+            for (var column = 0; column < _columns; column++)
+            {
+                var columnBest = 0;
+                for (var row = 0; row < _rows; row++)
+                {
+                    if (grid[column, row])
+                    {
+                        continue;
+                    }
+
+                    var up = _table[column, row];
+                    var left = column > 0 ? _table[column - 1, row + 1] : 0;
+                    var diagonal = column > 0 ? _table[column - 1, row] : 0;
+                    var side = 1 + Math.Min(Math.Min(left, up), diagonal);
+                    _table[column, row + 1] = side;
+                    columnBest = Math.Max(columnBest, side);
+                    rowBest[row] = Math.Max(rowBest[row], side);
+                }
+
+                _columnPrefixMax[column + 1] = Math.Max(_columnPrefixMax[column], columnBest);
+            }
+
+            for (var row = 0; row < _rows; row++)
+            {
+                _rowPrefixMax[row + 1] = Math.Max(_rowPrefixMax[row], rowBest[row]);
+            }
+        }
+
+        /// <summary>Gets the side, in cells, of the largest empty square of the grid itself.</summary>
+        public int Largest => _columnPrefixMax[_columns];
+
+        /// <summary>
+        /// Returns the side, in cells, of the largest empty square of the grid with the given cells filled in.
+        /// </summary>
+        /// <param name="firstColumn">The first column filled.</param>
+        /// <param name="lastColumn">The last column filled.</param>
+        /// <param name="firstRow">The first row filled.</param>
+        /// <param name="lastRow">The last row filled.</param>
+        /// <param name="stopAbove">
+        /// A side above which the exact answer is no longer wanted: the search stops once it has found a
+        /// square larger than this and returns that (smaller than the true) size.
+        /// </param>
+        /// <returns>The side in cells, or a side above <paramref name="stopAbove"/> when it was exceeded.</returns>
+        public int LargestWithFilled(int firstColumn, int lastColumn, int firstRow, int lastRow, int stopAbove = int.MaxValue)
+        {
+            // Nothing filled: the grid's own answer
+            if (firstColumn > lastColumn || firstRow > lastRow)
+            {
+                return Largest;
+            }
+
+            // Cells left of or above the filled rectangle keep their value
+            var best = Math.Max(_columnPrefixMax[firstColumn], _rowPrefixMax[firstRow]);
+            if (best > stopAbove)
+            {
+                return best;
+            }
+
+            // The rest is the dynamic program over the columns from the first filled one, the rows from the
+            // first filled one, started from the unchanged values of the column and row beside the part
+            var previous = new int[_rows + 1];
+            var current = new int[_rows + 1];
+            if (firstColumn > 0)
+            {
+                for (var row = firstRow; row <= _rows; row++)
+                {
+                    previous[row] = _table[firstColumn - 1, row];
+                }
+            }
+
+            for (var column = firstColumn; column < _columns; column++)
+            {
+                var filledColumn = column <= lastColumn;
+                current[firstRow] = _table[column, firstRow];
+                for (var row = firstRow; row < _rows; row++)
+                {
+                    if (_grid[column, row] || (filledColumn && row <= lastRow))
+                    {
+                        current[row + 1] = 0;
+                        continue;
+                    }
+
+                    var side = 1 + Math.Min(Math.Min(previous[row + 1], current[row]), previous[row]);
+                    current[row + 1] = side;
+                    if (side > best)
+                    {
+                        best = side;
+                    }
+                }
+
+                if (best > stopAbove)
+                {
+                    return best;
+                }
+
+                (previous, current) = (current, previous);
+            }
+
+            return best;
+        }
+    }
+
+    /// <summary>
     /// The classic dynamic program for the side, in cells, of the largest all-empty square of a grid.
     /// </summary>
     /// <param name="grid">The occupancy grid.</param>
-    /// <returns>The side in cells.</returns>
-    internal static int LargestEmptySquareCells(bool[,] grid)
+    /// <param name="stopAbove">
+    /// A side above which the exact answer is no longer wanted: the program stops as soon as it has found
+    /// a square larger than this and returns that (smaller than the true) size, which is still above the
+    /// limit. A caller that only compares the result with a limit passes it here to skip the rest of the
+    /// grid; the default computes the exact size.
+    /// </param>
+    /// <returns>The side in cells, or a side above <paramref name="stopAbove"/> when it was exceeded.</returns>
+    internal static int LargestEmptySquareCells(bool[,] grid, int stopAbove = int.MaxValue)
     {
         var columns = grid.GetLength(0);
         var rows = grid.GetLength(1);
+
+        // Two rows of the table swap roles every column instead of one being allocated per column
         var previous = new int[rows + 1];
+        var current = new int[rows + 1];
         var best = 0;
         for (var column = 0; column < columns; column++)
         {
-            var current = new int[rows + 1];
             for (var row = 0; row < rows; row++)
             {
                 if (grid[column, row])
                 {
+                    current[row + 1] = 0;
                     continue;
                 }
 
                 // current[row + 1] is the square ending at (column, row); previous holds column - 1.
                 var side = 1 + Math.Min(Math.Min(previous[row + 1], current[row]), previous[row]);
                 current[row + 1] = side;
-                best = Math.Max(best, side);
+                if (side > best)
+                {
+                    best = side;
+                }
             }
 
-            previous = current;
+            if (best > stopAbove)
+            {
+                return best;
+            }
+
+            (previous, current) = (current, previous);
         }
 
         return best;

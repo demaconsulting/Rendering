@@ -301,6 +301,166 @@ and the title band.
 Tightening applies only to scopes laid out by the layered or containment leaf algorithms; boundary-port scopes
 keep their combined-pass sizes.
 
+#### Routing work budget (Rendering#75)
+
+The cost of routing one scope grew faster than the cube of its cross-container connector count: every connector
+is searched many times (face pairs, re-routing passes, the wide-lane re-run), every scope is laid out several times
+(tight, loose, reference and middle layouts, ordering proposals), and the grid of each search grows with every
+obstacle and routed line. A package of 40 connectors over six folders did not finish in minutes. The exact
+speed-ups of the router (see *OrthogonalEdgeRouter Unit Design*) cut the cost of the same searches by a factor of
+four to five without changing a coordinate; they cannot bound it, so each scope also carries a deterministic
+work budget, and a scope too large for the full effort is routed at a reduced effort whose cost grows slowly
+(measured below):
+
+- **One budget per scope.** `LayoutScope` creates a `RoutingWorkBudget` for every scope that has a container and
+  carries it to every pass over that scope in its effective options (`RoutingBudget`); a nested scope creates its
+  own. All passes of the scope — tight, loose, reference, middle, and every ordering proposal — spend the one
+  budget, so the passes made last are the first to be reduced and a heavy scope can neither starve nor be starved
+  by another. The limits come from `DefaultRoutingWorkLimits`.
+- **Weight.** A routed pass tells the budget the scope's *weight*, the number of connectors routed times the number
+  of nodes under the scope (every descendant, direct members included, counted once); from the weight limit (540) the
+  scope starts in the reduced tier, because spending part
+  of the budget to find out that a 40-connector scope is too big only delays the same outcome. The weight of every
+  benchmark scene is at most 338; a scope of ten connectors over six folders of five leaves weighs 360 and is still
+  routed in full.
+- **Work.** The router charges grid nodes built, states expanded, connectivity-sweep nodes visited and the candidate
+  grid edges its obstacle and soft-term scans test (one unit per 32). At the soft limit (80 million units, roughly 8 to
+  17 seconds on a development machine at the measured 95 to 210 nanoseconds per unit, and more on a loaded or
+  instrumented one) the scope drops to the reduced tier; at the hard limit (160 million) to the minimal tier. The limits
+  bound the work of one scope and one budget, not of a layout: each scope-pass of a nested hierarchy gets a fresh
+  budget, so a hierarchy of many heavy scopes spends their sum (a hierarchy of four sub-packages of three folders spent
+  280 million units over 364 routed passes with no scope above 30 million, and took 35 to 41 seconds; the route-pass
+  cache below removes about four fifths of that work without changing a coordinate). That is a known limitation of the
+  per-scope budget, not changed here (the benchmark scenes and the gallery must stay byte-identical); a budget for the
+  whole layout is a possible follow-up. The heaviest benchmark scene needs about 40 million units, half the soft limit,
+  so no benchmark scene is ever limited (`LargeScopeLayoutTests` asserts that none of them carries the reduced-effort
+  warning, so a future change that makes routing dearer is noticed).
+- **Effect of the tier on the scope.** In the reduced tier the scope is not refined (`RefineCrossOrdering` returns the
+  first pass), the reference and middle passes of `LayoutScopePass` are not made, and `RouteBatch` sheds the searches
+  listed in *ConnectorRouter Unit Design*; the router also limits the soft lanes of every search (see
+  *OrthogonalEdgeRouter Unit Design*).
+- **One routed pass for a size-forced scope.** A scope that the weight limit alone put in the reduced tier
+  (`RoutingWorkBudget.ForcedReduced`) is laid out and routed once. Normally the first pass tightens every
+  container to its content, and a second pass gives the containers whose border a connector hugged their room back;
+  a size-forced scope keeps that room from the start for every container a routed connector enters
+  (`LayoutScopePassOnce` adds them to the loose set right after `NoteScopeWeight`) and skips the second pass, which
+  would only repeat the dearest routing of the scope. On the whole-model view of the OMG Annex A model this gives a
+  drawing identical to the two-pass one at half the routed passes of the scope. The same holds for a scope whose
+  *first* pass spent the soft limit (its budget is no longer at the full tier): the second routed pass for the
+  connectors that hugged a border is made only while `RoutingBudget.Tier` is `Full`, the same test that skips the
+  reference and middle passes, so a scope that is already running its work down does not start its dearest pass.
+- **The scopes inside an oversize scope inherit the reduction.** The drawing of a size-forced scope is one
+  oversize diagram, so the effort is a property of the whole drawing: `LayoutScope` calls
+  `RoutingWorkBudget.InheritReduced()` on the budget of a scope whose enclosing scope's budget is `ForcedReduced`
+  (the enclosing budget is still in the options the scope inherited), and the inheritance carries on to every
+  scope below. Such a scope is reduced exactly like any reduced scope (no refinement, no reference or middle
+  pass, one routed pass, the reduced router) but the reduction is *not its own limit*: the budget keeps the tier
+  its own size and work allow (`OwnTier`, `OwnLowestTier`) apart from the inherited one. Without the
+  inheritance the full-effort inner scopes of the whole-model view took 29 % of its layout time.
+- **Hint.** `OrderingRefinementContext.RecordRoutingBudget` records every scope whose *own* tier left the full
+  tier (and how many connectors took the elbow route); the root `ApplyCore` appends one line per such scope to
+  `LayoutTree.Warnings`, which `AutoLayoutAlgorithm`, the tree packer and `CanvasFitter` preserve. A scope that
+  only inherited the reduction records none; the hint of a size-forced scope says that it holds for the scopes
+  inside it too. A caller that prints the warnings tells the user that part of a large diagram was routed more
+  simply. (The SysML2Tools General view builds its own warnings from the placed tree and does not forward these
+  hints today.)
+
+Determinism: the budget never reads a clock, the work units are counts of grid nodes and states, and the tier is a
+function of the counters, so the same graph produces the same routes and warnings on every run and platform.
+
+*Performance design properties.* The properties below are design properties, not requirements: no test asserts a
+time or an amount of work (a timing assertion fails on a loaded machine and proves nothing about the drawing). They
+are measured by the opt-in benchmark `benchmarks/DemaConsulting.Rendering.Layout.Benchmarks` (`pwsh ./benchmark.ps1`;
+see *Performance verification* in the *HierarchicalLayoutAlgorithm Verification* document), which prints the time per
+scene and the growth exponent between doublings, and the numbers are recorded here. On the whole-model general view of
+the OMG Annex A SimpleVehicleModel (one scope of 87 routed
+connectors over about 370 descendants, laid out twice by the SysML2Tools general view) the layout fell from 9.8 s
+to about 1.6 s, and `sysml2tools render --auto` of the whole model from 33.7 s to about 13 s (of which about 8 s
+are loading the model). The benchmark's synthetic package of six folders of five leaves with E cross-container
+connectors, and its nested packages, measured as the minimum of the measured layouts over three runs of the benchmark
+(Release, net10.0, Windows x64, 28 logical processors that other jobs kept about half busy, so every time is
+inflated and noisy):
+
+| Scene | Connectors drawn | Time (s) |
+| --- | --- | --- |
+| E = 5 | 29 | 0.96 |
+| E = 10 | 34 | 1.5 |
+| E = 20 | 44 | 0.01 |
+| E = 40 | 64 | 0.05 |
+| E = 80 | 104 | 0.15 |
+| E = 160 | 184 | 0.38 |
+| E = 320 | 344 | 1.5 |
+| E = 640 | 664 | 4.8 |
+| Nested, small (2 sub-packages) | 16 | 0.21 |
+| Nested, oversize (80 package connectors) | 140 | 0.18 |
+| Nested, everyday (4 sub-packages of 3 folders of 4 leaves) | 66 | 12 |
+
+The time of the full effort (E up to 10) is seconds and grows quickly with the connector count; from 15 connectors
+the scope is routed at the reduced effort and the time drops to milliseconds, then grows by 2.5 to 4 times per
+doubling of E: about E<sup>1.7</sup> from 80 to 640 connectors on this loaded machine (the exponent between two
+doublings ranges from 1.3 to 2.0 with the load; on a quiet moment single runs gave about E<sup>1.5</sup>). That is well
+below the cube it was (and below a quadratic), but it is **not linear**. The remaining terms that grow faster than
+linearly are that each search weighs every routed line in its cost and that the window around a connector holds more
+hard obstacles as the scope spreads over a larger canvas. (During development the work units the budget counts were
+recorded once with a temporary counter: 0.45, 1.3, 3.2, 9.6 and 24.6 million units for E = 40 to 640. The product no
+longer exposes them, so the benchmark reports time.) The times are for a development machine; on a CI agent that runs
+the four runtimes of the test project at once with coverage the same layouts take more than ten times as long, which
+is the reason no test asserts a time.
+
+How the releases compare. The everyday nested package (four sub-packages of three folders of four leaves, six inner and
+six package connectors; the shape of a package model of moderate size) is where the cost of a hierarchy shows. One
+layout in a fresh process took, on the same machine and at similar load (indicative, one run each):
+
+| Scene | beta.5 | Before the route-pass cache (20c6ab7) | With the route-pass cache |
+| --- | --- | --- | --- |
+| E = 5 | 5.6 s | 2.7 s | 1.7 s |
+| E = 10 | 9.4 s | 3.7 s | 2.3 s |
+| E = 20 | 189 s | 0.25 s | 0.17 s |
+| E = 40 | more than 180 s | 0.39 s | 0.27 s |
+| E = 640 | not finishing | 4.6 s | 2.8 s |
+| Nested, 2 sub-packages of 3 folders of 4 leaves, 3 package connectors | 64 s | 24 s | 3.9 s |
+| Nested, everyday | 176 s (115 to 369 s over several runs) | 35 s | 7.1 s |
+
+The geometry of E = 5 and 10 and of the nested scenes is identical in all three columns (the fingerprints are equal);
+from E = 16 beta.5 draws without the reduced effort and takes minutes.
+
+The everyday nested package is timed twice in this document, at different machine loads: 7.1 s is one layout in a fresh
+process at the load of the release comparison above (the "7 s" of the *Route-pass cache* section), and 12 s is the
+minimum of three benchmark runs in the table before it, while other jobs kept the machine about half busy. They are the
+same code at different loads; compare times only within one table.
+
+#### Route-pass cache
+
+A scope is laid out and routed many times in one run: its own tight, loose, reference and middle layouts and ordering
+proposals, and again for every layout of the scopes that hold it, because each parent layout that hands a child a new
+order or room hint makes the child's whole pipeline run again, with its own refinement. Most of those layouts reach the
+router with composed boxes identical to an earlier one: of the 364 routed passes of a package of four sub-packages of
+three folders of four leaves, only 54 had a distinct input. Routing the same problem again made the cost the product of
+the pass counts of the levels. The cache (`HierarchicalLayoutAlgorithm.RoutePassCache.cs`, one instance per layout run
+in `OrderingRefinementContext.RoutePasses`) replays the earlier answer:
+
+- **Key.** The scope (by reference; its edges, endpoints and classification are a function of it), the
+  `EdgeRouting` style, the assumed font size, and a SHA-256 digest of every public property of every composed box at
+  any depth (the lines already inside the boxes included, down to each waypoint's exact bits). The digest walks the
+  public properties of the layout model's records by reflection, so a property added to the model later is part of the
+  key without anyone having to remember it; an object it cannot look into (a graph node or port a layout node refers to)
+  is told apart by identity.
+- **Exactness.** Routing is a pure function of those inputs while the scope's budget is at the `Full` tier, so a pass is
+  stored only when it started and ended at `Full` (the work it charged left the budget below both limits), and is
+  replayed only when `RoutingWorkBudget.WouldStayFull` holds for that same work. A replay charges the work the stored
+  pass charged, so the budget's `Spent`, every tier decision and every hint that follows from it are the same with or
+  without the cache. Nothing else of the pass has a side effect that later code reads (the lines are immutable records;
+  the replay returns a new list of them; the wall-hugging containers the pass found are added to the caller's set).
+  A pass at the `Reduced` or `Minimal` tier is neither stored nor replayed, because its lines depend on how much work
+  was already spent.
+- **Limits.** At most 2,048 passes are kept per run; beyond that routing simply runs, which is exact too. The key
+  digest costs a few milliseconds per pass against seconds of routing.
+- **Effect.** The package of four sub-packages of three folders of four leaves (65 nodes, 66 connectors) falls from
+  35 s to 7 s in a Release build on the reference machine (280 million units of work to 50 million really searched);
+  the 2 and 3 sub-package variants fall by a factor of four to five. The geometry is identical: the fingerprints of
+  the synthetic and nested scenes, the 107 files of the gallery and the seven Annex A views are byte-for-byte what
+  they were without the cache.
+
 ### HierarchicalLayoutAlgorithm Design Constraints
 
 - The flat-graph equivalence guarantee is load-bearing: the fast path must delegate directly to the
@@ -426,3 +586,5 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-TighteningRouteQualityGate | Container tightening, `KeepsTightening` gate |
 | Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom | Container tightening, entry arrowhead room |
 | Rendering-Layout-HierarchicalLayout-CanvasPadding | Container tightening, canvas padding |
+| Rendering-Layout-HierarchicalLayout-ReducedEffortHint | Routing work budget: weight, tiers, hint |
+| Rendering-Layout-HierarchicalLayout-LargeScopeLayout | Routing work budget; route-pass cache |

@@ -179,6 +179,28 @@ containers and cross-container connectors (about 1.5 to 2 times) and does nothin
 cross-container connectors. Known limit: connectors from many leaves to the same definition, in a dense usage
 tree, can still cross the composite connectors leaving the same leaf face.
 
+The time it takes to route the cross-container connectors of one scope is bounded. Routing every connector of a
+scope with the full effort (several alternative faces per connector, re-routing passes, extra layouts of the
+scope) is only affordable for scopes of a moderate size, so each scope has a deterministic work budget that counts
+routing work — never time, so the result is the same on every run and platform. A scope with many connectors over
+many nodes (a package of 40 cross-container connectors, say; the limit is 540 connectors times nodes) is routed at a
+reduced effort: every connector still gets an orthogonal route, but without the extra searches for a better face or
+fewer crossings, and without the extra layouts. A connector with no free route between its plain pair of faces is
+drawn with a simple elbow that may cross boxes (about 4 percent of the connectors of the 291-connector Annex A
+model). The scopes inside such a scope are drawn in the
+same oversize diagram, so they are routed at the reduced effort too. A scope whose routing work reaches the hard
+limit routes its remaining connectors with a simple elbow that may cross boxes. Diagrams of ordinary size are never
+affected. When a scope is limited, `LayoutTree.Warnings` carries one line naming it (and none for the scopes that
+only took the reduction over from it), so a tool that prints the warnings can tell the user that part of a large
+diagram was routed more simply. The cost of the reduced effort grows by about three times when the connector count
+doubles at the size of hundreds of connectors (measured on a synthetic package of
+six folders, best of several runs on a shared machine: 40 connectors take about 0.05 s, 80 about 0.15 s, 160 about
+0.4 s, 320 about 1.5 s and 640 about 5 s). That is far below the minutes a
+40-connector package took before, but it is not linear: a scope of thousands of connectors is still slow. The whole
+OMG Annex A SimpleVehicleModel (a scope of 87 connectors over about 370 nodes) lays out in under 2 s per general
+view, and rendering all its views with `sysml2tools render --auto` takes about 13 s, of which about 8 s are loading
+the model.
+
 Anchors on one box face are kept at least 16 px apart (`MinFixedAnchorSeparation`, roughly the length of an
 arrowhead) from each other and from the anchors of connectors already drawn on that face inside a
 container. A short face (a 50 px box) holds only three such anchors, so when more connectors converge on it —

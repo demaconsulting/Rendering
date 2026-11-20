@@ -384,3 +384,21 @@ sections:
           - RouteQuality_WeightedCloseParallelLength_NearerRunsWeighMore
           - RouteQuality_Measure_TwoConnectors_SumsAllMetrics
           - RouteQuality_Measure_BenchmarkScene_AgreesWithLayoutQualityMetrics
+
+      - id: Rendering-Layout-ConnectorRouter-BoundedBatchWork
+        title: >-
+          Given a routing profile whose work budget has been reduced, ConnectorRouter shall return one
+          orthogonal line per connection of a batch, each passing through no box; given a profile whose budget
+          is exhausted, it shall return one orthogonal elbow line per connection between the two boxes the
+          connection joins; and a batch routed at the full effort shall be unchanged by the existence of a
+          budget with room to spare.
+        justification: |
+          A large scope has to be drawn completely even when searching for the best route of every connector
+          is unaffordable. A reduced or exhausted budget therefore still yields a drawable, orthogonal line
+          for every connection (the mechanism, the order in which searches are shed, is in the design), and a
+          budget must change nothing for the scopes that stay within it, so the diagrams of ordinary size are
+          not degraded by the safety net.
+        tests:
+          - RouteBatch_ReducedBudget_RoutesEveryConnectionOrthogonally
+          - RouteBatch_ExhaustedBudget_RoutesEveryConnectionWithElbow
+          - RouteBatch_FullBudget_EqualsUnbudgetedBatch

@@ -2,8 +2,6 @@
 // Copyright (c) DemaConsulting. All rights reserved.
 // </copyright>
 
-using System.Reflection;
-
 using DemaConsulting.Rendering;
 using DemaConsulting.Rendering.Abstractions;
 
@@ -2890,20 +2888,14 @@ public sealed class HierarchicalLayoutAlgorithmTests
         var placedLines = new List<LayoutLine> { straddlingLine };
         var placedPorts = new List<LayoutPort>();
 
-        // Act: invoke the private widening method directly so this test exercises the exact geometry
-        // that exposed the bug, independent of whatever the leaf/component-packer would place in
-        // practice.
-        var method = typeof(HierarchicalLayoutAlgorithm).GetMethod(
-            "WidenSiblingContainerGaps",
-            BindingFlags.NonPublic | BindingFlags.Static)!;
-        var result = method.Invoke(
-            null,
-            [composed, indexOf, routedEdges, descendantToDirect, placedLines, placedPorts, 250.0]);
-        // S8969: false positive — MethodInfo.Invoke returns object?, and the compiler's own nullable
-        // flow analysis still requires the null-forgiving operator here (CS8605 without it).
-#pragma warning disable S8969
-        var (widenedBoxes, widenedLines, _, _) = ((LayoutBox[], List<LayoutLine>, List<LayoutPort>, double))result!;
-#pragma warning restore S8969
+        // Act: call the widening function directly (it is an internal unit with a documented signature) so
+        // this test exercises the exact geometry that exposed the bug, independent of whatever the
+        // leaf/component-packer would place in practice. A public scene cannot pin it: whether the leaf
+        // pass routes an unrelated line through the channel between two side-by-side containers depends on
+        // the packer, and none of the scenes tried (a third and fourth node joined beside the pair, with
+        // and without edges to the containers) placed one there.
+        var (widenedBoxes, widenedLines, _, _) = HierarchicalLayoutAlgorithm.WidenSiblingContainerGaps(
+            composed, indexOf, routedEdges, descendantToDirect, placedLines, placedPorts, 250.0);
 
         // Assert: the gap was actually widened (sanity check the fixture qualifies for widening), and
         // the straddling line's waypoint before the cut stayed put while the waypoint past the cut moved

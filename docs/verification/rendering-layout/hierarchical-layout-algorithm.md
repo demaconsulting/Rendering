@@ -352,6 +352,64 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   nested-package scenes in every flow direction and root
   (`LayoutEngine_Layout_BenchmarkScene_CanvasHugsContent`, `..._CrossHierarchyScenes_CanvasHugsContent`,
   `..._NestedPackagesAndGeneralView_CanvasHugsContent`).
+- **Reduced-effort hint** (`Rendering-Layout-HierarchicalLayout-ReducedEffortHint`): `LargeScopeLayoutTests` lays out
+  the synthetic package (six folders of five leaves, a spanning tree of interior connectors in each, seeded random
+  cross-folder connectors declared in the package scope, the shape of the Annex A general views) through the public
+  `LayoutEngine.Layout` only and asserts what a caller observes of the tree.
+  `..._OversizeScope_ReportsReducedEffortOnce` (a theory over 16, 20, 80 and 160 connectors) confirms exactly one
+  warning naming the six-node scope appears and every connector is drawn, while
+  `..._FiveCrossContainerEdges_MatchesGoldenGeometry` and `..._TenCrossContainerEdges_MatchesGoldenGeometry` confirm the
+  five- and ten-connector packages carry no warning at all (and lay out to the geometry the unoptimized router
+  produced). `..._LimitedScope_WarningSurvivesAutoLayoutAndCanvasFit` adds an isolated node to the 40-connector package
+  so the automatic layout splits and repacks the pieces and confirms the warning survives that and the canvas fit.
+  `..._BenchmarkScene_HasNoReducedEffortWarning` (a theory over every scene of the layout-quality benchmark set) and
+  `..._GeneralViewUp_HasNoReducedEffortWarning` (every insertion order of the heaviest scene) confirm the default limits
+  never touch a benchmark scene. `..._OversizeNestedPackage_DrawsEveryConnectorAndWarnsOnce` lays out a package whose
+  own scope holds 80 connectors over four sub-packages of two folders (each sub-package scope small enough to be routed
+  in full on its own) and confirms every connector is drawn orthogonally and ends on the boxes it joins, the sibling
+  boxes do not overlap, and exactly one warning appears and says it holds for the scopes inside;
+  `..._NamesOnlyTheOversizeScope` confirms the warning names the package's scope and not a sub-package's;
+  `..._SmallNestedPackage_HasNoWarnings` confirms a smaller hierarchy (two sub-packages, two package connectors) warns
+  of nothing. The wording of the hint for a scope whose connectors fell back to the simplified elbow route (it names
+  the scope, its work limit and the elbow route) is a design property (see the design document): the hard limit is far
+  above what a scene of this size spends, so no public scene produces it in a few seconds, and no test drives the
+  budget's internals to reach it. The tier limits themselves (the thresholds, the second
+  routed pass made at the full effort only, the one routed pass of a size-forced scope) are design properties argued in
+  the design document: the tests assert their observable consequences (which scopes are reported, and that every
+  connector is drawn), not the budget's counters.
+- **Large-scope layout** (`Rendering-Layout-HierarchicalLayout-LargeScopeLayout`):
+  `LayoutEngine_Layout_FortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort`,
+  `..._ThreeHundredTwentyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort` and
+  `..._SixHundredFortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort` lay out 40, 320 and 640
+  cross-container connectors twice and confirm the layout completes (the full effort needed minutes for 40 and could
+  not finish 640), every connector is drawn as an orthogonal polyline whose two ends lie on box outlines, sibling
+  boxes neither overlap nor leave the canvas, exactly one reduced-effort warning is present, and the two layouts have
+  the same fingerprint (SHA-256 of every box and connector coordinate rounded to three decimals) and warnings.
+  `..._OversizeNestedPackage_DrawsEveryConnectorAndWarnsOnce` and `..._OversizeNestedPackage_RepeatedRunsAreIdentical`
+  do the same for the nested package, and `..._FortyCrossContainerEdges_RepeatedRunsAreIdentical` compares two
+  layouts of the 40-connector package. `..._EverydayNestedPackage_DrawsEveryConnectorWithoutWarning` lays out the
+  everyday nested package (four sub-packages of three folders of four leaves with six inner connectors each, six
+  package connectors: 65 nodes, 17 containers, 66 connectors; it took minutes in earlier releases) and confirms
+  every connector is drawn orthogonally and ends on the boxes it joins, sibling boxes do not overlap, no warning is
+  raised, and the fingerprint equals the one captured from the full-effort layout before any layout shortcut existed
+  (the route-pass cache does not change the scene). No test reads a clock or the budget's
+  counters: how fast these layouts are is a
+  design property measured by the opt-in benchmark (see *Performance verification* below).
+- **Regression tests without a requirement.** `..._NestedPackageWithPackageEdges_MatchesGoldenGeometry` and
+  `..._SingleSubPackageOfThreeFolders_MatchesGoldenGeometry` compare the fingerprint of two nested packages with the
+  fingerprints captured before the route-pass cache existed (see the *Route-pass cache* paragraph of the design
+  document), so the cache cannot change a coordinate; together with the byte-identical gallery they are the evidence
+  that a replayed route equals a searched one.
+- **Performance verification (not requirement-linked).** The performance and memory properties of the routing
+  (growth of the time with the connector count, the time of a nested package, the bound on the memory a thread keeps)
+  are verified by the opt-in benchmark project `benchmarks/DemaConsulting.Rendering.Layout.Benchmarks` and by
+  analysis in the design document, never by a requirement-linked test (a timing assertion is flaky on a loaded CI
+  agent and proves nothing about the drawing). Run it with `pwsh ./benchmark.ps1` (see `benchmarks/README.md`): for each
+  scene it prints the minimum, median and maximum time of the measured runs, the connectors drawn, the number of
+  warnings and the layout fingerprint, and for the synthetic series the growth exponent log2(t(2E) / t(E)) between
+  doublings (1.5 to 1.7 from 160 to 640 connectors is typical; 3 would be the cubic cost it replaced). The
+  run exits 1 when a scene draws fewer connectors than it has or two runs of a scene differ, and never judges a
+  time. The results are recorded in the design document, next to the property they support.
 
 ### Requirements Coverage
 
@@ -481,3 +539,21 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
 - **`Rendering-Layout-HierarchicalLayout-CanvasPadding`**:
   LayoutEngine_Layout_BenchmarkScene_CanvasHugsContent, LayoutEngine_Layout_CrossHierarchyScenes_CanvasHugsContent,
   LayoutEngine_Layout_NestedPackagesAndGeneralView_CanvasHugsContent
+- **`Rendering-Layout-HierarchicalLayout-ReducedEffortHint`**:
+  LayoutEngine_Layout_OversizeScope_ReportsReducedEffortOnce,
+  LayoutEngine_Layout_OversizeNestedPackage_DrawsEveryConnectorAndWarnsOnce,
+  LayoutEngine_Layout_OversizeNestedPackage_NamesOnlyTheOversizeScope,
+  LayoutEngine_Layout_SmallNestedPackage_HasNoWarnings,
+  LayoutEngine_Layout_FiveCrossContainerEdges_MatchesGoldenGeometry,
+  LayoutEngine_Layout_TenCrossContainerEdges_MatchesGoldenGeometry,
+  LayoutEngine_Layout_LimitedScope_WarningSurvivesAutoLayoutAndCanvasFit,
+  LayoutEngine_Layout_BenchmarkScene_HasNoReducedEffortWarning,
+  LayoutEngine_Layout_GeneralViewUp_HasNoReducedEffortWarning
+- **`Rendering-Layout-HierarchicalLayout-LargeScopeLayout`**:
+  LayoutEngine_Layout_FortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort,
+  LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort,
+  LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort,
+  LayoutEngine_Layout_OversizeNestedPackage_DrawsEveryConnectorAndWarnsOnce,
+  LayoutEngine_Layout_EverydayNestedPackage_DrawsEveryConnectorWithoutWarning,
+  LayoutEngine_Layout_OversizeNestedPackage_RepeatedRunsAreIdentical,
+  LayoutEngine_Layout_FortyCrossContainerEdges_RepeatedRunsAreIdentical

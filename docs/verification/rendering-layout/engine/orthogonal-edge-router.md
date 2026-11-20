@@ -115,6 +115,42 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
   the minimum. `RouteWithStatus_MinInteriorSegmentInfeasible_FallsBackToUnconstrainedRoute` asks for an
   unreachable minimum (1000 px) and confirms the unconstrained route comes back unchanged, not crossed.
   `RouteWithStatus_LegsZero_MatchesLegacyRoute` confirms an all-zero hint is the legacy route.
+- **Bounded work** (`Rendering-Layout-OrthogonalEdgeRouter-BoundedWork`):
+  `RouteWithStatus_ExhaustedBudget_FallsBackToElbow` hands the router a budget with no work left (hard limit zero) and
+  confirms the elbow fallback comes back flagged `Crossed`, orthogonal, between the two ends.
+  `RouteWithStatus_BudgetRunsOutDuringSearch_FallsBackIdenticallyOnEveryRun` routes across a field of twelve
+  obstacles with a hard limit far below the work of the search, twice, and confirms both runs stop with the same
+  flagged, orthogonal elbow (the limit counts work, not time).
+  `RouteWithStatus_HardLimitMidSearch_FallsBackToValidElbowIdentically` (a theory over hard limits of 0 to 10 000
+  units) routes corner to corner across a field of 1 600 pillars, whose search needs about 15 000 units unbudgeted, so
+  every limit cuts it off, and confirms the fallback is the orthogonal elbow flagged `Crossed` between the two ends,
+  the same on a second run. `RouteWithStatus_GenerousBudget_RouteEqualsUnbudgetedRoute` confirms a budget that does
+  not run out leaves the route exactly as without a budget. How tightly the work account holds the hard limit (it is
+  exceeded by less than one charge chunk) is a design property argued in the design document, not asserted: it is
+  internal state of the budget.
+- **Search scratch reuse** (no requirement; a regression test):
+  `RouteWithStatus_SmallGridAfterLargeGrid_RouteIsUnchanged` confirms the route of a small grid after a large search
+  equals the route before it, so the working storage the router reuses between searches changes no result. The memory
+  a thread keeps (at most 32 MB) is a design property argued in the design document; no test observes it, because it
+  could only be observed through allocated bytes or thread identity.
+- **Reduced-effort route** (`Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortRoute`):
+  `RouteWithStatus_ReducedBudget_RoutesAroundObstaclesInWindow` routes two staggered obstacles at the reduced effort
+  with a third obstacle 5000 px away, and confirms the route is orthogonal, not crossed, and clear of every
+  obstacle. `RouteWithStatus_ReducedBudget_WindowTooSmall_SearchesWholeCanvas` puts a 2150 px wall between two
+  nearby ends and confirms the route still goes round it (a window around the ends cannot, so the whole canvas is
+  searched). `RouteWithStatus_ReducedBudget_HundredsOfSoftRects_RoutesValidlyAndIdentically` routes across a wall
+  among 300 thin soft rectangles (tall and wide) at the reduced effort, twice, and confirms the route is orthogonal,
+  not crossed, clear of the wall, and identical on both runs.
+  `..._HundredsOfSoftRects_WindowTooSmall_SearchesWholeCanvas` repeats the 2150 px wall scenario with 200 soft
+  rectangles near the ends and confirms the whole-canvas retry still routes round the wall.
+  `RouteWithStatus_FullBudget_HundredsOfSoftRects_RouteEqualsUnbudgetedRoute` confirms the limits are the reduced
+  effort's alone: a budget at the full effort gives exactly the route of no budget among 200 soft rectangles. The
+  budget is arranged through its public limits only (a soft limit of zero for the reduced effort, a hard limit of zero
+  for an exhausted one); no test reads its counters.
+- **Exactness of the search implementation** is verified through the existing scenarios above (they run on the
+  rewritten search) and through the geometry fingerprints of `LargeScopeLayoutTests` (see the
+  *HierarchicalLayoutAlgorithm Unit Verification*), which equal those the dictionary-based search produced; the
+  gallery and the layout-quality benchmark were regenerated and are byte-identical.
 
 #### Requirements Coverage
 
@@ -156,3 +192,14 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
   RoutePorts_MinInteriorSegment_NoReversalToSatisfyMinimum,
   RouteWithStatus_MinInteriorSegmentInfeasible_FallsBackToUnconstrainedRoute,
   RouteWithStatus_LegsZero_MatchesLegacyRoute
+- **`Rendering-Layout-OrthogonalEdgeRouter-BoundedWork`**:
+  RouteWithStatus_ExhaustedBudget_FallsBackToElbow,
+  RouteWithStatus_BudgetRunsOutDuringSearch_FallsBackIdenticallyOnEveryRun,
+  RouteWithStatus_HardLimitMidSearch_FallsBackToValidElbowIdentically,
+  RouteWithStatus_GenerousBudget_RouteEqualsUnbudgetedRoute
+- **`Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortRoute`**:
+  RouteWithStatus_ReducedBudget_RoutesAroundObstaclesInWindow,
+  RouteWithStatus_ReducedBudget_WindowTooSmall_SearchesWholeCanvas,
+  RouteWithStatus_ReducedBudget_HundredsOfSoftRects_RoutesValidlyAndIdentically,
+  RouteWithStatus_ReducedBudget_HundredsOfSoftRects_WindowTooSmall_SearchesWholeCanvas,
+  RouteWithStatus_FullBudget_HundredsOfSoftRects_RouteEqualsUnbudgetedRoute

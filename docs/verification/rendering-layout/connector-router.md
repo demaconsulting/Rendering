@@ -236,6 +236,20 @@ and, on a benchmark scene, that the engine's measure equals the test metrics' me
 
 **Covers**: `Rendering-Layout-ConnectorRouter-RouteQuality`.
 
+#### Bounded batch work
+
+`RouteBatch_ReducedBudget_RoutesEveryConnectionOrthogonally` routes three connectors between four boxes under a
+profile whose budget has been reduced (a soft limit of zero) and confirms one orthogonal line per connection comes
+back, none of them passing through any of the four boxes.
+`RouteBatch_ExhaustedBudget_RoutesEveryConnectionWithElbow` routes two connectors under a budget with no work left
+(a hard limit of zero) and confirms both come back orthogonal, starting on the source box and ending on the target
+box. `RouteBatch_FullBudget_EqualsUnbudgetedBatch` routes the three connectors under the same profile with and without
+a budget that has room to spare and confirms every line is the same, so the existence of a budget changes nothing
+at the full effort (the byte-identical gallery and the golden fingerprints of `LargeScopeLayoutTests` confirm it for
+whole layouts). The budget is arranged through its public limits only; no test reads its counters.
+
+**Covers**: `Rendering-Layout-ConnectorRouter-BoundedBatchWork`.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`**:
@@ -340,3 +354,6 @@ occupied face position moves to a free spot), and TryResolveFaceAnchor_PointOnFa
   RouteQuality_CloseParallelLength_GapAndOverlap_CountsOnlySqueezedRuns,
   RouteQuality_WeightedCloseParallelLength_NearerRunsWeighMore, RouteQuality_Measure_TwoConnectors_SumsAllMetrics,
   RouteQuality_Measure_BenchmarkScene_AgreesWithLayoutQualityMetrics
+- **`Rendering-Layout-ConnectorRouter-BoundedBatchWork`**:
+  RouteBatch_ReducedBudget_RoutesEveryConnectionOrthogonally, RouteBatch_ExhaustedBudget_RoutesEveryConnectionWithElbow,
+  RouteBatch_FullBudget_EqualsUnbudgetedBatch

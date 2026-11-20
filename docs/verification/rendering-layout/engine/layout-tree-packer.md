@@ -76,6 +76,10 @@ null-argument guard constitutes a failure.
   (`Engine/EmptySpaceMeterTests.cs`) confirm an empty tree measures its smaller canvas side, a central leaf box
   reduces the square, a container outline is transparent, a connector across the canvas splits the space, and the
   passing square is three times the mean leaf-box height (zero without a leaf box).
+  `EmptySpaceMeter_SquareIndex_LargestWithFilled_EqualsFullPassOverFilledCopy` checks, on random grids of several
+  shapes and 200 random filled rectangles each, that the square index the hole search uses gives exactly the side
+  a full pass over a copy of the filled grid gives (also with the early-stop limit set below, at and above the
+  answer), and `..._EmptyRange_IsGridLargest` that filling nothing leaves the grid's own answer.
 
 #### Requirements Coverage
 
@@ -109,4 +113,6 @@ null-argument guard constitutes a failure.
   EmptySpaceMeter_LargestEmptySquare_CentralLeafBox_ReducesSquare,
   EmptySpaceMeter_LargestEmptySquare_ContainerOutline_IsTransparent,
   EmptySpaceMeter_LargestEmptySquare_ConnectorAcrossCanvas_SplitsSpace,
-  EmptySpaceMeter_PassingSquare_LeafBoxes_IsThreeTimesMeanHeight, EmptySpaceMeter_PassingSquare_NoLeafBox_IsZero
+  EmptySpaceMeter_PassingSquare_LeafBoxes_IsThreeTimesMeanHeight, EmptySpaceMeter_PassingSquare_NoLeafBox_IsZero,
+  EmptySpaceMeter_SquareIndex_LargestWithFilled_EqualsFullPassOverFilledCopy,
+  EmptySpaceMeter_SquareIndex_LargestWithFilled_EmptyRange_IsGridLargest

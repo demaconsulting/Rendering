@@ -18,6 +18,7 @@ needs-review:
   - "!**/bin/**"                  # Exclude build output
   - "!node_modules/**"            # Exclude npm dependencies
   - "!**/.venv/**"                # Exclude Python virtual environment
+  - "!benchmarks/**"              # Exclude the opt-in benchmark: measurement tooling, not delivered software
 
 # Evidence source: review data and index.json are located in the 'reviews' branch
 # of this repository, accessed through the GitHub public HTTPS raw content access.
@@ -349,6 +350,7 @@ reviews:
       - "docs/verification/rendering-layout/engine/orthogonal-edge-router.md"
       - "src/DemaConsulting.Rendering.Layout/Engine/OrthogonalEdgeRouter.cs"
       - "src/DemaConsulting.Rendering.Layout/Engine/MinHeap.cs"
+      - "src/DemaConsulting.Rendering.Layout/Engine/RoutingWorkBudget.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/Engine/OrthogonalEdgeRouterTests.cs"
     context:
       - "docs/design/rendering-layout.md"
@@ -550,7 +552,10 @@ reviews:
       - "docs/verification/rendering-layout/hierarchical-layout-algorithm.md"
       - "src/DemaConsulting.Rendering.Layout/HierarchicalLayoutAlgorithm.cs"
       - "src/DemaConsulting.Rendering.Layout/HierarchicalLayoutAlgorithm.CrossOrdering.cs"
+      - "src/DemaConsulting.Rendering.Layout/HierarchicalLayoutAlgorithm.RoutePassCache.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/LargeScopeLayoutTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/RoutingScenes.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/HierarchicalCrossOrderingTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/CrossHierarchyOrderingTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/OrderRankPlumbingTests.cs"

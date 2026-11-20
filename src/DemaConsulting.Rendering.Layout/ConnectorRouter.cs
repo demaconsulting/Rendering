@@ -282,7 +282,7 @@ public static class ConnectorRouter
         // line a thicker obstacle (so the later connectors keep a full lane's width from it); the second
         // result replaces the first only when it is no worse in crossings, hairpins and bends and has
         // fewer close parallel runs.
-        if (profile is null || connections.Count < 2)
+        if (profile is null || connections.Count < 2 || !profile.FullEffort)
         {
             return lines;
         }
@@ -384,7 +384,7 @@ public static class ConnectorRouter
         // routed straight across one; those connectors get a second look now that every line is known.
         // A connector routed before the lines that now surround it may also have ended up with a hairpin,
         // many bends, or a run squeezed beside another connector; those get a second look as well.
-        if (profile is not null)
+        if (profile is { FullEffort: true })
         {
             var existingLinesFor = profile.ExistingLinesFor;
             var endInset = penalizeLongEndSegments ? options.Clearance : 0.0;
@@ -437,6 +437,12 @@ public static class ConnectorRouter
         var reach = ExistingLineReachFactor * options.Clearance;
         for (var index = 0; index < lines.Count; index++)
         {
+            // A budget that ran down during the pass ends it: the connectors not yet looked at stay as routed
+            if (!profile.FullEffort)
+            {
+                break;
+            }
+
             var existing = existingLinesFor(index);
             var current = lines[index].Waypoints;
             if (!tidy && (existing.Count == 0 || CountCrossedLines(current, existing, limit: 1) == 0))
@@ -741,11 +747,11 @@ public static class ConnectorRouter
         Rect[][] endZones)
     {
         var connection = connections[index];
-        var initial = RouteWithAnchors(boxes, connection, options, anchors[index], routedLineObstacles);
+        var initial = RouteWithAnchors(boxes, connection, options, anchors[index], routedLineObstacles, profile?.Budget);
         var waypoints = initial.Waypoints;
 
         var walls = profile?.WallsFor(index);
-        if (IsDefective(connection, anchors[index], initial, options, profile, walls, endZones, index))
+        if ((profile is null || profile.FullEffort) && IsDefective(connection, anchors[index], initial, options, profile, walls, endZones, index))
         {
             var better = SearchBetterRoute(
                 index, connections, options, boxes, anchors, occupied, routedLineObstacles, profile, walls, endZones, initial);
@@ -782,7 +788,8 @@ public static class ConnectorRouter
         Connection connection,
         ConnectorRouteOptions options,
         FaceAnchors anchors,
-        IReadOnlyList<Rect> extraSoftObstacles)
+        IReadOnlyList<Rect> extraSoftObstacles,
+        RoutingWorkBudget? budget = null)
     {
         var from = connection.From;
         var to = connection.To;
@@ -803,7 +810,7 @@ public static class ConnectorRouter
         }
 
         return RouteWaypoints(
-            options.EdgeRouting, source, target, obstacles, options.Clearance, anchors.SourceSide, anchors.TargetSide, extraSoftObstacles);
+            options.EdgeRouting, source, target, obstacles, options.Clearance, anchors.SourceSide, anchors.TargetSide, extraSoftObstacles, null, budget);
     }
 
     /// <summary>
@@ -822,9 +829,27 @@ public static class ConnectorRouter
     /// <see langword="null"/> (the default), or an empty list for a connection, leaves that connection's
     /// routing exactly as without the cost.
     /// </param>
+    /// <param name="Budget">
+    /// Optional. The routing work budget of the scope the batch belongs to. While it is in the
+    /// <see cref="RoutingTier.Full"/> tier nothing changes; once it is reduced the batch makes only the
+    /// searches that produce a route, and once it is exhausted every remaining connector gets the elbow route.
+    /// <see langword="null"/> (the default) never limits the work.
+    /// </param>
     internal sealed record RoutingProfile(
         Func<int, IReadOnlyList<RouterWall>> WallsFor,
-        Func<int, IReadOnlyList<LayoutLine>>? ExistingLinesFor = null);
+        Func<int, IReadOnlyList<LayoutLine>>? ExistingLinesFor = null,
+        RoutingWorkBudget? Budget = null)
+    {
+        /// <summary>
+        /// Gets whether the routing effort is still the full one: no work budget, or one that has not
+        /// yet been reduced. The extra searches (alternative faces, re-routing passes, wide-lane re-run)
+        /// are made only then.
+        /// </summary>
+        public bool FullEffort => Budget is null || Budget.Tier == RoutingTier.Full;
+
+        /// <summary>Gets whether the work budget is exhausted, so that no search may be started.</summary>
+        public bool Exhausted => Budget is { Tier: RoutingTier.Minimal };
+    }
 
     /// <summary>
     /// Smallest inset kept between a port that was slid along its face and the face's corner or
@@ -1245,7 +1270,7 @@ public static class ConnectorRouter
         RouteResult? best = null;
         var bestScore = double.PositiveInfinity;
         var bestCrossings = int.MaxValue;
-        foreach (var pair in CandidateFacePairs(connection, current, alternatives: profile is not null))
+        foreach (var pair in CandidateFacePairs(connection, current, alternatives: profile is { FullEffort: true }))
         {
             var sourceRange = BuildPortRange(connection.From, pair.SourceSide, connection.To, index, true, connections, anchors, occupied, clearance, refine is not null);
             var targetRange = BuildPortRange(connection.To, pair.TargetSide, connection.From, index, false, connections, anchors, occupied, clearance, refine is not null);
@@ -1255,7 +1280,7 @@ public static class ConnectorRouter
             }
 
             (sourceRange, targetRange) = AddSharedLanes(sourceRange, targetRange);
-            var result = OrthogonalEdgeRouter.RoutePorts(sourceRange, targetRange, obstacles, clearance, null, softObstacles, hints);
+            var result = OrthogonalEdgeRouter.RoutePorts(sourceRange, targetRange, obstacles, clearance, null, softObstacles, hints, profile?.Budget);
             if (result.Crossed || HasReversal(result.Waypoints) || OverlapsRoutedLine(result.Waypoints, softObstacles, refine is null ? 0.0 : NearlyCoincidentGap))
             {
                 continue;
@@ -2835,11 +2860,13 @@ public static class ConnectorRouter
         double clearance,
         PortSide sourceSide,
         PortSide targetSide,
-        IReadOnlyList<Rect>? softObstacles = null) => edgeRouting switch
+        IReadOnlyList<Rect>? softObstacles = null,
+        RouteHints? hints = null,
+        RoutingWorkBudget? budget = null) => edgeRouting switch
         {
             EdgeRouting.Orthogonal =>
                 OrthogonalEdgeRouter.RouteWithStatus(
-                    source, target, obstacles, clearance, sourceSide, targetSide, costBands: null, softObstacles),
+                    source, target, obstacles, clearance, sourceSide, targetSide, costBands: null, softObstacles, hints, budget),
             _ => throw new NotSupportedException($"Edge routing style '{edgeRouting}' has no shipped router."),
         };
 

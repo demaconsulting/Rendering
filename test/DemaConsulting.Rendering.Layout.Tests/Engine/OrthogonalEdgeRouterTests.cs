@@ -37,6 +37,277 @@ public sealed class OrthogonalEdgeRouterTests
     }
 
     /// <summary>
+    ///     A budget that is already exhausted stops the search before it starts: the connector takes the
+    ///     elbow fallback (flagged as crossing), an orthogonal route between its two ends.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_ExhaustedBudget_FallsBackToElbow()
+    {
+        // Arrange: an obstacle between the ends and a budget with no work left (hard limit zero)
+        var source = new Point2D(0, 50);
+        var target = new Point2D(200, 100);
+        var obstacles = new[] { new Rect(80, 0, 40, 160) };
+        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: 0, Hard: 0));
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 10, budget: budget);
+
+        // Assert: an orthogonal elbow between the ends, flagged as a fallback
+        Assert.True(result.Crossed);
+        AssertEndpoints(result.Waypoints, source, target);
+        AssertAllSegmentsOrthogonal(result.Waypoints);
+    }
+
+    /// <summary>
+    ///     A budget that runs out in the middle of a search stops it at the same point on every run (the
+    ///     limit counts work, never time), so the fallback route is reproducible.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_BudgetRunsOutDuringSearch_FallsBackIdenticallyOnEveryRun()
+    {
+        // Arrange: a wide field of obstacles and a hard limit far below the work its search takes
+        var source = new Point2D(0, 0);
+        var target = new Point2D(600, 600);
+        var obstacles = Enumerable.Range(0, 12).Select(i => new Rect(40 + (i * 45), 20 + ((i % 4) * 130), 30, 400)).ToArray();
+
+        RouteResult Run() =>
+            OrthogonalEdgeRouter.RouteWithStatus(
+                source, target, obstacles, 10, budget: new RoutingWorkBudget(new RoutingWorkLimits(Soft: 100, Hard: 200)));
+
+        // Act
+        var first = Run();
+        var second = Run();
+
+        // Assert: both runs stopped at the limit with the same elbow
+        Assert.True(first.Crossed);
+        Assert.Equal(first.Waypoints, second.Waypoints);
+        AssertAllSegmentsOrthogonal(first.Waypoints);
+    }
+
+    /// <summary>
+    ///     However small the hard limit, a search that is cut off in its middle returns the orthogonal elbow
+    ///     fallback between the two ends, the same on every run.
+    /// </summary>
+    /// <param name="hard">The hard work limit.</param>
+    [Theory]
+    [InlineData(0L)]
+    [InlineData(1L)]
+    [InlineData(10L)]
+    [InlineData(100L)]
+    [InlineData(1_000L)]
+    [InlineData(5_000L)]
+    [InlineData(10_000L)]
+    public void RouteWithStatus_HardLimitMidSearch_FallsBackToValidElbowIdentically(long hard)
+    {
+        // Arrange: a field of 1,600 pillars crossed corner to corner, whose search takes
+        // about 15,000 units unbudgeted, so every limit below cuts it off
+        var source = new Point2D(10, 10);
+        var target = new Point2D(790, 790);
+        var obstacles = Enumerable.Range(0, 1600).Select(i => new Rect(40 + ((i % 40) * 20), 40 + ((i / 40) * 20), 10, 10)).ToArray();
+
+        RouteResult Run() =>
+            OrthogonalEdgeRouter.RouteWithStatus(
+                source, target, obstacles, 4, budget: new RoutingWorkBudget(new RoutingWorkLimits(Soft: hard / 2, Hard: hard)));
+
+        // Act
+        var first = Run();
+        var second = Run();
+
+        // Assert: the cut-off search left the elbow fallback, flagged as such, joining the two ends
+        Assert.True(first.Crossed);
+        AssertEndpoints(first.Waypoints, source, target);
+        AssertAllSegmentsOrthogonal(first.Waypoints);
+        Assert.Equal(first.Waypoints, second.Waypoints);
+    }
+
+    /// <summary>
+    ///     A search after a large one finds exactly the route it finds on a fresh thread: the working
+    ///     storage the router reuses between searches leaves nothing behind that changes a result.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_SmallGridAfterLargeGrid_RouteIsUnchanged()
+    {
+        // Arrange: the route of the small grid before any large search ran
+        var before = RouteAcrossGrid(SmallGridObstacles);
+
+        // Act: the same search after a large one
+        _ = RouteAcrossGrid(LargeGridObstacles);
+        var after = RouteAcrossGrid(SmallGridObstacles);
+
+        // Assert
+        Assert.Equal(before, after);
+    }
+
+    /// <summary>Obstacles whose grid lines make a grid of several hundred thousand nodes.</summary>
+    private static readonly Rect[] LargeGridObstacles =
+        [.. Enumerable.Range(0, 500).Select(i => new Rect(100 + (i * 30), 100 + (i * 30), 10, 10))];
+
+    /// <summary>A handful of obstacles whose grid is small.</summary>
+    private static readonly Rect[] SmallGridObstacles = [new Rect(100, 0, 40, 100), new Rect(180, 20, 40, 120)];
+
+    /// <summary>Routes a connector from one corner of the field of <paramref name="obstacles"/> to a point near it.</summary>
+    /// <param name="obstacles">The obstacles.</param>
+    /// <returns>The waypoints.</returns>
+    private static IReadOnlyList<Point2D> RouteAcrossGrid(Rect[] obstacles) =>
+        OrthogonalEdgeRouter.RouteWithStatus(new Point2D(0, 50), new Point2D(300, 50), obstacles, 10).Waypoints;
+
+    /// <summary>
+    ///     Creates a budget at the reduced effort: its soft limit is already reached and its hard limit is far
+    ///     away, so a search routes plainly (without the searches that improve a route) and never gives up.
+    /// </summary>
+    /// <returns>A new budget at the reduced effort.</returns>
+    private static RoutingWorkBudget ReducedBudget() =>
+        new(new RoutingWorkLimits(Soft: 0, Hard: long.MaxValue / 2));
+
+    /// <summary>
+    ///     A budget with room to spare leaves the route exactly as it is without a budget.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_GenerousBudget_RouteEqualsUnbudgetedRoute()
+    {
+        // Arrange
+        var source = new Point2D(0, 50);
+        var target = new Point2D(300, 50);
+        var obstacles = new[] { new Rect(100, 0, 40, 100), new Rect(180, 20, 40, 120) };
+        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: long.MaxValue / 4, Hard: long.MaxValue / 2));
+
+        // Act
+        var unbudgeted = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 10);
+        var budgeted = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 10, budget: budget);
+
+        // Assert
+        Assert.Equal(unbudgeted.Waypoints, budgeted.Waypoints);
+        Assert.False(budgeted.Crossed);
+    }
+
+    /// <summary>
+    ///     At the reduced effort a connector is routed in a window around its two ends: the route is still
+    ///     orthogonal and clear of every obstacle, including those the window leaves out.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_ReducedBudget_RoutesAroundObstaclesInWindow()
+    {
+        // Arrange: obstacles between the ends and one far outside the window around them
+        var source = new Point2D(0, 50);
+        var target = new Point2D(300, 50);
+        var obstacles = new[] { new Rect(100, -50, 40, 200), new Rect(180, -40, 40, 200), new Rect(5000, 5000, 100, 100) };
+        var budget = ReducedBudget();
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 10, budget: budget);
+
+        // Assert
+        Assert.False(result.Crossed);
+        AssertEndpoints(result.Waypoints, source, target);
+        AssertAllSegmentsOrthogonal(result.Waypoints);
+        AssertNoSegmentCrossesObstacle(result.Waypoints, obstacles);
+    }
+
+    /// <summary>
+    ///     A route whose ends the window cannot join (a wall of obstacles wider than the window) is searched
+    ///     again over the whole canvas, so the reduced effort never turns a routable connector into a fallback.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_ReducedBudget_WindowTooSmall_SearchesWholeCanvas()
+    {
+        // Arrange: a long wall between the ends, reaching far beyond the window around them
+        var source = new Point2D(0, 0);
+        var target = new Point2D(100, 0);
+        var obstacles = new[] { new Rect(40, -2000, 20, 2150) };
+        var budget = ReducedBudget();
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 10, budget: budget);
+
+        // Assert: the route goes round the wall below its end
+        Assert.False(result.Crossed);
+        AssertEndpoints(result.Waypoints, source, target);
+        AssertNoSegmentCrossesObstacle(result.Waypoints, obstacles);
+    }
+
+    /// <summary>
+    ///     At the reduced effort a connector among hundreds of already-routed lines (soft obstacles) is still
+    ///     routed orthogonally, clear of every hard obstacle, and identically on every run.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_ReducedBudget_HundredsOfSoftRects_RoutesValidlyAndIdentically()
+    {
+        // Arrange: a wall between the ends and 300 thin soft rectangles (tall and wide) across the canvas
+        var source = new Point2D(0, 100);
+        var target = new Point2D(1200, 100);
+        var obstacles = new[] { new Rect(560, 20, 40, 160) };
+        var soft = new List<Rect>();
+        for (var i = 0; i < 150; i++)
+        {
+            soft.Add(new Rect(20 + (i * 7), 10 + ((i % 5) * 30), 2, 70));
+            soft.Add(new Rect(10 + (i * 8), 15 + ((i % 7) * 25), 60, 2));
+        }
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 10, softObstacles: soft, budget: ReducedBudget());
+        var again = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 10, softObstacles: soft, budget: ReducedBudget());
+
+        // Assert: a valid route, the same twice
+        Assert.False(result.Crossed);
+        AssertEndpoints(result.Waypoints, source, target);
+        AssertAllSegmentsOrthogonal(result.Waypoints);
+        AssertNoSegmentCrossesObstacle(result.Waypoints, obstacles);
+        Assert.Equal(result.Waypoints, again.Waypoints);
+    }
+
+    /// <summary>
+    ///     The soft-lane limits belong to the reduced effort alone: with the same hundreds of soft rectangles
+    ///     a budget at the full effort routes exactly as no budget does.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_FullBudget_HundredsOfSoftRects_RouteEqualsUnbudgetedRoute()
+    {
+        // Arrange
+        var source = new Point2D(0, 100);
+        var target = new Point2D(600, 100);
+        var obstacles = new[] { new Rect(260, 20, 40, 160) };
+        var soft = new List<Rect>();
+        for (var i = 0; i < 100; i++)
+        {
+            soft.Add(new Rect(20 + (i * 5), 10 + ((i % 5) * 30), 2, 70));
+            soft.Add(new Rect(10 + (i * 5), 15 + ((i % 7) * 25), 60, 2));
+        }
+
+        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: long.MaxValue / 4, Hard: long.MaxValue / 2));
+
+        // Act
+        var unbudgeted = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 10, softObstacles: soft);
+        var budgeted = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 10, softObstacles: soft, budget: budget);
+
+        // Assert
+        Assert.Equal(unbudgeted.Waypoints, budgeted.Waypoints);
+    }
+
+    /// <summary>
+    ///     A route whose ends the window cannot join is searched over the whole canvas, still with the
+    ///     reduced soft lanes, and still finds the way round a wall among hundreds of soft rectangles.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_ReducedBudget_HundredsOfSoftRects_WindowTooSmall_SearchesWholeCanvas()
+    {
+        // Arrange: a long wall between the ends and 200 soft rectangles near it
+        var source = new Point2D(0, 0);
+        var target = new Point2D(100, 0);
+        var obstacles = new[] { new Rect(40, -2000, 20, 2150) };
+        var soft = Enumerable.Range(0, 200).Select(i => new Rect(-20 + (i * 2), -40 + ((i % 9) * 10), 2, 30)).ToList();
+        var budget = ReducedBudget();
+
+        // Act
+        var result = OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 10, softObstacles: soft, budget: budget);
+
+        // Assert: the route goes round the wall below its end
+        Assert.False(result.Crossed);
+        AssertEndpoints(result.Waypoints, source, target);
+        AssertAllSegmentsOrthogonal(result.Waypoints);
+        AssertNoSegmentCrossesObstacle(result.Waypoints, obstacles);
+    }
+
+    /// <summary>
     ///     A route with no obstacles still produces a valid orthogonal path from source to target.
     /// </summary>
     [Fact]

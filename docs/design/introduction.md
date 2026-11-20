@@ -59,6 +59,8 @@ The following topics are explicitly excluded:
 - Build pipeline configuration and CI/CD processes
 - Deployment, packaging, and distribution mechanisms
 - Test projects and test infrastructure
+- The opt-in benchmark under `benchmarks/` (measurement tooling, run by `benchmark.ps1`, not delivered software and not
+  part of the solution); the performance properties it measures are recorded in the design of the item they belong to
 
 ## Architectural Overview
 

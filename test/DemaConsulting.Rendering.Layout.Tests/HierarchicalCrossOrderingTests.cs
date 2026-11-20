@@ -3,6 +3,7 @@
 // </copyright>
 
 using DemaConsulting.Rendering;
+using DemaConsulting.Rendering.Layout.Engine;
 
 namespace DemaConsulting.Rendering.Layout.Tests;
 
