@@ -625,7 +625,8 @@ sections:
           reduced effort (plain routes only, no extra layout passes of the scope); a scope whose size
           reaches the weight limit shall be laid out and routed with one pass (every container a routed
           connector enters keeping its room from the start) and shall carry the reduced effort into the
-          scopes inside it; a scope whose work reaches the hard limit shall route its remaining connectors
+          scopes inside it; a scope whose routing work reaches the soft limit during its first routed pass
+          shall not run the second routed pass for the connectors that hugged a border; a scope whose work reaches the hard limit shall route its remaining connectors
           with the simple elbow route; every connector shall still be drawn as an orthogonal polyline; the
           tree's warnings shall name each scope whose own size or work limited it (and no scope that only
           took the reduction over from the scope that holds it); the outcome shall depend only on the
@@ -651,6 +652,9 @@ sections:
           - LayoutEngine_Layout_OversizeNestedPackage_RepeatedRunsAreIdentical
           - LayoutEngine_Layout_OversizeNestedPackage_NamesOnlyTheOversizeScope
           - LayoutEngine_Layout_SmallNestedPackage_InheritsNoReduction
+          - LayoutEngine_Layout_SoftLimitReachedInFirstPass_DoesNotRunSecondRoutedPass
+          - LayoutEngine_Layout_CanceledToken_ThrowsOperationCanceled
+          - LayoutEngine_Layout_UncanceledToken_EqualsLayoutWithoutToken
           - RoutingWorkBudget_InheritReduced_ReducesWithoutAnOwnLimit
           - RoutingWorkBudget_InheritReduced_OwnWorkStillReachesLimits
           - RoutingWorkBudget_ForcedReduced_OnlyBySizeOrInheritance
@@ -658,22 +662,31 @@ sections:
       - id: Rendering-Layout-HierarchicalLayout-RoutingPerformance
         title: >-
           HierarchicalLayoutAlgorithm shall lay out a package of six folder containers holding forty
-          cross-container connectors within a bounded time (ten seconds on the slowest supported agent,
-          well under a second on a development machine), and packages of 320 and 640 connectors within
-          ten and fifteen seconds, with routing work that grows sub-quadratically in the connector count;
-          it shall lay out to the same geometry on every run, and shall lay out the five- and ten-connector
-          packages to exactly the geometry the unoptimized router produced.
+          cross-container connectors, and packages of 320 and 640 connectors, spending routing work (the
+          deterministic count of grid nodes built and search states expanded) below fixed bounds (one,
+          twenty and fifty million units for the largest scope), with the oversize scope reduced and routed
+          in one pass, and with that work growing sub-quadratically in the connector count; the 640-connector
+          package shall also finish within a very generous wall-clock bound (300 seconds) under a
+          cancellation token that stops the routing when the bound passes; it shall lay out to the same
+          geometry on every run, and shall lay out the five- and ten-connector packages to exactly the
+          geometry the unoptimized router produced.
         justification: |
           Routing speed-ups must be pure: the same boxes and connector coordinates as before, only sooner.
-          The golden fingerprints pin the geometry of the scenes the full routing effort still serves, and
-          the time bounds are the regression guard for the scaling defect itself (the 40-connector package
-          did not finish in minutes before it was fixed). The work-unit ratio per doubling guards the
-          growth of the cost without a clock: a quadratic router would multiply the work by four per
-          doubling, the cubic one that was replaced by eight, and the measured factor is about three.
+          The golden fingerprints pin the geometry of the scenes the full routing effort still serves. The
+          work bounds are the regression guard for the scaling defect itself (the 40-connector package
+          did not finish in minutes before it was fixed; the full effort needs about 1,240 times the
+          bound for it): the work count depends on the input only, so the guard holds on a CI agent that
+          runs four runtimes at once with coverage, where wall-clock bounds of ten and fifteen seconds
+          failed on every platform although the layout takes about a second on a development machine. The
+          one wall-clock test is non-parallel and generous, so it only fails on a runaway search. The
+          work-unit ratio per doubling guards the growth of the cost without a clock: a quadratic router
+          would multiply the work by four per doubling, the cubic one that was replaced by eight, and the
+          measured factor is about three.
         tests:
-          - LayoutEngine_Layout_FortyCrossContainerEdges_CompletesWithinBound
-          - LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_CompletesWithinBound
-          - LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_CompletesWithinBound
+          - LayoutEngine_Layout_FortyCrossContainerEdges_RoutingWorkStaysBelowBound
+          - LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_RoutingWorkStaysBelowBound
+          - LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_RoutingWorkStaysBelowBound
+          - LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_FinishesWithinGenerousWallClock
           - LayoutEngine_Layout_RoutingWork_GrowsSubQuadraticallyWithEdgeCount
           - LayoutEngine_Layout_FortyCrossContainerEdges_RepeatedRunsAreIdentical
           - LayoutEngine_Layout_FiveCrossContainerEdges_MatchesGoldenGeometry

@@ -379,7 +379,9 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         // Each scope that routes connectors spends its own work budget, shared by every pass over the scope
         // (the tight, loose and reference layouts and the ordering proposals) so the passes made last are
         // the first to be reduced, and a heavy scope can neither starve nor be starved by another.
-        var budget = new RoutingWorkBudget(effective.Get(RoutingWorkLimitsOption) ?? DefaultRoutingWorkLimits);
+        var budget = new RoutingWorkBudget(
+            effective.Get(RoutingWorkLimitsOption) ?? DefaultRoutingWorkLimits,
+            effective.Get(CancellationOption));
 
         // A scope inside a scope too large for the full routing effort is drawn in that same oversize
         // diagram, so it takes the reduced effort over from it (the enclosing scope's budget is still in
@@ -455,10 +457,11 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         var enteredDeep = new HashSet<LayoutGraphNode>();
         var pass = LayoutScopePassOnce(graph, algo, effective, route, DirectLoose(null), violators, entered, enteredDeep);
 
-        // A scope too large for the full routing effort is routed with one pass: the containers a routed
-        // connector enters already kept their room (see LayoutScopePassOnce), so a second pass for the
-        // connectors that hugged a border would only repeat the most expensive routing of the scope.
-        if (violators.Count > 0 && effective.Get(RoutingBudget) is not { ForcedReduced: true })
+        // A scope too large for the full routing effort, or one whose first pass already ran its routing
+        // work down, is routed with one pass: the containers a routed connector enters already kept their
+        // room (see LayoutScopePassOnce), so a second pass for the connectors that hugged a border would
+        // only repeat the most expensive routing of the scope.
+        if (violators.Count > 0 && effective.Get(RoutingBudget) is not { Tier: not RoutingTier.Full })
         {
             var before = loose.Count;
             loose.UnionWith(entered);

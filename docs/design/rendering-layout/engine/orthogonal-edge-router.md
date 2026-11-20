@@ -142,7 +142,13 @@ the same terms in the same order:
   vertical in each sense, done) — indexing flat arrays for cost, predecessor and expanded flag; only the
   rare state that carries a pending short run (a minimum interior segment) uses a dictionary. The arrays
   and the memo are thread-local scratch validated by a per-search stamp, so starting a search costs
-  nothing proportional to the grid and nothing is allocated per search. A queue entry whose state was
+  nothing proportional to the grid and nothing is allocated per search. The scratch of a thread is kept for
+  reuse only while its tables take at most 32 MB (`RetainedByteLimit`, computed from the real array lengths at
+  about 210 bytes per grid node, so about 160 000 nodes; the OMG Annex A whole-model view's largest grid is
+  64 152 nodes, about 13 MB, so every benchmark and gallery search reuses it); a larger grid, or a scratch whose state
+  tables grew past the limit during a search, is released when the search ends, so a thread never holds hundreds of
+  megabytes for the life of the process. The tables hold no result (every entry a search reads is one it wrote under
+  its own stamp), so dropping them changes no route. A queue entry whose state was
   already expanded at its best cost is skipped, since expanding it again could only find every neighbor
   already at the cost it would offer.
 - *Connectivity sweep.* A search whose goal is walled in used to expand every state reachable from its
@@ -156,7 +162,14 @@ the grid grows with every obstacle and every routed line, and so does the cost o
 searches a scope runs. `RoutingWorkBudget` is therefore an optional parameter of `RouteWithStatus` and
 `RoutePorts`. It counts work in units that depend only on the input — one per four grid nodes built, one per
 state expanded, one per node the connectivity sweep visits — never time, so every run on every platform
-stops at the same state. A budget with room to spare changes no route. When the budget reaches its hard
+stops at the same state. A budget with room to spare changes no route. The work is charged to the budget while the
+search runs, in chunks of 64 expansions (`ChargeChunkSize`), so the account is current whenever another part of the
+layout reads it and the hard limit is checked at every chunk; the grid build is charged no more than the work the
+budget has left, and a search that starts with no work left returns at once. The work spent therefore exceeds the
+hard limit by less than one chunk, `63 * (1 + 4)` units (an expansion plus its four connectivity-sweep steps). The
+budget may also carry a `CancellationToken`, checked at the start of a search and at every chunk, that stops the
+routing with an `OperationCanceledException`; it never changes a tier or a route (see the *HierarchicalLayoutAlgorithm*
+design). When the budget reaches its hard
 limit, a search stops at once and the connector takes the obstacle-aware elbow fallback with
 `Crossed = true`; every later connector of the scope takes it without a search; the budget counts such
 routes. When the budget is at the reduced tier and no hints are given (the plain route), the route is first
@@ -254,3 +267,4 @@ route individual connectors; the `Crossed` flag feeds their layout-warning handl
 | Rendering-Layout-OrthogonalEdgeRouter-BoundedWork | Work budget (`RoutingWorkBudget`) |
 | Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortWindow | Work budget: windowed plain route at the reduced tier |
 | Rendering-Layout-OrthogonalEdgeRouter-ReducedSoftLanes | Work budget: reduced-tier soft lanes (`SoftLanes`) |
+| Rendering-Layout-OrthogonalEdgeRouter-BoundedMemory | Search scratch retention (`RetainedByteLimit`) |

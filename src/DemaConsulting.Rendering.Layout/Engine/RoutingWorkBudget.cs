@@ -60,6 +60,9 @@ internal sealed class RoutingWorkBudget
     /// <summary>The work limits this budget enforces.</summary>
     private readonly RoutingWorkLimits _limits;
 
+    /// <summary>The token that stops the routing the budget serves, or <see cref="CancellationToken.None"/>.</summary>
+    private readonly CancellationToken _cancellation;
+
     /// <summary>Whether the scope's size alone put it in the <see cref="RoutingTier.Reduced"/> tier.</summary>
     private bool _forcedReduced;
 
@@ -70,11 +73,21 @@ internal sealed class RoutingWorkBudget
     /// Initializes a new instance of the <see cref="RoutingWorkBudget"/> class with no work spent.
     /// </summary>
     /// <param name="limits">The soft and hard work limits.</param>
-    public RoutingWorkBudget(RoutingWorkLimits limits)
+    /// <param name="cancellation">
+    /// An optional token that stops the routing the budget serves (see <see cref="ThrowIfCancellationRequested"/>).
+    /// It never influences a tier, so the routes drawn do not depend on it.
+    /// </param>
+    public RoutingWorkBudget(RoutingWorkLimits limits, CancellationToken cancellation = default)
     {
         ArgumentNullException.ThrowIfNull(limits);
         _limits = limits;
+        _cancellation = cancellation;
     }
+
+    /// <summary>
+    /// Throws an <see cref="OperationCanceledException"/> when the token the budget was created with is canceled.
+    /// </summary>
+    public void ThrowIfCancellationRequested() => _cancellation.ThrowIfCancellationRequested();
 
     /// <summary>Gets the work units spent so far.</summary>
     public long Spent { get; private set; }

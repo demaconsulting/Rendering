@@ -16,10 +16,11 @@ namespace DemaConsulting.Rendering.Layout.Tests;
 ///     cost it once had in the number of connectors (measured: sub-quadratic, about 2.6 times the work per
 ///     doubling at 640 connectors). They lay out a synthetic package of folder containers joined by
 ///     cross-container connectors (the shape of the OMG Annex A "General" views), and a nested package
-///     whose own scope is oversize, and check that the layouts are produced within a generous wall-clock
-///     bound, that the routing work grows slowly (counted in work units, without a clock), that they are
-///     deterministic, and that the routing speed-ups did not change a single coordinate of the small scenes
-///     the speed-ups must leave byte-identical.
+///     whose own scope is oversize, and check that the routing work stays below bounds counted in work
+///     units (no clock: the count depends on the input only, so the tests hold on a loaded CI agent), that
+///     it grows slowly, that the layouts are deterministic, and that the routing speed-ups did not change a
+///     single coordinate of the small scenes the speed-ups must leave byte-identical. One smoke test reads
+///     a very generous wall-clock bound, cancels the routing when it passes, and does not run in parallel.
 /// </summary>
 public sealed class RoutingPerformanceTests
 {
@@ -30,33 +31,41 @@ public sealed class RoutingPerformanceTests
     private const int LeavesPerContainer = 5;
 
     /// <summary>
-    ///     The wall-clock bound of the 40-connector layout. The reference machine needs well under two
-    ///     seconds; the bound is generous so a slow CI agent does not fail it, yet it is a fraction of the
-    ///     minutes the unoptimized router needs.
+    ///     The most routing work, in budget units, the 40-connector layout may spend in any one scope. The
+    ///     reduced effort measures about 0.45 million; the full effort the scope would otherwise get needs
+    ///     about 561 million (1,240 times the bound), so a regression to it cannot slip under the bound.
     /// </summary>
-    private static readonly TimeSpan FortyEdgeBound = TimeSpan.FromSeconds(10);
+    private const long FortyEdgeWorkBound = 1_000_000L;
 
     /// <summary>
-    ///     The wall-clock bound of the 320-connector layout (the reference machine needs about a second).
+    ///     The most routing work the 320-connector layout may spend in any one scope (measured: about 9.6
+    ///     million; the unreduced router needs hundreds of millions of units for far fewer connectors).
     /// </summary>
-    private static readonly TimeSpan ThreeHundredTwentyEdgeBound = TimeSpan.FromSeconds(10);
+    private const long ThreeHundredTwentyEdgeWorkBound = 20_000_000L;
 
     /// <summary>
-    ///     The wall-clock bound of the 640-connector layout (the reference machine needs about three seconds).
+    ///     The most routing work the 640-connector layout may spend in any one scope (measured: about 24.6 million).
     /// </summary>
-    private static readonly TimeSpan SixHundredFortyEdgeBound = TimeSpan.FromSeconds(15);
+    private const long SixHundredFortyEdgeWorkBound = 50_000_000L;
+
+    /// <summary>
+    ///     The wall-clock bound of the one smoke test that reads a clock. It is about twenty times the longest
+    ///     time seen on a loaded four-core CI shape (15 seconds: four runtimes at once, with coverage), yet still
+    ///     far below the hours the unreduced router would need, so it only ever fails on a runaway search.
+    /// </summary>
+    private static readonly TimeSpan SmokeTestWallClock = TimeSpan.FromSeconds(300);
 
     /// <summary>The number of sub-packages of the nested oversize package.</summary>
     private const int SubPackages = 4;
 
     /// <summary>The number of folders of each sub-package.</summary>
-    private const int FoldersPerSubPackage = 3;
+    private const int FoldersPerSubPackage = 2;
 
     /// <summary>The number of leaves of each folder of a sub-package.</summary>
-    private const int LeavesPerSubFolder = 4;
+    private const int LeavesPerSubFolder = 3;
 
     /// <summary>The number of connectors between the folders of one sub-package.</summary>
-    private const int SubPackageInnerEdges = 6;
+    private const int SubPackageInnerEdges = 3;
 
     /// <summary>The number of connector lines one sub-package draws on its own (its inner and its folders' spanning-tree ones).</summary>
     private const int SubPackageEdges = SubPackageInnerEdges + (FoldersPerSubPackage * (LeavesPerSubFolder - 1));
@@ -292,64 +301,150 @@ public sealed class RoutingPerformanceTests
     }
 
     /// <summary>
-    ///     Proves forty cross-container connectors lay out within the generous wall-clock bound, where the
-    ///     unoptimized router needs minutes (Rendering#75). The layout runs on a pool thread so a runaway
-    ///     routing search fails the test instead of hanging the run.
+    ///     Lays out the synthetic package of <paramref name="crossEdges"/> connectors and asserts, without
+    ///     reading a clock, that no scope spent more than <paramref name="workBound"/> routing work units,
+    ///     that the oversize scope was held to that work by the reduced effort (and not by luck), that it was
+    ///     routed in one pass, and that every connector was drawn.
     /// </summary>
-    [Fact]
-    public async Task LayoutEngine_Layout_FortyCrossContainerEdges_CompletesWithinBound()
+    /// <param name="crossEdges">The number of cross-container connectors.</param>
+    /// <param name="workBound">The most work, in routing budget units, any one scope may spend.</param>
+    private static void AssertRoutingWorkStaysBelow(int crossEdges, long workBound)
     {
-        // Arrange: the 40-connector synthetic package
-        var graph = BuildSyntheticPackage(40);
+        // Arrange
+        var context = new HierarchicalLayoutAlgorithm.OrderingRefinementContext();
+        var graph = BuildSyntheticPackage(crossEdges);
+        graph.Set<HierarchicalLayoutAlgorithm.OrderingRefinementContext?>(HierarchicalLayoutAlgorithm.RefinementContext, context);
 
-        // Act: lay it out on a pool thread under a wall-clock bound
-        var layout = Task.Run(() => LayoutEngine.Layout(graph));
-        var winner = await Task.WhenAny(layout, Task.Delay(FortyEdgeBound, TestContext.Current.CancellationToken));
+        // Act
+        var tree = LayoutEngine.Layout(graph);
 
-        // Assert: it finished within the bound and every connector was drawn
-        Assert.True(ReferenceEquals(winner, layout), "Laying out 40 cross-container connectors exceeded the wall-clock bound.");
-        var tree = await layout;
-        Assert.Equal(40 + (Containers * (LeavesPerContainer - 1)), CountLines(tree.Nodes));
+        // Assert: the work is bounded, because the scope took the reduced effort, in one pass
+        Assert.True(
+            context.MaxScopeWork < workBound,
+            $"Laying out {crossEdges} cross-container connectors spent {context.MaxScopeWork} routing work units (bound {workBound}).");
+        Assert.Contains(tree.Warnings, warning => warning.Contains("without the extra quality searches", StringComparison.Ordinal));
+        Assert.Equal(1, context.MaxRoutedPassesPerScope);
+
+        // Every connector was drawn
+        Assert.Equal(crossEdges + (Containers * (LeavesPerContainer - 1)), CountLines(tree.Nodes));
     }
 
     /// <summary>
-    ///     Proves three hundred and twenty cross-container connectors lay out within a generous wall-clock
-    ///     bound (the reference machine needs about a second; before the soft-lane limits of the reduced
-    ///     effort the layout took thirteen seconds and grew with the cube of the connector count).
+    ///     Proves forty cross-container connectors lay out within a bound of routing work, where the full
+    ///     effort needs 1,240 times that work (minutes; Rendering#75). The work is a deterministic count that
+    ///     depends on the input only, so the test does not depend on the speed of the machine it runs on.
     /// </summary>
     [Fact]
-    public async Task LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_CompletesWithinBound()
-    {
-        // Arrange: the 320-connector synthetic package
-        var graph = BuildSyntheticPackage(320);
-
-        // Act: lay it out on a pool thread under a wall-clock bound
-        var layout = Task.Run(() => LayoutEngine.Layout(graph));
-        var winner = await Task.WhenAny(layout, Task.Delay(ThreeHundredTwentyEdgeBound, TestContext.Current.CancellationToken));
-
-        // Assert: it finished within the bound and every connector was drawn
-        Assert.True(ReferenceEquals(winner, layout), "Laying out 320 cross-container connectors exceeded the wall-clock bound.");
-        var tree = await layout;
-        Assert.Equal(320 + (Containers * (LeavesPerContainer - 1)), CountLines(tree.Nodes));
-    }
+    public void LayoutEngine_Layout_FortyCrossContainerEdges_RoutingWorkStaysBelowBound() =>
+        AssertRoutingWorkStaysBelow(40, FortyEdgeWorkBound);
 
     /// <summary>
-    ///     Proves six hundred and forty cross-container connectors lay out within a generous wall-clock bound.
+    ///     Proves three hundred and twenty cross-container connectors lay out within a bound of routing work
+    ///     (before the soft-lane limits of the reduced effort the work grew with the cube of the connector count).
     /// </summary>
     [Fact]
-    public async Task LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_CompletesWithinBound()
+    public void LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_RoutingWorkStaysBelowBound() =>
+        AssertRoutingWorkStaysBelow(320, ThreeHundredTwentyEdgeWorkBound);
+
+    /// <summary>
+    ///     Proves six hundred and forty cross-container connectors lay out within a bound of routing work.
+    /// </summary>
+    [Fact]
+    public void LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_RoutingWorkStaysBelowBound() =>
+        AssertRoutingWorkStaysBelow(640, SixHundredFortyEdgeWorkBound);
+
+    /// <summary>
+    ///     The one test that reads a clock: six hundred and forty cross-container connectors lay out within a
+    ///     very generous wall-clock bound. It does not run in parallel with other tests (so it measures the
+    ///     layout, not a contended machine), runs the layout on the test thread, and cancels the routing
+    ///     searches themselves when the bound passes, so a runaway search fails the test instead of hanging
+    ///     the run or leaving work behind.
+    /// </summary>
+    [Fact(DisableParallelization = true)]
+    public void LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_FinishesWithinGenerousWallClock()
     {
-        // Arrange: the 640-connector synthetic package
+        // Arrange: the 640-connector synthetic package, with the routing cancelable after the bound
+        using var source = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        source.CancelAfter(SmokeTestWallClock);
         var graph = BuildSyntheticPackage(640);
+        graph.Set(HierarchicalLayoutAlgorithm.CancellationOption, source.Token);
 
-        // Act: lay it out on a pool thread under a wall-clock bound
-        var layout = Task.Run(() => LayoutEngine.Layout(graph));
-        var winner = await Task.WhenAny(layout, Task.Delay(SixHundredFortyEdgeBound, TestContext.Current.CancellationToken));
+        // Act
+        LayoutTree tree;
+        try
+        {
+            tree = LayoutEngine.Layout(graph);
+        }
+        catch (OperationCanceledException) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
+        {
+            Assert.Fail($"Laying out 640 cross-container connectors exceeded the {SmokeTestWallClock.TotalSeconds:F0} second wall-clock bound.");
+            return;
+        }
 
-        // Assert: it finished within the bound and every connector was drawn
-        Assert.True(ReferenceEquals(winner, layout), "Laying out 640 cross-container connectors exceeded the wall-clock bound.");
-        var tree = await layout;
+        // Assert: every connector was drawn
         Assert.Equal(640 + (Containers * (LeavesPerContainer - 1)), CountLines(tree.Nodes));
+    }
+
+    /// <summary>
+    ///     Proves a layout whose token is already canceled stops in the routing instead of finishing.
+    /// </summary>
+    [Fact]
+    public void LayoutEngine_Layout_CanceledToken_ThrowsOperationCanceled()
+    {
+        // Arrange: a package whose routing searches see a canceled token
+        using var source = new CancellationTokenSource();
+        source.Cancel();
+        var graph = BuildSyntheticPackage(10);
+        graph.Set(HierarchicalLayoutAlgorithm.CancellationOption, source.Token);
+
+        // Act / Assert
+        Assert.ThrowsAny<OperationCanceledException>(() => LayoutEngine.Layout(graph));
+    }
+
+    /// <summary>
+    ///     Proves the token changes no decision: a layout under a token that is never canceled equals the
+    ///     layout without one.
+    /// </summary>
+    [Fact]
+    public void LayoutEngine_Layout_UncanceledToken_EqualsLayoutWithoutToken()
+    {
+        // Arrange
+        using var source = new CancellationTokenSource();
+        var withToken = BuildSyntheticPackage(10);
+        withToken.Set(HierarchicalLayoutAlgorithm.CancellationOption, source.Token);
+
+        // Act
+        var first = LayoutEngine.Layout(withToken);
+        var second = LayoutEngine.Layout(BuildSyntheticPackage(10));
+
+        // Assert
+        Assert.Equal(Fingerprint(second), Fingerprint(first));
+        Assert.Equal("0B2A5365156A", Fingerprint(first));
+    }
+
+    /// <summary>
+    ///     Proves a scope whose first routed pass already crossed the soft work limit does not run the second
+    ///     routed pass for the connectors that hugged a border: that pass is the most expensive routing of
+    ///     the scope and belongs to the full effort only.
+    /// </summary>
+    [Fact]
+    public void LayoutEngine_Layout_SoftLimitReachedInFirstPass_DoesNotRunSecondRoutedPass()
+    {
+        // Arrange: ten connectors with a soft limit the first pass crosses and a hard limit it does not
+        var context = new HierarchicalLayoutAlgorithm.OrderingRefinementContext();
+        var limits = new RoutingWorkLimits(Soft: 20_000L, Hard: 40_000_000L);
+        var graph = BuildSyntheticPackage(10, limits);
+        graph.Set<HierarchicalLayoutAlgorithm.OrderingRefinementContext?>(HierarchicalLayoutAlgorithm.RefinementContext, context);
+
+        // Act
+        var first = LayoutEngine.Layout(graph);
+        var second = LayoutEngine.Layout(BuildSyntheticPackage(10, limits));
+
+        // Assert: one routed pass, every connector drawn orthogonally, identical on every run
+        Assert.Equal(1, context.MaxRoutedPassesPerScope);
+        Assert.Equal(10 + (Containers * (LeavesPerContainer - 1)), CountLines(first.Nodes));
+        AssertAllLinesOrthogonal(first.Nodes);
+        Assert.Equal(Fingerprint(first), Fingerprint(second));
     }
 
     /// <summary>
@@ -428,9 +523,9 @@ public sealed class RoutingPerformanceTests
     [Fact]
     public void LayoutEngine_Layout_SmallNestedPackage_InheritsNoReduction()
     {
-        // Arrange: the same hierarchy with only 6 connectors in the package scope
+        // Arrange: the same hierarchy with only 2 connectors in the package scope
         var context = new HierarchicalLayoutAlgorithm.OrderingRefinementContext();
-        var graph = BuildNestedOversizePackage(SubPackages, 6);
+        var graph = BuildNestedOversizePackage(2, 2);
         graph.Set<HierarchicalLayoutAlgorithm.OrderingRefinementContext?>(HierarchicalLayoutAlgorithm.RefinementContext, context);
 
         // Act

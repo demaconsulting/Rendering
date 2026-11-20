@@ -367,24 +367,44 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   layout-quality benchmark set) and `..._GeneralViewUp_IsNeverLimitedByDefaultWorkLimits` (every insertion order
   of the heaviest scene) confirm the default limits never touch a benchmark scene.
   `..._OversizeNestedPackage_RoutesEveryScopeOnce` lays out a package whose own scope holds 80 connectors over four
-  sub-packages of three folders (each sub-package scope small enough, weight below 600, to be routed in full on its
+  sub-packages of two folders (each sub-package scope small enough, weight below 600, to be routed in full on its
   own) with a refinement context the test can read, and confirms every connector is drawn orthogonally, no scope
   of the run was routed in more than one pass (the oversize package scope is laid out once, loose from the start),
   the four sub-packages took the reduction over from the package (`InheritedReducedScopes`), and exactly one
   warning appears and says it holds for the scopes inside; `..._NamesOnlyTheOversizeScope` confirms the warning
   names the package's scope and not a sub-package's; `..._OversizeNestedPackage_RepeatedRunsAreIdentical` confirms
-  geometry and warnings are the same on a second run; `..._SmallNestedPackage_InheritsNoReduction` confirms the same
-  hierarchy with six package connectors inherits nothing and warns of nothing. The `RoutingWorkBudgetTests`
+  geometry and warnings are the same on a second run; `..._SmallNestedPackage_InheritsNoReduction` confirms a
+  smaller hierarchy (two sub-packages, two package connectors; the earlier four sub-packages with six connectors
+  took 41 seconds alone and over six minutes under the load of a CI run, because each pass over a scope at the full
+  effort gets its own work budget) inherits nothing and warns of nothing.
+  `..._SoftLimitReachedInFirstPass_DoesNotRunSecondRoutedPass` lays out ten connectors under a soft limit of 20 000
+  units (crossed in the first routed pass of the package scope) and a hard limit of 40 million (never reached) and
+  confirms no scope was routed more than once (the second routed pass for the connectors that hugged a border is
+  made at the full effort only), every connector is orthogonal, and the geometry is the same on a second run.
+  `..._CanceledToken_ThrowsOperationCanceled` confirms a token that is already canceled stops the layout in the
+  routing, and `..._UncanceledToken_EqualsLayoutWithoutToken` that a token never canceled changes no coordinate
+  (the golden fingerprint of the ten-connector package). The `RoutingWorkBudgetTests`
   `..._InheritReduced_*` and `..._ForcedReduced_*` tests confirm an inherited reduction reduces the budget without
   being its own limit, that the scope's own work still reaches its own limits, and that only size (not spent
   work) forces the reduction that descendants inherit.
 - **Routing performance** (`Rendering-Layout-HierarchicalLayout-RoutingPerformance`):
-  `LayoutEngine_Layout_FortyCrossContainerEdges_CompletesWithinBound` lays out 40 cross-container connectors on a pool
-  thread and fails (instead of hanging the run) if the layout takes more than ten seconds; it fails on the version
-  before the fix, which needs minutes. `..._ThreeHundredTwentyCrossContainerEdges_CompletesWithinBound` and
-  `..._SixHundredFortyCrossContainerEdges_CompletesWithinBound` do the same for 320 connectors (bound ten seconds, about
-  one second measured; thirteen seconds before the soft-lane limits) and 640 connectors (bound fifteen seconds, about
-  2.6 seconds measured). `..._RoutingWork_GrowsSubQuadraticallyWithEdgeCount` reads no clock: it lays out 160, 320 and
+  `LayoutEngine_Layout_FortyCrossContainerEdges_RoutingWorkStaysBelowBound` lays out 40 cross-container connectors and
+  reads no clock: it confirms the most routing work any scope spent (the budget's deterministic count of grid nodes
+  built and search states expanded) is below one million units (measured 453 000), that the oversize scope was reduced
+  (the warning that the extra quality searches were left out is present, so the bound holds because of the reduced
+  effort and not by luck), that it was routed in one pass, and that every connector is drawn; the full effort needs
+  about 561 million units for the same scene (1 240 times the bound; minutes), so the test fails on the version before
+  the fix. `..._ThreeHundredTwentyCrossContainerEdges_RoutingWorkStaysBelowBound` and
+  `..._SixHundredFortyCrossContainerEdges_RoutingWorkStaysBelowBound` do the same for 320 connectors (bound twenty
+  million, measured 9.6 million) and 640 connectors (bound fifty million, measured 24.6 million). Wall-clock bounds of
+  ten and fifteen seconds failed on all three CI platforms (the four runtimes of the test project run at once on four
+  cores with coverage, a slow-down of more than ten times over the one second a development machine needs), so they were
+  replaced by these counts, which do not depend on the machine.
+  `..._SixHundredFortyCrossContainerEdges_FinishesWithinGenerousWallClock` is the one test that reads a clock: it does
+  not run in parallel with other tests, lays out 640 connectors on the test thread under a cancellation token that is
+  canceled after 300 seconds (far above the longest time seen under the CI load and far below the hours of the
+  unreduced router), and fails with a message if the routing was canceled by that bound.
+  `..._RoutingWork_GrowsSubQuadraticallyWithEdgeCount` reads no clock: it lays out 160, 320 and
   640 connectors with a refinement context and confirms the largest routing work any scope spent (the budget's count of
   grid nodes and search states) grows by less than 3.5 times per doubling (measured about 3.0 and 2.6; a quadratic
   router would multiply it by four). `..._FortyCrossContainerEdges_RepeatedRunsAreIdentical` lays the package out twice
@@ -532,13 +552,17 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   LayoutEngine_Layout_OversizeNestedPackage_RepeatedRunsAreIdentical,
   LayoutEngine_Layout_OversizeNestedPackage_NamesOnlyTheOversizeScope,
   LayoutEngine_Layout_SmallNestedPackage_InheritsNoReduction,
+  LayoutEngine_Layout_SoftLimitReachedInFirstPass_DoesNotRunSecondRoutedPass,
+  LayoutEngine_Layout_CanceledToken_ThrowsOperationCanceled,
+  LayoutEngine_Layout_UncanceledToken_EqualsLayoutWithoutToken,
   RoutingWorkBudget_InheritReduced_ReducesWithoutAnOwnLimit,
   RoutingWorkBudget_InheritReduced_OwnWorkStillReachesLimits,
   RoutingWorkBudget_ForcedReduced_OnlyBySizeOrInheritance
 - **`Rendering-Layout-HierarchicalLayout-RoutingPerformance`**:
-  LayoutEngine_Layout_FortyCrossContainerEdges_CompletesWithinBound,
-  LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_CompletesWithinBound,
-  LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_CompletesWithinBound,
+  LayoutEngine_Layout_FortyCrossContainerEdges_RoutingWorkStaysBelowBound,
+  LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_RoutingWorkStaysBelowBound,
+  LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_RoutingWorkStaysBelowBound,
+  LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_FinishesWithinGenerousWallClock,
   LayoutEngine_Layout_RoutingWork_GrowsSubQuadraticallyWithEdgeCount,
   LayoutEngine_Layout_FortyCrossContainerEdges_RepeatedRunsAreIdentical,
   LayoutEngine_Layout_FiveCrossContainerEdges_MatchesGoldenGeometry,

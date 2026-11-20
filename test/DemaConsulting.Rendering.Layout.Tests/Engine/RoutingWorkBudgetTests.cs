@@ -162,4 +162,43 @@ public sealed class RoutingWorkBudgetTests
         // Act / Assert
         Assert.Throws<ArgumentNullException>(() => new RoutingWorkBudget(null!));
     }
+
+    /// <summary>
+    ///     A budget without a token never throws: nothing can cancel the routing it serves.
+    /// </summary>
+    [Fact]
+    public void RoutingWorkBudget_DefaultToken_NeverThrows()
+    {
+        // Arrange
+        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: 100, Hard: 200));
+
+        // Act / Assert
+        var thrown = Record.Exception(() =>
+        {
+            budget.ThrowIfCancellationRequested();
+            budget.Charge(500);
+            budget.ThrowIfCancellationRequested();
+        });
+        Assert.Null(thrown);
+        Assert.Equal(RoutingTier.Minimal, budget.Tier);
+    }
+
+    /// <summary>
+    ///     A budget whose token is canceled throws, and the token does not change the tier: only the work does.
+    /// </summary>
+    [Fact]
+    public void RoutingWorkBudget_CanceledToken_ThrowsWithoutChangingTier()
+    {
+        // Arrange
+        using var source = new CancellationTokenSource();
+        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: 100, Hard: 200), source.Token);
+        budget.ThrowIfCancellationRequested();
+
+        // Act
+        source.Cancel();
+
+        // Assert
+        Assert.Throws<OperationCanceledException>(budget.ThrowIfCancellationRequested);
+        Assert.Equal(RoutingTier.Full, budget.Tier);
+    }
 }

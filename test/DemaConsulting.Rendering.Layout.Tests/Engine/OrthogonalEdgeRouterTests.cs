@@ -91,6 +91,162 @@ public sealed class OrthogonalEdgeRouterTests
     }
 
     /// <summary>
+    ///     However small the hard limit, the work spent overshoots it by less than one charge chunk (64
+    ///     expansions, each with four connectivity steps) plus nothing for the grid build, which is clamped
+    ///     to the work that is left, and the fallback is the same on every run.
+    /// </summary>
+    /// <param name="hard">The hard work limit.</param>
+    [Theory]
+    [InlineData(0L)]
+    [InlineData(1L)]
+    [InlineData(10L)]
+    [InlineData(100L)]
+    [InlineData(1_000L)]
+    [InlineData(5_000L)]
+    [InlineData(10_000L)]
+    public void RouteWithStatus_HardLimitMidSearch_OvershootsByLessThanOneChunk(long hard)
+    {
+        // Arrange: a field of 1,600 pillars crossed corner to corner, whose search spends
+        // about 15,000 units unbudgeted, so every limit below cuts it off
+        var source = new Point2D(10, 10);
+        var target = new Point2D(790, 790);
+        var obstacles = Enumerable.Range(0, 1600).Select(i => new Rect(40 + ((i % 40) * 20), 40 + ((i / 40) * 20), 10, 10)).ToArray();
+
+        IReadOnlyList<Point2D> Run(out RoutingWorkBudget spent)
+        {
+            spent = new RoutingWorkBudget(new RoutingWorkLimits(Soft: hard / 2, Hard: hard));
+            return OrthogonalEdgeRouter.RouteWithStatus(source, target, obstacles, 4, budget: spent).Waypoints;
+        }
+
+        // Act
+        var first = Run(out var firstBudget);
+        var second = Run(out var secondBudget);
+
+        // Assert: stopped within one chunk of the limit (64 * (1 + 4) = 320 units), identically
+        Assert.True(firstBudget.Spent <= hard + 320, $"Spent {firstBudget.Spent} units against a hard limit of {hard}.");
+        Assert.Equal(RoutingTier.Minimal, firstBudget.Tier);
+        Assert.Equal(first, second);
+        Assert.Equal(firstBudget.Spent, secondBudget.Spent);
+        AssertAllSegmentsOrthogonal(first);
+    }
+
+    /// <summary>
+    ///     A budget whose token is canceled stops the search it serves with an <see cref="OperationCanceledException"/>.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_CanceledBudget_StopsTheSearch()
+    {
+        // Arrange
+        using var source = new CancellationTokenSource();
+        source.Cancel();
+        var budget = new RoutingWorkBudget(new RoutingWorkLimits(Soft: long.MaxValue / 4, Hard: long.MaxValue / 2), source.Token);
+
+        // Act / Assert
+        Assert.Throws<OperationCanceledException>(() =>
+            OrthogonalEdgeRouter.RouteWithStatus(new Point2D(0, 50), new Point2D(300, 50), [new Rect(100, 0, 40, 100)], 10, budget: budget));
+    }
+
+    /// <summary>
+    ///     A grid whose tables take more than the retention limit (32 MB) is released after its search, not
+    ///     kept alive on the thread (a 450 by 450 node grid kept for the life of a thread took over 40 MB).
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_LargeGrid_ScratchIsNotRetained()
+    {
+        OnFreshThread(() =>
+        {
+            // Act
+            RouteAcrossGrid(LargeGridObstacles);
+
+            // Assert
+            Assert.Equal(0L, OrthogonalEdgeRouter.RetainedScratchBytes);
+        });
+    }
+
+    /// <summary>
+    ///     A small grid's tables are kept for reuse, within the retention limit.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_SmallGrid_ScratchIsRetainedWithinLimit()
+    {
+        OnFreshThread(() =>
+        {
+            // Act
+            RouteAcrossGrid(SmallGridObstacles);
+
+            // Assert
+            var retained = OrthogonalEdgeRouter.RetainedScratchBytes;
+            Assert.True(retained > 0, "No scratch was kept for reuse.");
+            Assert.True(retained <= RetainedByteLimit, $"{retained} bytes are kept.");
+        });
+    }
+
+    /// <summary>
+    ///     A search after a large one finds exactly the route it finds on a fresh thread: dropping the large
+    ///     scratch leaves nothing behind that changes a result.
+    /// </summary>
+    [Fact]
+    public void RouteWithStatus_SmallGridAfterLargeGrid_RouteIsUnchanged()
+    {
+        // Arrange: the route of the small grid on a thread that has searched nothing else
+        IReadOnlyList<Point2D>? fresh = null;
+        OnFreshThread(() => fresh = RouteAcrossGrid(SmallGridObstacles));
+
+        OnFreshThread(() =>
+        {
+            // Act: the same search after a large one
+            RouteAcrossGrid(LargeGridObstacles);
+            var after = RouteAcrossGrid(SmallGridObstacles);
+
+            // Assert
+            Assert.Equal(fresh, after);
+        });
+    }
+
+    /// <summary>The most scratch, in bytes, the router keeps per thread (32 MB).</summary>
+    private const long RetainedByteLimit = 32L * 1024 * 1024;
+
+    /// <summary>Obstacles whose grid lines make a grid of several hundred thousand nodes (over 100 MB of tables).</summary>
+    private static readonly Rect[] LargeGridObstacles =
+        [.. Enumerable.Range(0, 500).Select(i => new Rect(100 + (i * 30), 100 + (i * 30), 10, 10))];
+
+    /// <summary>A handful of obstacles whose grid is small.</summary>
+    private static readonly Rect[] SmallGridObstacles = [new Rect(100, 0, 40, 100), new Rect(180, 20, 40, 120)];
+
+    /// <summary>Routes a connector from one corner of the field of <paramref name="obstacles"/> to a point near it.</summary>
+    /// <param name="obstacles">The obstacles.</param>
+    /// <returns>The waypoints.</returns>
+    private static IReadOnlyList<Point2D> RouteAcrossGrid(Rect[] obstacles) =>
+        OrthogonalEdgeRouter.RouteWithStatus(new Point2D(0, 50), new Point2D(300, 50), obstacles, 10).Waypoints;
+
+    /// <summary>
+    ///     Runs <paramref name="body"/> on a thread of its own, so the thread-static scratch the router keeps
+    ///     is not shared with the other tests, and rethrows what it threw.
+    /// </summary>
+    /// <param name="body">The test body.</param>
+    private static void OnFreshThread(Action body)
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                body();
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+        });
+        thread.Start();
+        thread.Join();
+        if (failure is not null)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+    }
+
+    /// <summary>
     ///     A budget with room to spare leaves the route exactly as it is without a budget, and counts the
     ///     work it took.
     /// </summary>

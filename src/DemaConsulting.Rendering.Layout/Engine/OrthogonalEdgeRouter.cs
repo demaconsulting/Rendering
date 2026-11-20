@@ -233,6 +233,12 @@ internal static class OrthogonalEdgeRouter
     }
 
     /// <summary>
+    /// Gets the approximate bytes of search scratch the calling thread keeps for reuse (0 when it keeps
+    /// none). A hook for the tests that bound the retained memory.
+    /// </summary>
+    internal static long RetainedScratchBytes => SearchScratch.RetainedBytes;
+
+    /// <summary>
     /// Computes an orthogonal route from <paramref name="source"/> to <paramref name="target"/>
     /// avoiding the interiors of the given obstacles.
     /// </summary>
@@ -1219,8 +1225,8 @@ internal static class OrthogonalEdgeRouter
         /// <summary>The stamp after which the scratch is replaced, keeping the packed marks within an int.</summary>
         private const int StampLimit = 1 << 27;
 
-        /// <summary>The largest grid, in nodes, whose scratch is kept for reuse by later searches.</summary>
-        private const int RetainedNodeLimit = 1 << 21;
+        /// <summary>The most memory, in bytes, a thread keeps its scratch for reuse by later searches.</summary>
+        private const long RetainedByteLimit = 32L * 1024 * 1024;
 
         /// <summary>Extra state slots reserved for run-pending states beyond the dense ones.</summary>
         private const int InitialOverflow = 1024;
@@ -1298,6 +1304,22 @@ internal static class OrthogonalEdgeRouter
         /// <summary>Gets the number of nodes the node tables hold.</summary>
         private int NodeCapacity { get; set; }
 
+        /// <summary>Gets the bytes the calling thread's retained scratch holds, or 0 when it keeps none.</summary>
+        public static long RetainedBytes => s_retained?.ApproximateBytes ?? 0L;
+
+        /// <summary>
+        /// Gets the approximate size in bytes of the scratch's tables, from their real lengths (the state
+        /// and overflow tables may have grown beyond what the grid first needed).
+        /// </summary>
+        private long ApproximateBytes =>
+            ((long)(EdgeMark.Length + ExistingCrossings.Length) * sizeof(int))
+            + ((long)(EdgeStep.Length + EdgeSoft.Length + EdgeExtra.Length + SoftOverlap.Length) * sizeof(double))
+            + ObstacleBlocked.Length
+            + ((long)Heuristic.Length * sizeof(double))
+            + ((long)(HeuristicMark.Length + GoalAt.Length + GoalMark.Length + SeenMark.Length + StartMark.Length + Queue.Length) * sizeof(int))
+            + ((long)Best.Length * (sizeof(double) + (2 * sizeof(int))))
+            + ((long)(OverflowNodeSlot.Length + OverflowRun.Length) * sizeof(int));
+
         /// <summary>
         /// Returns the calling thread's scratch prepared for a new search over a grid of
         /// <paramref name="nodes"/> nodes.
@@ -1307,7 +1329,9 @@ internal static class OrthogonalEdgeRouter
         public static SearchScratch Begin(int nodes)
         {
             var scratch = s_retained;
-            if (scratch is null || scratch.Stamp >= StampLimit)
+
+            // A scratch that grew past the byte limit during its last search, or that has run out of stamps, is replaced
+            if (scratch is null || scratch.Stamp >= StampLimit || scratch.ApproximateBytes > RetainedByteLimit)
             {
                 scratch = new SearchScratch();
             }
@@ -1325,8 +1349,22 @@ internal static class OrthogonalEdgeRouter
                 scratch.OverflowCount = 0;
             }
 
-            s_retained = nodes <= RetainedNodeLimit ? scratch : null;
+            // A grid too large to keep (by the memory it takes, not its node count) is released after its search
+            s_retained = scratch.ApproximateBytes <= RetainedByteLimit ? scratch : null;
             return scratch;
+        }
+
+        /// <summary>
+        /// Drops the calling thread's retained scratch when <paramref name="scratch"/> is it and its tables
+        /// grew past the byte limit during the search that just ended.
+        /// </summary>
+        /// <param name="scratch">The scratch the search used.</param>
+        public static void ReleaseIfOversize(SearchScratch scratch)
+        {
+            if (ReferenceEquals(s_retained, scratch) && scratch.ApproximateBytes > RetainedByteLimit)
+            {
+                s_retained = null;
+            }
         }
 
         /// <summary>Makes room for a state id, doubling the state tables.</summary>
@@ -1458,6 +1496,13 @@ internal static class OrthogonalEdgeRouter
         /// <summary>The grid-build work (clearing and rasterizing) is charged to the budget as one unit per this many nodes.</summary>
         private const int GridBuildWorkDivisor = 4;
 
+        /// <summary>
+        /// The number of expansions (a power of two) after which a running search charges its work to the
+        /// budget, so the work spent never exceeds the hard limit by more than
+        /// <c>(ChargeChunkSize - 1) * (1 + ProbeStepsPerExpansion)</c> units plus the clamped grid build.
+        /// </summary>
+        private const int ChargeChunkSize = 64;
+
         /// <summary>The x step of each of the four neighbors, in the fixed order right, left, down, up.</summary>
         private static readonly int[] StepI = [1, -1, 0, 0];
 
@@ -1539,6 +1584,9 @@ internal static class OrthogonalEdgeRouter
         /// <summary>The nodes the connectivity sweep has visited, charged to the budget.</summary>
         private long _probeSteps;
 
+        /// <summary>The expansions and connectivity sweep steps already charged to the budget.</summary>
+        private long _charged;
+
         /// <summary>The work budget the search is charged to, or <see langword="null"/> for none.</summary>
         private readonly RoutingWorkBudget? _budget;
 
@@ -1601,10 +1649,22 @@ internal static class OrthogonalEdgeRouter
                 }
             }
 
-            RasterizeObstacles();
-            _budget?.Charge(_nodes / GridBuildWorkDivisor);
+            // The grid build is charged up to the hard limit and no further, and a budget that has no work
+            // left needs no search at all: the connector falls back to the elbow
+            if (_budget is not null)
+            {
+                _budget.ThrowIfCancellationRequested();
+                _budget.Charge(Math.Min(_nodes / GridBuildWorkDivisor, _budget.RemainingHard));
+                if (_budget.Tier == RoutingTier.Minimal)
+                {
+                    return (null, 0.0);
+                }
+            }
 
-            // The expansions (and connectivity sweep steps) are charged to the budget however the search ends
+            RasterizeObstacles();
+
+            // The expansions (and connectivity sweep steps) are charged to the budget in chunks while the
+            // search runs, and the rest however the search ends
             long expansions = 0;
             try
             {
@@ -1612,8 +1672,25 @@ internal static class OrthogonalEdgeRouter
             }
             finally
             {
-                _budget?.Charge(expansions + _probeSteps);
+                _budget?.Charge(expansions + _probeSteps - _charged);
+                SearchScratch.ReleaseIfOversize(_scratch);
             }
+        }
+
+        /// <summary>
+        /// Charges the work done since the last charge to the budget, and reports whether the search may
+        /// go on.
+        /// </summary>
+        /// <param name="expansions">The number of states expanded so far.</param>
+        /// <returns><see langword="true"/> when the budget's hard limit is reached and the search must stop.</returns>
+        private bool ChargeProgress(long expansions)
+        {
+            var budget = _budget!;
+            var total = expansions + _probeSteps;
+            budget.Charge(total - _charged);
+            _charged = total;
+            budget.ThrowIfCancellationRequested();
+            return budget.Tier == RoutingTier.Minimal;
         }
 
         /// <summary>The A* loop proper over the grid.</summary>
@@ -1670,8 +1747,9 @@ internal static class OrthogonalEdgeRouter
                     }
                 }
 
-                // Stop the moment the budget's hard limit is reached: the connector falls back to the elbow
-                if ((expansions & 255) == 0 && _budget is not null && _budget.RemainingHard <= expansions + _probeSteps)
+                // Charge the work in chunks and stop the moment the budget's hard limit is reached: the
+                // connector falls back to the elbow, and the work spent overshoots the limit by one chunk at most
+                if ((expansions & (ChargeChunkSize - 1)) == 0 && _budget is not null && ChargeProgress(expansions))
                 {
                     return (null, 0.0);
                 }

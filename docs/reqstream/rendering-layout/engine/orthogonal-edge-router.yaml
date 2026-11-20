@@ -223,22 +223,51 @@ sections:
         title: >-
           Given a routing work budget, OrthogonalEdgeRouter shall count the work of every search (grid nodes
           built, search states expanded, connectivity-sweep nodes visited) in units that depend only on the
-          input, shall stop a search the moment the budget's hard limit is reached, and shall then return the
+          input, shall stop a search the moment the budget's hard limit is reached (charging the work in
+          chunks of at most 64 expansions and never charging a grid build beyond the limit, so the work
+          spent exceeds the hard limit by less than one chunk), and shall then return the
           obstacle-aware elbow fallback (flagged as crossing); it shall return exactly the route it finds
-          without a budget while the budget lasts, and the same fallback on every run.
+          without a budget while the budget lasts, and the same fallback on every run; it shall stop a
+          search with an OperationCanceledException when the budget's cancellation token is canceled,
+          without the token ever changing a route.
         justification: |
           A search over a large grid can run for minutes. Bounding it by a count of work rather than by a
           clock keeps the layout reproducible: the same input stops at the same state on every machine and
-          on every run, and a budget with room to spare changes nothing.
+          on every run, and a budget with room to spare changes nothing. Charging in small chunks keeps
+          the bound tight (a search checked only every few hundred expansions, behind a grid build charged
+          without a clamp, could overshoot the limit by an unbounded amount), and the cancellation token
+          lets a caller (the wall-clock smoke test) abandon a runaway search cooperatively instead of
+          leaving it running in the background.
         tests:
           - RouteWithStatus_ExhaustedBudget_FallsBackToElbow
           - RouteWithStatus_BudgetRunsOutDuringSearch_FallsBackIdenticallyOnEveryRun
+          - RouteWithStatus_HardLimitMidSearch_OvershootsByLessThanOneChunk
+          - RouteWithStatus_CanceledBudget_StopsTheSearch
           - RouteWithStatus_GenerousBudget_RouteEqualsUnbudgetedRoute
           - RoutingWorkBudget_New_IsFullEffort
           - RoutingWorkBudget_Charge_ReachesSoftThenHardLimit
           - RoutingWorkBudget_NoteScopeWeight_AtLimit_ReducesWithoutSpending
           - RoutingWorkBudget_RecordElbowRoute_CountsRoutes
           - RoutingWorkBudget_NullLimits_Throws
+          - RoutingWorkBudget_DefaultToken_NeverThrows
+          - RoutingWorkBudget_CanceledToken_ThrowsWithoutChangingTier
+
+      - id: Rendering-Layout-OrthogonalEdgeRouter-BoundedMemory
+        title: >-
+          OrthogonalEdgeRouter shall keep the working storage of its grid searches for reuse only while it
+          takes at most 32 MB per thread (counted in bytes of the tables, not in grid nodes), shall release
+          the storage of a larger grid when its search ends, and shall find the same route whether or not
+          earlier searches left storage behind.
+        justification: |
+          Reusing the tables saves allocating them for each of the thousands of searches a layout runs, but
+          a limit counted in nodes allowed a single thread to keep hundreds of megabytes alive for the life
+          of the process (about 210 bytes per node). A byte limit bounds the memory a thread holds, keeps
+          every grid the benchmark scenes and the OMG Annex A views produce (at most about 13 MB) fully
+          reused, and the stamp-validated tables hold no result, so dropping them changes no route.
+        tests:
+          - RouteWithStatus_LargeGrid_ScratchIsNotRetained
+          - RouteWithStatus_SmallGrid_ScratchIsRetainedWithinLimit
+          - RouteWithStatus_SmallGridAfterLargeGrid_RouteIsUnchanged
 
       - id: Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortWindow
         title: >-

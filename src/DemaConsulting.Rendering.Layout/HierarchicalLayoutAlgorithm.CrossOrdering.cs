@@ -138,6 +138,14 @@ public sealed partial class HierarchicalLayoutAlgorithm
         new("rendering.layout.hierarchical.routingWorkLimits", null);
 
     /// <summary>
+    /// Internal hint: a token that stops the connector routing of a layout run (the routing searches then
+    /// throw <see cref="OperationCanceledException"/>). A test hook: no option an application sets, and
+    /// never read to make a decision, so the layout does not depend on a clock.
+    /// </summary>
+    internal static readonly LayoutProperty<CancellationToken> CancellationOption =
+        new("rendering.layout.hierarchical.cancellation", CancellationToken.None);
+
+    /// <summary>
     /// Internal per-scope state: the routing work budget of the scope being laid out. Every scope that
     /// routes connectors creates its own, replacing the one it inherits from the enclosing scope.
     /// </summary>
@@ -410,7 +418,10 @@ public sealed partial class HierarchicalLayoutAlgorithm
     /// soft limit sits half as high again as that (so no benchmark scene is ever reduced), the hard limit
     /// at twice the soft one, and the weight threshold well above the weight of every such scene and well
     /// below that of a scope (such as 40 connectors over 36 nodes, weight 1 680) whose full routing takes
-    /// minutes. One work unit costs on the order of 100 nanoseconds.
+    /// minutes. One work unit costs between about 100 nanoseconds (the routing of a large flat grid) and
+    /// about 200 nanoseconds (the nested scenes) on a fast desktop core, and more on a shared or
+    /// instrumented one, so the soft limit is a bound of the work a scope spends, not of the time it takes.
+    /// The limits are bounds per scope and per pass over it: a layout of many heavy scopes spends their sum.
     /// </remarks>
     internal static readonly RoutingWorkLimits DefaultRoutingWorkLimits = new(
         Soft: 80_000_000L,

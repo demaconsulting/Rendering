@@ -121,11 +121,25 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
   budget. `RouteWithStatus_BudgetRunsOutDuringSearch_FallsBackIdenticallyOnEveryRun` routes across a field of twelve
   obstacles with a hard limit far below the work of the search, twice, and confirms both runs stop with the same
   elbow having spent the same work (the limit counts work, not time).
+  `RouteWithStatus_HardLimitMidSearch_OvershootsByLessThanOneChunk` (a theory over hard limits of 0 to 10 000 units)
+  routes corner to corner across a field of 1 600 pillars, whose search spends about 15 000 units unbudgeted, and
+  confirms the work spent never exceeds the hard limit by more than 320 units (one chunk of 64 expansions with their
+  connectivity steps; the grid build is clamped to the work that is left), the tier is minimal, and two runs give the
+  same fallback and the same work. `RouteWithStatus_CanceledBudget_StopsTheSearch` confirms a budget whose token is
+  canceled stops the search with an `OperationCanceledException`.
   `RouteWithStatus_GenerousBudget_RouteEqualsUnbudgetedRoute` confirms a budget that does not run out leaves the
   route exactly as without a budget and records a positive amount of work. The `RoutingWorkBudgetTests` unit tests
   check the tier thresholds (full below the soft limit, reduced at it, minimal at the hard limit), that a scope
-  weight at the weight limit reduces the budget without spending any of it, the elbow-route counter, and the null
-  argument check.
+  weight at the weight limit reduces the budget without spending any of it, the elbow-route counter, the null
+  argument check, that a budget without a token never throws, and that a canceled token throws without changing the
+  tier.
+- **Bounded memory** (`Rendering-Layout-OrthogonalEdgeRouter-BoundedMemory`): each test runs on a thread of its own so
+  the thread-local scratch is not shared with other tests, and reads the test hook `RetainedScratchBytes`.
+  `RouteWithStatus_LargeGrid_ScratchIsNotRetained` routes among 500 diagonal pillars (a grid of about 250 000 nodes,
+  over 50 MB of tables, which the node-count limit it replaced would have kept) and confirms nothing is retained
+  afterwards; `RouteWithStatus_SmallGrid_ScratchIsRetainedWithinLimit` confirms the tables of a small grid are kept and
+  take at most 32 MB; `RouteWithStatus_SmallGridAfterLargeGrid_RouteIsUnchanged` confirms the route of a small grid
+  after a large search equals the route on a thread that searched nothing else.
 - **Reduced-effort window** (`Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortWindow`):
   `RouteWithStatus_ReducedBudget_RoutesAroundObstaclesInWindow` routes two staggered obstacles at the reduced tier
   with a third obstacle 5000 px away, and confirms the route is orthogonal, not crossed, and clear of every
@@ -188,9 +202,15 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
 - **`Rendering-Layout-OrthogonalEdgeRouter-BoundedWork`**:
   RouteWithStatus_ExhaustedBudget_FallsBackToElbow,
   RouteWithStatus_BudgetRunsOutDuringSearch_FallsBackIdenticallyOnEveryRun,
+  RouteWithStatus_HardLimitMidSearch_OvershootsByLessThanOneChunk,
+  RouteWithStatus_CanceledBudget_StopsTheSearch,
   RouteWithStatus_GenerousBudget_RouteEqualsUnbudgetedRoute, RoutingWorkBudget_New_IsFullEffort,
   RoutingWorkBudget_Charge_ReachesSoftThenHardLimit, RoutingWorkBudget_NoteScopeWeight_AtLimit_ReducesWithoutSpending,
-  RoutingWorkBudget_RecordElbowRoute_CountsRoutes, RoutingWorkBudget_NullLimits_Throws
+  RoutingWorkBudget_RecordElbowRoute_CountsRoutes, RoutingWorkBudget_NullLimits_Throws,
+  RoutingWorkBudget_DefaultToken_NeverThrows, RoutingWorkBudget_CanceledToken_ThrowsWithoutChangingTier
+- **`Rendering-Layout-OrthogonalEdgeRouter-BoundedMemory`**:
+  RouteWithStatus_LargeGrid_ScratchIsNotRetained, RouteWithStatus_SmallGrid_ScratchIsRetainedWithinLimit,
+  RouteWithStatus_SmallGridAfterLargeGrid_RouteIsUnchanged
 - **`Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortWindow`**:
   RouteWithStatus_ReducedBudget_RoutesAroundObstaclesInWindow,
   RouteWithStatus_ReducedBudget_WindowTooSmall_SearchesWholeCanvas
