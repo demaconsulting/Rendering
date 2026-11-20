@@ -271,6 +271,34 @@ public sealed class LargeScopeLayoutTests
     }
 
     /// <summary>
+    ///     Proves the everyday nested package (four sub-packages of three folders of four leaves with six inner
+    ///     connectors each, and six package connectors: 65 nodes, 17 containers, 66 connectors, the shape of a
+    ///     package model of moderate size) lays out completely and without a warning, to exactly the
+    ///     geometry the full effort drew for it before any layout shortcut existed. That layout took minutes
+    ///     in earlier releases because every layout of the package laid each sub-package out again with all
+    ///     of its own extra passes; the drawing must not have changed.
+    /// </summary>
+    [Fact]
+    public void LayoutEngine_Layout_EverydayNestedPackage_DrawsEveryConnectorWithoutWarning()
+    {
+        // Arrange
+        var graph = RoutingScenes.NestedPackage(4, 3, 4, 6, 6);
+
+        // Act
+        var tree = LayoutEngine.Layout(graph);
+
+        // Assert: every connector is drawn, orthogonally, ending on the boxes it joins, with no warning
+        Assert.Equal(RoutingScenes.NestedLineCount(4, 3, 4, 6, 6), RoutingScenes.CountLines(tree.Nodes));
+        AssertAllLinesOrthogonal(tree.Nodes);
+        AssertEveryLineEndsOnABox(tree);
+        LayoutGeometryAssert.AssertNoSiblingOverlap(tree);
+        Assert.Empty(tree.Warnings);
+
+        // The geometry is the one captured from the full effort of the release before the shortcuts
+        Assert.Equal("10B5826ED643", RoutingScenes.Fingerprint(tree));
+    }
+
+    /// <summary>
     ///     Proves the layout is deterministic: two layouts of the same large package are identical.
     /// </summary>
     [Fact]

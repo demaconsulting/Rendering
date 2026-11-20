@@ -385,9 +385,28 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         // diagram, so it takes the reduced effort over from it (the enclosing scope's budget is still in
         // the options this scope inherited). Its own work is not what limited it: the reduction is not
         // reported as a limit of this scope, the hint of the oversize scope speaks for it.
-        if (effective.Get(RoutingBudget) is { ForcedReduced: true })
+        var enclosing = effective.Get(RoutingBudget);
+        if (enclosing is { ForcedReduced: true })
         {
             budget.InheritReduced();
+        }
+        else if (enclosing is { LeansInnerScopes: true })
+        {
+            // A scope inside a heavy hierarchy is laid out lean (see RoutingWorkBudget.Lean)
+            budget.MarkLean();
+        }
+
+        // A scope that routes connectors itself and holds a hierarchy of inner scopes heavy enough that
+        // laying each of them out again for every layout of this scope would multiply their passes keeps
+        // the full effort for itself and has its inner scopes laid out lean. The footprint is a structural
+        // fact of the graph, so the decision depends on the input only.
+        if (!budget.ForcedReduced && !budget.Lean)
+        {
+            var footprint = RoutingFootprintOf(graph, effective.Get(RefinementContext));
+            if (footprint.RoutedEdges > 0 && footprint.NestedWeight >= budget.NestedLeanWeight)
+            {
+                budget.MarkInnerScopesLean();
+            }
         }
 
         var scoped = WithRoutingBudget(effective, budget);
@@ -455,11 +474,11 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         var enteredDeep = new HashSet<LayoutGraphNode>();
         var pass = LayoutScopePassOnce(graph, algo, effective, route, DirectLoose(null), violators, entered, enteredDeep);
 
-        // A scope too large for the full routing effort, or one whose first pass already ran its routing
-        // work down, is routed with one pass: the containers a routed connector enters already kept their
-        // room (see LayoutScopePassOnce), so a second pass for the connectors that hugged a border would
-        // only repeat the most expensive routing of the scope.
-        if (violators.Count > 0 && effective.Get(RoutingBudget) is not { Tier: not RoutingTier.Full })
+        // A scope too large for the full routing effort, one whose first pass already ran its routing
+        // work down, and a lean scope are routed with one pass: the containers a routed connector enters
+        // already kept their room (see LayoutScopePassOnce), so a second pass for the connectors that
+        // hugged a border would only repeat the most expensive routing of the scope.
+        if (violators.Count > 0 && effective.Get(RoutingBudget) is not ({ Tier: not RoutingTier.Full } or { Lean: true }))
         {
             var before = loose.Count;
             loose.UnionWith(entered);
@@ -475,8 +494,8 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         }
 
         // The tight layout stands without the reference and middle layouts when the scope's routing already
-        // ran down its work budget: each is a full routed layout of the scope.
-        if (effective.Get(RoutingBudget) is { Tier: not RoutingTier.Full })
+        // ran down its work budget, or the scope is lean: each is a full routed layout of the scope.
+        if (effective.Get(RoutingBudget) is { Tier: not RoutingTier.Full } or { Lean: true })
         {
             return pass;
         }
@@ -596,8 +615,9 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
 
         // Such a scope is laid out and routed once, so every container a routed connector enters keeps the
         // room it always had from the start, instead of being tightened first and given its room back only
-        // after the connectors that hugged its border were found by routing the whole scope.
-        var roomy = route && effective.Get(RoutingBudget) is { ForcedReduced: true };
+        // after the connectors that hugged its border were found by routing the whole scope. A lean scope
+        // does the same: it has one routed pass.
+        var roomy = route && effective.Get(RoutingBudget) is { ForcedReduced: true } or { Lean: true };
         foreach (var edge in routedEdges)
         {
             foreach (var end in new[] { edge.Source, edge.Target })

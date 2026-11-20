@@ -177,7 +177,10 @@ cross-container connectors lead to, and keeps that order only when it strictly r
 add the nodes, and a layout is never worse than the first one. It costs extra layout time on dense scenes with many
 containers and cross-container connectors (about 1.5 to 2 times) and does nothing for a diagram without
 cross-container connectors. Known limit: connectors from many leaves to the same definition, in a dense usage
-tree, can still cross the composite connectors leaving the same leaf face.
+tree, can still cross the composite connectors leaving the same leaf face. A package that holds a heavy hierarchy of
+sub-packages (several sub-packages that each route connectors between their own folders) reorders only its own
+members: the sub-packages inside it keep one layout pass each, so that a package of four sub-packages lays out in
+seconds and not minutes. On the diagrams measured this changes nothing or at most two crossings; no warning is raised.
 
 The time it takes to route the cross-container connectors of one scope is bounded. Routing every connector of a
 scope with the full effort (several alternative faces per connector, re-routing passes, extra layouts of the

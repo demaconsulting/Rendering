@@ -649,20 +649,24 @@ sections:
       - id: Rendering-Layout-HierarchicalLayout-LargeScopeLayout
         title: >-
           HierarchicalLayoutAlgorithm shall complete the layout of a package of six folder containers
-          holding forty, 320 or 640 cross-container connectors, and of a nested package whose own scope holds
-          eighty connectors, drawing every connector as an orthogonal polyline that ends on the boxes it
-          joins, without overlapping sibling boxes or leaving the canvas, and shall produce the same
-          drawing on every run.
+          holding forty, 320 or 640 cross-container connectors, of a nested package whose own scope holds
+          eighty connectors, and of the everyday nested package of four sub-packages of three folders of
+          four leaves joined by 66 connectors, drawing every connector as an orthogonal polyline that ends
+          on the boxes it joins, without overlapping sibling boxes or leaving the canvas, and shall produce
+          the same drawing on every run.
         justification: |
           A package of forty cross-container connectors did not finish in minutes before routing was
-          bounded, and a larger one could not be drawn at all, so a large model could not be rendered. That
-          every size now completes with a valid, complete and reproducible drawing is what a caller observes
-          of the fix; how long it takes is a design property verified by the opt-in benchmark, not by a
-          test (a timing assertion fails on a loaded machine and proves nothing about the drawing).
+          bounded, a larger one could not be drawn at all, and the everyday nested package, a shape that
+          package models of moderate size have, took minutes because every layout of a package laid its
+          sub-packages out again with all of their own extra passes. That every size now completes with a
+          valid, complete and reproducible drawing is what a caller observes of the fix; how long it takes
+          is a design property verified by the opt-in benchmark, not by a test (a timing assertion fails
+          on a loaded machine and proves nothing about the drawing).
         tests:
           - LayoutEngine_Layout_FortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort
           - LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort
           - LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort
           - LayoutEngine_Layout_OversizeNestedPackage_DrawsEveryConnectorAndWarnsOnce
+          - LayoutEngine_Layout_EverydayNestedPackage_DrawsEveryConnectorWithoutWarning
           - LayoutEngine_Layout_OversizeNestedPackage_RepeatedRunsAreIdentical
           - LayoutEngine_Layout_FortyCrossContainerEdges_RepeatedRunsAreIdentical

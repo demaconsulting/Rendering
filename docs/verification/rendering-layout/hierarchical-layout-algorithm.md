@@ -388,7 +388,13 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   the same fingerprint (SHA-256 of every box and connector coordinate rounded to three decimals) and warnings.
   `..._OversizeNestedPackage_DrawsEveryConnectorAndWarnsOnce` and `..._OversizeNestedPackage_RepeatedRunsAreIdentical`
   do the same for the nested package, and `..._FortyCrossContainerEdges_RepeatedRunsAreIdentical` compares two
-  layouts of the 40-connector package. No test reads a clock or the budget's counters: how fast these layouts are is a
+  layouts of the 40-connector package. `..._EverydayNestedPackage_DrawsEveryConnectorWithoutWarning` lays out the
+  everyday nested package (four sub-packages of three folders of four leaves with six inner connectors each, six
+  package connectors: 65 nodes, 17 containers, 66 connectors; it took minutes in earlier releases) and confirms
+  every connector is drawn orthogonally and ends on the boxes it joins, sibling boxes do not overlap, no warning is
+  raised, and the fingerprint equals the one captured from the full-effort layout before any layout shortcut existed
+  (the scene is not changed by the lean tier or by the route-pass cache). No test reads a clock or the budget's
+  counters: how fast these layouts are is a
   design property measured by the opt-in benchmark (see *Performance verification* below).
 - **Regression tests without a requirement.** `..._NestedPackageWithPackageEdges_MatchesGoldenGeometry` and
   `..._SingleSubPackageOfThreeFolders_MatchesGoldenGeometry` compare the fingerprint of two nested packages with the
@@ -551,5 +557,6 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort,
   LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_DrawsEveryConnectorAndReportsReducedEffort,
   LayoutEngine_Layout_OversizeNestedPackage_DrawsEveryConnectorAndWarnsOnce,
+  LayoutEngine_Layout_EverydayNestedPackage_DrawsEveryConnectorWithoutWarning,
   LayoutEngine_Layout_OversizeNestedPackage_RepeatedRunsAreIdentical,
   LayoutEngine_Layout_FortyCrossContainerEdges_RepeatedRunsAreIdentical
