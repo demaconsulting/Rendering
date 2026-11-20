@@ -349,7 +349,9 @@ reviews:
       - "docs/verification/rendering-layout/engine/orthogonal-edge-router.md"
       - "src/DemaConsulting.Rendering.Layout/Engine/OrthogonalEdgeRouter.cs"
       - "src/DemaConsulting.Rendering.Layout/Engine/MinHeap.cs"
+      - "src/DemaConsulting.Rendering.Layout/Engine/RoutingWorkBudget.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/Engine/OrthogonalEdgeRouterTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/Engine/RoutingWorkBudgetTests.cs"
     context:
       - "docs/design/rendering-layout.md"
       - "docs/design/rendering-layout/engine/engine.md"
@@ -551,6 +553,7 @@ reviews:
       - "src/DemaConsulting.Rendering.Layout/HierarchicalLayoutAlgorithm.cs"
       - "src/DemaConsulting.Rendering.Layout/HierarchicalLayoutAlgorithm.CrossOrdering.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/HierarchicalLayoutAlgorithmTests.cs"
+      - "test/DemaConsulting.Rendering.Layout.Tests/RoutingPerformanceTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/HierarchicalCrossOrderingTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/CrossHierarchyOrderingTests.cs"
       - "test/DemaConsulting.Rendering.Layout.Tests/OrderRankPlumbingTests.cs"

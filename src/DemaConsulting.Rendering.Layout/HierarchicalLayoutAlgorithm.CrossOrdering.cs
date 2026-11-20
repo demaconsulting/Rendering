@@ -130,6 +130,21 @@ public sealed partial class HierarchicalLayoutAlgorithm
         new("rendering.layout.hierarchical.refinementContext", null);
 
     /// <summary>
+    /// Internal hint: the routing work limits one scope may spend before its connector routing is reduced
+    /// (see <see cref="RoutingWorkBudget"/>); unset uses <see cref="DefaultRoutingWorkLimits"/>. A test
+    /// hook: no option an application sets.
+    /// </summary>
+    internal static readonly LayoutProperty<RoutingWorkLimits?> RoutingWorkLimitsOption =
+        new("rendering.layout.hierarchical.routingWorkLimits", null);
+
+    /// <summary>
+    /// Internal per-scope state: the routing work budget of the scope being laid out. Every scope that
+    /// routes connectors creates its own, replacing the one it inherits from the enclosing scope.
+    /// </summary>
+    internal static readonly LayoutProperty<RoutingWorkBudget?> RoutingBudget =
+        new("rendering.layout.hierarchical.routingBudget", null);
+
+    /// <summary>
     /// Internal hint: the containers, at any depth below the scope, that keep the room they had before
     /// containers were tightened to their content. A scope that finds tightening makes its connectors worse
     /// sets it for the scopes below.
@@ -288,6 +303,132 @@ public sealed partial class HierarchicalLayoutAlgorithm
             RefinedScopes++;
             MaxLayoutsPerScope = Math.Max(MaxLayoutsPerScope, layouts);
         }
+
+        /// <summary>
+        /// Gets the largest number of routed passes any one scope was laid out with in this run, the passes
+        /// of a refinement included. A scope too large for the full routing effort has one.
+        /// </summary>
+        internal int MaxRoutedPassesPerScope { get; private set; }
+
+        /// <summary>
+        /// Gets the number of distinct scopes that took the reduced routing effort over from the oversize
+        /// scope that holds them (see <see cref="RoutingWorkBudget.InheritReduced"/>).
+        /// </summary>
+        internal int InheritedReducedScopes => _inheritedScopes.Count;
+
+        /// <summary>The routed passes made so far over each scope.</summary>
+        private readonly Dictionary<LayoutGraph, int> _routedPasses = [];
+
+        /// <summary>The scopes that inherited the reduced effort.</summary>
+        private readonly HashSet<LayoutGraph> _inheritedScopes = [];
+
+        /// <summary>
+        /// Records one routed pass over a scope.
+        /// </summary>
+        /// <param name="scope">The container scope.</param>
+        internal void RecordRoutedPass(LayoutGraph scope)
+        {
+            _routedPasses.TryGetValue(scope, out var passes);
+            _routedPasses[scope] = ++passes;
+            MaxRoutedPassesPerScope = Math.Max(MaxRoutedPassesPerScope, passes);
+        }
+
+        /// <summary>
+        /// Gets one hint per scope whose connector routing reached its work budget during the run, in the
+        /// order the scopes were first limited.
+        /// </summary>
+        internal IReadOnlyList<string> RoutingLimitWarnings => _routingLimitWarnings;
+
+        /// <summary>Gets the highest work, in budget units, any single scope spent on routing.</summary>
+        internal long MaxScopeWork { get; private set; }
+
+        /// <summary>The hints returned by <see cref="RoutingLimitWarnings"/>.</summary>
+        private readonly List<string> _routingLimitWarnings = [];
+
+        /// <summary>For every limited scope: where its hint sits, and the reduction, elbow count and cause it describes.</summary>
+        private readonly Dictionary<LayoutGraph, (int Index, RoutingTier Tier, int Elbows, bool SizeForced)> _limitedScopes = [];
+
+        /// <summary>
+        /// Records the routing work a scope spent and, when its own budget ran down, the hint that says so.
+        /// A scope laid out several times (the passes of its parent's refinement) keeps the worst outcome.
+        /// A scope only reduced because the oversize scope that holds it is (see
+        /// <see cref="RoutingWorkBudget.InheritReduced"/>) has no limit of its own and so no hint: the hint
+        /// of the oversize scope speaks for it.
+        /// </summary>
+        /// <param name="scope">The container scope.</param>
+        /// <param name="budget">The budget its passes spent.</param>
+        internal void RecordRoutingBudget(LayoutGraph scope, RoutingWorkBudget budget)
+        {
+            MaxScopeWork = Math.Max(MaxScopeWork, budget.Spent);
+            if (budget.InheritedReduced)
+            {
+                _inheritedScopes.Add(scope);
+            }
+
+            if (budget.OwnLowestTier == RoutingTier.Full)
+            {
+                return;
+            }
+
+            var found = _limitedScopes.TryGetValue(scope, out var known);
+            var sizeForced = budget.SizeForced || (found && known.SizeForced);
+            if (found && known.Tier >= budget.OwnLowestTier && known.Elbows >= budget.ElbowRoutes && known.SizeForced == sizeForced)
+            {
+                return;
+            }
+
+            var tier = found && known.Tier > budget.OwnLowestTier ? known.Tier : budget.OwnLowestTier;
+            var elbows = Math.Max(found ? known.Elbows : 0, budget.ElbowRoutes);
+            var first = scope.Nodes.Count > 0 ? scope.Nodes[0].Id : "?";
+            var effect = elbows > 0
+                ? $"{elbows} connector(s) were routed with the simplified elbow route"
+                : "its connectors were routed without the extra quality searches";
+            var inside = sizeForced ? " (and those of the scopes inside it)" : string.Empty;
+            var text = $"Edge routing of the scope of {scope.Nodes.Count} node(s) starting at '{first}' reached its work limit: {effect}{inside}.";
+            if (found)
+            {
+                _routingLimitWarnings[known.Index] = text;
+                _limitedScopes[scope] = (known.Index, tier, elbows, sizeForced);
+            }
+            else
+            {
+                _limitedScopes[scope] = (_routingLimitWarnings.Count, tier, elbows, sizeForced);
+                _routingLimitWarnings.Add(text);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The routing work limits of a scope without an explicit override. A scope of at least
+    /// <see cref="RoutingWorkLimits.ReducedWeight"/>, or one whose connector routing spends more than the
+    /// soft limit, is routed at the reduced effort; one that spends more than the hard limit gets the
+    /// simple elbow route for the connectors still to route.
+    /// </summary>
+    /// <remarks>
+    /// The limits are calibrated against the measured work of the layout-quality benchmark scenes and the
+    /// gallery, the heaviest of which spends about 53 million units in one scope and weighs 364: the
+    /// soft limit sits half as high again as that (so no benchmark scene is ever reduced), the hard limit
+    /// at twice the soft one, and the weight threshold well above the weight of every such scene and well
+    /// below that of a scope (such as 40 connectors over 36 nodes, weight 1 680) whose full routing takes
+    /// minutes. One work unit costs on the order of 100 nanoseconds.
+    /// </remarks>
+    internal static readonly RoutingWorkLimits DefaultRoutingWorkLimits = new(
+        Soft: 80_000_000L,
+        Hard: 160_000_000L,
+        ReducedWeight: 600L);
+
+    /// <summary>
+    /// Returns <paramref name="effective"/> carrying <paramref name="budget"/> as the routing budget of the
+    /// scope being laid out.
+    /// </summary>
+    /// <param name="effective">The scope's effective options.</param>
+    /// <param name="budget">The scope's routing budget.</param>
+    /// <returns>Options that carry the budget.</returns>
+    private static LayoutOptions WithRoutingBudget(LayoutOptions effective, RoutingWorkBudget budget)
+    {
+        var overlay = new LayoutOptions();
+        overlay.Set<RoutingWorkBudget?>(RoutingBudget, budget);
+        return overlay.OverlayOnto(effective);
     }
 
     /// <summary>
@@ -486,6 +627,14 @@ public sealed partial class HierarchicalLayoutAlgorithm
             return first.Tree;
         }
 
+        // A scope whose routing already ran down its work budget is not refined: every further routed
+        // layout would only spend more of what is gone.
+        var budget = effective.Get(RoutingBudget);
+        if (budget is { Tier: not RoutingTier.Full })
+        {
+            return first.Tree;
+        }
+
         var proposals = BuildProposals(graph, effective, first);
         if (proposals.Count == 0)
         {
@@ -533,7 +682,7 @@ public sealed partial class HierarchicalLayoutAlgorithm
                 .ThenBy(p => p.Score.Area)
                 .ThenBy(p => p.Variant))
             {
-                if (routed >= RoutedProposalsInRound(round, heavy))
+                if (routed >= RoutedProposalsInRound(round, heavy) || budget is { Tier: not RoutingTier.Full })
                 {
                     break;
                 }

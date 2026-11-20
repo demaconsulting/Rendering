@@ -236,6 +236,18 @@ and, on a benchmark scene, that the engine's measure equals the test metrics' me
 
 **Covers**: `Rendering-Layout-ConnectorRouter-RouteQuality`.
 
+#### Bounded batch work
+
+`RouteBatch_ReducedBudget_RoutesEveryConnectionOrthogonally` routes three connectors between four boxes under a
+profile whose budget has been reduced (by a scope weight at the weight limit) and confirms one orthogonal line per
+connection comes back, none of them an elbow fallback and the budget still at the reduced tier.
+`RouteBatch_ExhaustedBudget_RoutesEveryConnectionWithElbow` routes two connectors under a budget already past its
+hard limit and confirms both come back orthogonal and the budget counts two elbow routes. That a batch routed at
+the full tier is unchanged by the budget is covered by the existing batch tests (which run without one) and by
+the byte-identical gallery and the golden fingerprints of `RoutingPerformanceTests`.
+
+**Covers**: `Rendering-Layout-ConnectorRouter-BoundedBatchWork`.
+
 ### Requirements Coverage
 
 - **`Rendering-Layout-ConnectorRouter-AnchorsFaceEachOther`**:
@@ -340,3 +352,5 @@ occupied face position moves to a free spot), and TryResolveFaceAnchor_PointOnFa
   RouteQuality_CloseParallelLength_GapAndOverlap_CountsOnlySqueezedRuns,
   RouteQuality_WeightedCloseParallelLength_NearerRunsWeighMore, RouteQuality_Measure_TwoConnectors_SumsAllMetrics,
   RouteQuality_Measure_BenchmarkScene_AgreesWithLayoutQualityMetrics
+- **`Rendering-Layout-ConnectorRouter-BoundedBatchWork`**:
+  RouteBatch_ReducedBudget_RoutesEveryConnectionOrthogonally, RouteBatch_ExhaustedBudget_RoutesEveryConnectionWithElbow

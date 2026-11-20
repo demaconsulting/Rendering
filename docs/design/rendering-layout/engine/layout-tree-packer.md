@@ -65,6 +65,16 @@ tree measures its smaller canvas side). `PassingSquare` is the diagram-quality l
 the mean leaf-box height (zero without a leaf box). The tuck step and the hierarchical ordering refinement use
 the measure to refuse a change that opens a larger empty block.
 
+The hole search scores up to 240 positions of each of up to four block shapes, so the cost of one position matters
+on a large host canvas (Rendering#75: the whole Annex A model is 2 million cells and spent more time here than in
+routing). `EmptySpaceMeter.SquareIndex` holds the dynamic-program table of the host once and answers "the largest
+empty square once this rectangle is filled in" from it exactly: a square ending at a cell reaches only the cells up
+and to the left of it, so the cells left of or above the rectangle keep their value (two prefix maxima) and only the
+cells right of and below its first column and row are recomputed, starting from the unchanged values beside them.
+The search also stops a position as soon as it has found a square larger than the best position so far, since such a
+position cannot win. Both are exact: `EmptySpaceMeterTests` compares the index with a full pass over a filled copy of
+the grid on random grids and rectangles, and the gallery is unchanged.
+
 #### LayoutTreePacker Error Handling
 
 A null `trees` argument throws `ArgumentNullException`. `TranslateNode` switches over the closed set

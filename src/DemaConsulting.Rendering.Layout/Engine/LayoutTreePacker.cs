@@ -504,6 +504,7 @@ internal static class LayoutTreePacker
         }
 
         var bestSquare = int.MaxValue;
+        var squares = new EmptySpaceMeter.SquareIndex(occupancy);
         var bestColumn = 0;
         var bestRow = 0;
         Arrangement? bestBlock = null;
@@ -529,9 +530,12 @@ internal static class LayoutTreePacker
             for (var i = 0; i < positions.Count; i += stride)
             {
                 var (column, row) = positions[i];
-                var scratch = (bool[,])occupancy.Clone();
-                EmptySpaceMeter.Fill(scratch, column * cell, row * cell, (column * cell) + block.Width, (row * cell) + block.Height);
-                var square = EmptySpaceMeter.LargestEmptySquareCells(scratch);
+
+                // The largest empty square left once the block sits here, found from the table of the host's
+                // own squares instead of by a pass over a copy of the whole grid
+                var (firstColumn, lastColumn, firstRow, lastRow) = EmptySpaceMeter.FillBounds(
+                    columns, rows, column * cell, row * cell, (column * cell) + block.Width, (row * cell) + block.Height);
+                var square = squares.LargestWithFilled(firstColumn, lastColumn, firstRow, lastRow, bestSquare);
                 if (square < bestSquare || (square == bestSquare && bestBlock is { } && (row, column).CompareTo((bestRow, bestColumn)) < 0))
                 {
                     bestSquare = square;

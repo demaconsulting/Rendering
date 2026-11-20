@@ -31,6 +31,9 @@ sections:
           - Rendering-Layout-OrthogonalEdgeRouter-WallKeepOut
           - Rendering-Layout-OrthogonalEdgeRouter-CrossingCost
           - Rendering-Layout-OrthogonalEdgeRouter-MinimumInteriorSegment
+          - Rendering-Layout-OrthogonalEdgeRouter-BoundedWork
+          - Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortWindow
+          - Rendering-Layout-OrthogonalEdgeRouter-ReducedSoftLanes
         tests:
           - Route_NoObstacles_ProducesOrthogonalPath
           - Route_ObstacleBetween_RoutesAround

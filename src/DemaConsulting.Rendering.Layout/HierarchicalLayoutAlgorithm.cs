@@ -341,7 +341,15 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         // The root scope's own explicit overrides (set directly on the graph) win over the supplied
         // options, giving the root the same "own overrides win" treatment every nested scope receives.
         var effective = graph.OverlayOnto(options);
-        return LayoutScope(graph, WithRefinementContext(effective));
+        var withContext = WithRefinementContext(effective);
+        var context = withContext.Get(RefinementContext);
+        var warningsBefore = context?.RoutingLimitWarnings.Count ?? 0;
+        var tree = LayoutScope(graph, withContext);
+
+        // Surface every scope whose routing reached its work budget, so the caller can tell that some
+        // connectors were drawn with a reduced routing effort (see RoutingWorkBudget).
+        var limited = context?.RoutingLimitWarnings.Skip(warningsBefore).ToList() ?? [];
+        return limited.Count == 0 ? tree : tree with { Warnings = [.. tree.Warnings, .. limited] };
     }
 
     /// <summary>
@@ -368,11 +376,29 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             return algo.ApplyCore(graph, effective);
         }
 
+        // Each scope that routes connectors spends its own work budget, shared by every pass over the scope
+        // (the tight, loose and reference layouts and the ordering proposals) so the passes made last are
+        // the first to be reduced, and a heavy scope can neither starve nor be starved by another.
+        var budget = new RoutingWorkBudget(effective.Get(RoutingWorkLimitsOption) ?? DefaultRoutingWorkLimits);
+
+        // A scope inside a scope too large for the full routing effort is drawn in that same oversize
+        // diagram, so it takes the reduced effort over from it (the enclosing scope's budget is still in
+        // the options this scope inherited). Its own work is not what limited it: the reduction is not
+        // reported as a limit of this scope, the hint of the oversize scope speaks for it.
+        if (effective.Get(RoutingBudget) is { ForcedReduced: true })
+        {
+            budget.InheritReduced();
+        }
+
+        var scoped = WithRoutingBudget(effective, budget);
+
         // The first pass is the engine's ordinary result; the cross-hierarchy ordering refinement (see
         // HierarchicalLayoutAlgorithm.CrossOrdering.cs) only ever replaces it by a measurably better one,
         // and returns it untouched when the scope has nothing to refine.
-        var first = LayoutScopePass(graph, algo, effective);
-        return RefineCrossOrdering(graph, algo, effective, first);
+        var first = LayoutScopePass(graph, algo, scoped);
+        var result = RefineCrossOrdering(graph, algo, scoped, first);
+        scoped.Get(RefinementContext)?.RecordRoutingBudget(graph, budget);
+        return result;
     }
 
     /// <summary>
@@ -428,7 +454,11 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         var entered = new HashSet<LayoutGraphNode>();
         var enteredDeep = new HashSet<LayoutGraphNode>();
         var pass = LayoutScopePassOnce(graph, algo, effective, route, DirectLoose(null), violators, entered, enteredDeep);
-        if (violators.Count > 0)
+
+        // A scope too large for the full routing effort is routed with one pass: the containers a routed
+        // connector enters already kept their room (see LayoutScopePassOnce), so a second pass for the
+        // connectors that hugged a border would only repeat the most expensive routing of the scope.
+        if (violators.Count > 0 && effective.Get(RoutingBudget) is not { ForcedReduced: true })
         {
             var before = loose.Count;
             loose.UnionWith(entered);
@@ -439,6 +469,13 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         }
 
         if (!route || pass.RoutedEdges is null || pass.RoutedEdges.Count == 0 || containers.IsSubsetOf(DirectLoose(null)))
+        {
+            return pass;
+        }
+
+        // The tight layout stands without the reference and middle layouts when the scope's routing already
+        // ran down its work budget: each is a full routed layout of the scope.
+        if (effective.Get(RoutingBudget) is { Tier: not RoutingTier.Full })
         {
             return pass;
         }
@@ -549,6 +586,18 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         }
 
         var (leafEdges, routedEdges) = ClassifyEdges(graph, descendantToDirect, portOwner, nesting);
+        if (route && routedEdges.Count > 0)
+        {
+            // A scope with this many connectors over this many nodes is known from its size alone to be
+            // too costly for the full routing effort (see RoutingWorkLimits.ReducedWeight).
+            effective.Get(RoutingBudget)?.NoteScopeWeight((long)routedEdges.Count * (descendantToDirect.Count + graph.Nodes.Count));
+            effective.Get(RefinementContext)?.RecordRoutedPass(graph);
+        }
+
+        // Such a scope is laid out and routed once, so every container a routed connector enters keeps the
+        // room it always had from the start, instead of being tightened first and given its room back only
+        // after the connectors that hugged its border were found by routing the whole scope.
+        var roomy = route && effective.Get(RoutingBudget) is { ForcedReduced: true };
         foreach (var edge in routedEdges)
         {
             foreach (var end in new[] { edge.Source, edge.Target })
@@ -556,6 +605,10 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 if (end is LayoutGraphNode endNode && descendantToDirect.TryGetValue(endNode, out var owner) && owner.HasChildren)
                 {
                     entered.Add(owner);
+                    if (roomy)
+                    {
+                        loose.Add(owner);
+                    }
                 }
 
                 if (enteredDeep != null && end is LayoutGraphNode deepNode)
@@ -1178,7 +1231,10 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
             index => obstacleSets[index],
             fixedAnchors,
             penalizeLongEndSegments: true,
-            profile: new ConnectorRouter.RoutingProfile(index => wallSets[index], index => existingLineSets[index]));
+            profile: new ConnectorRouter.RoutingProfile(
+                index => wallSets[index],
+                index => existingLineSets[index],
+                effective.Get(RoutingBudget)));
 
         if (violators != null)
         {

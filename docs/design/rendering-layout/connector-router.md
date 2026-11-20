@@ -310,6 +310,29 @@ connectors: runs closer than `CloseParallelGap` (16 pixels), overlapping by more
 (20 pixels); a gap of exactly 16 pixels is not close (the comparison keeps a 1e-6 tolerance), and a weighted
 variant makes nearer runs weigh more.
 
+#### Bounded batch work (Rendering#75)
+
+`RoutingProfile` carries an optional `RoutingWorkBudget` (see *OrthogonalEdgeRouter Unit Design*), which
+`RouteBatch` passes to every search it starts (the plain route of `RouteWithAnchors` and the face-pair
+searches of `SearchBetterRoute`). Almost all of the cost of a batch — 99 percent in the measured package of
+ten cross-container connectors, where the plain route is 1 percent — is in the searches that try to improve a
+route that exists: up to four face pairs per defective connector, the two `RerouteBatch` passes, and the
+second, wide-lane routing of the whole batch. The budget sheds them in a fixed order, by tier:
+
+- **Full.** Everything above, exactly as without a budget.
+- **Reduced.** Every connector gets its plain route (windowed, with the soft lanes of the grid limited, see the
+  router design) and nothing else:
+  `IsDefective` and `SearchBetterRoute` are not run, `RerouteBatch` is skipped (and stops mid-pass when the budget
+  drops), and the wide-lane re-run is skipped. No alternative face pair is tried, so a connector whose plain face
+  pair has no free route (for example a step-off point inside the narrow gap above a stacked sibling) is drawn
+  with the obstacle-aware elbow fallback, which may cross boxes.
+- **Minimal.** No search starts; every connector not yet routed gets the obstacle-aware elbow fallback.
+
+The tier comes only from counters (work spent, scope weight), so the choice — and every route — is the same
+on every run and platform. A batch routed while the budget is at the full tier is byte-identical to a batch
+routed without one. The policy lives here, in the orchestrator, because it is the batch structure (faces,
+passes, re-runs) that multiplies the number of searches; the router only counts and enforces the limit.
+
 ### ConnectorRouter Error Handling
 
 Null `boxes`, `connections`, `connection`, `options`, or a connection's `From`/`To` throw
@@ -395,3 +418,4 @@ any set of placed boxes.
 | Rendering-Layout-ConnectorRouter-ExistingLineCrossingCost | Existing-line crossing cost and tidy re-routing |
 | Rendering-Layout-ConnectorRouter-TidyReplacement | Tidy re-routing, `IsTidyReplacement` |
 | Rendering-Layout-ConnectorRouter-RouteQuality | Route quality measure, `RouteQuality` |
+| Rendering-Layout-ConnectorRouter-BoundedBatchWork | Bounded batch work, `RoutingProfile.Budget` |

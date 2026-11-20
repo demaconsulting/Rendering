@@ -115,6 +115,35 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
   the minimum. `RouteWithStatus_MinInteriorSegmentInfeasible_FallsBackToUnconstrainedRoute` asks for an
   unreachable minimum (1000 px) and confirms the unconstrained route comes back unchanged, not crossed.
   `RouteWithStatus_LegsZero_MatchesLegacyRoute` confirms an all-zero hint is the legacy route.
+- **Bounded work** (`Rendering-Layout-OrthogonalEdgeRouter-BoundedWork`):
+  `RouteWithStatus_ExhaustedBudget_FallsBackToElbow` hands the router a budget already past its hard limit and
+  confirms the elbow fallback comes back flagged `Crossed`, orthogonal, between the two ends, and counted by the
+  budget. `RouteWithStatus_BudgetRunsOutDuringSearch_FallsBackIdenticallyOnEveryRun` routes across a field of twelve
+  obstacles with a hard limit far below the work of the search, twice, and confirms both runs stop with the same
+  elbow having spent the same work (the limit counts work, not time).
+  `RouteWithStatus_GenerousBudget_RouteEqualsUnbudgetedRoute` confirms a budget that does not run out leaves the
+  route exactly as without a budget and records a positive amount of work. The `RoutingWorkBudgetTests` unit tests
+  check the tier thresholds (full below the soft limit, reduced at it, minimal at the hard limit), that a scope
+  weight at the weight limit reduces the budget without spending any of it, the elbow-route counter, and the null
+  argument check.
+- **Reduced-effort window** (`Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortWindow`):
+  `RouteWithStatus_ReducedBudget_RoutesAroundObstaclesInWindow` routes two staggered obstacles at the reduced tier
+  with a third obstacle 5000 px away, and confirms the route is orthogonal, not crossed, and clear of every
+  obstacle. `RouteWithStatus_ReducedBudget_WindowTooSmall_SearchesWholeCanvas` puts a 2150 px wall between two
+  nearby ends and confirms the route still goes round it (the window cannot, so the whole canvas is searched).
+- **Reduced soft lanes** (`Rendering-Layout-OrthogonalEdgeRouter-ReducedSoftLanes`):
+  `RouteWithStatus_ReducedBudget_HundredsOfSoftRects_RoutesValidlyForLessWork` routes across a wall among 300 thin soft
+  rectangles (tall and wide) at the reduced tier, twice, and at the full tier, and confirms the reduced route is
+  orthogonal, not crossed, clear of the wall, identical on both runs with the same work spent, and found for fewer work
+  units than the full effort spends. `..._HundredsOfSoftRects_WindowTooSmall_SearchesWholeCanvas` repeats the 2150 px
+  wall scenario with 200 soft rectangles near the ends and confirms the whole-canvas retry (which limits the soft lanes
+  too) still routes round the wall. `RouteWithStatus_FullBudget_HundredsOfSoftRects_RouteEqualsUnbudgetedRoute` confirms
+  the limits are the reduced tier's alone: a budget at the full tier gives exactly the route of no budget among 200 soft
+  rectangles.
+- **Exactness of the search implementation** is verified through the existing scenarios above (they run on the
+  rewritten search) and through the geometry fingerprints of `RoutingPerformanceTests` (see the
+  *HierarchicalLayoutAlgorithm Unit Verification*), which equal those the dictionary-based search produced; the
+  gallery and the layout-quality benchmark were regenerated and are byte-identical.
 
 #### Requirements Coverage
 
@@ -156,3 +185,16 @@ supplied side, incorrect `Crossed` flag, or lost cost-band bias constitutes a fa
   RoutePorts_MinInteriorSegment_NoReversalToSatisfyMinimum,
   RouteWithStatus_MinInteriorSegmentInfeasible_FallsBackToUnconstrainedRoute,
   RouteWithStatus_LegsZero_MatchesLegacyRoute
+- **`Rendering-Layout-OrthogonalEdgeRouter-BoundedWork`**:
+  RouteWithStatus_ExhaustedBudget_FallsBackToElbow,
+  RouteWithStatus_BudgetRunsOutDuringSearch_FallsBackIdenticallyOnEveryRun,
+  RouteWithStatus_GenerousBudget_RouteEqualsUnbudgetedRoute, RoutingWorkBudget_New_IsFullEffort,
+  RoutingWorkBudget_Charge_ReachesSoftThenHardLimit, RoutingWorkBudget_NoteScopeWeight_AtLimit_ReducesWithoutSpending,
+  RoutingWorkBudget_RecordElbowRoute_CountsRoutes, RoutingWorkBudget_NullLimits_Throws
+- **`Rendering-Layout-OrthogonalEdgeRouter-ReducedEffortWindow`**:
+  RouteWithStatus_ReducedBudget_RoutesAroundObstaclesInWindow,
+  RouteWithStatus_ReducedBudget_WindowTooSmall_SearchesWholeCanvas
+- **`Rendering-Layout-OrthogonalEdgeRouter-ReducedSoftLanes`**:
+  RouteWithStatus_ReducedBudget_HundredsOfSoftRects_RoutesValidlyForLessWork,
+  RouteWithStatus_ReducedBudget_HundredsOfSoftRects_WindowTooSmall_SearchesWholeCanvas,
+  RouteWithStatus_FullBudget_HundredsOfSoftRects_RouteEqualsUnbudgetedRoute

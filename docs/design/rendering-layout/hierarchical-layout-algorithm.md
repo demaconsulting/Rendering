@@ -301,6 +301,79 @@ and the title band.
 Tightening applies only to scopes laid out by the layered or containment leaf algorithms; boundary-port scopes
 keep their combined-pass sizes.
 
+#### Routing work budget (Rendering#75)
+
+The cost of routing one scope grew faster than the cube of its cross-container connector count: every connector
+is searched many times (face pairs, re-routing passes, the wide-lane re-run), every scope is laid out several times
+(tight, loose, reference and middle layouts, ordering proposals), and the grid of each search grows with every
+obstacle and routed line. A package of 40 connectors over six folders did not finish in minutes. The exact
+speed-ups of the router (see *OrthogonalEdgeRouter Unit Design*) cut the cost of the same searches by a factor of
+four to five without changing a coordinate; they cannot bound it, so each scope also carries a deterministic
+work budget, and a scope too large for the full effort is routed at a reduced effort whose cost grows slowly
+(measured below):
+
+- **One budget per scope.** `LayoutScope` creates a `RoutingWorkBudget` for every scope that has a container and
+  carries it to every pass over that scope in its effective options (`RoutingBudget`); a nested scope creates its
+  own. All passes of the scope — tight, loose, reference, middle, and every ordering proposal — spend the one
+  budget, so the passes made last are the first to be reduced and a heavy scope can neither starve nor be starved
+  by another. The limits come from `DefaultRoutingWorkLimits`, or from the internal `RoutingWorkLimitsOption`
+  (a test hook).
+- **Weight.** A routed pass tells the budget the scope's *weight*, the number of connectors routed times the number
+  of nodes under the scope; from the weight limit (600) the scope starts in the reduced tier, because spending part
+  of the budget to find out that a 40-connector scope is too big only delays the same outcome. The weight of every
+  benchmark scene is at most 364; a scope of ten connectors over six folders of five leaves weighs 420 and is still
+  routed in full.
+- **Work.** The router charges grid nodes built, states expanded and connectivity-sweep nodes visited. At the soft
+  limit (80 million units, about 8 seconds) the scope drops to the reduced tier; at the hard limit (160 million) to the
+  minimal tier. The heaviest benchmark scene needs about 53 million units, so no benchmark scene is ever limited
+  (`RoutingPerformanceTests` asserts it, so a future change that makes routing dearer is noticed).
+- **Effect of the tier on the scope.** In the reduced tier the scope is not refined (`RefineCrossOrdering` returns the
+  first pass), the reference and middle passes of `LayoutScopePass` are not made, and `RouteBatch` sheds the searches
+  listed in *ConnectorRouter Unit Design*; the router also limits the soft lanes of every search (see
+  *OrthogonalEdgeRouter Unit Design*).
+- **One routed pass for a size-forced scope.** A scope that the weight limit alone put in the reduced tier
+  (`RoutingWorkBudget.ForcedReduced`) is laid out and routed once. Normally the first pass tightens every
+  container to its content, and a second pass gives the containers whose border a connector hugged their room back;
+  a size-forced scope keeps that room from the start for every container a routed connector enters
+  (`LayoutScopePassOnce` adds them to the loose set right after `NoteScopeWeight`) and skips the second pass, which
+  would only repeat the dearest routing of the scope. On the whole-model view of the OMG Annex A model this gives a
+  drawing identical to the two-pass one at half the routed passes of the scope.
+- **The scopes inside an oversize scope inherit the reduction.** The drawing of a size-forced scope is one
+  oversize diagram, so the effort is a property of the whole drawing: `LayoutScope` calls
+  `RoutingWorkBudget.InheritReduced()` on the budget of a scope whose enclosing scope's budget is `ForcedReduced`
+  (the enclosing budget is still in the options the scope inherited), and the inheritance carries on to every
+  scope below. Such a scope is reduced exactly like any reduced scope (no refinement, no reference or middle
+  pass, one routed pass, the reduced router) but the reduction is *not its own limit*: the budget keeps the tier
+  its own size and work allow (`OwnTier`, `OwnLowestTier`) apart from the inherited one. Without the
+  inheritance the full-effort inner scopes of the whole-model view took 29 % of its layout time.
+- **Hint.** `OrderingRefinementContext.RecordRoutingBudget` records every scope whose *own* tier left the full
+  tier (and how many connectors took the elbow route); the root `ApplyCore` appends one line per such scope to
+  `LayoutTree.Warnings`, which `AutoLayoutAlgorithm`, the tree packer and `CanvasFitter` preserve. A scope that
+  only inherited the reduction records none; the hint of a size-forced scope says that it holds for the scopes
+  inside it too. A caller that prints the warnings tells the user that part of a large diagram was routed more
+  simply. (The SysML2Tools General view builds its own warnings from the placed tree and does not forward these
+  hints today.)
+
+Determinism: the budget never reads a clock, the work units are counts of grid nodes and states, and the tier is a
+function of the counters, so the same graph produces the same routes and warnings on every run and platform.
+
+*Measured effect.* On the whole-model general view of the OMG Annex A SimpleVehicleModel (one scope of 87 routed
+connectors over about 370 descendants, laid out twice by the SysML2Tools general view) the layout fell from 9.8 s
+to about 1.6 s, and `sysml2tools render --auto` of the whole model from 33.7 s to about 13 s (of which about 8 s
+are loading the model). On the synthetic package of six folders of five leaves with E cross-container
+connectors, one `LayoutEngine.Layout` takes (reference machine, best of three):
+
+| E | 40 | 80 | 160 | 320 | 640 |
+| --- | --- | --- | --- | --- | --- |
+| Time | 0.04 s | 0.11 s | 0.27 s | 0.87 s | 2.6 s |
+| Work (million units) | 0.45 | 1.3 | 3.2 | 9.6 | 24.6 |
+
+The work grows by 2.4 to 3.0 times per doubling of E: roughly E<sup>1.5</sup> from 160 to 640 connectors. That is well
+below the cube it was (and below a quadratic), but it is **not linear**. The remaining terms that grow faster than
+linearly are that each search weighs every routed line in its cost and that the window around a connector holds more
+hard obstacles as the scope spreads over a larger canvas. `RoutingPerformanceTests` guards the growth without a clock
+(less than 3.5 times the work per doubling from 160 to 640 connectors) and the times with generous bounds.
+
 ### HierarchicalLayoutAlgorithm Design Constraints
 
 - The flat-graph equivalence guarantee is load-bearing: the fast path must delegate directly to the
@@ -426,3 +499,5 @@ renderers and callers through the layout registry under the `"hierarchical"` ide
 | Rendering-Layout-HierarchicalLayout-TighteningRouteQualityGate | Container tightening, `KeepsTightening` gate |
 | Rendering-Layout-HierarchicalLayout-EntryArrowheadRoom | Container tightening, entry arrowhead room |
 | Rendering-Layout-HierarchicalLayout-CanvasPadding | Container tightening, canvas padding |
+| Rendering-Layout-HierarchicalLayout-RoutingBudget | Routing work budget |
+| Rendering-Layout-HierarchicalLayout-RoutingPerformance | Routing work budget; exact router speed-ups |

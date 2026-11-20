@@ -108,4 +108,77 @@ public sealed class EmptySpaceMeterTests
         // Assert
         Assert.Equal(0.0, square, 6);
     }
+
+    /// <summary>
+    ///     The square table finds, for any rectangle filled into a grid, the same largest empty square as a
+    ///     full pass over a copy of the filled grid (Rendering#75: the hole search of the tree packer relies
+    ///     on it to skip that pass).
+    /// </summary>
+    [Fact]
+    public void EmptySpaceMeter_SquareIndex_LargestWithFilled_EqualsFullPassOverFilledCopy()
+    {
+        // Arrange: random sparse grids of several shapes and many random filled rectangles
+        var random = new Random(75);
+        foreach (var (columns, rows, density) in new[] { (30, 20, 0.05), (17, 41, 0.15), (60, 60, 0.30), (1, 25, 0.10), (25, 1, 0.10) })
+        {
+            var grid = new bool[columns, rows];
+            for (var column = 0; column < columns; column++)
+            {
+                for (var row = 0; row < rows; row++)
+                {
+                    grid[column, row] = random.NextDouble() < density;
+                }
+            }
+
+            var index = new EmptySpaceMeter.SquareIndex(grid);
+            Assert.Equal(EmptySpaceMeter.LargestEmptySquareCells(grid), index.Largest);
+
+            for (var trial = 0; trial < 200; trial++)
+            {
+                var firstColumn = random.Next(columns);
+                var lastColumn = Math.Min(columns - 1, firstColumn + random.Next(columns / 2 + 1));
+                var firstRow = random.Next(rows);
+                var lastRow = Math.Min(rows - 1, firstRow + random.Next(rows / 2 + 1));
+                var filled = (bool[,])grid.Clone();
+                for (var column = firstColumn; column <= lastColumn; column++)
+                {
+                    for (var row = firstRow; row <= lastRow; row++)
+                    {
+                        filled[column, row] = true;
+                    }
+                }
+
+                // Act
+                var expected = EmptySpaceMeter.LargestEmptySquareCells(filled);
+                var actual = index.LargestWithFilled(firstColumn, lastColumn, firstRow, lastRow);
+
+                // Assert: the exact side
+                Assert.Equal(expected, actual);
+
+                // A limit below the answer stops early with a side above the limit; one at or above it is exact
+                if (expected > 0)
+                {
+                    Assert.True(index.LargestWithFilled(firstColumn, lastColumn, firstRow, lastRow, expected - 1) > expected - 1);
+                    Assert.True(EmptySpaceMeter.LargestEmptySquareCells(filled, expected - 1) > expected - 1);
+                }
+
+                Assert.Equal(expected, index.LargestWithFilled(firstColumn, lastColumn, firstRow, lastRow, expected));
+                Assert.Equal(expected, EmptySpaceMeter.LargestEmptySquareCells(filled, expected));
+            }
+        }
+    }
+
+    /// <summary>Filling nothing leaves the grid's own largest empty square.</summary>
+    [Fact]
+    public void EmptySpaceMeter_SquareIndex_LargestWithFilled_EmptyRange_IsGridLargest()
+    {
+        // Arrange
+        var grid = new bool[10, 10];
+        grid[5, 5] = true;
+        var index = new EmptySpaceMeter.SquareIndex(grid);
+
+        // Act / Assert
+        Assert.Equal(index.Largest, index.LargestWithFilled(4, 3, 0, 9));
+        Assert.Equal(index.Largest, index.LargestWithFilled(0, 9, 7, 6));
+    }
 }

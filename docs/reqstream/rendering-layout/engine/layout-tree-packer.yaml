@@ -149,3 +149,5 @@ sections:
           - EmptySpaceMeter_LargestEmptySquare_ConnectorAcrossCanvas_SplitsSpace
           - EmptySpaceMeter_PassingSquare_LeafBoxes_IsThreeTimesMeanHeight
           - EmptySpaceMeter_PassingSquare_NoLeafBox_IsZero
+          - EmptySpaceMeter_SquareIndex_LargestWithFilled_EqualsFullPassOverFilledCopy
+          - EmptySpaceMeter_SquareIndex_LargestWithFilled_EmptyRange_IsGridLargest

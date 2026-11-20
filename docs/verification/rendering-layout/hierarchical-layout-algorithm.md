@@ -352,6 +352,46 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   nested-package scenes in every flow direction and root
   (`LayoutEngine_Layout_BenchmarkScene_CanvasHugsContent`, `..._CrossHierarchyScenes_CanvasHugsContent`,
   `..._NestedPackagesAndGeneralView_CanvasHugsContent`).
+- **Routing work budget** (`Rendering-Layout-HierarchicalLayout-RoutingBudget`): `RoutingPerformanceTests` lays out
+  the synthetic package (six folders of five leaves, a spanning tree of interior connectors in each, seeded random
+  cross-folder connectors declared in the package scope, the shape of the Annex A general views).
+  `LayoutEngine_Layout_TinyWorkLimit_FallsBackToElbowRoutesAndWarns` lays out ten connectors under a hard limit of
+  6 000 units and confirms every connector is drawn as an orthogonal polyline, the tree's warnings name a limited
+  scope that used the elbow route, and two runs produce the same geometry and the same warnings;
+  `..._LimitedScope_WarningSurvivesAutoLayoutAndCanvasFit` adds an isolated node so the automatic layout splits and
+  repacks the pieces and confirms the warning survives that and the canvas fit;
+  `..._ScopeAtWeightLimit_RoutesAtReducedEffortAndWarns` sets the weight limit to 300 (the package weighs 360) and
+  confirms the reduced-effort layout is drawn, flagged, reproducible and different from the full-effort one;
+  `..._GenerousWorkLimit_EqualsUnlimitedLayout` confirms limits with room to spare give the golden geometry and no
+  warning. `..._BenchmarkScene_IsNeverLimitedByDefaultWorkLimits` (a theory over every scene of the
+  layout-quality benchmark set) and `..._GeneralViewUp_IsNeverLimitedByDefaultWorkLimits` (every insertion order
+  of the heaviest scene) confirm the default limits never touch a benchmark scene.
+  `..._OversizeNestedPackage_RoutesEveryScopeOnce` lays out a package whose own scope holds 80 connectors over four
+  sub-packages of three folders (each sub-package scope small enough, weight below 600, to be routed in full on its
+  own) with a refinement context the test can read, and confirms every connector is drawn orthogonally, no scope
+  of the run was routed in more than one pass (the oversize package scope is laid out once, loose from the start),
+  the four sub-packages took the reduction over from the package (`InheritedReducedScopes`), and exactly one
+  warning appears and says it holds for the scopes inside; `..._NamesOnlyTheOversizeScope` confirms the warning
+  names the package's scope and not a sub-package's; `..._OversizeNestedPackage_RepeatedRunsAreIdentical` confirms
+  geometry and warnings are the same on a second run; `..._SmallNestedPackage_InheritsNoReduction` confirms the same
+  hierarchy with six package connectors inherits nothing and warns of nothing. The `RoutingWorkBudgetTests`
+  `..._InheritReduced_*` and `..._ForcedReduced_*` tests confirm an inherited reduction reduces the budget without
+  being its own limit, that the scope's own work still reaches its own limits, and that only size (not spent
+  work) forces the reduction that descendants inherit.
+- **Routing performance** (`Rendering-Layout-HierarchicalLayout-RoutingPerformance`):
+  `LayoutEngine_Layout_FortyCrossContainerEdges_CompletesWithinBound` lays out 40 cross-container connectors on a pool
+  thread and fails (instead of hanging the run) if the layout takes more than ten seconds; it fails on the version
+  before the fix, which needs minutes. `..._ThreeHundredTwentyCrossContainerEdges_CompletesWithinBound` and
+  `..._SixHundredFortyCrossContainerEdges_CompletesWithinBound` do the same for 320 connectors (bound ten seconds, about
+  one second measured; thirteen seconds before the soft-lane limits) and 640 connectors (bound fifteen seconds, about
+  2.6 seconds measured). `..._RoutingWork_GrowsSubQuadraticallyWithEdgeCount` reads no clock: it lays out 160, 320 and
+  640 connectors with a refinement context and confirms the largest routing work any scope spent (the budget's count of
+  grid nodes and search states) grows by less than 3.5 times per doubling (measured about 3.0 and 2.6; a quadratic
+  router would multiply it by four). `..._FortyCrossContainerEdges_RepeatedRunsAreIdentical` lays the package out twice
+  and compares the geometry. `..._FiveCrossContainerEdges_MatchesGoldenGeometry` and
+  `..._TenCrossContainerEdges_MatchesGoldenGeometry` compare a fingerprint (SHA-256 of every box and connector
+  coordinate rounded to three decimals) of the five- and ten-connector packages with the fingerprints captured from the
+  unoptimized router, so the exact speed-ups cannot change a coordinate.
 
 ### Requirements Coverage
 
@@ -481,3 +521,25 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
 - **`Rendering-Layout-HierarchicalLayout-CanvasPadding`**:
   LayoutEngine_Layout_BenchmarkScene_CanvasHugsContent, LayoutEngine_Layout_CrossHierarchyScenes_CanvasHugsContent,
   LayoutEngine_Layout_NestedPackagesAndGeneralView_CanvasHugsContent
+- **`Rendering-Layout-HierarchicalLayout-RoutingBudget`**:
+  LayoutEngine_Layout_TinyWorkLimit_FallsBackToElbowRoutesAndWarns,
+  LayoutEngine_Layout_GenerousWorkLimit_EqualsUnlimitedLayout,
+  LayoutEngine_Layout_ScopeAtWeightLimit_RoutesAtReducedEffortAndWarns,
+  LayoutEngine_Layout_LimitedScope_WarningSurvivesAutoLayoutAndCanvasFit,
+  LayoutEngine_Layout_BenchmarkScene_IsNeverLimitedByDefaultWorkLimits,
+  LayoutEngine_Layout_GeneralViewUp_IsNeverLimitedByDefaultWorkLimits,
+  LayoutEngine_Layout_OversizeNestedPackage_RoutesEveryScopeOnce,
+  LayoutEngine_Layout_OversizeNestedPackage_RepeatedRunsAreIdentical,
+  LayoutEngine_Layout_OversizeNestedPackage_NamesOnlyTheOversizeScope,
+  LayoutEngine_Layout_SmallNestedPackage_InheritsNoReduction,
+  RoutingWorkBudget_InheritReduced_ReducesWithoutAnOwnLimit,
+  RoutingWorkBudget_InheritReduced_OwnWorkStillReachesLimits,
+  RoutingWorkBudget_ForcedReduced_OnlyBySizeOrInheritance
+- **`Rendering-Layout-HierarchicalLayout-RoutingPerformance`**:
+  LayoutEngine_Layout_FortyCrossContainerEdges_CompletesWithinBound,
+  LayoutEngine_Layout_ThreeHundredTwentyCrossContainerEdges_CompletesWithinBound,
+  LayoutEngine_Layout_SixHundredFortyCrossContainerEdges_CompletesWithinBound,
+  LayoutEngine_Layout_RoutingWork_GrowsSubQuadraticallyWithEdgeCount,
+  LayoutEngine_Layout_FortyCrossContainerEdges_RepeatedRunsAreIdentical,
+  LayoutEngine_Layout_FiveCrossContainerEdges_MatchesGoldenGeometry,
+  LayoutEngine_Layout_TenCrossContainerEdges_MatchesGoldenGeometry
