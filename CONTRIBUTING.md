@@ -149,6 +149,9 @@ Examples:
   - `Assert.DoesNotContain(item, collection)`
 - Always clean up resources (use `try/finally` for console redirection)
 - Link tests to requirements in `requirements.yaml` when applicable
+- Assert observable behavior only: never a wall-clock time, a work counter or private state. Performance is a design
+  property measured by the opt-in benchmark (`pwsh ./benchmark.ps1`, see `benchmarks/README.md`) and recorded in the
+  design documentation
 
 ### Running Tests
 

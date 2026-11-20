@@ -402,7 +402,7 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   agent and proves nothing about the drawing). Run it with `pwsh ./benchmark.ps1` (see `benchmarks/README.md`): for each
   scene it prints the minimum, median and maximum time of the measured runs, the connectors drawn, the number of
   warnings and the layout fingerprint, and for the synthetic series the growth exponent log2(t(2E) / t(E)) between
-  doublings (about 1.5 from 160 to 640 connectors is the expected value; 3 would be the cubic cost it replaced). The
+  doublings (1.5 to 1.7 from 160 to 640 connectors is typical; 3 would be the cubic cost it replaced). The
   run exits 1 when a scene draws fewer connectors than it has or two runs of a scene differ, and never judges a
   time. The results are recorded in the design document, next to the property they support.
 

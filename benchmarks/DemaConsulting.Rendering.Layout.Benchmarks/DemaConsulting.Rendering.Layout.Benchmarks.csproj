@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Opt-in routing benchmark. This project is deliberately NOT part of Rendering.slnx: dotnet build,
+       dotnet test, dotnet restore and dotnet format of the repository (build.ps1, lint.ps1, CI) never see
+       it. Run it with `pwsh ./benchmark.ps1`. It uses the public layout API only. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>DemaConsulting.Rendering.Layout.Benchmarks</RootNamespace>
+
+    <!-- Code Quality Configuration -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+  </PropertyGroup>
+
+  <!-- Shared Scenes -->
+  <!-- The scenes are defined once, in the layout test project, and compiled into the benchmark too, so the
+       benchmark lays out exactly the graphs the layout tests assert on. -->
+  <ItemGroup>
+    <Compile Include="..\..\test\DemaConsulting.Rendering.Layout.Tests\RoutingScenes.cs" Link="Shared\RoutingScenes.cs" />
+  </ItemGroup>
+
+  <!-- Project References -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DemaConsulting.Rendering\DemaConsulting.Rendering.csproj" />
+    <ProjectReference Include="..\..\src\DemaConsulting.Rendering.Abstractions\DemaConsulting.Rendering.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\DemaConsulting.Rendering.Layout\DemaConsulting.Rendering.Layout.csproj" />
+  </ItemGroup>
+
+</Project>

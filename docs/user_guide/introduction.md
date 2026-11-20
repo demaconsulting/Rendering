@@ -193,8 +193,9 @@ limit routes its remaining connectors with a simple elbow that may cross boxes. 
 affected. When a scope is limited, `LayoutTree.Warnings` carries one line naming it (and none for the scopes that
 only took the reduction over from it), so a tool that prints the warnings can tell the user that part of a large
 diagram was routed more simply. The cost of the reduced effort grows by about three times when the connector count
-doubles at the size of hundreds of connectors (measured on a synthetic package of six folders: 40 connectors take
-about 0.04 s, 80 about 0.1 s, 160 about 0.3 s, 320 about 0.9 s and 640 about 2.6 s). That is far below the minutes a
+doubles at the size of hundreds of connectors (measured on a synthetic package of
+six folders, best of several runs on a shared machine: 40 connectors take about 0.05 s, 80 about 0.15 s, 160 about
+0.4 s, 320 about 1.5 s and 640 about 5 s). That is far below the minutes a
 40-connector package took before, but it is not linear: a scope of thousands of connectors is still slow. The whole
 OMG Annex A SimpleVehicleModel (a scope of 87 connectors over about 370 nodes) lays out in under 2 s per general
 view, and rendering all its views with `sysml2tools render --auto` takes about 13 s, of which about 8 s are loading

@@ -374,21 +374,53 @@ scene and the growth exponent between doublings, and the numbers are recorded he
 the OMG Annex A SimpleVehicleModel (one scope of 87 routed
 connectors over about 370 descendants, laid out twice by the SysML2Tools general view) the layout fell from 9.8 s
 to about 1.6 s, and `sysml2tools render --auto` of the whole model from 33.7 s to about 13 s (of which about 8 s
-are loading the model). On the synthetic package of six folders of five leaves with E cross-container
-connectors, one `LayoutEngine.Layout` takes (reference machine, best of three):
+are loading the model). The benchmark's synthetic package of six folders of five leaves with E cross-container
+connectors, and its nested packages, measured as the minimum of the measured layouts over three runs of the benchmark
+(Release, net10.0, Windows x64, 28 logical processors that other jobs kept about half busy, so every time is
+inflated and noisy):
 
-| E | 40 | 80 | 160 | 320 | 640 |
-| --- | --- | --- | --- | --- | --- |
-| Time | 0.04 s | 0.11 s | 0.27 s | 0.87 s | 2.6 s |
+| Scene | Connectors drawn | Time (s) |
+| --- | --- | --- |
+| E = 5 | 29 | 0.96 |
+| E = 10 | 34 | 1.5 |
+| E = 20 | 44 | 0.01 |
+| E = 40 | 64 | 0.05 |
+| E = 80 | 104 | 0.15 |
+| E = 160 | 184 | 0.38 |
+| E = 320 | 344 | 1.5 |
+| E = 640 | 664 | 4.8 |
+| Nested, small (2 sub-packages) | 16 | 0.21 |
+| Nested, oversize (80 package connectors) | 140 | 0.18 |
+| Nested, everyday (4 sub-packages of 3 folders of 4 leaves) | 66 | 12 |
 
-The time grows by 2.4 to 3.0 times per doubling of E: roughly E<sup>1.5</sup> from 160 to 640 connectors. That is well
+The time of the full effort (E up to 10) is seconds and grows quickly with the connector count; from 16 connectors
+the scope is routed at the reduced effort and the time drops to milliseconds, then grows by 2.5 to 4 times per
+doubling of E: about E<sup>1.7</sup> from 80 to 640 connectors on this loaded machine (the exponent between two
+doublings ranges from 1.3 to 2.0 with the load; on a quiet moment single runs gave about E<sup>1.5</sup>). That is well
 below the cube it was (and below a quadratic), but it is **not linear**. The remaining terms that grow faster than
 linearly are that each search weighs every routed line in its cost and that the window around a connector holds more
 hard obstacles as the scope spreads over a larger canvas. (During development the work units the budget counts were
-recorded once with a temporary counter: 0.45, 1.3, 3.2, 9.6 and 24.6 million units for the same five sizes. The
-product no longer exposes them, so the benchmark reports time.) The times above are for a
-development machine; on a CI agent that runs the four runtimes of the test project at once with coverage the same
-layouts take more than ten times as long, which is the reason no test asserts a time.
+recorded once with a temporary counter: 0.45, 1.3, 3.2, 9.6 and 24.6 million units for E = 40 to 640. The product no
+longer exposes them, so the benchmark reports time.) The times are for a development machine; on a CI agent that runs
+the four runtimes of the test project at once with coverage the same layouts take more than ten times as long, which
+is the reason no test asserts a time.
+
+How the releases compare. The everyday nested package (four sub-packages of three folders of four leaves, six inner and
+six package connectors; the shape of a package model of moderate size) is where the cost of a hierarchy shows. One
+layout in a fresh process took, on the same machine and at similar load (indicative, one run each):
+
+| Scene | beta.5 | Before the route-pass cache (20c6ab7) | With the route-pass cache |
+| --- | --- | --- | --- |
+| E = 5 | 5.6 s | 2.7 s | 1.7 s |
+| E = 10 | 9.4 s | 3.7 s | 2.3 s |
+| E = 20 | 189 s | 0.25 s | 0.17 s |
+| E = 40 | more than 180 s | 0.39 s | 0.27 s |
+| E = 640 | not finishing | 4.6 s | 2.8 s |
+| Nested, 2 sub-packages of 3 folders of 4 leaves, 3 package connectors | 64 s | 24 s | 3.9 s |
+| Nested, everyday | 176 s (115 to 369 s over several runs) | 35 s | 7.1 s |
+
+The geometry of E = 5 and 10 and of the nested scenes is identical in all three columns (the fingerprints are equal);
+from E = 16 beta.5 draws without the reduced effort and takes minutes.
 
 #### Route-pass cache
 
