@@ -1575,7 +1575,7 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
     /// The (possibly) widened boxes, lines, and ports, plus the scope's total width grown by the sum of
     /// every inserted gap. When no pair qualifies for widening, the inputs are returned unchanged.
     /// </returns>
-    private static (LayoutBox[] Composed, List<LayoutLine> Lines, List<LayoutPort> Ports, double Width) WidenSiblingContainerGaps(
+    internal static (LayoutBox[] Composed, List<LayoutLine> Lines, List<LayoutPort> Ports, double Width) WidenSiblingContainerGaps(
         LayoutBox[] composed,
         Dictionary<LayoutGraphNode, int> indexOf,
         List<LayoutGraphEdge> routedEdges,
