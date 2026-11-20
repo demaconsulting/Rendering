@@ -229,11 +229,6 @@ public sealed partial class HierarchicalLayoutAlgorithm
         internal RoutePassCache RoutePasses { get; } = new();
 
         /// <summary>
-        /// Gets the routing footprints of the scopes laid out so far (see <see cref="RoutingFootprintOf"/>).
-        /// </summary>
-        internal Dictionary<LayoutGraph, RoutingFootprint> Footprints { get; } = [];
-
-        /// <summary>
         /// Gets the loose containers (not tightened to their content) of the scopes laid out so far, so a
         /// refinement pass starts with what the first pass of the scope found out.
         /// </summary>
@@ -383,73 +378,7 @@ public sealed partial class HierarchicalLayoutAlgorithm
     internal static readonly RoutingWorkLimits DefaultRoutingWorkLimits = new(
         Soft: 80_000_000L,
         Hard: 160_000_000L,
-        ReducedWeight: 600L,
-        NestedLeanWeight: 100L);
-
-    /// <summary>
-    /// What a scope costs to route, from its graph alone: how many connectors it routes itself, their weight
-    /// (the routed connectors times the nodes under the scope, the measure <see cref="RoutingWorkLimits.ReducedWeight"/>
-    /// is compared with), and the summed weight of every scope inside it.
-    /// </summary>
-    /// <param name="RoutedEdges">The connectors the scope routes itself.</param>
-    /// <param name="Weight">The scope's own routing weight.</param>
-    /// <param name="NestedWeight">The summed routing weight of all the scopes inside the scope.</param>
-    internal readonly record struct RoutingFootprint(int RoutedEdges, long Weight, long NestedWeight);
-
-    /// <summary>
-    /// Returns the routing footprint of <paramref name="scope"/>, derived from the graph by the same
-    /// classification <see cref="LayoutScopePassOnce"/> uses, so the decision to lay the inner scopes of a
-    /// heavy hierarchy out lean (see <see cref="RoutingWorkBudget.Lean"/>) is made before any of them is laid
-    /// out, and depends on the input only.
-    /// </summary>
-    /// <param name="scope">The container scope.</param>
-    /// <param name="context">The run's refinement context that remembers footprints, or <see langword="null"/> for none.</param>
-    /// <returns>The footprint; a scope whose edges cannot be classified (a named-port edge across a container boundary, which the layout reports itself) counts no routed connectors.</returns>
-    private static RoutingFootprint RoutingFootprintOf(LayoutGraph scope, OrderingRefinementContext? context)
-    {
-        // A scope is laid out many times in one run; its footprint is a fact of the graph, so compute it once
-        if (context is not null && context.Footprints.TryGetValue(scope, out var known))
-        {
-            return known;
-        }
-
-        // The scope's own routed connectors, classified exactly as the layout pass classifies them
-        var descendantToDirect = new Dictionary<LayoutGraphNode, LayoutGraphNode>();
-        var portOwner = new Dictionary<LayoutGraphPort, LayoutGraphNode>();
-        var nesting = new Dictionary<LayoutGraphNode, (LayoutGraphNode? Parent, int Index)>();
-        for (var directIndex = 0; directIndex < scope.Nodes.Count; directIndex++)
-        {
-            var direct = scope.Nodes[directIndex];
-            nesting[direct] = (null, directIndex);
-            MapDescendants(direct, direct, descendantToDirect, portOwner, nesting);
-        }
-
-        var routed = 0;
-        try
-        {
-            routed = ClassifyEdges(scope, descendantToDirect, portOwner, nesting).RoutedEdges.Count;
-        }
-        catch (NotSupportedException)
-        {
-            // The layout of this scope throws this itself; it contributes no routing weight here
-        }
-
-        // The weight of every scope inside this one
-        long nested = 0;
-        foreach (var node in scope.Nodes.Where(node => node.HasChildren))
-        {
-            var inner = RoutingFootprintOf(node.Children, context);
-            nested += inner.Weight + inner.NestedWeight;
-        }
-
-        var footprint = new RoutingFootprint(routed, (long)routed * (descendantToDirect.Count + scope.Nodes.Count), nested);
-        if (context is not null)
-        {
-            context.Footprints[scope] = footprint;
-        }
-
-        return footprint;
-    }
+        ReducedWeight: 600L);
 
     /// <summary>
     /// Returns <paramref name="effective"/> carrying <paramref name="budget"/> as the routing budget of the
@@ -662,9 +591,9 @@ public sealed partial class HierarchicalLayoutAlgorithm
         }
 
         // A scope whose routing already ran down its work budget is not refined: every further routed
-        // layout would only spend more of what is gone. Nor is a lean scope: it keeps its one routed pass.
+        // layout would only spend more of what is gone.
         var budget = effective.Get(RoutingBudget);
-        if (budget is { Tier: not RoutingTier.Full } or { Lean: true })
+        if (budget is { Tier: not RoutingTier.Full })
         {
             return first.Tree;
         }

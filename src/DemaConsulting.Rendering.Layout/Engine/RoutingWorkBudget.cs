@@ -37,18 +37,7 @@ internal enum RoutingTier
 /// the full effort is worth, and spending part of the budget to find that out would only delay the same
 /// outcome.
 /// </param>
-/// <param name="NestedLeanWeight">
-/// The summed routing weight of the scopes inside a scope that routes connectors itself, from which those
-/// inner scopes are laid out <em>lean</em> (see <see cref="RoutingWorkBudget.Lean"/>): one routed pass at
-/// the full effort. Every layout of the enclosing scope lays its inner scopes out again, so the passes of a
-/// hierarchy multiply level by level; a hierarchy this heavy cannot afford the ordering refinement and the
-/// extra layouts at every level, and the enclosing scope keeps them for itself.
-/// </param>
-internal sealed record RoutingWorkLimits(
-    long Soft,
-    long Hard,
-    long ReducedWeight = long.MaxValue,
-    long NestedLeanWeight = long.MaxValue);
+internal sealed record RoutingWorkLimits(long Soft, long Hard, long ReducedWeight = long.MaxValue);
 
 /// <summary>
 /// A deterministic account of the routing work one layout scope has spent, and the effort tier that follows
@@ -99,41 +88,6 @@ internal sealed class RoutingWorkBudget
 
     /// <summary>Gets a value indicating whether the scope's own size put it in the <see cref="RoutingTier.Reduced"/> tier.</summary>
     public bool SizeForced => _forcedReduced;
-
-    /// <summary>
-    /// Gets a value indicating whether the scope is laid out <em>lean</em>: with one routed pass at the full
-    /// effort (the containers a routed connector enters keep their room from the start; no second pass for
-    /// the connectors that hugged a border, no reference or middle layout, no ordering refinement). A lean
-    /// scope is not limited: its router effort, its tier and its warnings are those of any scope at the
-    /// full effort, it only does not repeat its layout.
-    /// </summary>
-    public bool Lean { get; private set; }
-
-    /// <summary>
-    /// Gets a value indicating whether the scopes inside the scope are laid out lean: the scope itself holds
-    /// a hierarchy heavy enough (see <see cref="RoutingWorkLimits.NestedLeanWeight"/>), or is lean itself.
-    /// </summary>
-    public bool LeansInnerScopes { get; private set; }
-
-    /// <summary>Gets the summed weight of the inner scopes from which they are laid out lean.</summary>
-    public long NestedLeanWeight => _limits.NestedLeanWeight;
-
-    /// <summary>
-    /// Lays the scope out lean (see <see cref="Lean"/>), and so every scope inside it: they are inner scopes
-    /// of the heavy hierarchy too.
-    /// </summary>
-    public void MarkLean()
-    {
-        Lean = true;
-        LeansInnerScopes = true;
-    }
-
-    /// <summary>
-    /// Lays the scopes inside the scope out lean, because the scope holds a hierarchy of inner scopes heavy
-    /// enough that repeating each of them for every layout of the scope costs more than it is worth. The scope
-    /// itself keeps the full effort.
-    /// </summary>
-    public void MarkInnerScopesLean() => LeansInnerScopes = true;
 
     /// <summary>Gets the effort tier the work spent so far, and the size of the scope, allow.</summary>
     public RoutingTier Tier => TierOf(ForcedReduced);

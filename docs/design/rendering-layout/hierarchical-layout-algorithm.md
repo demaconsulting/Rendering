@@ -328,8 +328,7 @@ work budget, and a scope too large for the full effort is routed at a reduced ef
   to the minimal tier. The limits bound the work of one scope and one budget, not of a layout: each scope-pass of a
   nested hierarchy gets a fresh budget, so a hierarchy of many heavy scopes spends their sum (a hierarchy of four
   sub-packages of three folders spent 280 million units over 364 routed passes with no scope above 30 million, and took
-  35 to 41 seconds; the route-pass cache and the lean nested scopes below remove most of that work, the cache without
-  changing a coordinate).
+  35 to 41 seconds; the route-pass cache below removes about four fifths of that work without changing a coordinate).
   That is a known limitation of the per-scope budget, not changed here (the benchmark scenes and the
   gallery must stay byte-identical); a budget for the whole layout is a possible follow-up. The heaviest benchmark scene
   needs about 53 million units, so no benchmark scene is ever limited (`LargeScopeLayoutTests` asserts that none of
@@ -392,7 +391,7 @@ inflated and noisy):
 | E = 640 | 664 | 4.8 |
 | Nested, small (2 sub-packages) | 16 | 0.21 |
 | Nested, oversize (80 package connectors) | 140 | 0.18 |
-| Nested, everyday (4 sub-packages of 3 folders of 4 leaves) | 66 | 4.4 (12 before the lean tier) |
+| Nested, everyday (4 sub-packages of 3 folders of 4 leaves) | 66 | 12 |
 
 The time of the full effort (E up to 10) is seconds and grows quickly with the connector count; from 16 connectors
 the scope is routed at the reduced effort and the time drops to milliseconds, then grows by 2.5 to 4 times per
@@ -410,25 +409,23 @@ How the releases compare. The everyday nested package (four sub-packages of thre
 six package connectors; the shape of a package model of moderate size) is where the cost of a hierarchy shows. One
 layout in a fresh process took, on the same machine and at similar load (indicative, one run each):
 
-| Scene | beta.5 | Before the route-pass cache (20c6ab7) | With the route-pass cache | With the lean tier |
-| --- | --- | --- | --- | --- |
-| E = 5 | 5.6 s | 2.7 s | 1.7 s | 1.7 s |
-| E = 10 | 9.4 s | 3.7 s | 2.3 s | 2.3 s |
-| E = 20 | 189 s | 0.25 s | 0.17 s | 0.17 s |
-| E = 40 | more than 180 s | 0.39 s | 0.27 s | 0.27 s |
-| E = 640 | not finishing | 4.6 s | 2.8 s | 2.8 s |
-| Nested, 2 sub-packages of 3 folders of 4 leaves, 3 package connectors | 64 s | 24 s | 3.9 s | 3.2 s |
-| Nested, everyday | 176 s (115 to 369 s over several runs) | 35 s | 7.1 s | 3.9 s |
+| Scene | beta.5 | Before the route-pass cache (20c6ab7) | With the route-pass cache |
+| --- | --- | --- | --- |
+| E = 5 | 5.6 s | 2.7 s | 1.7 s |
+| E = 10 | 9.4 s | 3.7 s | 2.3 s |
+| E = 20 | 189 s | 0.25 s | 0.17 s |
+| E = 40 | more than 180 s | 0.39 s | 0.27 s |
+| E = 640 | not finishing | 4.6 s | 2.8 s |
+| Nested, 2 sub-packages of 3 folders of 4 leaves, 3 package connectors | 64 s | 24 s | 3.9 s |
+| Nested, everyday | 176 s (115 to 369 s over several runs) | 35 s | 7.1 s |
 
-The geometry of E = 5 and 10 and of the nested scenes is identical in all four columns (the fingerprints are equal);
+The geometry of E = 5 and 10 and of the nested scenes is identical in all three columns (the fingerprints are equal);
 from E = 16 beta.5 draws without the reduced effort and takes minutes.
 
-The everyday nested package is timed several times in this document, each at a different stage and machine load: 7.1 s
-is the stage with the route-pass cache alone (the "7 s" of the *Route-pass cache* section); 3.9 s is the final stage,
-the lean tier, in the release comparison above, taken as one run at the load of that comparison; and 4.4 s is the same
-final stage as the minimum of three benchmark runs in the table before it, while other jobs kept the machine about half
-busy (a later single benchmark run gave 4.25 s). They are the same code at different loads; compare times only within
-one table.
+The everyday nested package is timed twice in this document, at different machine loads: 7.1 s is one layout in a fresh
+process at the load of the release comparison above (the "7 s" of the *Route-pass cache* section), and 12 s is the
+minimum of three benchmark runs in the table before it, while other jobs kept the machine about half busy. They are the
+same code at different loads; compare times only within one table.
 
 #### Route-pass cache
 
@@ -461,62 +458,6 @@ in `OrderingRefinementContext.RoutePasses`) replays the earlier answer:
   the 2 and 3 sub-package variants fall by a factor of four to five. The geometry is identical: the fingerprints of
   the synthetic and nested scenes, the 107 files of the gallery and the seven Annex A views are byte-for-byte what
   they were without the cache.
-
-#### Lean nested scopes
-
-The route-pass cache removes the repetition that is exact; the rest of the cost of a hierarchy is the product of the
-pass counts of its levels, which is not exact repetition. A scope that routes connectors lays itself out up to seven
-times (tight, loose, reference and middle layouts, ordering proposals), and every one of those layouts lays each of
-its sub-scopes out again with all of *their* extra passes; a hierarchy of depth *d* costs about 7<sup>d</sup> routed
-passes of its innermost scope. The everyday nested package spent 364 routed passes in 42 layouts of its sub-packages.
-A scope that routes connectors itself and holds a hierarchy of inner scopes whose summed routing weight reaches
-`RoutingWorkLimits.NestedLeanWeight` (100; the weight of a scope is its routed connectors times the nodes under it,
-the measure of `ReducedWeight`) keeps the full effort for itself and has the scopes inside it laid out *lean*:
-
-- **What lean means.** `RoutingWorkBudget.Lean`. A lean scope is routed with the full-effort router (its tier stays
-  `Full`, so it raises no warning and no hint) in **one routed pass**: the containers a routed connector enters keep
-  their room from the start (the `roomy` rule of a size-forced scope), there is no second pass for the connectors that
-  hugged a border, no reference or middle layout (`LayoutScopePass`), and no ordering refinement
-  (`RefineCrossOrdering`). The scopes inside a lean scope are lean too (`LeansInnerScopes` flows down through the
-  options like `ForcedReduced` does), and a size-forced or inherited-reduced scope is not lean: the reduced tier already
-  does less.
-- **The decision depends on the input only.** `RoutingFootprintOf` derives the routed connectors, the weight and the
-  nested weight of a scope from its graph by the same classification the layout pass uses, once per scope per run
-  (`OrderingRefinementContext.Footprints`), before any inner scope is laid out. A scope whose edges cannot be
-  classified (a named-port edge across a container boundary) counts as routing nothing; the layout reports it itself.
-  The top scope of a model that routes nothing itself (a single root folder) does not make its children lean; the
-  package scope that holds the sub-packages' connectors does.
-- **The trade-off (a product decision).** Nested scopes of a heavy hierarchy no longer get the ordering refinement
-  and the extra layouts, so their interior order and room are not tuned against the connectors the enclosing scope
-  routes. Measured against the full effort on nested packages of one to four sub-packages (the crossings of the
-  whole drawing, counted once with a temporary harness; *same* means the fingerprint is equal, byte for byte). A
-  scene is written S x F x L / I / T: S sub-packages of F folders of L leaves, I connectors inside each sub-package,
-  T connectors in the package scope:
-
-  | Scene (S x F x L / I / T) | Crossings, full effort | Crossings, lean | Geometry |
-  | --- | --- | --- | --- |
-  | 2 x 2 x 3 / 3 / 3 | 7 | 7 | same |
-  | 1 x 3 x 4 / 6 / 0 | 3 | 3 | same |
-  | 2 x 3 x 4 / 3 / 3 | 10 | 10 | same |
-  | 2 x 3 x 4 / 6 / 3 | 12 | 12 | same |
-  | 3 x 3 x 4 / 6 / 4 | 15 | 15 | same |
-  | 4 x 3 x 4 / 6 / 6 (the everyday package) | 29 | 29 | same |
-  | 2 x 3 x 3 / 6 / 3 | 17 | 17 | canvas 630 x 2402, was 610 x 2482 |
-  | 2 x 3 x 6 / 6 / 3 | 18 | 19 | different |
-  | 2 x 4 x 4 / 6 / 3 | 16 | 18 | different |
-
-  So the drawings of the shapes most models have are byte-identical, the others differ by at most two crossings and
-  one by canvas size. The reward is the cost: the everyday package falls from 7.1 s with the cache alone to 3.9 s (35 s
-  before the cache; the times of the release comparison above, taken at one load), and the two sub-packages of three
-  folders of six leaves from 70 s before the cache to 3 s.
-- **Where it never applies.** No scene of the gallery or of the layout-quality benchmark set has a scope that routes
-  connectors nested inside another that does, so the 107 gallery files and `metrics.md` are byte-identical with the
-  lean tier; the OMG Annex A views' package scopes are size-forced to the reduced tier (their inner scopes inherit
-  it), and the seven views are byte-identical too. A hierarchy below the weight (the 2 sub-package scene with inner
-  connectors of 2 folders of 3 leaves weighs 60) keeps the full effort everywhere.
-- **Reverting it.** The behavior is one constant: `NestedLeanWeight` in `DefaultRoutingWorkLimits`. With the default
-  `long.MaxValue` of `RoutingWorkLimits` (no inner scope is ever lean) the layout is the one the route-pass cache alone
-  produces; the whole tier is one commit of the history and can be reverted alone.
 
 ### HierarchicalLayoutAlgorithm Design Constraints
 

@@ -392,7 +392,7 @@ behavior constitutes a failure. Mutation of input node sizes also constitutes a 
   package connectors: 65 nodes, 17 containers, 66 connectors; it took minutes in earlier releases) and confirms
   every connector is drawn orthogonally and ends on the boxes it joins, sibling boxes do not overlap, no warning is
   raised, and the fingerprint equals the one captured from the full-effort layout before any layout shortcut existed
-  (the scene is not changed by the lean tier or by the route-pass cache). No test reads a clock or the budget's
+  (the route-pass cache does not change the scene). No test reads a clock or the budget's
   counters: how fast these layouts are is a
   design property measured by the opt-in benchmark (see *Performance verification* below).
 - **Regression tests without a requirement.** `..._NestedPackageWithPackageEdges_MatchesGoldenGeometry` and
