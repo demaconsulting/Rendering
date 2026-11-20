@@ -1,4 +1,4 @@
-package RenderingModel {
+package RenderingModel_Options {
     private import SoftwareItemMetadata::*;
 
     part def Options {

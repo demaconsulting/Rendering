@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_EdgeRoutingOption {
     private import SoftwareItemMetadata::*;
 
     part def EdgeRoutingOption {

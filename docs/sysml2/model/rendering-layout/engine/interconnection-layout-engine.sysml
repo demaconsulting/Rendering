@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_InterconnectionLayoutEngine {
     private import SoftwareItemMetadata::*;
 
     part def InterconnectionLayoutEngine {

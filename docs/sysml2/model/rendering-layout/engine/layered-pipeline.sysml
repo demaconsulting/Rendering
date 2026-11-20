@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_LayeredPipeline {
     private import SoftwareItemMetadata::*;
 
     part def LayeredPipeline {

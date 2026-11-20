@@ -1,4 +1,4 @@
-package RenderingModel {
+package RenderingModel_LayoutGraph {
     private import SoftwareItemMetadata::*;
 
     part def LayoutGraph {

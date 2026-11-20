@@ -99,8 +99,9 @@ The software structure is modeled in SysML2 under `docs/sysml2/` (see
 `docs/sysml2/model/**/*.sysml`) and rendered to the diagram below by SysML2Tools as part
 of the build pipeline. Each of the five systems is its own SysML2 package (the
 `DemaConsulting.Rendering` model system is the `RenderingModel` package) containing a system
-part definition and its subsystems and units; the OTS items are in the `OtsDependencies`
-package. The SysML2 model — not this diagram or prose — is the authoritative,
+part definition; every subsystem and unit is in its own uniquely named package
+(`<System>_<Name>`, for example `RenderingLayout_Engine`) that the system package imports; the
+OTS items are in the `OtsDependencies` package. The SysML2 model — not this diagram or prose — is the authoritative,
 machine-queryable source of structure. AI agents should query the SysML2 model directly
 (see the `sysml2tools-query` skill) rather than parsing this diagram before deep-diving into
 source code.

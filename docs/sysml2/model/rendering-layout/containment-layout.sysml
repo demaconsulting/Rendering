@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_ContainmentLayout {
     private import SoftwareItemMetadata::*;
 
     part def ContainmentLayout {

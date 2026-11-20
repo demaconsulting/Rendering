@@ -1,4 +1,4 @@
-package RenderingAbstractions {
+package RenderingAbstractions_Registries {
     private import SoftwareItemMetadata::*;
 
     part def Registries {

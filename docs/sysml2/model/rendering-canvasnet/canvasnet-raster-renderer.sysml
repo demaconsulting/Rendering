@@ -1,4 +1,4 @@
-package RenderingCanvasNet {
+package RenderingCanvasNet_CanvasNetRasterRenderer {
     private import SoftwareItemMetadata::*;
 
     part def CanvasNetRasterRenderer {

@@ -1,4 +1,4 @@
-package RenderingAbstractions {
+package RenderingAbstractions_Theme {
     private import SoftwareItemMetadata::*;
 
     part def Theme {

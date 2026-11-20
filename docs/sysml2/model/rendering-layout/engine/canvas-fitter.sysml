@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_CanvasFitter {
     private import SoftwareItemMetadata::*;
 
     part def CanvasFitter {

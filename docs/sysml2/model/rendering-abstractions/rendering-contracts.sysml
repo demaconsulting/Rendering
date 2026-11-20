@@ -1,4 +1,4 @@
-package RenderingAbstractions {
+package RenderingAbstractions_RenderingContracts {
     private import SoftwareItemMetadata::*;
 
     part def RenderingContracts {

@@ -1,4 +1,4 @@
-package RenderingLayout {
+package RenderingLayout_DefaultLayout {
     private import SoftwareItemMetadata::*;
 
     part def DefaultLayout {

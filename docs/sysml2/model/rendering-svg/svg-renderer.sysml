@@ -1,4 +1,4 @@
-package RenderingSvg {
+package RenderingSvg_SvgRenderer {
     private import SoftwareItemMetadata::*;
 
     part def SvgRenderer {

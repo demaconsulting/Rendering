@@ -1,4 +1,4 @@
-package RenderingAbstractions {
+package RenderingAbstractions_PortLabelWidthEstimator {
     private import SoftwareItemMetadata::*;
 
     part def PortLabelWidthEstimator {
