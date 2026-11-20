@@ -126,6 +126,18 @@ internal sealed class RoutingWorkBudget
     public long RemainingHard => Math.Max(0L, _limits.Hard - Spent);
 
     /// <summary>
+    /// Returns whether spending <paramref name="units"/> more work would leave the scope at the
+    /// <see cref="RoutingTier.Full"/> effort from the first unit to the last: it is at that effort now, and
+    /// the work stays below both the soft and the hard limit. It is the condition under which routing a
+    /// problem whose cost is known beforehand cannot meet a limit, so its outcome does not depend on the
+    /// work already spent.
+    /// </summary>
+    /// <param name="units">The work units about to be spent; never negative.</param>
+    /// <returns><see langword="true"/> when the effort stays full throughout.</returns>
+    public bool WouldStayFull(long units) =>
+        Tier == RoutingTier.Full && Spent + units < Math.Min(_limits.Soft, _limits.Hard);
+
+    /// <summary>
     /// Adds <paramref name="units"/> of work to the account.
     /// </summary>
     /// <param name="units">The work units spent; never negative.</param>

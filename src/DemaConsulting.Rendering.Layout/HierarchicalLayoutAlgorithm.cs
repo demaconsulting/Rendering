@@ -694,7 +694,7 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
                 composed, indexOf, routedEdges, descendantToDirect, placedLines, placedPorts, placed.Width);
 
             var leafCrossLines = route
-                ? RouteCrossContainerEdges(routedEdges, widenedBoxes, indexOf, descendantToDirect, nesting, effective, violators)
+                ? RouteCrossContainerEdgesCached(graph, routedEdges, widenedBoxes, indexOf, descendantToDirect, nesting, effective, violators)
                 : new List<LayoutLine>();
             var leafNodes = new List<LayoutNode>(
                 widenedBoxes.Length + widenedLines.Count + widenedPorts.Count + leafCrossLines.Count);

@@ -328,8 +328,9 @@ work budget, and a scope too large for the full effort is routed at a reduced ef
   unit, and more on a loaded or instrumented one) the scope drops to the reduced tier; at the hard limit (160 million)
   to the minimal tier. The limits bound the work of one scope and one budget, not of a layout: each scope-pass of a
   nested hierarchy gets a fresh budget, so a hierarchy of many heavy scopes spends their sum (a hierarchy of four
-  sub-packages of three folders spent 280 million units over 125 routed passes with no scope above 30 million, and took
-  41 seconds). That is a known limitation of the per-scope budget, not changed here (the benchmark scenes and the
+  sub-packages of three folders spent 280 million units over 364 routed passes with no scope above 30 million, and took
+  35 to 41 seconds; the route-pass cache below removes about four fifths of that work without changing a coordinate).
+  That is a known limitation of the per-scope budget, not changed here (the benchmark scenes and the
   gallery must stay byte-identical); a budget for the whole layout is a possible follow-up. The heaviest benchmark scene
   needs about 53 million units, so no benchmark scene is ever limited (`RoutingPerformanceTests` asserts it, so a
   future change that makes routing dearer is noticed).
@@ -390,6 +391,38 @@ hard obstacles as the scope spreads over a larger canvas. `RoutingPerformanceTes
 1, 20 and 50 million units for 40, 320 and 640 connectors (about twice the measured work). The times above are for a
 development machine; on a CI agent that runs the four runtimes of the test project at once with coverage the same
 layouts take more than ten times as long, which is why the guards count work and only one smoke test reads a clock.
+
+#### Route-pass cache
+
+A scope is laid out and routed many times in one run: its own tight, loose, reference and middle layouts and ordering
+proposals, and again for every layout of the scopes that hold it, because each parent layout that hands a child a new
+order or room hint makes the child's whole pipeline run again, with its own refinement. Most of those layouts reach the
+router with composed boxes identical to an earlier one: of the 364 routed passes of a package of four sub-packages of
+three folders of four leaves, only 54 had a distinct input. Routing the same problem again made the cost the product of
+the pass counts of the levels. The cache (`HierarchicalLayoutAlgorithm.RoutePassCache.cs`, one instance per layout run
+in `OrderingRefinementContext.RoutePasses`) replays the earlier answer:
+
+- **Key.** The scope (by reference; its edges, endpoints and classification are a function of it), the
+  `EdgeRouting` style, the assumed font size, and a SHA-256 digest of every public property of every composed box at
+  any depth (the lines already inside the boxes included, down to each waypoint's exact bits). The digest walks the
+  public properties of the layout model's records by reflection, so a property added to the model later is part of the
+  key without anyone having to remember it; an object it cannot look into (a graph node or port a layout node refers to)
+  is told apart by identity.
+- **Exactness.** Routing is a pure function of those inputs while the scope's budget is at the `Full` tier, so a pass is
+  stored only when it started and ended at `Full` (the work it charged left the budget below both limits), and is
+  replayed only when `RoutingWorkBudget.WouldStayFull` holds for that same work. A replay charges the work the stored
+  pass charged, so the budget's `Spent`, every tier decision and every hint that follows from it are the same with or
+  without the cache. Nothing else of the pass has a side effect that later code reads (the lines are immutable records;
+  the replay returns a new list of them; the wall-hugging containers the pass found are added to the caller's set).
+  A pass at the `Reduced` or `Minimal` tier is neither stored nor replayed, because its lines depend on how much work
+  was already spent.
+- **Limits.** At most 2,048 passes are kept per run; beyond that routing simply runs, which is exact too. The key
+  digest costs a few milliseconds per pass against seconds of routing.
+- **Effect.** The package of four sub-packages of three folders of four leaves (65 nodes, 66 connectors) falls from
+  35 s to 7 s in a Release build on the reference machine (280 million units of work to 50 million really searched);
+  the 2 and 3 sub-package variants fall by a factor of four to five. The geometry is identical: the fingerprints of
+  the synthetic and nested scenes, the 107 files of the gallery and the seven Annex A views are byte-for-byte what
+  they were without the cache.
 
 ### HierarchicalLayoutAlgorithm Design Constraints
 

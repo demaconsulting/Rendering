@@ -239,6 +239,12 @@ public sealed partial class HierarchicalLayoutAlgorithm
         internal Dictionary<(LayoutGraphNode Container, string Signature), LayoutTree> InteriorLayouts { get; } = [];
 
         /// <summary>
+        /// Gets the routed passes of the run, so a pass over a routing problem an earlier pass already
+        /// solved replays its lines instead of searching again (see <see cref="RoutePassCache"/>).
+        /// </summary>
+        internal RoutePassCache RoutePasses { get; } = new();
+
+        /// <summary>
         /// Gets the loose containers (not tightened to their content) of the scopes laid out so far, so a
         /// refinement pass starts with what the first pass of the scope found out.
         /// </summary>
