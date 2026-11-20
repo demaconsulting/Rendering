@@ -366,10 +366,10 @@ public sealed partial class HierarchicalLayoutAlgorithm
     /// </summary>
     /// <remarks>
     /// The limits are calibrated against the measured work of the layout-quality benchmark scenes and the
-    /// gallery, the heaviest of which spends about 53 million units in one scope and weighs 364: the
-    /// soft limit sits half as high again as that (so no benchmark scene is ever reduced), the hard limit
+    /// gallery, the heaviest of which spends about 40 million units in one scope and weighs 338: the
+    /// soft limit sits at twice that (so no benchmark scene is ever reduced), the hard limit
     /// at twice the soft one, and the weight threshold well above the weight of every such scene and well
-    /// below that of a scope (such as 40 connectors over 36 nodes, weight 1 680) whose full routing takes
+    /// below that of a scope (such as 40 connectors over 36 nodes, weight 1 440) whose full routing takes
     /// minutes. One work unit costs between about 100 nanoseconds (the routing of a large flat grid) and
     /// about 200 nanoseconds (the nested scenes) on a fast desktop core, and more on a shared or
     /// instrumented one, so the soft limit is a bound of the work a scope spends, not of the time it takes.
@@ -378,7 +378,7 @@ public sealed partial class HierarchicalLayoutAlgorithm
     internal static readonly RoutingWorkLimits DefaultRoutingWorkLimits = new(
         Soft: 80_000_000L,
         Hard: 160_000_000L,
-        ReducedWeight: 600L);
+        ReducedWeight: 540L);
 
     /// <summary>
     /// Returns <paramref name="effective"/> carrying <paramref name="budget"/> as the routing budget of the

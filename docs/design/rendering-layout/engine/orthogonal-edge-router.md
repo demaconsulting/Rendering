@@ -143,7 +143,8 @@ the same terms in the same order:
   rare state that carries a pending short run (a minimum interior segment) uses a dictionary. The arrays
   and the memo are thread-local scratch validated by a per-search stamp, so starting a search costs
   nothing proportional to the grid and nothing is allocated per search. The scratch of a thread is kept for
-  reuse only while its tables take at most 32 MB (`RetainedByteLimit`, computed from the real array lengths at
+  reuse only while its tables take at most 32 MB (`RetainedByteLimit`, computed from the real array lengths and the
+  entries the overflow dictionary holds (28 bytes each) at
   about 210 bytes per grid node, so about 160 000 nodes; the OMG Annex A whole-model view's largest grid is
   64 152 nodes, about 13 MB, so every benchmark and gallery search reuses it); a larger grid, or a scratch whose state
   tables grew past the limit during a search, is released when the search ends, so a thread never holds hundreds of
@@ -165,14 +166,23 @@ the same terms in the same order:
 the grid grows with every obstacle and every routed line, and so does the cost of each of the thousands of searches a
 scope runs. `RoutingWorkBudget` is therefore an optional parameter of `RouteWithStatus` and `RoutePorts`. It counts work
 in units that depend only on the input — one per four grid nodes built, one per state expanded, one per node the
-connectivity sweep visits — never time, so every run on every platform stops at the same state. A budget with room to
+connectivity sweep visits, one per 32 candidate grid edges the obstacle and soft-term scans test (`ScanWorkDivisor`)
+— never time, so every run on every platform stops at the same state. A budget with room to
 spare changes no route. The work is charged to the budget while the search runs, in chunks of 64 expansions
 (`ChargeChunkSize`), so the account is current whenever another part of the layout reads it and the hard limit is
 checked at every chunk; the grid build is charged no more than the work the budget has left, and a search that starts
-with no work left returns at once. The work spent therefore exceeds the hard limit by less than one chunk,
-`63 * (1 + 4)` units (an expansion plus its four connectivity-sweep steps); this bound is a *design property* of the
-accounting, argued from `ChargeChunkSize` and the clamped grid-build charge and not asserted by a test, because the
-account is internal state. The router tests assert what it causes: however small the hard limit, a cut-off search
+with no work left returns at once. The scans that mark the grid edges obstacles block and the soft terms (soft
+obstacles and existing lines) cost in proportion to the obstacles and terms they visit, which on a grid of
+thousands of obstacles is more than the grid build itself, so they are charged after each obstacle or rectangle and
+stop at once when that charge reaches the hard limit (the search then fails and the connector takes the elbow);
+the soft-crossing count of an edge, one test per soft obstacle, is charged with the next chunk of expansions. The work
+spent therefore exceeds the hard limit by less than one chunk,
+`63 * (1 + 4)` units (an expansion plus its four connectivity-sweep steps), plus the charge of one obstacle or
+rectangle scan; this bound is a *design property* of the
+accounting, argued from `ChargeChunkSize`, `ScanWorkDivisor` and the clamped grid-build charge and not asserted by a
+test, because the account is internal state. One cost stays uncharged: sorting the obstacle edges into grid lines
+before the search exists, which is *O(obstacles log obstacles)* once per search. The router tests assert what the
+accounting causes: however small the hard limit, a cut-off search
 returns the valid elbow route, the same on every run. When the budget reaches its hard limit, a search stops at once and
 the connector takes the obstacle-aware elbow fallback with `Crossed = true`; every later connector of the scope takes it
 without a search. When the budget is at the reduced tier and no hints are given (the plain route), the route is first

@@ -45,9 +45,10 @@ internal sealed record RoutingWorkLimits(long Soft, long Hard, long ReducedWeigh
 /// </summary>
 /// <remarks>
 /// <para>
-/// Work is counted in units that depend only on the input: one unit per routing-grid node a search builds
-/// and one per search state it expands. The budget never reads a clock, so the tier a scope reaches, and
-/// therefore every route drawn, is the same on every run, machine and platform.
+/// Work is counted in units that depend only on the input: one unit per four routing-grid nodes a search
+/// builds, one per search state it expands, one per connectivity-sweep node it visits and one per 32
+/// candidate grid edges its obstacle and soft-term scans test. The budget never reads a clock, so the tier a
+/// scope reaches, and therefore every route drawn, is the same on every run, machine and platform.
 /// </para>
 /// <para>
 /// One budget serves every pass over one scope (the tight, loose and reference layouts and the ordering

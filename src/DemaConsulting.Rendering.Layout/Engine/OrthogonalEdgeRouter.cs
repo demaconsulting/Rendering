@@ -1222,6 +1222,12 @@ internal static class OrthogonalEdgeRouter
         /// <summary>The most memory, in bytes, a thread keeps its scratch for reuse by later searches.</summary>
         private const long RetainedByteLimit = 32L * 1024 * 1024;
 
+        /// <summary>
+        /// The approximate size in bytes of one entry of the overflow dictionary: its 24-byte entry
+        /// (key, value, hash code and chain link) and its 4-byte bucket.
+        /// </summary>
+        private const long OverflowEntryBytes = 28;
+
         /// <summary>Extra state slots reserved for run-pending states beyond the dense ones.</summary>
         private const int InitialOverflow = 1024;
 
@@ -1300,7 +1306,10 @@ internal static class OrthogonalEdgeRouter
 
         /// <summary>
         /// Gets the approximate size in bytes of the scratch's tables, from their real lengths (the state
-        /// and overflow tables may have grown beyond what the grid first needed).
+        /// and overflow tables may have grown beyond what the grid first needed). The overflow dictionary
+        /// keeps its capacity when it is cleared and holds one entry per overflow index, so it is accounted
+        /// as <see cref="OverflowEntryBytes"/> per index the overflow tables hold (the dictionary's own
+        /// capacity cannot be read on every target framework).
         /// </summary>
         private long ApproximateBytes =>
             ((long)(EdgeMark.Length + ExistingCrossings.Length) * sizeof(int))
@@ -1309,7 +1318,8 @@ internal static class OrthogonalEdgeRouter
             + ((long)Heuristic.Length * sizeof(double))
             + ((long)(HeuristicMark.Length + GoalAt.Length + GoalMark.Length + SeenMark.Length + StartMark.Length + Queue.Length) * sizeof(int))
             + ((long)Best.Length * (sizeof(double) + (2 * sizeof(int))))
-            + ((long)(OverflowNodeSlot.Length + OverflowRun.Length) * sizeof(int));
+            + ((long)(OverflowNodeSlot.Length + OverflowRun.Length) * sizeof(int))
+            + (OverflowNodeSlot.Length * OverflowEntryBytes);
 
         /// <summary>
         /// Returns the calling thread's scratch prepared for a new search over a grid of
@@ -1488,9 +1498,18 @@ internal static class OrthogonalEdgeRouter
         private const int GridBuildWorkDivisor = 4;
 
         /// <summary>
+        /// The candidate grid edges the obstacle and soft-term scans test per work unit. A test costs a few
+        /// nanoseconds against the 100 to 200 nanoseconds of a work unit, and the scans are charged in
+        /// proportion to the tests they make, so a scope with many obstacles or soft terms cannot spend its
+        /// time unaccounted.
+        /// </summary>
+        private const int ScanWorkDivisor = 32;
+
+        /// <summary>
         /// The number of expansions (a power of two) after which a running search charges its work to the
         /// budget, so the work spent never exceeds the hard limit by more than
-        /// <c>(ChargeChunkSize - 1) * (1 + ProbeStepsPerExpansion)</c> units plus the clamped grid build.
+        /// <c>(ChargeChunkSize - 1) * (1 + ProbeStepsPerExpansion)</c> units plus the clamped grid build and
+        /// one obstacle or rectangle scan.
         /// </summary>
         private const int ChargeChunkSize = 64;
 
@@ -1584,6 +1603,15 @@ internal static class OrthogonalEdgeRouter
         /// <summary>Whether the soft-obstacle terms have been rasterized for this search.</summary>
         private bool _softRasterized;
 
+        /// <summary>The candidate grid edges the obstacle and soft-term scans have tested.</summary>
+        private long _scanned;
+
+        /// <summary>The work units of <see cref="_scanned"/> already charged to the budget.</summary>
+        private long _scanCharged;
+
+        /// <summary>Whether the soft-term scan was cut short because the budget's hard limit was reached.</summary>
+        private bool _scanAborted;
+
         /// <summary>Initializes a search over the given grid.</summary>
         public GridSearch(
             double[] xs,
@@ -1651,20 +1679,47 @@ internal static class OrthogonalEdgeRouter
                 }
             }
 
-            RasterizeObstacles();
-
             // The expansions (and connectivity sweep steps) are charged to the budget in chunks while the
-            // search runs, and the rest however the search ends
+            // search runs, and the rest however the search ends; so is the scan work of the rasterizing
             long expansions = 0;
             try
             {
+                if (!RasterizeObstacles())
+                {
+                    return (null, 0.0);
+                }
+
                 return RunLoop(useDone, ref expansions);
             }
             finally
             {
                 _budget?.Charge(expansions + _probeSteps - _charged);
+                ChargeScanned();
                 SearchScratch.ReleaseIfOversize(_scratch);
             }
+        }
+
+        /// <summary>
+        /// Charges the scan work done since the last charge to the budget, one unit per
+        /// <see cref="ScanWorkDivisor"/> candidate edges tested.
+        /// </summary>
+        /// <returns><see langword="true"/> when the budget's hard limit is reached and the scan must stop.</returns>
+        private bool ChargeScanned()
+        {
+            if (_budget is null)
+            {
+                return false;
+            }
+
+            var work = _scanned / ScanWorkDivisor;
+            var delta = work - _scanCharged;
+            if (delta > 0)
+            {
+                _budget.Charge(delta);
+                _scanCharged = work;
+            }
+
+            return _budget.Tier == RoutingTier.Minimal;
         }
 
         /// <summary>
@@ -1679,7 +1734,7 @@ internal static class OrthogonalEdgeRouter
             var total = expansions + _probeSteps;
             budget.Charge(total - _charged);
             _charged = total;
-            return budget.Tier == RoutingTier.Minimal;
+            return ChargeScanned() || budget.Tier == RoutingTier.Minimal;
         }
 
         /// <summary>The A* loop proper over the grid.</summary>
@@ -1714,6 +1769,12 @@ internal static class OrthogonalEdgeRouter
 
             while (open.Count > 0)
             {
+                // The soft-term scan (run on the first edge priced) ran into the hard limit
+                if (_scanAborted)
+                {
+                    return (null, 0.0);
+                }
+
                 var currentId = open.Dequeue();
                 // A queue entry whose state was already expanded at its best cost is a stale duplicate: its
                 // expansion would find every neighbor already at the cost it would offer.
@@ -1927,9 +1988,11 @@ internal static class OrthogonalEdgeRouter
         /// Marks every grid edge a hard obstacle (inflated by the clearance) blocks. Each obstacle visits
         /// only the edges around it, found by binary search on the sorted grid lines, instead of every edge
         /// testing every obstacle; each candidate edge is tested with the original strict-inequality test, so
-        /// the marks are exactly those the per-edge scan would give.
+        /// the marks are exactly those the per-edge scan would give. The candidate edges tested are charged to
+        /// the budget (see <see cref="ScanWorkDivisor"/>) after each obstacle.
         /// </summary>
-        private void RasterizeObstacles()
+        /// <returns><see langword="false"/> when the budget's hard limit was reached and the scan stopped.</returns>
+        private bool RasterizeObstacles()
         {
             var blocked = _scratch.ObstacleBlocked;
             Array.Clear(blocked, 0, 2 * _nodes);
@@ -1946,6 +2009,7 @@ internal static class OrthogonalEdgeRouter
                 var iTo = Math.Min(_nx - 2, LowerBound(_xs, x1));
                 var jFrom = Math.Max(0, LowerBound(_ys, y0));
                 var jTo = Math.Min(_ny - 1, LowerBound(_ys, y1));
+                _scanned += 1 + CandidateCount(iFrom, iTo, jFrom, jTo);
                 for (var i = iFrom; i <= iTo; i++)
                 {
                     for (var j = jFrom; j <= jTo; j++)
@@ -1963,6 +2027,7 @@ internal static class OrthogonalEdgeRouter
                 iTo = Math.Min(_nx - 1, LowerBound(_xs, x1));
                 jFrom = Math.Max(0, LowerBound(_ys, y0) - 1);
                 jTo = Math.Min(_ny - 2, LowerBound(_ys, y1));
+                _scanned += CandidateCount(iFrom, iTo, jFrom, jTo);
                 for (var i = iFrom; i <= iTo; i++)
                 {
                     var x = _xs[i];
@@ -1979,8 +2044,19 @@ internal static class OrthogonalEdgeRouter
                         }
                     }
                 }
+
+                if (ChargeScanned())
+                {
+                    return false;
+                }
             }
+
+            return true;
         }
+
+        /// <summary>The number of candidate grid edges of an index range, for the scan accounting.</summary>
+        private static long CandidateCount(int iFrom, int iTo, int jFrom, int jTo) =>
+            Math.Max(0L, iTo - iFrom + 1L) * Math.Max(0L, jTo - jFrom + 1L);
 
         /// <summary>
         /// Accumulates, per grid edge, the length by which it overlaps the soft obstacles (summed in the
@@ -2003,6 +2079,7 @@ internal static class OrthogonalEdgeRouter
                     var iTo = Math.Min(_nx - 2, LowerBound(_xs, right));
                     var jFrom = Math.Max(0, LowerBound(_ys, r.Y));
                     var jTo = Math.Min(_ny - 1, LowerBound(_ys, bottom));
+                    _scanned += 1 + CandidateCount(iFrom, iTo, jFrom, jTo);
                     for (var i = iFrom; i <= iTo; i++)
                     {
                         for (var j = jFrom; j <= jTo; j++)
@@ -2023,6 +2100,7 @@ internal static class OrthogonalEdgeRouter
                     iTo = Math.Min(_nx - 1, LowerBound(_xs, right));
                     jFrom = Math.Max(0, LowerBound(_ys, r.Y) - 1);
                     jTo = Math.Min(_ny - 2, LowerBound(_ys, bottom));
+                    _scanned += CandidateCount(iFrom, iTo, jFrom, jTo);
                     for (var i = iFrom; i <= iTo; i++)
                     {
                         var x = _xs[i];
@@ -2039,6 +2117,12 @@ internal static class OrthogonalEdgeRouter
                                 s.SoftOverlap[_nodes + (i * _ny) + j] += overlap;
                             }
                         }
+                    }
+
+                    if (ChargeScanned())
+                    {
+                        _scanAborted = true;
+                        return;
                     }
                 }
             }
@@ -2061,6 +2145,7 @@ internal static class OrthogonalEdgeRouter
                     var iTo = Math.Min(_nx - 2, LowerBound(_xs, right));
                     var jFrom = Math.Max(0, LowerBound(_ys, r.Y));
                     var jTo = Math.Min(_ny - 1, LowerBound(_ys, bottom));
+                    _scanned += 1 + CandidateCount(iFrom, iTo, jFrom, jTo);
                     for (var i = iFrom; i <= iTo; i++)
                     {
                         for (var j = jFrom; j <= jTo; j++)
@@ -2081,6 +2166,7 @@ internal static class OrthogonalEdgeRouter
                     var iTo = Math.Min(_nx - 1, LowerBound(_xs, right));
                     var jFrom = Math.Max(0, LowerBound(_ys, r.Y) - 1);
                     var jTo = Math.Min(_ny - 2, LowerBound(_ys, bottom));
+                    _scanned += CandidateCount(iFrom, iTo, jFrom, jTo);
                     for (var i = iFrom; i <= iTo; i++)
                     {
                         var x = _xs[i];
@@ -2097,6 +2183,12 @@ internal static class OrthogonalEdgeRouter
                             }
                         }
                     }
+                }
+
+                if (ChargeScanned())
+                {
+                    _scanAborted = true;
+                    return;
                 }
             }
         }
@@ -2192,6 +2284,7 @@ internal static class OrthogonalEdgeRouter
                 extraCost += _extras.ZonePenalty(_xs, _ys, i1, j1, !horizontal);
                 if (_extras.CrossingPenalty > 0.0 && softOverlap > 0.0)
                 {
+                    _scanned += _softObstacles.Count;
                     extraCost += _extras.CrossingPenalty * SoftCrossingCount(_xs, _ys, i1, j1, i2, j2, _softObstacles);
                 }
 

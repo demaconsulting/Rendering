@@ -591,7 +591,7 @@ public sealed partial class HierarchicalLayoutAlgorithm : LayoutAlgorithmBase
         {
             // A scope with this many connectors over this many nodes is known from its size alone to be
             // too costly for the full routing effort (see RoutingWorkLimits.ReducedWeight).
-            effective.Get(RoutingBudget)?.NoteScopeWeight((long)routedEdges.Count * (descendantToDirect.Count + graph.Nodes.Count));
+            effective.Get(RoutingBudget)?.NoteScopeWeight((long)routedEdges.Count * descendantToDirect.Count);
         }
 
         // Such a scope is laid out and routed once, so every container a routed connector enters keeps the

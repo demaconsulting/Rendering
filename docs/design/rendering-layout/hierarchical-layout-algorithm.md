@@ -318,21 +318,23 @@ work budget, and a scope too large for the full effort is routed at a reduced ef
   budget, so the passes made last are the first to be reduced and a heavy scope can neither starve nor be starved
   by another. The limits come from `DefaultRoutingWorkLimits`.
 - **Weight.** A routed pass tells the budget the scope's *weight*, the number of connectors routed times the number
-  of nodes under the scope; from the weight limit (600) the scope starts in the reduced tier, because spending part
+  of nodes under the scope (every descendant, direct members included, counted once); from the weight limit (540) the
+  scope starts in the reduced tier, because spending part
   of the budget to find out that a 40-connector scope is too big only delays the same outcome. The weight of every
-  benchmark scene is at most 364; a scope of ten connectors over six folders of five leaves weighs 420 and is still
+  benchmark scene is at most 338; a scope of ten connectors over six folders of five leaves weighs 360 and is still
   routed in full.
-- **Work.** The router charges grid nodes built, states expanded and connectivity-sweep nodes visited. At the soft
-  limit (80 million units, roughly 8 to 17 seconds on a development machine at the measured 95 to 210 nanoseconds per
-  unit, and more on a loaded or instrumented one) the scope drops to the reduced tier; at the hard limit (160 million)
-  to the minimal tier. The limits bound the work of one scope and one budget, not of a layout: each scope-pass of a
-  nested hierarchy gets a fresh budget, so a hierarchy of many heavy scopes spends their sum (a hierarchy of four
-  sub-packages of three folders spent 280 million units over 364 routed passes with no scope above 30 million, and took
-  35 to 41 seconds; the route-pass cache below removes about four fifths of that work without changing a coordinate).
-  That is a known limitation of the per-scope budget, not changed here (the benchmark scenes and the
-  gallery must stay byte-identical); a budget for the whole layout is a possible follow-up. The heaviest benchmark scene
-  needs about 53 million units, so no benchmark scene is ever limited (`LargeScopeLayoutTests` asserts that none of
-  them carries the reduced-effort warning, so a future change that makes routing dearer is noticed).
+- **Work.** The router charges grid nodes built, states expanded, connectivity-sweep nodes visited and the candidate
+  grid edges its obstacle and soft-term scans test (one unit per 32). At the soft limit (80 million units, roughly 8 to
+  17 seconds on a development machine at the measured 95 to 210 nanoseconds per unit, and more on a loaded or
+  instrumented one) the scope drops to the reduced tier; at the hard limit (160 million) to the minimal tier. The limits
+  bound the work of one scope and one budget, not of a layout: each scope-pass of a nested hierarchy gets a fresh
+  budget, so a hierarchy of many heavy scopes spends their sum (a hierarchy of four sub-packages of three folders spent
+  280 million units over 364 routed passes with no scope above 30 million, and took 35 to 41 seconds; the route-pass
+  cache below removes about four fifths of that work without changing a coordinate). That is a known limitation of the
+  per-scope budget, not changed here (the benchmark scenes and the gallery must stay byte-identical); a budget for the
+  whole layout is a possible follow-up. The heaviest benchmark scene needs about 40 million units, half the soft limit,
+  so no benchmark scene is ever limited (`LargeScopeLayoutTests` asserts that none of them carries the reduced-effort
+  warning, so a future change that makes routing dearer is noticed).
 - **Effect of the tier on the scope.** In the reduced tier the scope is not refined (`RefineCrossOrdering` returns the
   first pass), the reference and middle passes of `LayoutScopePass` are not made, and `RouteBatch` sheds the searches
   listed in *ConnectorRouter Unit Design*; the router also limits the soft lanes of every search (see
@@ -393,7 +395,7 @@ inflated and noisy):
 | Nested, oversize (80 package connectors) | 140 | 0.18 |
 | Nested, everyday (4 sub-packages of 3 folders of 4 leaves) | 66 | 12 |
 
-The time of the full effort (E up to 10) is seconds and grows quickly with the connector count; from 16 connectors
+The time of the full effort (E up to 10) is seconds and grows quickly with the connector count; from 15 connectors
 the scope is routed at the reduced effort and the time drops to milliseconds, then grows by 2.5 to 4 times per
 doubling of E: about E<sup>1.7</sup> from 80 to 640 connectors on this loaded machine (the exponent between two
 doublings ranges from 1.3 to 2.0 with the load; on a quiet moment single runs gave about E<sup>1.5</sup>). That is well

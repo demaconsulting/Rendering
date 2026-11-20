@@ -183,7 +183,7 @@ The time it takes to route the cross-container connectors of one scope is bounde
 scope with the full effort (several alternative faces per connector, re-routing passes, extra layouts of the
 scope) is only affordable for scopes of a moderate size, so each scope has a deterministic work budget that counts
 routing work — never time, so the result is the same on every run and platform. A scope with many connectors over
-many nodes (a package of 40 cross-container connectors, say; the limit is 600 connectors times nodes) is routed at a
+many nodes (a package of 40 cross-container connectors, say; the limit is 540 connectors times nodes) is routed at a
 reduced effort: every connector still gets an orthogonal route, but without the extra searches for a better face or
 fewer crossings, and without the extra layouts. A connector with no free route between its plain pair of faces is
 drawn with a simple elbow that may cross boxes (about 4 percent of the connectors of the 291-connector Annex A
