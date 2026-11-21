@@ -1,50 +1,38 @@
 // Views rendered into docs/design/generated/ for the Design document.
-// The repository contains five systems (one per NuGet package), so the overview is a
-// general view exposing each system part def and each unit part def by qualified name
-// (every package is uniquely named, with one file per package), plus the shared OTS
-// package, with documentation filtered out to keep the diagram readable. Per SysML2Tools syntax,
-// 'expose' is only valid inside a named 'view' usage (not a 'view def' definition), and
-// it - not the view definition - is what scopes the rendered diagram content.
+//
+// The repository contains five systems (one per NuGet package) and a shared OTS package. An
+// interconnection view draws a part def's interior (SysML2Tools 0.3.0-beta.4+), so each system
+// is a frame with its subsystem and unit part usages nested inside and the unit defs themselves
+// are not exposed. Interconnection views place the exposed systems side by side in one row, and
+// all five in one row measure about 2470 pixels, so the systems are split over two views to stay
+// readable at document width (each about 1600 pixels or less):
+//   - SoftwareStructureView: the Abstractions and Layout systems, the contracts and the
+//     algorithms built on them.
+//   - ModelAndRenderersView: the Model system and the SVG and CanvasNet renderer systems.
+//   - OtsView: the shared OTS package as a package frame of part defs, kept out of the others.
+// Per SysML2Tools syntax, 'expose' is only valid inside a named 'view' usage (not a 'view def'
+// definition), and it - not the view definition - is what scopes the rendered diagram content.
+// Documentation and metadata defs (SoftwareInfo, which every package imports) are filtered out of
+// every view so doc compartments and metadata boxes cannot appear; the 'not (...)' parentheses are
+// required by the filter grammar.
 package RenderingDesignViews {
     private import StandardViewDefinitions::*;
 
-    view SoftwareStructureView : GeneralView {
-        expose RenderingModel::RenderingModelSystem;
-        expose RenderingModel_LayoutGraph::LayoutGraph;
-        expose RenderingModel_LayoutTree::LayoutTree;
-        expose RenderingModel_Options::Options;
+    view SoftwareStructureView : InterconnectionView {
         expose RenderingAbstractions::RenderingAbstractionsSystem;
-        expose RenderingAbstractions_BoxMetrics::BoxMetrics;
-        expose RenderingAbstractions_ConnectorLabelPlacer::ConnectorLabelPlacer;
-        expose RenderingAbstractions_NotationMetrics::NotationMetrics;
-        expose RenderingAbstractions_PortLabelWidthEstimator::PortLabelWidthEstimator;
-        expose RenderingAbstractions_Registries::Registries;
-        expose RenderingAbstractions_RenderingContracts::RenderingContracts;
-        expose RenderingAbstractions_Theme::Theme;
         expose RenderingLayout::RenderingLayoutSystem;
-        expose RenderingLayout_AutoLayoutAlgorithm::AutoLayoutAlgorithm;
-        expose RenderingLayout_ConnectorRouter::ConnectorRouter;
-        expose RenderingLayout_ContainmentLayout::ContainmentLayout;
-        expose RenderingLayout_ContainmentLayoutAlgorithm::ContainmentLayoutAlgorithm;
-        expose RenderingLayout_DefaultLayout::DefaultLayout;
-        expose RenderingLayout_EdgeRoutingOption::EdgeRoutingOption;
-        expose RenderingLayout_Engine::Engine;
-        expose RenderingLayout_CanvasFitter::CanvasFitter;
-        expose RenderingLayout_ContainmentPacker::ContainmentPacker;
-        expose RenderingLayout_EdgeCountGapWidener::EdgeCountGapWidener;
-        expose RenderingLayout_InterconnectionLayoutEngine::InterconnectionLayoutEngine;
-        expose RenderingLayout_LayeredPipeline::LayeredPipeline;
-        expose RenderingLayout_LayoutTreePacker::LayoutTreePacker;
-        expose RenderingLayout_OrthogonalEdgeRouter::OrthogonalEdgeRouter;
-        expose RenderingLayout_HierarchicalLayoutAlgorithm::HierarchicalLayoutAlgorithm;
-        expose RenderingLayout_LayeredLayoutAlgorithm::LayeredLayoutAlgorithm;
+        filter not (@SysML::Documentation or @SysML::MetadataDefinition);
+    }
+
+    view ModelAndRenderersView : InterconnectionView {
+        expose RenderingModel::RenderingModelSystem;
         expose RenderingSvg::RenderingSvgSystem;
-        expose RenderingSvg_SvgRenderer::SvgRenderer;
         expose RenderingCanvasNet::RenderingCanvasNetSystem;
-        expose RenderingCanvasNet_CanvasNetRasterRenderer::CanvasNetRasterRenderer;
-        expose RenderingCanvasNet_JpegRenderer::JpegRenderer;
-        expose RenderingCanvasNet_PngRenderer::PngRenderer;
-        expose OtsDependencies::**;
-        filter not (@SysML::Documentation);
+        filter not (@SysML::Documentation or @SysML::MetadataDefinition);
+    }
+
+    view OtsView : GeneralView {
+        expose OtsDependencies::*;
+        filter not (@SysML::Documentation or @SysML::MetadataDefinition);
     }
 }

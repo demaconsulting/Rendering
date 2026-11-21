@@ -106,7 +106,15 @@ machine-queryable source of structure. AI agents should query the SysML2 model d
 (see the `sysml2tools-query` skill) rather than parsing this diagram before deep-diving into
 source code.
 
-![Software Structure](SoftwareStructureView.svg)
+Each system is drawn as an interconnection frame with its subsystem and unit parts nested inside. The
+Abstractions and Layout systems are shown first, then the Model system with the SVG and CanvasNet renderer
+systems, then the shared OTS items:
+
+![Software Structure: Abstractions and Layout](SoftwareStructureView.svg)
+
+![Software Structure: Model and Renderers](ModelAndRenderersView.svg)
+
+![Off-the-shelf (OTS) items](OtsView.svg)
 
 The diagram below complements the structure view by showing the libraries in their run-time
 context: the calling application describes a diagram as a `LayoutGraph` in the core model, a
