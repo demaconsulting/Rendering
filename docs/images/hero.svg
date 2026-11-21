@@ -10,7 +10,7 @@
     <style>
       .word { font: bold 92px sans-serif; fill: #ffffff; }
       .eyebrow { font: bold 25px sans-serif; fill: #a5b4fc; }
-      .tag { font: bold 40px sans-serif; fill: #f8fafc; }
+      .tag { font: bold 36px sans-serif; fill: #f8fafc; }
       .body { font: 25px sans-serif; fill: #cbd5e1; }
       .cmd { font: 25px monospace; fill: #e2e8f0; }
       .prompt { fill: #5eead4; }
@@ -116,21 +116,22 @@
   <!-- Wordmark and tagline -->
   <image href="hero/dc-logo-dark.svg" x="46" y="54" width="50" height="50"/>
   <text class="eyebrow" x="100" y="90">DEMA Consulting</text>
+  <!-- "ing" starts at x = 368.9, measured against "Rendering" drawn as one text at 92px (it matches the width table). -->
   <text class="word" x="52" y="176">Render</text>
   <text class="word brandText" x="368.9" y="176">ing</text>
   <rect x="58" y="200" width="132" height="6" rx="3" fill="url(#brand)"/>
-  <text class="tag" x="56" y="266">Boxes and edges in.</text>
-  <text class="tag brandText" x="56" y="316">Tidy diagrams out.</text>
-  <text class="body" x="58" y="368">A .NET library that lays out nested</text>
-  <text class="body" x="58" y="402">graphs, routes orthogonal edges, and</text>
-  <text class="body" x="58" y="436">draws SVG, PNG, or JPEG diagrams.</text>
+  <text class="tag" x="56" y="266">Diagram layout for .NET</text>
+  <text class="tag" x="56" y="314" style="fill: #a5b4fc">to SVG, PNG, or JPEG.</text>
+  <text class="body" x="58" y="368">Takes a graph of nodes, ports, and</text>
+  <text class="body" x="58" y="402">nested containers; places them and</text>
+  <text class="body" x="58" y="436">routes orthogonal connectors.</text>
   <!-- The command box: the one-call layout from the user guide quickstart -->
   <rect x="56" y="468" width="480" height="90" rx="12" fill="#0a1022" fill-opacity="0.8" stroke="#a78bfa" stroke-opacity="0.45" stroke-width="1.5"/>
   <text class="cmd" x="78" y="503">var tree = LayoutEngine</text>
   <text class="cmd" x="108" y="539">.Layout(</text>
   <text class="cmd file" x="228" y="539">graph</text>
   <text class="cmd" x="303" y="539">);</text>
-  <text class="note" x="58" y="604">SVG output with zero dependencies.</text>
+  <text class="note" x="58" y="604">SVG renderer: no runtime dependencies</text>
 
   <!-- Input cards -->
   <g>
