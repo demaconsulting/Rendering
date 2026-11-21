@@ -9,8 +9,9 @@ with the same `dotnet tool restore` and CI pipeline used by the other pipeline t
 
 ### Features Used
 
-- **Lint** (`lint 'docs/sysml2/**/*.sysml'`) — reports syntax errors and unresolved references in
-  the model without producing output files; run from `lint.ps1`.
+- **Lint** (`lint --strict-unresolved 'docs/sysml2/**/*.sysml'`) — reports syntax errors and unresolved
+  references in the model without producing output files; `--strict-unresolved` makes an unresolved
+  reference a lint error rather than a tolerated one; run from `lint.ps1`.
 - **Render** (`render --format svg`) — renders every view declared in
   `docs/sysml2/views/design-views.sysml` to an SVG file named after the view (for example
   `SoftwareStructureView.svg`).
@@ -21,7 +22,7 @@ with the same `dotnet tool restore` and CI pipeline used by the other pipeline t
 
 SysML2Tools is installed as a .NET local tool via `.config/dotnet-tools.json` and invoked as
 `dotnet sysml2tools` from two places: `lint.ps1` runs
-`dotnet sysml2tools lint 'docs/sysml2/**/*.sysml'` as an early-detection lint gate, and the
+`dotnet sysml2tools lint --strict-unresolved 'docs/sysml2/**/*.sysml'` as an early-detection lint gate, and the
 design-document section of `.github/workflows/build.yaml` runs the following command
 
 ```pwsh

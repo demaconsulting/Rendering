@@ -109,7 +109,7 @@ if (-not $skipDotnetTools) {
 
     # [PROJECT-SPECIFIC] SysML2 architecture model validation.
     if (Test-Path docs/sysml2) {
-        dotnet sysml2tools lint 'docs/sysml2/**/*.sysml'
+        dotnet sysml2tools lint --strict-unresolved 'docs/sysml2/**/*.sysml'
         if ($LASTEXITCODE -ne 0) { $lintError = $true }
     }
 }

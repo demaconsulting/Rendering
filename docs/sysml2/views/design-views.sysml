@@ -2,7 +2,10 @@
 // The repository contains five systems (one per NuGet package), so the overview is a
 // general view exposing each system part def and each unit part def by qualified name
 // (every package is uniquely named, with one file per package), plus the shared OTS
-// package, with documentation filtered out to keep the diagram readable. Per SysML2Tools syntax,
+// package, with documentation filtered out to keep the diagram readable. Part usages are also
+// filtered out: without that filter every exposed part def draws its owned part usages as a
+// diamond-linked tree, which makes the diagram over 3700 px wide; with it each system and unit
+// lists its parts in a compartment and the diagram stays near 1250 px. Per SysML2Tools syntax,
 // 'expose' is only valid inside a named 'view' usage (not a 'view def' definition), and
 // it - not the view definition - is what scopes the rendered diagram content.
 package RenderingDesignViews {
@@ -45,6 +48,6 @@ package RenderingDesignViews {
         expose RenderingCanvasNet_JpegRenderer::JpegRenderer;
         expose RenderingCanvasNet_PngRenderer::PngRenderer;
         expose OtsDependencies::**;
-        filter not (@SysML::Documentation);
+        filter not (@SysML::Documentation or @SysML::PartUsage);
     }
 }
