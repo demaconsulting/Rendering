@@ -12,22 +12,23 @@
 //   - OtsView: the shared OTS package as a package frame of part defs, kept out of the others.
 // Per SysML2Tools syntax, 'expose' is only valid inside a named 'view' usage (not a 'view def'
 // definition), and it - not the view definition - is what scopes the rendered diagram content.
-// Metadata defs (SoftwareInfo) are imported by every package, so the views filter them out; the
-// 'not (...)' parentheses are required by the filter grammar.
+// Documentation and metadata defs (SoftwareInfo, which every package imports) are filtered out of
+// every view so doc compartments and metadata boxes cannot appear; the 'not (...)' parentheses are
+// required by the filter grammar.
 package RenderingDesignViews {
     private import StandardViewDefinitions::*;
 
     view SoftwareStructureView : InterconnectionView {
         expose RenderingAbstractions::RenderingAbstractionsSystem;
         expose RenderingLayout::RenderingLayoutSystem;
-        filter not (@SysML::MetadataDefinition);
+        filter not (@SysML::Documentation or @SysML::MetadataDefinition);
     }
 
     view ModelAndRenderersView : InterconnectionView {
         expose RenderingModel::RenderingModelSystem;
         expose RenderingSvg::RenderingSvgSystem;
         expose RenderingCanvasNet::RenderingCanvasNetSystem;
-        filter not (@SysML::MetadataDefinition);
+        filter not (@SysML::Documentation or @SysML::MetadataDefinition);
     }
 
     view OtsView : GeneralView {

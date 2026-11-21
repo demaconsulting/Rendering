@@ -20,12 +20,11 @@ and writes a TRX file consumed by ReqStream.
 
 Second, `lint.ps1` runs `dotnet sysml2tools lint --strict-unresolved 'docs/sysml2/**/*.sysml'` against the actual
 Rendering model and fails the build on any syntax or reference error. The build-docs job runs
-`dotnet sysml2tools render` to produce one SVG file per declared view under
-`docs/design/generated/`. FileAssert then asserts that each declared view's SVG file exists, has
-a non-trivial size, and is well-formed XML with an `<svg>` root element
-(`SysML2Tools_SoftwareStructureViewSvg`), before Pandoc compiles the Design document, which embeds
-those SVG files by filename. A CI build failure at any of these steps is evidence that SysML2Tools
-did not produce the required model validation or diagrams against the real model.
+`dotnet sysml2tools render` to produce one SVG file per declared view under `docs/design/generated/`. FileAssert then
+asserts that each declared view's SVG file exists, has a non-trivial size, and is well-formed XML with an `<svg>` root
+element (`SysML2Tools_SoftwareStructureViewSvg`, `SysML2Tools_ModelAndRenderersViewSvg`, and `SysML2Tools_OtsViewSvg`),
+before Pandoc compiles the Design document, which embeds those SVG files by filename. A CI build failure at any of these
+steps is evidence that SysML2Tools did not produce the required model validation or diagrams against the real model.
 
 ### Test Scenarios
 
@@ -51,11 +50,29 @@ against a known-good model fixture as part of its built-in self-test suite.
 #### SysML2Tools_SoftwareStructureViewSvg
 
 **Scenario**: The build-docs CI job runs `dotnet sysml2tools render` against the real Rendering
-model, then FileAssert checks the resulting files at
-`docs/design/generated/SoftwareStructureView.svg`, `docs/design/generated/ModelAndRenderersView.svg`,
-and `docs/design/generated/OtsView.svg`.
+model, then FileAssert checks the resulting file at `docs/design/generated/SoftwareStructureView.svg`.
 
-**Expected**: Exactly one file exists at each path, each is at least 100 bytes, and each is
+**Expected**: Exactly one file exists at that path, it is at least 100 bytes, and it is
+well-formed XML with a root element named `svg`.
+
+**Requirement coverage**: `Rendering-OTS-SysML2Tools-Render`.
+
+#### SysML2Tools_ModelAndRenderersViewSvg
+
+**Scenario**: The build-docs CI job runs `dotnet sysml2tools render` against the real Rendering
+model, then FileAssert checks the resulting file at `docs/design/generated/ModelAndRenderersView.svg`.
+
+**Expected**: Exactly one file exists at that path, it is at least 100 bytes, and it is
+well-formed XML with a root element named `svg`.
+
+**Requirement coverage**: `Rendering-OTS-SysML2Tools-Render`.
+
+#### SysML2Tools_OtsViewSvg
+
+**Scenario**: The build-docs CI job runs `dotnet sysml2tools render` against the real Rendering
+model, then FileAssert checks the resulting file at `docs/design/generated/OtsView.svg`.
+
+**Expected**: Exactly one file exists at that path, it is at least 100 bytes, and it is
 well-formed XML with a root element named `svg`.
 
 **Requirement coverage**: `Rendering-OTS-SysML2Tools-Render`.
@@ -64,4 +81,5 @@ well-formed XML with a root element named `svg`.
 
 - **`Rendering-OTS-SysML2Tools-Lint`**: SysML2Tools_LintSelfTest
 - **`Rendering-OTS-SysML2Tools-Render`**: SysML2Tools_RenderSvgSelfTest,
-  SysML2Tools_SoftwareStructureViewSvg
+  SysML2Tools_SoftwareStructureViewSvg, SysML2Tools_ModelAndRenderersViewSvg,
+  SysML2Tools_OtsViewSvg
