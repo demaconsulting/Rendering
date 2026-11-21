@@ -1,4 +1,4 @@
-# Rendering
+# ![Rendering: Diagram layout for .NET to SVG, PNG, or JPEG][hero]
 
 [![GitHub forks][badge-forks]][link-forks]
 [![GitHub stars][badge-stars]][link-stars]
@@ -8,8 +8,6 @@
 [![Quality Gate][badge-quality]][link-quality]
 [![Security][badge-security]][link-security]
 [![NuGet][badge-nuget]][link-nuget]
-
-![Rendering banner: the Rendering name with the tagline 'Boxes and edges in. Tidy diagrams out.' and the C# call 'var tree = LayoutEngine.Layout(graph);'. A graph built in code with AddNode and AddEdge, node sizes and ports, nested containers, and layout options such as Algorithm, Direction, and LayerSpacing flow on curved arrows into the LayoutEngine .NET library, and arrows lead out to what it produces: a placed layout of nested boxes joined by routed orthogonal connectors, an SVG drawing, PNG and JPEG images, and the light, dark, and print themes][hero]
 
 General-purpose diagram layout and rendering for .NET. Describe a diagram as a graph, lay it out
 with a pluggable algorithm, and render it to SVG, PNG, or JPEG. The design is inspired by the
