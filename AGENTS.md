@@ -119,6 +119,15 @@ of the package references listed in `csharp-testing.md`:
   rejects VSTest-based projects under the MTP runner.
 - Produce TRX results with `dotnet test --report-trx` (not `--logger trx`).
 
+## SysML2 package structure (legacy layout, migration pending)
+
+The model under `docs/sysml2/` declares one uniquely named package per file, but the engine subsystem
+(`model/rendering-layout/engine/engine.sysml`) predates the subsystem naming rule: it uses package
+`RenderingLayout_Engine` and `part def Engine` (qualified name `RenderingLayout_Engine::Engine`) rather than
+`RenderingLayout_EngineSubsystem` / `EngineSubsystem`. The `sysml2-modeling.md` Package Structure rules and the
+`sysml2tools-query` qualified-name examples apply once the model is migrated in a dedicated PR; until then agents use
+the existing package names and must not partially restructure the model.
+
 # Agent Delegation Guidelines
 
 The default agent should handle simple, straightforward tasks directly.
