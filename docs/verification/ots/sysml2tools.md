@@ -51,10 +51,11 @@ against a known-good model fixture as part of its built-in self-test suite.
 #### SysML2Tools_SoftwareStructureViewSvg
 
 **Scenario**: The build-docs CI job runs `dotnet sysml2tools render` against the real Rendering
-model, then FileAssert checks the resulting file at
-`docs/design/generated/SoftwareStructureView.svg`.
+model, then FileAssert checks the resulting files at
+`docs/design/generated/SoftwareStructureView.svg`, `docs/design/generated/ModelAndRenderersView.svg`,
+and `docs/design/generated/OtsView.svg`.
 
-**Expected**: Exactly one file exists at that path, it is at least 100 bytes, and it is
+**Expected**: Exactly one file exists at each path, each is at least 100 bytes, and each is
 well-formed XML with a root element named `svg`.
 
 **Requirement coverage**: `Rendering-OTS-SysML2Tools-Render`.

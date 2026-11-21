@@ -144,10 +144,22 @@ tests:
   # --- DESIGN DOCUMENT ---
 
   - name: SysML2Tools_SoftwareStructureViewSvg
-    description: "Software Structure View diagram was rendered by SysML2Tools"
+    description: "Software structure view diagrams were rendered by SysML2Tools"
     tags: [design]
     files:
       - pattern: "docs/design/generated/SoftwareStructureView.svg"
+        count: 1
+        min-size: 100
+        xml:
+          - query: "//*[local-name()='svg']"
+            count: 1
+      - pattern: "docs/design/generated/ModelAndRenderersView.svg"
+        count: 1
+        min-size: 100
+        xml:
+          - query: "//*[local-name()='svg']"
+            count: 1
+      - pattern: "docs/design/generated/OtsView.svg"
         count: 1
         min-size: 100
         xml:
