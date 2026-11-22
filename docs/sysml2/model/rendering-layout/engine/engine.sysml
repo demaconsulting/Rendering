@@ -1,11 +1,11 @@
 package RenderingLayout_Engine {
-    private import RenderingLayout_CanvasFitter::*;
-    private import RenderingLayout_ContainmentPacker::*;
-    private import RenderingLayout_EdgeCountGapWidener::*;
-    private import RenderingLayout_InterconnectionLayoutEngine::*;
-    private import RenderingLayout_LayeredPipeline::*;
-    private import RenderingLayout_LayoutTreePacker::*;
-    private import RenderingLayout_OrthogonalEdgeRouter::*;
+    public import RenderingLayout_CanvasFitter::*;
+    public import RenderingLayout_ContainmentPacker::*;
+    public import RenderingLayout_EdgeCountGapWidener::*;
+    public import RenderingLayout_InterconnectionLayoutEngine::*;
+    public import RenderingLayout_LayeredPipeline::*;
+    public import RenderingLayout_LayoutTreePacker::*;
+    public import RenderingLayout_OrthogonalEdgeRouter::*;
     private import SoftwareItemMetadata::*;
 
     part def Engine {

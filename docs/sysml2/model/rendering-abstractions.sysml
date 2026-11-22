@@ -1,11 +1,11 @@
 package RenderingAbstractions {
-    private import RenderingAbstractions_BoxMetrics::*;
-    private import RenderingAbstractions_ConnectorLabelPlacer::*;
-    private import RenderingAbstractions_NotationMetrics::*;
-    private import RenderingAbstractions_PortLabelWidthEstimator::*;
-    private import RenderingAbstractions_Registries::*;
-    private import RenderingAbstractions_RenderingContracts::*;
-    private import RenderingAbstractions_Theme::*;
+    public import RenderingAbstractions_BoxMetrics::*;
+    public import RenderingAbstractions_ConnectorLabelPlacer::*;
+    public import RenderingAbstractions_NotationMetrics::*;
+    public import RenderingAbstractions_PortLabelWidthEstimator::*;
+    public import RenderingAbstractions_Registries::*;
+    public import RenderingAbstractions_RenderingContracts::*;
+    public import RenderingAbstractions_Theme::*;
     private import SoftwareItemMetadata::*;
 
     doc /* DemaConsulting.Rendering.Abstractions is the service-provider interface between the layout model, the layout algorithms, and the renderers. */
