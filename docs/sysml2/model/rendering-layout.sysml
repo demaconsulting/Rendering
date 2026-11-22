@@ -1,13 +1,13 @@
 package RenderingLayout {
-    private import RenderingLayout_AutoLayoutAlgorithm::*;
-    private import RenderingLayout_ConnectorRouter::*;
-    private import RenderingLayout_ContainmentLayout::*;
-    private import RenderingLayout_ContainmentLayoutAlgorithm::*;
-    private import RenderingLayout_DefaultLayout::*;
-    private import RenderingLayout_EdgeRoutingOption::*;
-    private import RenderingLayout_Engine::*;
-    private import RenderingLayout_HierarchicalLayoutAlgorithm::*;
-    private import RenderingLayout_LayeredLayoutAlgorithm::*;
+    public import RenderingLayout_AutoLayoutAlgorithm::*;
+    public import RenderingLayout_ConnectorRouter::*;
+    public import RenderingLayout_ContainmentLayout::*;
+    public import RenderingLayout_ContainmentLayoutAlgorithm::*;
+    public import RenderingLayout_DefaultLayout::*;
+    public import RenderingLayout_EdgeRoutingOption::*;
+    public import RenderingLayout_Engine::*;
+    public import RenderingLayout_HierarchicalLayoutAlgorithm::*;
+    public import RenderingLayout_LayeredLayoutAlgorithm::*;
     private import SoftwareItemMetadata::*;
 
     doc /* DemaConsulting.Rendering.Layout provides the pluggable layout algorithms and the reusable geometric engines they are built from. */

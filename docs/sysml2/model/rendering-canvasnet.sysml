@@ -1,7 +1,7 @@
 package RenderingCanvasNet {
-    private import RenderingCanvasNet_CanvasNetRasterRenderer::*;
-    private import RenderingCanvasNet_JpegRenderer::*;
-    private import RenderingCanvasNet_PngRenderer::*;
+    public import RenderingCanvasNet_CanvasNetRasterRenderer::*;
+    public import RenderingCanvasNet_JpegRenderer::*;
+    public import RenderingCanvasNet_PngRenderer::*;
     private import SoftwareItemMetadata::*;
     private import OtsDependencies::*;
 
