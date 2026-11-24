@@ -199,24 +199,25 @@ Before submitting a pull request, ensure all quality checks pass:
 
 ### 1. Build and Test
 
-```bash
-# Build the project
-dotnet build --configuration Release
+```pwsh
+# While iterating: only the test projects your changes affect
+pwsh ./build.ps1 -Changed
 
-# Run unit tests
-dotnet test --configuration Release
+# Before submitting a pull request: full build and all tests
+pwsh ./build.ps1 -All
 ```
 
-All tests must pass with zero warnings.
+All tests must pass with zero warnings. Run `pwsh ./build.ps1 -Help` for the other scopes.
 
 ### 2. Linting
 
 ```pwsh
-# After making changes: applies dotnet format, markdown, and YAML fixes silently
-pwsh ./fix.ps1
+# After making changes: applies dotnet format, markdown, and YAML fixes for the changed files
+pwsh ./fix.ps1 -Changed
 
-# Before submitting a pull request: all linters must pass
-pwsh ./lint.ps1
+# Before submitting a pull request: apply every fixer, then all linters must pass
+pwsh ./fix.ps1 -All
+pwsh ./lint.ps1 -All
 ```
 
 ### 3. Code Coverage
